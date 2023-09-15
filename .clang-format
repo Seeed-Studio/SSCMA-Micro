@@ -1,0 +1,190 @@
+# See https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# using clang-format based on style: Google
+# command: clang-format -i --style=file <file>
+
+Language: Cpp
+BasedOnStyle: Google
+ColumnLimit: 120
+
+IndentWidth: 4
+IndentCaseLabels: false
+
+AlwaysBreakTemplateDeclarations: false
+
+DerivePointerAlignment: false
+
+# someLongFunction(argument1,
+#                  argument2);
+AlignAfterOpenBracket: Align
+
+# int a            = 1;
+# int somelongname = 2;
+# double c         = 3;
+
+# int d    = 3;
+# /* A comment. */
+# double e = 4;
+AlignConsecutiveAssignments: true
+
+# int         aaaa = 12;
+# float       b = 23;
+# std::string ccc;
+
+# int  a = 42;
+# /* A comment. */
+# bool c = false;
+AlignConsecutiveDeclarations: true
+
+# int aaa = bbbbbbbbbbbbbbb
+#         + ccccccccccccccc;
+AlignOperands: true
+
+# true:                                   false:
+# int a;     // My comment a      vs.     int a; // My comment a
+# int b = 2; // comment  b                int b = 2; // comment about b
+AlignTrailingComments: true
+
+# true:
+# void myFunction(
+#     int a, int b, int c, int d, int e);
+
+# false:
+# void myFunction(int a,
+#                 int b,
+#                 int c,
+#                 int d,
+#                 int e);
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# true:                                  false:
+# aaaa =                         vs.     aaaa = "bbbb"
+#     "bbbb"                                    "cccc";
+#     "cccc";
+AlwaysBreakBeforeMultilineStrings: false
+
+# true:
+# void f() {
+#   f(aaaaaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaaaaaa,
+#     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa);
+# }
+
+# false:
+# void f() {
+#   f(aaaaaaaaaaaaaaaaaaaa,
+#     aaaaaaaaaaaaaaaaaaaa,
+#     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa);
+# }
+BinPackArguments: false
+
+# true:
+# void f(int aaaaaaaaaaaaaaaaaaaa, int aaaaaaaaaaaaaaaaaaaa,
+#        int aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) {}
+
+# false:
+# void f(int aaaaaaaaaaaaaaaaaaaa,
+#        int aaaaaaaaaaaaaaaaaaaa,
+#        int aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) {}
+BinPackParameters: false
+
+# LooooooooooongType loooooooooooooooooooooongVariable =
+#     someLooooooooooooooooongFunction();
+
+# bool value = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa +
+#                      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ==
+#                  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa &&
+#              aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa >
+#                  ccccccccccccccccccccccccccccccccccccccccc;
+BreakBeforeBinaryOperators: None
+
+# true:
+# veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongDescription
+#     ? firstValue
+#     : SecondValueVeryVeryVeryVeryLong;
+
+# false:
+# veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongDescription ?
+#     firstValue :
+#     SecondValueVeryVeryVeryVeryLong;
+BreakBeforeTernaryOperators: true
+
+# Constructor()
+#     : initializer1(),
+#       initializer2()
+BreakConstructorInitializers: BeforeColon
+
+# true:
+# const char* x = "veryVeryVeryVeryVeryVe"
+#                 "ryVeryVeryVeryVeryVery"
+#                 "VeryLongString";
+
+# false:
+# const char* x =
+#   "veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString";
+BreakStringLiterals: false
+
+# int i =         //  VeryVeryVeryVeryVeryLongComment
+#   longFunction( // Again a long comment
+#     arg);
+ContinuationIndentWidth: 2
+
+# true:                                  false:
+# namespace a {                  vs.     namespace a {
+# foo();                                 foo();
+# bar();                                 bar();
+# } // namespace a                       }
+FixNamespaceComments: true
+
+# # include "b.h"               into      #include "a.h"
+#                                         #include "b.h"
+# #include <lib/main.h>
+# #include "a.h"                          #include <lib/main.h>
+IncludeBlocks: Regroup
+
+# #if FOO
+#   #if BAR
+#     #include <foo>
+#   #endif
+# #endif
+IndentPPDirectives: BeforeHash
+
+# true:
+# LoooooooooooooooooooooooooooooooooooooooongReturnType
+#     LoooooooooooooooooooooooooooooooongFunctionDeclaration();
+
+# false:
+# LoooooooooooooooooooooooooooooooooooooooongReturnType
+# LoooooooooooooooooooooooooooooooongFunctionDeclaration();
+IndentWrappedFunctionNames: true
+
+# false:
+# // veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongComment with plenty of information
+# /* second veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongComment with plenty of information */
+
+# true:
+# // veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongComment with plenty of
+# // information
+# /* second veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongComment with plenty of
+#  * information */
+ReflowComments: false
+
+# Right:
+# struct test demo[] =
+# {
+#     {56,    23, "hello"},
+#     {-1, 93463, "world"},
+#     { 7,     5,    "!!"}
+# };
+AlignArrayOfStructures: Right
+
+
+# #define SHORT_NAME       42
+# #define LONGER_NAME      0x007f
+# #define EVEN_LONGER_NAME (2)
+# #define foo(x)           (x * x)
+# #define bar(y, z)        (y + z)
+AlignConsecutiveMacros: AcrossEmptyLines
+
+# int aaaa : 1;
+# int b    : 12;
+# int ccc  : 8;
+AlignConsecutiveBitFields: AcrossEmptyLines
