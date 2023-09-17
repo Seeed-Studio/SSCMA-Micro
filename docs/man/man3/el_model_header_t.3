@@ -1,0 +1,36 @@
+.TH "el_model_header_t" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+el_model_header_t \- Model Header Specification\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_types\&.h>\fP
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "unsigned char \fBb1\fP [8]"
+.br
+.ti -1c
+.RI "uint32_t \fBb4\fP [2]"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Model Header Specification\&. 
+
+[ 24 bits magic code | 4 bits id | 4 bits type | 24 bits size (unsigned) | 8 bits unused padding ] big-endian in file 
+.SH "Member Data Documentation"
+.PP 
+.SS "unsigned char el_model_header_t::b1[8]"
+
+.SS "uint32_t el_model_header_t::b4[2]"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

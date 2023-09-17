@@ -1,0 +1,136 @@
+.TH "sscma::StaticResourse" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::StaticResourse
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <static_resourse\&.hpp>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fB~StaticResourse\fP ()"
+.br
+.in -1c
+.SS "Static Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static \fBStaticResourse\fP * \fBget_static_resource\fP ()"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBDevice\fP * \fBdevice\fP"
+.br
+.ti -1c
+.RI "\fBTransport\fP * \fBtransport\fP"
+.br
+.ti -1c
+.RI "\fBModels\fP * \fBmodels\fP"
+.br
+.ti -1c
+.RI "\fBStorage\fP * \fBstorage\fP"
+.br
+.ti -1c
+.RI "\fBAlgorithmDelegate\fP * \fBalgorithm_delegate\fP"
+.br
+.ti -1c
+.RI "\fBEngine\fP * \fBengine\fP"
+.br
+.ti -1c
+.RI "\fBServer\fP * \fBinstance\fP"
+.br
+.ti -1c
+.RI "\fBExecutor\fP * \fBexecutor\fP"
+.br
+.ti -1c
+.RI "\fBCondition\fP * \fBaction_cond\fP"
+.br
+.ti -1c
+.RI "int32_t \fBboot_count\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBcurrent_model_id\fP"
+.br
+.ti -1c
+.RI "\fBel_algorithm_type_t\fP \fBcurrent_algorithm_type\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBcurrent_sensor_id\fP"
+.br
+.ti -1c
+.RI "std::atomic< bool > \fBis_ready\fP"
+.br
+.ti -1c
+.RI "std::atomic< bool > \fBis_sample\fP"
+.br
+.ti -1c
+.RI "std::atomic< bool > \fBis_invoke\fP"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBStaticResourse\fP ()"
+.br
+.ti -1c
+.RI "void \fBinter_init\fP ()"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "sscma::StaticResourse::~StaticResourse ()\fC [inline]\fP"
+
+.SS "sscma::StaticResourse::StaticResourse ()\fC [inline]\fP, \fC [protected]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "static \fBStaticResourse\fP* sscma::StaticResourse::get_static_resource ()\fC [inline]\fP, \fC [static]\fP"
+
+.SS "void sscma::StaticResourse::inter_init ()\fC [inline]\fP, \fC [protected]\fP"
+
+.SH "Member Data Documentation"
+.PP 
+.SS "\fBCondition\fP* sscma::StaticResourse::action_cond"
+
+.SS "\fBAlgorithmDelegate\fP* sscma::StaticResourse::algorithm_delegate"
+
+.SS "int32_t sscma::StaticResourse::boot_count"
+
+.SS "\fBel_algorithm_type_t\fP sscma::StaticResourse::current_algorithm_type"
+
+.SS "uint8_t sscma::StaticResourse::current_model_id"
+
+.SS "uint8_t sscma::StaticResourse::current_sensor_id"
+
+.SS "\fBDevice\fP* sscma::StaticResourse::device"
+
+.SS "\fBEngine\fP* sscma::StaticResourse::engine"
+
+.SS "\fBExecutor\fP* sscma::StaticResourse::executor"
+
+.SS "\fBServer\fP* sscma::StaticResourse::instance"
+
+.SS "std::atomic<bool> sscma::StaticResourse::is_invoke"
+
+.SS "std::atomic<bool> sscma::StaticResourse::is_ready"
+
+.SS "std::atomic<bool> sscma::StaticResourse::is_sample"
+
+.SS "\fBModels\fP* sscma::StaticResourse::models"
+
+.SS "\fBStorage\fP* sscma::StaticResourse::storage"
+
+.SS "\fBTransport\fP* sscma::StaticResourse::transport"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

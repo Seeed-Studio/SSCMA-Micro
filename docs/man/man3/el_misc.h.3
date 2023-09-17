@@ -1,0 +1,60 @@
+.TH "porting/el_misc.h" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+porting/el_misc.h
+.SH SYNOPSIS
+.br
+.PP
+\fC#include <cstdint>\fP
+.br
+\fC#include <cstdio>\fP
+.br
+
+.SS "Namespaces"
+
+.in +1c
+.ti -1c
+.RI " \fBedgelab\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBedgelab::el_sleep\fP (uint32_t ms)"
+.br
+.ti -1c
+.RI "uint64_t \fBedgelab::el_get_time_ms\fP (void)"
+.br
+.ti -1c
+.RI "uint64_t \fBedgelab::el_get_time_us\fP (void)"
+.br
+.ti -1c
+.RI "void * \fBedgelab::el_malloc\fP (size_t size)"
+.br
+.ti -1c
+.RI "void * \fBedgelab::el_calloc\fP (size_t nmemb, size_t size)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_free\fP (void *ptr)"
+.br
+.ti -1c
+.RI "int \fBedgelab::el_printf\fP (const char *format,\&.\&.\&.)"
+.br
+.ti -1c
+.RI "int \fBedgelab::el_putchar\fP (char c)"
+.br
+.ti -1c
+.RI "size_t \fBedgelab::el_getline\fP (char **lineptr, size_t *n, FILE *stream)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_reset\fP (void)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_status_led\fP (bool on)"
+.br
+.in -1c
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

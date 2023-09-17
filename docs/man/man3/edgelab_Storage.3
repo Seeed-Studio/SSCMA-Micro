@@ -1,0 +1,139 @@
+.TH "edgelab::Storage" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::Storage
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_data_storage\&.hpp>\fP
+.SS "Classes"
+
+.in +1c
+.ti -1c
+.RI "struct \fBIterator\fP"
+.br
+.in -1c
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBStorage\fP ()"
+.br
+.ti -1c
+.RI "\fB~Storage\fP ()"
+.br
+.ti -1c
+.RI "\fBStorage\fP (const \fBStorage\fP &)=delete"
+.br
+.ti -1c
+.RI "\fBStorage\fP & \fBoperator=\fP (const \fBStorage\fP &)=delete"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBinit\fP (const char *name=\fBCONFIG_EL_STORAGE_NAME\fP, const char *path=\fBCONFIG_EL_STORAGE_PATH\fP)"
+.br
+.ti -1c
+.RI "void \fBdeinit\fP ()"
+.br
+.ti -1c
+.RI "bool \fBcontains\fP (const char *key) const"
+.br
+.ti -1c
+.RI "template<typename ValueType , typename std::enable_if<!std::is_const< ValueType >::value >::type *  = nullptr> bool \fBget\fP (\fBtypes::el_storage_kv_t\fP< ValueType > &kv) const"
+.br
+.ti -1c
+.RI "template<typename ValueType , typename std::enable_if<!std::is_const< ValueType >::value &&std::is_lvalue_reference< ValueType >::value >::type *  = nullptr> bool \fBget\fP (\fBtypes::el_storage_kv_t\fP< ValueType > &&kv) const"
+.br
+.ti -1c
+.RI "size_t \fBget_value_size\fP (const char *key) const"
+.br
+.ti -1c
+.RI "template<typename ValueType , typename ValueTypeNoCVRef  = typename std::remove_cv<typename std::remove_reference<ValueType>::type>::type, typename std::enable_if< std::is_trivial< ValueTypeNoCVRef >::value||std::is_standard_layout< ValueTypeNoCVRef >::value >::type *  = nullptr> ValueTypeNoCVRef \fBget_value\fP (const char *key) const"
+.br
+.ti -1c
+.RI "template<typename KVType > \fBStorage\fP & \fBoperator>>\fP (KVType &&kv)"
+.br
+.ti -1c
+.RI "template<typename ValueType > bool \fBemplace\fP (const \fBtypes::el_storage_kv_t\fP< ValueType > &kv)"
+.br
+.ti -1c
+.RI "template<typename KVType > \fBStorage\fP & \fBoperator<<\fP (KVType &&kv)"
+.br
+.ti -1c
+.RI "template<typename ValueType > bool \fBtry_emplace\fP (const \fBtypes::el_storage_kv_t\fP< ValueType > &kv)"
+.br
+.ti -1c
+.RI "\fBIterator\fP \fBbegin\fP ()"
+.br
+.ti -1c
+.RI "\fBIterator\fP \fBend\fP ()"
+.br
+.ti -1c
+.RI "\fBIterator\fP \fBcbegin\fP () const"
+.br
+.ti -1c
+.RI "\fBIterator\fP \fBcend\fP () const"
+.br
+.ti -1c
+.RI "bool \fBerase\fP (const char *key)"
+.br
+.ti -1c
+.RI "void \fBclear\fP ()"
+.br
+.ti -1c
+.RI "bool \fBreset\fP ()"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::Storage::Storage ()"
+
+.SS "edgelab::Storage::~Storage ()"
+
+.SS "edgelab::Storage::Storage (const \fBStorage\fP &)\fC [delete]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "\fBStorage::Iterator\fP edgelab::Storage::begin ()"
+
+.SS "\fBStorage::Iterator\fP edgelab::Storage::cbegin () const"
+
+.SS "\fBStorage::Iterator\fP edgelab::Storage::cend () const"
+
+.SS "void edgelab::Storage::clear ()"
+
+.SS "bool edgelab::Storage::contains (const char * key) const"
+
+.SS "void edgelab::Storage::deinit ()"
+
+.SS "template<typename ValueType > bool edgelab::Storage::emplace (const \fBtypes::el_storage_kv_t\fP< ValueType > & kv)\fC [inline]\fP"
+
+.SS "\fBStorage::Iterator\fP edgelab::Storage::end ()"
+
+.SS "bool edgelab::Storage::erase (const char * key)"
+
+.SS "template<typename ValueType , typename std::enable_if<!std::is_const< ValueType >::value &&std::is_lvalue_reference< ValueType >::value >::type *  = nullptr> bool edgelab::Storage::get (\fBtypes::el_storage_kv_t\fP< ValueType > && kv) const\fC [inline]\fP"
+
+.SS "template<typename ValueType , typename std::enable_if<!std::is_const< ValueType >::value >::type *  = nullptr> bool edgelab::Storage::get (\fBtypes::el_storage_kv_t\fP< ValueType > & kv) const\fC [inline]\fP"
+
+.SS "template<typename ValueType , typename ValueTypeNoCVRef  = typename std::remove_cv<typename std::remove_reference<ValueType>::type>::type, typename std::enable_if< std::is_trivial< ValueTypeNoCVRef >::value||std::is_standard_layout< ValueTypeNoCVRef >::value >::type *  = nullptr> ValueTypeNoCVRef edgelab::Storage::get_value (const char * key) const\fC [inline]\fP"
+
+.SS "size_t edgelab::Storage::get_value_size (const char * key) const"
+
+.SS "\fBel_err_code_t\fP edgelab::Storage::init (const char * name = \fC\fBCONFIG_EL_STORAGE_NAME\fP\fP, const char * path = \fC\fBCONFIG_EL_STORAGE_PATH\fP\fP)"
+
+.SS "template<typename KVType > \fBStorage\fP& edgelab::Storage::operator<< (KVType && kv)\fC [inline]\fP"
+
+.SS "\fBStorage\fP& edgelab::Storage::operator= (const \fBStorage\fP &)\fC [delete]\fP"
+
+.SS "template<typename KVType > \fBStorage\fP& edgelab::Storage::operator>> (KVType && kv)\fC [inline]\fP"
+
+.SS "bool edgelab::Storage::reset ()"
+
+.SS "template<typename ValueType > bool edgelab::Storage::try_emplace (const \fBtypes::el_storage_kv_t\fP< ValueType > & kv)\fC [inline]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

@@ -1,0 +1,192 @@
+.TH "porting/espressif/boards/seeed_xiao_esp32s3/board.h" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+porting/espressif/boards/seeed_xiao_esp32s3/board.h
+.SH SYNOPSIS
+.br
+.PP
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBLED_0_PIN\fP   GPIO_NUM_21"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_MODULE_NAME\fP   'XIAO\-S3'"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_PWDN\fP   \-1"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_RESET\fP   \-1"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_VSYNC\fP   38"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_HREF\fP   47"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_PCLK\fP   13"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_XCLK\fP   10"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_SIOD\fP   40"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_SIOC\fP   39"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D0\fP   15"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D1\fP   17"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D2\fP   18"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D3\fP   16"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D4\fP   14"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D5\fP   12"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D6\fP   11"
+.br
+.ti -1c
+.RI "#define \fBCAMERA_PIN_D7\fP   48"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_MOSI\fP   9"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_MISO\fP   8"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_SCK\fP   7"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_CS\fP   2"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_DC\fP   4"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_RST\fP   \-1"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_BL\fP   \-1"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_PIXEL_CLOCK_HZ\fP   (40 * 1000 * 1000)"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_BK_LIGHT_ON_LEVEL\fP   0"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_BK_LIGHT_OFF_LEVEL\fP   !\fBBOARD_LCD_BK_LIGHT_ON_LEVEL\fP"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_H_RES\fP   240"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_V_RES\fP   240"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_CMD_BITS\fP   8"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_PARAM_BITS\fP   8"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_ROTATE\fP   SCR_DIR_BTRL"
+.br
+.ti -1c
+.RI "#define \fBLCD_HOST\fP   SPI2_HOST"
+.br
+.ti -1c
+.RI "#define \fBBOARD_LCD_CONTROLLER\fP   SCREEN_CONTROLLER_GC9A01"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define BOARD_LCD_BK_LIGHT_OFF_LEVEL   !\fBBOARD_LCD_BK_LIGHT_ON_LEVEL\fP"
+
+.SS "#define BOARD_LCD_BK_LIGHT_ON_LEVEL   0"
+
+.SS "#define BOARD_LCD_BL   \-1"
+
+.SS "#define BOARD_LCD_CMD_BITS   8"
+
+.SS "#define BOARD_LCD_CONTROLLER   SCREEN_CONTROLLER_GC9A01"
+
+.SS "#define BOARD_LCD_CS   2"
+
+.SS "#define BOARD_LCD_DC   4"
+
+.SS "#define BOARD_LCD_H_RES   240"
+
+.SS "#define BOARD_LCD_MISO   8"
+
+.SS "#define BOARD_LCD_MOSI   9"
+
+.SS "#define BOARD_LCD_PARAM_BITS   8"
+
+.SS "#define BOARD_LCD_PIXEL_CLOCK_HZ   (40 * 1000 * 1000)"
+
+.SS "#define BOARD_LCD_ROTATE   SCR_DIR_BTRL"
+
+.SS "#define BOARD_LCD_RST   \-1"
+
+.SS "#define BOARD_LCD_SCK   7"
+
+.SS "#define BOARD_LCD_V_RES   240"
+
+.SS "#define CAMERA_MODULE_NAME   'XIAO\-S3'"
+
+.SS "#define CAMERA_PIN_D0   15"
+
+.SS "#define CAMERA_PIN_D1   17"
+
+.SS "#define CAMERA_PIN_D2   18"
+
+.SS "#define CAMERA_PIN_D3   16"
+
+.SS "#define CAMERA_PIN_D4   14"
+
+.SS "#define CAMERA_PIN_D5   12"
+
+.SS "#define CAMERA_PIN_D6   11"
+
+.SS "#define CAMERA_PIN_D7   48"
+
+.SS "#define CAMERA_PIN_HREF   47"
+
+.SS "#define CAMERA_PIN_PCLK   13"
+
+.SS "#define CAMERA_PIN_PWDN   \-1"
+
+.SS "#define CAMERA_PIN_RESET   \-1"
+
+.SS "#define CAMERA_PIN_SIOC   39"
+
+.SS "#define CAMERA_PIN_SIOD   40"
+
+.SS "#define CAMERA_PIN_VSYNC   38"
+
+.SS "#define CAMERA_PIN_XCLK   10"
+
+.SS "#define LCD_HOST   SPI2_HOST"
+
+.SS "#define LED_0_PIN   GPIO_NUM_21"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

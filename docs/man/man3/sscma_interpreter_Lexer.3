@@ -1,0 +1,61 @@
+.TH "sscma::interpreter::Lexer" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::interpreter::Lexer
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <lexer\&.hpp>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBLexer\fP (const std::string &input) noexcept"
+.br
+.ti -1c
+.RI "\fB~Lexer\fP ()=default"
+.br
+.ti -1c
+.RI "\fBToken\fP \fBget_next_token\fP () noexcept"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "bool \fBadvance\fP () noexcept"
+.br
+.ti -1c
+.RI "std::string \fBget_constant\fP () noexcept"
+.br
+.ti -1c
+.RI "std::string \fBget_identifier\fP () noexcept"
+.br
+.ti -1c
+.RI "std::string \fBget_function_parms\fP () noexcept"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "sscma::interpreter::Lexer::Lexer (const std::string & input)\fC [inline]\fP, \fC [explicit]\fP, \fC [noexcept]\fP"
+
+.SS "sscma::interpreter::Lexer::~Lexer ()\fC [default]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "bool sscma::interpreter::Lexer::advance ()\fC [inline]\fP, \fC [protected]\fP, \fC [noexcept]\fP"
+
+.SS "std::string sscma::interpreter::Lexer::get_constant ()\fC [inline]\fP, \fC [protected]\fP, \fC [noexcept]\fP"
+
+.SS "std::string sscma::interpreter::Lexer::get_function_parms ()\fC [inline]\fP, \fC [protected]\fP, \fC [noexcept]\fP"
+
+.SS "std::string sscma::interpreter::Lexer::get_identifier ()\fC [inline]\fP, \fC [protected]\fP, \fC [noexcept]\fP"
+
+.SS "\fBToken\fP sscma::interpreter::Lexer::get_next_token ()\fC [inline]\fP, \fC [noexcept]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

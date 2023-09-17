@@ -1,0 +1,70 @@
+.TH "sscma::repl::Executor" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::repl::Executor
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <executor\&.hpp>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBExecutor\fP (size_t worker_stack_size=\fBREPL_EXECUTOR_STACK_SIZE\fP, size_t worker_priority=\fBREPL_EXECUTOR_PRIO\fP)"
+.br
+.ti -1c
+.RI "\fB~Executor\fP ()"
+.br
+.ti -1c
+.RI "void \fBstart\fP ()"
+.br
+.ti -1c
+.RI "void \fBstop\fP ()"
+.br
+.ti -1c
+.RI "void \fBadd_task\fP (\fBrepl_task_t\fP task)"
+.br
+.ti -1c
+.RI "const char * \fBget_worker_name\fP () const"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBrun\fP ()"
+.br
+.in -1c
+.SS "Static Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static void \fBc_run\fP (void *this_pointer)"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "sscma::repl::Executor::Executor (size_t worker_stack_size = \fC\fBREPL_EXECUTOR_STACK_SIZE\fP\fP, size_t worker_priority = \fC\fBREPL_EXECUTOR_PRIO\fP\fP)\fC [inline]\fP"
+
+.SS "sscma::repl::Executor::~Executor ()\fC [inline]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "void sscma::repl::Executor::add_task (\fBrepl_task_t\fP task)\fC [inline]\fP"
+
+.SS "static void sscma::repl::Executor::c_run (void * this_pointer)\fC [inline]\fP, \fC [static]\fP, \fC [protected]\fP"
+
+.SS "const char* sscma::repl::Executor::get_worker_name () const\fC [inline]\fP"
+
+.SS "void sscma::repl::Executor::run ()\fC [inline]\fP, \fC [protected]\fP"
+
+.SS "void sscma::repl::Executor::start ()\fC [inline]\fP"
+
+.SS "void sscma::repl::Executor::stop ()\fC [inline]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

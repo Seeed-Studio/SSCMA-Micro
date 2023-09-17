@@ -1,0 +1,73 @@
+.TH "porting/espressif/el_misc.cpp" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+porting/espressif/el_misc.cpp
+.SH SYNOPSIS
+.br
+.PP
+\fC#include <driver/gpio\&.h>\fP
+.br
+\fC#include <esp_timer\&.h>\fP
+.br
+\fC#include <freertos/FreeRTOS\&.h>\fP
+.br
+\fC#include <freertos/task\&.h>\fP
+.br
+\fC#include <cstdarg>\fP
+.br
+\fC#include <cstdint>\fP
+.br
+\fC#include <cstdio>\fP
+.br
+\fC#include 'core/el_compiler\&.h'\fP
+.br
+\fC#include 'porting/el_misc\&.h'\fP
+.br
+\fC#include 'porting/espressif/el_board_config\&.h'\fP
+.br
+
+.SS "Namespaces"
+
+.in +1c
+.ti -1c
+.RI " \fBedgelab\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBedgelab::el_sleep\fP (uint32_t ms)"
+.br
+.ti -1c
+.RI "uint64_t \fBedgelab::el_get_time_ms\fP (void)"
+.br
+.ti -1c
+.RI "uint64_t \fBedgelab::el_get_time_us\fP (void)"
+.br
+.ti -1c
+.RI "int \fBedgelab::el_printf\fP (const char *format,\&.\&.\&.)"
+.br
+.ti -1c
+.RI "int \fBedgelab::el_putchar\fP (char c)"
+.br
+.ti -1c
+.RI "void * \fBedgelab::el_malloc\fP (size_t size)"
+.br
+.ti -1c
+.RI "void * \fBedgelab::el_calloc\fP (size_t nmemb, size_t size)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_free\fP (void *ptr)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_reset\fP (void)"
+.br
+.ti -1c
+.RI "void \fBedgelab::el_status_led\fP (bool on)"
+.br
+.in -1c
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

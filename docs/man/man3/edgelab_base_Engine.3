@@ -1,0 +1,118 @@
+.TH "edgelab::base::Engine" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::base::Engine
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_engine_base\&.h>\fP
+.PP
+Inherited by \fBedgelab::EngineTFLite\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBEngine\fP ()=default"
+.br
+.ti -1c
+.RI "virtual \fB~Engine\fP ()=default"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBinit\fP ()=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBinit\fP (size_t size)=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBinit\fP (void *pool, size_t size)=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBrun\fP ()=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBload_model\fP (const void *model_data, size_t model_size)=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBset_input\fP (size_t index, const void *input_data, size_t input_size)=0"
+.br
+.ti -1c
+.RI "virtual void * \fBget_input\fP (size_t index)=0"
+.br
+.ti -1c
+.RI "virtual void * \fBget_output\fP (size_t index)=0"
+.br
+.ti -1c
+.RI "virtual \fBel_shape_t\fP \fBget_input_shape\fP (size_t index) const =0"
+.br
+.ti -1c
+.RI "virtual \fBel_shape_t\fP \fBget_output_shape\fP (size_t index) const =0"
+.br
+.ti -1c
+.RI "virtual \fBel_quant_param_t\fP \fBget_input_quant_param\fP (size_t index) const =0"
+.br
+.ti -1c
+.RI "virtual \fBel_quant_param_t\fP \fBget_output_quant_param\fP (size_t index) const =0"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::base::Engine::Engine ()\fC [default]\fP"
+
+.SS "virtual edgelab::base::Engine::~Engine ()\fC [virtual]\fP, \fC [default]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual void* edgelab::base::Engine::get_input (size_t index)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_quant_param_t\fP edgelab::base::Engine::get_input_quant_param (size_t index) const\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_shape_t\fP edgelab::base::Engine::get_input_shape (size_t index) const\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual void* edgelab::base::Engine::get_output (size_t index)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_quant_param_t\fP edgelab::base::Engine::get_output_quant_param (size_t index) const\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_shape_t\fP edgelab::base::Engine::get_output_shape (size_t index) const\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::init ()\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::init (size_t size)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::init (void * pool, size_t size)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::load_model (const void * model_data, size_t model_size)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::run ()\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Engine::set_input (size_t index, const void * input_data, size_t input_size)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::EngineTFLite\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

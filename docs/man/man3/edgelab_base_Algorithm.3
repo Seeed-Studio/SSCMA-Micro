@@ -1,0 +1,129 @@
+.TH "edgelab::base::Algorithm" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::base::Algorithm
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_algorithm_base\&.h>\fP
+.PP
+Inherited by \fBedgelab::AlgorithmFOMO\fP, \fBedgelab::AlgorithmIMCLS\fP, \fBedgelab::AlgorithmPFLD\fP, and \fBedgelab::AlgorithmYOLO\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBAlgorithm\fP (\fBEngineType\fP *engine, const \fBInfoType\fP &info)"
+.br
+.ti -1c
+.RI "virtual \fB~Algorithm\fP ()"
+.br
+.ti -1c
+.RI "\fBInfoType\fP \fBget_algorithm_info\fP () const"
+.br
+.ti -1c
+.RI "uint32_t \fBget_preprocess_time\fP () const"
+.br
+.ti -1c
+.RI "uint32_t \fBget_run_time\fP () const"
+.br
+.ti -1c
+.RI "uint32_t \fBget_postprocess_time\fP () const"
+.br
+.in -1c
+.SS "Protected Types"
+
+.in +1c
+.ti -1c
+.RI "using \fBEngineType\fP = \fBEngine\fP"
+.br
+.ti -1c
+.RI "using \fBInfoType\fP = \fBel_algorithm_info_t\fP"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBunderlying_run\fP (void *input)"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBpreprocess\fP ()=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBpostprocess\fP ()=0"
+.br
+.in -1c
+.SS "Protected Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBEngineType\fP * \fB__p_engine\fP"
+.br
+.ti -1c
+.RI "void * \fB__p_input\fP"
+.br
+.ti -1c
+.RI "\fBel_shape_t\fP \fB__input_shape\fP"
+.br
+.ti -1c
+.RI "\fBel_shape_t\fP \fB__output_shape\fP"
+.br
+.ti -1c
+.RI "\fBel_quant_param_t\fP \fB__input_quant\fP"
+.br
+.ti -1c
+.RI "\fBel_quant_param_t\fP \fB__output_quant\fP"
+.br
+.in -1c
+.SH "Member Typedef Documentation"
+.PP 
+.SS "using edgelab::base::Algorithm::EngineType =  \fBEngine\fP\fC [protected]\fP"
+
+.SS "using edgelab::base::Algorithm::InfoType =  \fBel_algorithm_info_t\fP\fC [protected]\fP"
+
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::base::Algorithm::Algorithm (\fBEngineType\fP * engine, const \fBInfoType\fP & info)"
+
+.SS "edgelab::base::Algorithm::~Algorithm ()\fC [virtual]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "\fBAlgorithm::InfoType\fP edgelab::base::Algorithm::get_algorithm_info () const"
+
+.SS "uint32_t edgelab::base::Algorithm::get_postprocess_time () const"
+
+.SS "uint32_t edgelab::base::Algorithm::get_preprocess_time () const"
+
+.SS "uint32_t edgelab::base::Algorithm::get_run_time () const"
+
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Algorithm::postprocess ()\fC [protected]\fP, \fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::AlgorithmYOLO\fP, \fBedgelab::AlgorithmPFLD\fP, \fBedgelab::AlgorithmIMCLS\fP, and \fBedgelab::AlgorithmFOMO\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::base::Algorithm::preprocess ()\fC [protected]\fP, \fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::AlgorithmYOLO\fP, \fBedgelab::AlgorithmPFLD\fP, \fBedgelab::AlgorithmIMCLS\fP, and \fBedgelab::AlgorithmFOMO\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::base::Algorithm::underlying_run (void * input)\fC [protected]\fP"
+
+.SH "Member Data Documentation"
+.PP 
+.SS "\fBel_quant_param_t\fP edgelab::base::Algorithm::__input_quant\fC [protected]\fP"
+
+.SS "\fBel_shape_t\fP edgelab::base::Algorithm::__input_shape\fC [protected]\fP"
+
+.SS "\fBel_quant_param_t\fP edgelab::base::Algorithm::__output_quant\fC [protected]\fP"
+
+.SS "\fBel_shape_t\fP edgelab::base::Algorithm::__output_shape\fC [protected]\fP"
+
+.SS "\fBEngineType\fP* edgelab::base::Algorithm::__p_engine\fC [protected]\fP"
+
+.SS "void* edgelab::base::Algorithm::__p_input\fC [protected]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

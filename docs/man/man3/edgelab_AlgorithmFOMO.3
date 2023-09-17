@@ -1,0 +1,139 @@
+.TH "edgelab::AlgorithmFOMO" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::AlgorithmFOMO
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_algorithm_fomo\&.h>\fP
+.PP
+Inherits \fBedgelab::base::Algorithm\fP\&.
+.SS "Public Types"
+
+.in +1c
+.ti -1c
+.RI "using \fBImageType\fP = \fBel_img_t\fP"
+.br
+.ti -1c
+.RI "using \fBBoxType\fP = \fBel_box_t\fP"
+.br
+.ti -1c
+.RI "using \fBConfigType\fP = \fBel_algorithm_fomo_config_t\fP"
+.br
+.ti -1c
+.RI "using \fBScoreType\fP = decltype(\fBel_algorithm_fomo_config_t::score_threshold\fP)"
+.br
+.in -1c
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBAlgorithmFOMO\fP (\fBEngineType\fP *engine, \fBScoreType\fP score_threshold=80)"
+.br
+.ti -1c
+.RI "\fBAlgorithmFOMO\fP (\fBEngineType\fP *engine, const \fBConfigType\fP &config)"
+.br
+.ti -1c
+.RI "\fB~AlgorithmFOMO\fP ()"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBrun\fP (\fBImageType\fP *input)"
+.br
+.ti -1c
+.RI "const std::forward_list< \fBBoxType\fP > & \fBget_results\fP () const"
+.br
+.ti -1c
+.RI "void \fBset_score_threshold\fP (\fBScoreType\fP threshold)"
+.br
+.ti -1c
+.RI "\fBScoreType\fP \fBget_score_threshold\fP () const"
+.br
+.ti -1c
+.RI "void \fBset_algorithm_config\fP (const \fBConfigType\fP &config)"
+.br
+.ti -1c
+.RI "\fBConfigType\fP \fBget_algorithm_config\fP () const"
+.br
+.in -1c
+.SS "Static Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static bool \fBis_model_valid\fP (const \fBEngineType\fP *engine)"
+.br
+.in -1c
+.SS "Static Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "static \fBInfoType\fP \fBalgorithm_info\fP {\fBel_algorithm_fomo_config_t::info\fP}"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBinit\fP ()"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBpreprocess\fP () override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBpostprocess\fP () override"
+.br
+.in -1c
+.SS "Additional Inherited Members"
+.SH "Member Typedef Documentation"
+.PP 
+.SS "using \fBedgelab::AlgorithmFOMO::BoxType\fP =  \fBel_box_t\fP"
+
+.SS "using \fBedgelab::AlgorithmFOMO::ConfigType\fP =  \fBel_algorithm_fomo_config_t\fP"
+
+.SS "using \fBedgelab::AlgorithmFOMO::ImageType\fP =  \fBel_img_t\fP"
+
+.SS "using \fBedgelab::AlgorithmFOMO::ScoreType\fP =  decltype(\fBel_algorithm_fomo_config_t::score_threshold\fP)"
+
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::AlgorithmFOMO::AlgorithmFOMO (\fBEngineType\fP * engine, \fBScoreType\fP score_threshold = \fC80\fP)"
+
+.SS "edgelab::AlgorithmFOMO::AlgorithmFOMO (\fBEngineType\fP * engine, const \fBConfigType\fP & config)"
+
+.SS "edgelab::AlgorithmFOMO::~AlgorithmFOMO ()"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "\fBAlgorithmFOMO::ConfigType\fP edgelab::AlgorithmFOMO::get_algorithm_config () const"
+
+.SS "const std::forward_list< \fBAlgorithmFOMO::BoxType\fP > & edgelab::AlgorithmFOMO::get_results () const"
+
+.SS "\fBAlgorithmFOMO::ScoreType\fP edgelab::AlgorithmFOMO::get_score_threshold () const"
+
+.SS "void edgelab::AlgorithmFOMO::init ()\fC [inline]\fP, \fC [protected]\fP"
+
+.SS "bool edgelab::AlgorithmFOMO::is_model_valid (const \fBEngineType\fP * engine)\fC [static]\fP"
+
+.SS "\fBel_err_code_t\fP edgelab::AlgorithmFOMO::postprocess ()\fC [override]\fP, \fC [protected]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Algorithm\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::AlgorithmFOMO::preprocess ()\fC [override]\fP, \fC [protected]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Algorithm\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::AlgorithmFOMO::run (\fBImageType\fP * input)"
+
+.SS "void edgelab::AlgorithmFOMO::set_algorithm_config (const \fBConfigType\fP & config)"
+
+.SS "void edgelab::AlgorithmFOMO::set_score_threshold (\fBScoreType\fP threshold)"
+
+.SH "Member Data Documentation"
+.PP 
+.SS "\fBAlgorithmFOMO::InfoType\fP edgelab::AlgorithmFOMO::algorithm_info {\fBel_algorithm_fomo_config_t::info\fP}\fC [static]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

@@ -1,0 +1,36 @@
+.TH "sscma::interpreter::types::ASTNode" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::interpreter::types::ASTNode
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <types\&.hpp>\fP
+.PP
+Inherited by \fBsscma::interpreter::BinaryOperatorNode\fP, \fBsscma::interpreter::ConstantNode\fP, \fBsscma::interpreter::FunctionCallNode\fP, and \fBsscma::interpreter::IdentifierNode\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "virtual \fB~ASTNode\fP ()=default"
+.br
+.ti -1c
+.RI "virtual \fBResult\fP \fBevaluate\fP (\fBEvalCallback\fP callback) const =0"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "virtual sscma::interpreter::types::ASTNode::~ASTNode ()\fC [virtual]\fP, \fC [default]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual \fBResult\fP sscma::interpreter::types::ASTNode::evaluate (\fBEvalCallback\fP callback) const\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBsscma::interpreter::ConstantNode\fP, \fBsscma::interpreter::FunctionCallNode\fP, \fBsscma::interpreter::BinaryOperatorNode\fP, and \fBsscma::interpreter::IdentifierNode\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

@@ -1,0 +1,63 @@
+.TH "sscma/callback/default.hpp" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma/callback/default.hpp
+.SH SYNOPSIS
+.br
+.PP
+\fC#include <atomic>\fP
+.br
+\fC#include <cstdint>\fP
+.br
+\fC#include <iomanip>\fP
+.br
+\fC#include <sstream>\fP
+.br
+\fC#include <string>\fP
+.br
+\fC#include 'sscma/definations\&.hpp'\fP
+.br
+\fC#include 'sscma/static_resourse\&.hpp'\fP
+.br
+\fC#include 'sscma/utility\&.hpp'\fP
+.br
+
+.SS "Namespaces"
+
+.in +1c
+.ti -1c
+.RI " \fBsscma\fP"
+.br
+.ti -1c
+.RI " \fBsscma::callback\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBsscma::callback::print_help\fP (std::forward_list< repl_cmd_t > cmd_list)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::get_device_id\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::get_device_name\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::get_device_status\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::get_version\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::break_task\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBsscma::callback::task_status\fP (const std::string &cmd, const std::atomic< bool > &sta)"
+.br
+.in -1c
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

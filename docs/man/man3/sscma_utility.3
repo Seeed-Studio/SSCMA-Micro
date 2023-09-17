@@ -1,0 +1,87 @@
+.TH "sscma::utility" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::utility
+.SH SYNOPSIS
+.br
+.PP
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "std::string \fBquoted_stringify\fP (const std::string &str)"
+.br
+.ti -1c
+.RI "uint32_t \fBcolor_literal\fP (uint8_t i)"
+.br
+.ti -1c
+.RI "void \fBdraw_results_on_image\fP (const std::forward_list< \fBel_point_t\fP > &results, \fBel_img_t\fP *img)"
+.br
+.ti -1c
+.RI "void \fBdraw_results_on_image\fP (const std::forward_list< \fBel_box_t\fP > &results, \fBel_img_t\fP *img)"
+.br
+.ti -1c
+.RI "std::string \fBmodel_info_2_json_str\fP (\fBel_model_info_t\fP model_info)"
+.br
+.ti -1c
+.RI "std::string \fBsensor_info_2_json_str\fP (\fBel_sensor_info_t\fP sensor_info)"
+.br
+.ti -1c
+.RI "template<typename T > constexpr std::string \fBresults_2_json_str\fP (const std::forward_list< T > &results)"
+.br
+.ti -1c
+.RI "std::string \fBimg_2_jpeg_json_str\fP (const \fBel_img_t\fP *img)"
+.br
+.ti -1c
+.RI "std::string \fBalgorithm_info_2_json_str\fP (const \fBel_algorithm_info_t\fP *info)"
+.br
+.ti -1c
+.RI "template<typename InfoConfType > std::string \fBalgorithm_info_and_conf_2_json_str\fP (const InfoConfType &info_and_conf)"
+.br
+.ti -1c
+.RI "template<typename AlgorithmType > std::string \fBimg_invoke_results_2_json_str\fP (const AlgorithmType *algorithm, const \fBel_img_t\fP *img, const std::string &cmd, bool result_only, \fBel_err_code_t\fP ret)"
+.br
+.ti -1c
+.RI "std::vector< std::string > \fBtokenize_function_2_argv\fP (const std::string &input)"
+.br
+.ti -1c
+.RI "std::string \fBaction_str_2_json_str\fP (const char *str)"
+.br
+.ti -1c
+.RI "std::string \fBaction_str_2_cmd_str\fP (const char *str)"
+.br
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "std::string sscma::utility::action_str_2_cmd_str (const char * str)"
+
+.SS "std::string sscma::utility::action_str_2_json_str (const char * str)"
+
+.SS "std::string sscma::utility::algorithm_info_2_json_str (const \fBel_algorithm_info_t\fP * info)"
+
+.SS "template<typename InfoConfType > std::string sscma::utility::algorithm_info_and_conf_2_json_str (const InfoConfType & info_and_conf)"
+
+.SS "uint32_t sscma::utility::color_literal (uint8_t i)\fC [inline]\fP"
+
+.SS "void sscma::utility::draw_results_on_image (const std::forward_list< \fBel_box_t\fP > & results, \fBel_img_t\fP * img)"
+
+.SS "void sscma::utility::draw_results_on_image (const std::forward_list< \fBel_point_t\fP > & results, \fBel_img_t\fP * img)"
+
+.SS "std::string sscma::utility::img_2_jpeg_json_str (const \fBel_img_t\fP * img)"
+
+.SS "template<typename AlgorithmType > std::string sscma::utility::img_invoke_results_2_json_str (const AlgorithmType * algorithm, const \fBel_img_t\fP * img, const std::string & cmd, bool result_only, \fBel_err_code_t\fP ret)"
+
+.SS "std::string sscma::utility::model_info_2_json_str (\fBel_model_info_t\fP model_info)"
+
+.SS "std::string sscma::utility::quoted_stringify (const std::string & str)"
+
+.SS "template<typename T > constexpr std::string sscma::utility::results_2_json_str (const std::forward_list< T > & results)\fC [constexpr]\fP"
+
+.SS "std::string sscma::utility::sensor_info_2_json_str (\fBel_sensor_info_t\fP sensor_info)"
+
+.SS "std::vector<std::string> sscma::utility::tokenize_function_2_argv (const std::string & input)"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

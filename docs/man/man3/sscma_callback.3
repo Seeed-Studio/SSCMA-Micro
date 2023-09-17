@@ -1,0 +1,139 @@
+.TH "sscma::callback" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::callback
+.SH SYNOPSIS
+.br
+.PP
+.SS "Classes"
+
+.in +1c
+.ti -1c
+.RI "class \fBAlgorithmConfigHelper\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBset_action\fP (const std::vector< std::string > &argv)"
+.br
+.ti -1c
+.RI "void \fBget_action\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBget_available_algorithms\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBset_algorithm\fP (const std::string &cmd, \fBel_algorithm_type_t\fP algorithm_type)"
+.br
+.ti -1c
+.RI "void \fBget_algorithm_info\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBprint_help\fP (std::forward_list< \fBrepl_cmd_t\fP > cmd_list)"
+.br
+.ti -1c
+.RI "void \fBget_device_id\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBget_device_name\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBget_device_status\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBget_version\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBbreak_task\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBtask_status\fP (const std::string &cmd, const std::atomic< bool > &sta)"
+.br
+.ti -1c
+.RI "void \fBset_info\fP (const std::vector< std::string > &argv)"
+.br
+.ti -1c
+.RI "void \fBget_info\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "template<typename AlgorithmType > void \fBrun_invoke_on_img\fP (AlgorithmType *algorithm, const std::string &cmd, int n_times, bool result_only, std::atomic< bool > &stop_token)"
+.br
+.ti -1c
+.RI "void \fBrun_invoke\fP (const std::string &cmd, int n_times, bool result_only, std::atomic< bool > &stop_token)"
+.br
+.ti -1c
+.RI "void \fBget_available_models\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBset_model\fP (const std::string &cmd, uint8_t model_id)"
+.br
+.ti -1c
+.RI "void \fBget_model_info\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBrun_sample\fP (const std::string &cmd, int n_times, std::atomic< bool > &stop_token)"
+.br
+.ti -1c
+.RI "void \fBget_available_sensors\fP (const std::string &cmd)"
+.br
+.ti -1c
+.RI "void \fBset_sensor\fP (const std::string &cmd, uint8_t sensor_id, bool enable)"
+.br
+.ti -1c
+.RI "void \fBget_sensor_info\fP (const std::string &cmd)"
+.br
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "void sscma::callback::break_task (const std::string & cmd)"
+
+.SS "void sscma::callback::get_action (const std::string & cmd)"
+
+.SS "void sscma::callback::get_algorithm_info (const std::string & cmd)"
+
+.SS "void sscma::callback::get_available_algorithms (const std::string & cmd)"
+
+.SS "void sscma::callback::get_available_models (const std::string & cmd)"
+
+.SS "void sscma::callback::get_available_sensors (const std::string & cmd)"
+
+.SS "void sscma::callback::get_device_id (const std::string & cmd)"
+
+.SS "void sscma::callback::get_device_name (const std::string & cmd)"
+
+.SS "void sscma::callback::get_device_status (const std::string & cmd)"
+
+.SS "void sscma::callback::get_info (const std::string & cmd)"
+
+.SS "void sscma::callback::get_model_info (const std::string & cmd)"
+
+.SS "void sscma::callback::get_sensor_info (const std::string & cmd)"
+
+.SS "void sscma::callback::get_version (const std::string & cmd)"
+
+.SS "void sscma::callback::print_help (std::forward_list< \fBrepl_cmd_t\fP > cmd_list)"
+
+.SS "void sscma::callback::run_invoke (const std::string & cmd, int n_times, bool result_only, std::atomic< bool > & stop_token)"
+
+.SS "template<typename AlgorithmType > void sscma::callback::run_invoke_on_img (AlgorithmType * algorithm, const std::string & cmd, int n_times, bool result_only, std::atomic< bool > & stop_token)"
+
+.SS "void sscma::callback::run_sample (const std::string & cmd, int n_times, std::atomic< bool > & stop_token)"
+
+.SS "void sscma::callback::set_action (const std::vector< std::string > & argv)"
+
+.SS "void sscma::callback::set_algorithm (const std::string & cmd, \fBel_algorithm_type_t\fP algorithm_type)"
+
+.SS "void sscma::callback::set_info (const std::vector< std::string > & argv)"
+
+.SS "void sscma::callback::set_model (const std::string & cmd, uint8_t model_id)"
+
+.SS "void sscma::callback::set_sensor (const std::string & cmd, uint8_t sensor_id, bool enable)"
+
+.SS "void sscma::callback::task_status (const std::string & cmd, const std::atomic< bool > & sta)"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

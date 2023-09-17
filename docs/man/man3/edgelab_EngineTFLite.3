@@ -1,0 +1,118 @@
+.TH "edgelab::EngineTFLite" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::EngineTFLite
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_engine_tflite\&.h>\fP
+.PP
+Inherits \fBedgelab::base::Engine\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBEngineTFLite\fP ()"
+.br
+.ti -1c
+.RI "\fB~EngineTFLite\fP ()"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBinit\fP () override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBinit\fP (size_t size) override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBinit\fP (void *pool, size_t size) override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBrun\fP () override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBload_model\fP (const void *model_data, size_t model_size) override"
+.br
+.ti -1c
+.RI "\fBel_err_code_t\fP \fBset_input\fP (size_t index, const void *input_data, size_t input_size) override"
+.br
+.ti -1c
+.RI "void * \fBget_input\fP (size_t index) override"
+.br
+.ti -1c
+.RI "void * \fBget_output\fP (size_t index) override"
+.br
+.ti -1c
+.RI "\fBel_shape_t\fP \fBget_input_shape\fP (size_t index) const override"
+.br
+.ti -1c
+.RI "\fBel_shape_t\fP \fBget_output_shape\fP (size_t index) const override"
+.br
+.ti -1c
+.RI "\fBel_quant_param_t\fP \fBget_input_quant_param\fP (size_t index) const override"
+.br
+.ti -1c
+.RI "\fBel_quant_param_t\fP \fBget_output_quant_param\fP (size_t index) const override"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::EngineTFLite::EngineTFLite ()"
+
+.SS "edgelab::EngineTFLite::~EngineTFLite ()"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "void * edgelab::EngineTFLite::get_input (size_t index)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_quant_param_t\fP edgelab::EngineTFLite::get_input_quant_param (size_t index) const\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_shape_t\fP edgelab::EngineTFLite::get_input_shape (size_t index) const\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "void * edgelab::EngineTFLite::get_output (size_t index)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_quant_param_t\fP edgelab::EngineTFLite::get_output_quant_param (size_t index) const\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_shape_t\fP edgelab::EngineTFLite::get_output_shape (size_t index) const\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::init ()\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::init (size_t size)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::init (void * pool, size_t size)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::load_model (const void * model_data, size_t model_size)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::run ()\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+.SS "\fBel_err_code_t\fP edgelab::EngineTFLite::set_input (size_t index, const void * input_data, size_t input_size)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Implements \fBedgelab::base::Engine\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

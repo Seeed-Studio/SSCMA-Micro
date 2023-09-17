@@ -1,0 +1,118 @@
+.TH "edgelab::Storage::Iterator" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::Storage::Iterator
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Types"
+
+.in +1c
+.ti -1c
+.RI "using \fBiterator_category\fP = std::forward_iterator_tag"
+.br
+.ti -1c
+.RI "using \fBdifference_type\fP = std::ptrdiff_t"
+.br
+.ti -1c
+.RI "using \fBvalue_type\fP = const char[FDB_KV_NAME_MAX]"
+.br
+.ti -1c
+.RI "using \fBpointer\fP = \fBvalue_type\fP *"
+.br
+.ti -1c
+.RI "using \fBreference\fP = \fBvalue_type\fP &"
+.br
+.in -1c
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBIterator\fP (const \fBStorage\fP *const storage)"
+.br
+.ti -1c
+.RI "\fBreference\fP \fBoperator*\fP () const"
+.br
+.ti -1c
+.RI "\fBpointer\fP \fBoperator\->\fP () const"
+.br
+.ti -1c
+.RI "\fBIterator\fP & \fBoperator++\fP ()"
+.br
+.ti -1c
+.RI "\fBIterator\fP \fBoperator++\fP (int)"
+.br
+.in -1c
+.SS "Protected Attributes"
+
+.in +1c
+.ti -1c
+.RI "const \fBStorage\fP *const \fB___storage\fP"
+.br
+.ti -1c
+.RI "fdb_kvdb_t \fB___kvdb\fP"
+.br
+.ti -1c
+.RI "fdb_kv_iterator \fB___iterator\fP"
+.br
+.ti -1c
+.RI "bool \fB___reach_end\fP"
+.br
+.in -1c
+.SS "Friends"
+
+.in +1c
+.ti -1c
+.RI "bool \fBoperator==\fP (const \fBIterator\fP &lfs, const \fBIterator\fP &rhs)"
+.br
+.ti -1c
+.RI "bool \fBoperator!=\fP (const \fBIterator\fP &lfs, const \fBIterator\fP &rhs)"
+.br
+.in -1c
+.SH "Member Typedef Documentation"
+.PP 
+.SS "using \fBedgelab::Storage::Iterator::difference_type\fP =  std::ptrdiff_t"
+
+.SS "using \fBedgelab::Storage::Iterator::iterator_category\fP =  std::forward_iterator_tag"
+
+.SS "using \fBedgelab::Storage::Iterator::pointer\fP =  \fBvalue_type\fP*"
+
+.SS "using \fBedgelab::Storage::Iterator::reference\fP =  \fBvalue_type\fP&"
+
+.SS "using \fBedgelab::Storage::Iterator::value_type\fP =  const char[FDB_KV_NAME_MAX]"
+
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::Storage::Iterator::Iterator (const \fBStorage\fP *const storage)\fC [inline]\fP, \fC [explicit]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "\fBreference\fP edgelab::Storage::Iterator::operator* () const\fC [inline]\fP"
+
+.SS "\fBIterator\fP& edgelab::Storage::Iterator::operator++ ()\fC [inline]\fP"
+
+.SS "\fBIterator\fP edgelab::Storage::Iterator::operator++ (int)\fC [inline]\fP"
+
+.SS "\fBpointer\fP edgelab::Storage::Iterator::operator\-> () const\fC [inline]\fP"
+
+.SH "Friends And Related Function Documentation"
+.PP 
+.SS "bool operator!= (const \fBIterator\fP & lfs, const \fBIterator\fP & rhs)\fC [friend]\fP"
+
+.SS "bool operator== (const \fBIterator\fP & lfs, const \fBIterator\fP & rhs)\fC [friend]\fP"
+
+.SH "Member Data Documentation"
+.PP 
+.SS "fdb_kv_iterator edgelab::Storage::Iterator::___iterator\fC [protected]\fP"
+
+.SS "fdb_kvdb_t edgelab::Storage::Iterator::___kvdb\fC [protected]\fP"
+
+.SS "bool edgelab::Storage::Iterator::___reach_end\fC [protected]\fP"
+
+.SS "const \fBStorage\fP* const edgelab::Storage::Iterator::___storage\fC [protected]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

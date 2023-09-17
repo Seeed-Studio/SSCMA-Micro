@@ -1,0 +1,80 @@
+.TH "core/el_config_internal.h" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+core/el_config_internal.h
+.SH SYNOPSIS
+.br
+.PP
+\fC#include 'core/el_config\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBCONFIG_EL_DEBUG\fP   3"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_PORTING_POSIX\fP   0"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_MODEL_TFLITE_MAGIC\fP   0x54464C33"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_MODEL_HEADER_MAGIC\fP   0x4C4854"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_MODEL_PARTITION_NAME\fP   'models'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_NAME\fP   'edgelab_db'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_PATH\fP   'kvdb0'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_PARTITION_NAME\fP   'db'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_PARTITION_MOUNT_POINT\fP   'nor_flash0'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_PARTITION_FS_NAME_0\fP   'kvdb0'"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_PARTITION_FS_SIZE_0\fP   (192 * 1024)"
+.br
+.ti -1c
+.RI "#define \fBCONFIG_EL_STORAGE_KEY_SIZE_MAX\fP   (64)"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define CONFIG_EL_DEBUG   3"
+
+.SS "#define CONFIG_EL_MODEL_HEADER_MAGIC   0x4C4854"
+
+.SS "#define CONFIG_EL_MODEL_PARTITION_NAME   'models'"
+
+.SS "#define CONFIG_EL_MODEL_TFLITE_MAGIC   0x54464C33"
+
+.SS "#define CONFIG_EL_PORTING_POSIX   0"
+
+.SS "#define CONFIG_EL_STORAGE_KEY_SIZE_MAX   (64)"
+
+.SS "#define CONFIG_EL_STORAGE_NAME   'edgelab_db'"
+
+.SS "#define CONFIG_EL_STORAGE_PARTITION_FS_NAME_0   'kvdb0'"
+
+.SS "#define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (192 * 1024)"
+
+.SS "#define CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT   'nor_flash0'"
+
+.SS "#define CONFIG_EL_STORAGE_PARTITION_NAME   'db'"
+
+.SS "#define CONFIG_EL_STORAGE_PATH   'kvdb0'"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

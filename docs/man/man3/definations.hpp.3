@@ -1,0 +1,89 @@
+.TH "sscma/definations.hpp" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma/definations.hpp
+.SH SYNOPSIS
+.br
+.PP
+\fC#include <functional>\fP
+.br
+\fC#include <sstream>\fP
+.br
+
+.SS "Namespaces"
+
+.in +1c
+.ti -1c
+.RI " \fBsscma\fP"
+.br
+.ti -1c
+.RI " \fBsscma::definations\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBREPL_EXECUTOR_STACK_SIZE\fP   (40960)"
+.br
+.ti -1c
+.RI "#define \fBREPL_EXECUTOR_PRIO\fP   (5)"
+.br
+.ti -1c
+.RI "#define \fBREPL_HISTORY_MAX\fP   (8)"
+.br
+.ti -1c
+.RI "#define \fBTENSOR_ARENA_SIZE\fP   (1024 * 1024)"
+.br
+.ti -1c
+.RI "#define \fBCMD_MAX_LENGTH\fP   (4096)"
+.br
+.ti -1c
+.RI "#define \fBREPLY_CMD_HEADER\fP   '\\r{\\'type\\': 0, '"
+.br
+.ti -1c
+.RI "#define \fBREPLY_EVT_HEADER\fP   '\\r{\\'type\\': 1, '"
+.br
+.ti -1c
+.RI "#define \fBREPLY_LOG_HEADER\fP   '\\r{\\'type\\': 2, '"
+.br
+.ti -1c
+.RI "#define \fBDELIM_RESET\fP       { sscma::definations::delim_f = sscma::definations::print_void_f; }"
+.br
+.ti -1c
+.RI "#define \fBDELIM_PRINT\fP(OS)       { sscma::definations::delim_f(OS); }"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "using \fBsscma::definations::delim_f_t\fP = std::function< void(std::ostringstream &os)>"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define CMD_MAX_LENGTH   (4096)"
+
+.SS "#define DELIM_PRINT(OS)       { sscma::definations::delim_f(OS); }"
+
+.SS "#define DELIM_RESET       { sscma::definations::delim_f = sscma::definations::print_void_f; }"
+
+.SS "#define REPL_EXECUTOR_PRIO   (5)"
+
+.SS "#define REPL_EXECUTOR_STACK_SIZE   (40960)"
+
+.SS "#define REPL_HISTORY_MAX   (8)"
+
+.SS "#define REPLY_CMD_HEADER   '\\r{\\'type\\': 0, '"
+
+.SS "#define REPLY_EVT_HEADER   '\\r{\\'type\\': 1, '"
+
+.SS "#define REPLY_LOG_HEADER   '\\r{\\'type\\': 2, '"
+
+.SS "#define TENSOR_ARENA_SIZE   (1024 * 1024)"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

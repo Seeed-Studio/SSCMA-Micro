@@ -1,0 +1,72 @@
+.TH "sscma::repl::History" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+sscma::repl::History
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <history\&.hpp>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBHistory\fP (int max_size=\fBREPL_HISTORY_MAX\fP)"
+.br
+.ti -1c
+.RI "\fB~History\fP ()=default"
+.br
+.ti -1c
+.RI "bool \fBadd\fP (const std::string &line)"
+.br
+.ti -1c
+.RI "bool \fBadd\fP (const char *line)"
+.br
+.ti -1c
+.RI "bool \fBget\fP (std::string &line, int index)"
+.br
+.ti -1c
+.RI "bool \fBnext\fP (std::string &line)"
+.br
+.ti -1c
+.RI "bool \fBprev\fP (std::string &line)"
+.br
+.ti -1c
+.RI "bool \fBreset\fP ()"
+.br
+.ti -1c
+.RI "void \fBclear\fP ()"
+.br
+.ti -1c
+.RI "size_t \fBsize\fP () const"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "sscma::repl::History::History (int max_size = \fC\fBREPL_HISTORY_MAX\fP\fP)\fC [inline]\fP"
+
+.SS "sscma::repl::History::~History ()\fC [default]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "bool sscma::repl::History::add (const char * line)\fC [inline]\fP"
+
+.SS "bool sscma::repl::History::add (const std::string & line)\fC [inline]\fP"
+
+.SS "void sscma::repl::History::clear ()\fC [inline]\fP"
+
+.SS "bool sscma::repl::History::get (std::string & line, int index)\fC [inline]\fP"
+
+.SS "bool sscma::repl::History::next (std::string & line)\fC [inline]\fP"
+
+.SS "bool sscma::repl::History::prev (std::string & line)\fC [inline]\fP"
+
+.SS "bool sscma::repl::History::reset ()\fC [inline]\fP"
+
+.SS "size_t sscma::repl::History::size () const\fC [inline]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

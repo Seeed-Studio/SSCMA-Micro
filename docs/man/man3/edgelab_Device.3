@@ -1,0 +1,160 @@
+.TH "edgelab::Device" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::Device
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_device\&.h>\fP
+.PP
+Inherited by \fBedgelab::DeviceEsp\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fB~Device\fP ()=default"
+.br
+.ti -1c
+.RI "const char * \fBget_device_name\fP () const"
+.br
+.ti -1c
+.RI "uint32_t \fBget_device_id\fP () const"
+.br
+.ti -1c
+.RI "uint32_t \fBget_chip_revision_id\fP () const"
+.br
+.ti -1c
+.RI "\fBCamera\fP * \fBget_camera\fP ()"
+.br
+.ti -1c
+.RI "\fBDisplay\fP * \fBget_display\fP ()"
+.br
+.ti -1c
+.RI "\fBSerial\fP * \fBget_serial\fP ()"
+.br
+.ti -1c
+.RI "virtual void \fBrestart\fP ()=0"
+.br
+.ti -1c
+.RI "\fBel_sensor_info_t\fP \fBget_sensor_info\fP (uint8_t id) const"
+.br
+.ti -1c
+.RI "\fBel_sensor_info_t\fP \fBget_sensor_info\fP (uint8_t id, \fBel_sensor_type_t\fP type) const"
+.br
+.ti -1c
+.RI "const std::forward_list< \fBel_sensor_info_t\fP > & \fBget_all_sensor_info\fP () const"
+.br
+.ti -1c
+.RI "size_t \fBget_all_sensor_info_count\fP () const"
+.br
+.ti -1c
+.RI "bool \fBhas_sensor\fP (uint8_t id) const"
+.br
+.ti -1c
+.RI "bool \fBhas_sensor\fP (uint8_t id, \fBel_sensor_type_t\fP type) const"
+.br
+.ti -1c
+.RI "bool \fBset_sensor_state\fP (uint8_t id, \fBel_sensor_state_t\fP state)"
+.br
+.in -1c
+.SS "Static Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static \fBDevice\fP * \fBget_device\fP ()"
+.br
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBDevice\fP ()"
+.br
+.in -1c
+.SS "Protected Attributes"
+
+.in +1c
+.ti -1c
+.RI "const char * \fB_device_name\fP"
+.br
+.ti -1c
+.RI "uint32_t \fB_device_id\fP"
+.br
+.ti -1c
+.RI "uint32_t \fB_revision_id\fP"
+.br
+.ti -1c
+.RI "\fBCamera\fP * \fB_camera\fP"
+.br
+.ti -1c
+.RI "\fBDisplay\fP * \fB_display\fP"
+.br
+.ti -1c
+.RI "\fBSerial\fP * \fB_serial\fP"
+.br
+.ti -1c
+.RI "std::forward_list< \fBel_sensor_info_t\fP > \fB_registered_sensors\fP"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::Device::~Device ()\fC [default]\fP"
+
+.SS "edgelab::Device::Device ()\fC [inline]\fP, \fC [protected]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "const std::forward_list<\fBel_sensor_info_t\fP>& edgelab::Device::get_all_sensor_info () const\fC [inline]\fP"
+
+.SS "size_t edgelab::Device::get_all_sensor_info_count () const\fC [inline]\fP"
+
+.SS "\fBCamera\fP* edgelab::Device::get_camera ()\fC [inline]\fP"
+
+.SS "uint32_t edgelab::Device::get_chip_revision_id () const\fC [inline]\fP"
+
+.SS "\fBDevice\fP * edgelab::Device::get_device ()\fC [static]\fP"
+
+.SS "uint32_t edgelab::Device::get_device_id () const\fC [inline]\fP"
+
+.SS "const char* edgelab::Device::get_device_name () const\fC [inline]\fP"
+
+.SS "\fBDisplay\fP* edgelab::Device::get_display ()\fC [inline]\fP"
+
+.SS "\fBel_sensor_info_t\fP edgelab::Device::get_sensor_info (uint8_t id) const\fC [inline]\fP"
+
+.SS "\fBel_sensor_info_t\fP edgelab::Device::get_sensor_info (uint8_t id, \fBel_sensor_type_t\fP type) const\fC [inline]\fP"
+
+.SS "\fBSerial\fP* edgelab::Device::get_serial ()\fC [inline]\fP"
+
+.SS "bool edgelab::Device::has_sensor (uint8_t id) const\fC [inline]\fP"
+
+.SS "bool edgelab::Device::has_sensor (uint8_t id, \fBel_sensor_type_t\fP type) const\fC [inline]\fP"
+
+.SS "virtual void edgelab::Device::restart ()\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::DeviceEsp\fP\&.
+.SS "bool edgelab::Device::set_sensor_state (uint8_t id, \fBel_sensor_state_t\fP state)\fC [inline]\fP"
+
+.SH "Member Data Documentation"
+.PP 
+.SS "\fBCamera\fP* edgelab::Device::_camera\fC [protected]\fP"
+
+.SS "uint32_t edgelab::Device::_device_id\fC [protected]\fP"
+
+.SS "const char* edgelab::Device::_device_name\fC [protected]\fP"
+
+.SS "\fBDisplay\fP* edgelab::Device::_display\fC [protected]\fP"
+
+.SS "std::forward_list<\fBel_sensor_info_t\fP> edgelab::Device::_registered_sensors\fC [protected]\fP"
+
+.SS "uint32_t edgelab::Device::_revision_id\fC [protected]\fP"
+
+.SS "\fBSerial\fP* edgelab::Device::_serial\fC [protected]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

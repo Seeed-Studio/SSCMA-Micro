@@ -1,0 +1,163 @@
+.TH "core/el_common.h" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+core/el_common.h
+.SH SYNOPSIS
+.br
+.PP
+\fC#include 'core/el_compiler\&.h'\fP
+.br
+\fC#include 'core/el_config_internal\&.h'\fP
+.br
+\fC#include 'core/el_debug\&.h'\fP
+.br
+\fC#include 'core/el_types\&.h'\fP
+.br
+\fC#include 'porting/el_misc\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBEL_VERSION\fP   '2023\&.09\&.12'"
+.br
+.ti -1c
+.RI "#define \fBEL_VERSION_LENTH_MAX\fP   32"
+.br
+.ti -1c
+.RI "#define \fBEL_CONCAT\fP(a,  b)   a##b"
+.br
+.ti -1c
+.RI "#define \fBEL_STRINGIFY\fP(s)   #s"
+.br
+.ti -1c
+.RI "#define \fBEL_UNUSED\fP(x)   (void)(x)"
+.br
+.ti -1c
+.RI "#define \fBEL_ARRAY_SIZE\fP(x)   (sizeof(x) / sizeof((x)[0]))"
+.br
+.ti -1c
+.RI "#define \fBEL_MAX\fP(a,  b)   ((a) > (b) ? (a) : (b))"
+.br
+.ti -1c
+.RI "#define \fBEL_MIN\fP(a,  b)   ((a) < (b) ? (a) : (b))"
+.br
+.ti -1c
+.RI "#define \fBEL_CLIP\fP(x,  a,  b)   ((x) < (a) ? (a) : ((x) > (b) ? (b) : (x)))"
+.br
+.ti -1c
+.RI "#define \fBEL_ABS\fP(a)   ((a) < 0 ? \-(a) : (a))"
+.br
+.ti -1c
+.RI "#define \fBEL_ALIGN\fP(x,  a)   (((x) + ((a)\-1)) & ~((a)\-1))"
+.br
+.ti -1c
+.RI "#define \fBEL_ALIGN_DOWN\fP(x,  a)   ((x) & ~((a)\-1))"
+.br
+.ti -1c
+.RI "#define \fBEL_ALIGN_UP\fP(x,  a)   (((x) + ((a)\-1)) & ~((a)\-1))"
+.br
+.ti -1c
+.RI "#define \fBEL_IS_ALIGNED\fP(x,  a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+.br
+.ti -1c
+.RI "#define \fBEL_IS_ALIGNED_DOWN\fP(x,  a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+.br
+.ti -1c
+.RI "#define \fBEL_IS_ALIGNED_UP\fP(x,  a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT\fP(n)   (1 << (n))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_MASK\fP(n)   (\fBEL_BIT\fP(n) \- 1)"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_SET\fP(x,  n)   ((x) |= \fBEL_BIT\fP(n))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_CLR\fP(x,  n)   ((x) &= ~\fBEL_BIT\fP(n))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_GET\fP(x,  n)   (((x) >> (n)) & 1)"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_SET_MASK\fP(x,  n,  m)   ((x) |= ((m) << (n)))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_CLR_MASK\fP(x,  n,  m)   ((x) &= ~((m) << (n)))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_GET_MASK\fP(x,  n,  m)   (((x) >> (n)) & (m))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_SET_MASKED\fP(x,  n,  m)   ((x) |= ((m) & (\fBEL_BIT_MASK\fP(n) << (n))))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_CLR_MASKED\fP(x,  n,  m)   ((x) &= ~((m) & (\fBEL_BIT_MASK\fP(n) << (n))))"
+.br
+.ti -1c
+.RI "#define \fBEL_BIT_GET_MASKED\fP(x,  n,  m)   (((x) >> (n)) & (m))"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define EL_ABS(a)   ((a) < 0 ? \-(a) : (a))"
+
+.SS "#define EL_ALIGN(x, a)   (((x) + ((a)\-1)) & ~((a)\-1))"
+
+.SS "#define EL_ALIGN_DOWN(x, a)   ((x) & ~((a)\-1))"
+
+.SS "#define EL_ALIGN_UP(x, a)   (((x) + ((a)\-1)) & ~((a)\-1))"
+
+.SS "#define EL_ARRAY_SIZE(x)   (sizeof(x) / sizeof((x)[0]))"
+
+.SS "#define EL_BIT(n)   (1 << (n))"
+
+.SS "#define EL_BIT_CLR(x, n)   ((x) &= ~\fBEL_BIT\fP(n))"
+
+.SS "#define EL_BIT_CLR_MASK(x, n, m)   ((x) &= ~((m) << (n)))"
+
+.SS "#define EL_BIT_CLR_MASKED(x, n, m)   ((x) &= ~((m) & (\fBEL_BIT_MASK\fP(n) << (n))))"
+
+.SS "#define EL_BIT_GET(x, n)   (((x) >> (n)) & 1)"
+
+.SS "#define EL_BIT_GET_MASK(x, n, m)   (((x) >> (n)) & (m))"
+
+.SS "#define EL_BIT_GET_MASKED(x, n, m)   (((x) >> (n)) & (m))"
+
+.SS "#define EL_BIT_MASK(n)   (\fBEL_BIT\fP(n) \- 1)"
+
+.SS "#define EL_BIT_SET(x, n)   ((x) |= \fBEL_BIT\fP(n))"
+
+.SS "#define EL_BIT_SET_MASK(x, n, m)   ((x) |= ((m) << (n)))"
+
+.SS "#define EL_BIT_SET_MASKED(x, n, m)   ((x) |= ((m) & (\fBEL_BIT_MASK\fP(n) << (n))))"
+
+.SS "#define EL_CLIP(x, a, b)   ((x) < (a) ? (a) : ((x) > (b) ? (b) : (x)))"
+
+.SS "#define EL_CONCAT(a, b)   a##b"
+
+.SS "#define EL_IS_ALIGNED(x, a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+
+.SS "#define EL_IS_ALIGNED_DOWN(x, a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+
+.SS "#define EL_IS_ALIGNED_UP(x, a)   (((x) & ((typeof(x))(a)\-1)) == 0)"
+
+.SS "#define EL_MAX(a, b)   ((a) > (b) ? (a) : (b))"
+
+.SS "#define EL_MIN(a, b)   ((a) < (b) ? (a) : (b))"
+
+.SS "#define EL_STRINGIFY(s)   #s"
+
+.SS "#define EL_UNUSED(x)   (void)(x)"
+
+.SS "#define EL_VERSION   '2023\&.09\&.12'"
+
+.SS "#define EL_VERSION_LENTH_MAX   32"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.

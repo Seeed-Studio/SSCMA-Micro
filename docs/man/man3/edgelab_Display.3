@@ -1,0 +1,71 @@
+.TH "edgelab::Display" 3 "Sun Sep 17 2023" "Version v2023.09.15" "SSCMA-Micro CPP SDK" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+edgelab::Display
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <el_display\&.h>\fP
+.PP
+Inherited by \fBedgelab::DisplayEsp\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBDisplay\fP ()"
+.br
+.ti -1c
+.RI "virtual \fB~Display\fP ()=default"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBinit\fP ()=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBdeinit\fP ()=0"
+.br
+.ti -1c
+.RI "virtual \fBel_err_code_t\fP \fBshow\fP (const \fBel_img_t\fP *img)=0"
+.br
+.ti -1c
+.RI "\fBoperator bool\fP () const"
+.br
+.in -1c
+.SS "Protected Attributes"
+
+.in +1c
+.ti -1c
+.RI "bool \fB_is_present\fP"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "edgelab::Display::Display ()\fC [inline]\fP"
+
+.SS "virtual edgelab::Display::~Display ()\fC [virtual]\fP, \fC [default]\fP"
+
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual \fBel_err_code_t\fP edgelab::Display::deinit ()\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::DisplayEsp\fP\&.
+.SS "virtual \fBel_err_code_t\fP edgelab::Display::init ()\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::DisplayEsp\fP\&.
+.SS "edgelab::Display::operator bool () const\fC [inline]\fP"
+
+.SS "virtual \fBel_err_code_t\fP edgelab::Display::show (const \fBel_img_t\fP * img)\fC [pure virtual]\fP"
+
+.PP
+Implemented in \fBedgelab::DisplayEsp\fP\&.
+.SH "Member Data Documentation"
+.PP 
+.SS "bool edgelab::Display::_is_present\fC [protected]\fP"
+
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SSCMA-Micro CPP SDK from the source code\&.
