@@ -26,7 +26,7 @@ jobs:
           ref: 'dev' # should be main later
 
       - name: install dependencies
-        run: apt-get install doxygen graphviz -y
+        run: sudo apt-get install doxygen graphviz -y
 
       - name: build docs
         run: doxygen docs/Doxyfile.in
