@@ -18,7 +18,6 @@
 namespace sscma::repl {
 
 using namespace edgelab;
-
 using namespace sscma::types;
 
 class Executor {

@@ -153,8 +153,7 @@ void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atom
         if (!AlgorithmIMCLS::is_model_valid(static_resourse->engine)) [[unlikely]]
             break;
         std::unique_ptr<AlgorithmIMCLS> algorithm(new AlgorithmIMCLS(static_resourse->engine));
-
-        auto algo_config_helper{AlgorithmConfigHelper<AlgorithmIMCLS>(algorithm.get())};
+        auto                            algo_config_helper{AlgorithmConfigHelper<AlgorithmIMCLS>(algorithm.get())};
         direct_reply(algorithm_info_and_conf_2_json_str(algo_config_helper.dump_config()));
 
         run_invoke_on_img(algorithm.get(), cmd, n_times, result_only, stop_token);
@@ -165,8 +164,7 @@ void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atom
         if (!AlgorithmFOMO::is_model_valid(static_resourse->engine)) [[unlikely]]
             break;
         std::unique_ptr<AlgorithmFOMO> algorithm(new AlgorithmFOMO(static_resourse->engine));
-
-        auto algo_config_helper{AlgorithmConfigHelper<AlgorithmFOMO>(algorithm.get())};
+        auto                           algo_config_helper{AlgorithmConfigHelper<AlgorithmFOMO>(algorithm.get())};
         direct_reply(algorithm_info_and_conf_2_json_str(algo_config_helper.dump_config()));
 
         run_invoke_on_img(algorithm.get(), cmd, n_times, result_only, stop_token);
@@ -187,8 +185,7 @@ void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atom
         if (!AlgorithmYOLO::is_model_valid(static_resourse->engine)) [[unlikely]]
             break;
         std::unique_ptr<AlgorithmYOLO> algorithm(new AlgorithmYOLO(static_resourse->engine));
-
-        auto algo_config_helper{AlgorithmConfigHelper<AlgorithmYOLO>(algorithm.get())};
+        auto                           algo_config_helper{AlgorithmConfigHelper<AlgorithmYOLO>(algorithm.get())};
         direct_reply(algorithm_info_and_conf_2_json_str(algo_config_helper.dump_config()));
 
         run_invoke_on_img(algorithm.get(), cmd, n_times, result_only, stop_token);
