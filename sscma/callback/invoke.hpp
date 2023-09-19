@@ -37,7 +37,6 @@ void run_invoke_on_img(
         auto mutable_map = static_resourse->action_cond->get_mutable_map();
         for (auto& kv : mutable_map) {
             const auto& argv = tokenize_function_2_argv(kv.first);
-
             if (!argv.size()) [[unlikely]]
                 continue;
 
@@ -48,7 +47,6 @@ void run_invoke_on_img(
                         const auto& res = algorithm->get_results();
                         return std::distance(res.begin(), res.end());
                     };
-
                 // count items filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
@@ -70,7 +68,6 @@ void run_invoke_on_img(
                             if (v.score > init) init = v.score;
                         return init;
                     };
-
                 // max score filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
@@ -79,7 +76,6 @@ void run_invoke_on_img(
                         const auto& res  = algorithm->get_results();
                         for (const auto& v : res)
                             if (v.target == target && v.score > init) init = v.score;
-
                         return init;
                     };
                 }

@@ -17,32 +17,32 @@ using namespace sscma::types;
 using namespace sscma::callback;
 
 void run() {
-    static_resourse->instance->register_cmd("HELP?", "List available commands", "", [&](std::vector<std::string> argv) {
+    static_resourse->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
         const auto& registered_cmds = static_resourse->instance->get_registered_cmds();
         print_help(registered_cmds);
         return EL_OK;
     });
 
     static_resourse->instance->register_cmd(
-      "ID?", "Get device ID", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "ID?", "Get device ID", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_device_id(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "NAME?", "Get device name", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "NAME?", "Get device name", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_device_name(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "STAT?", "Get device status", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "STAT?", "Get device status", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_device_status(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "VER?", "Get version details", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "VER?", "Get version details", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_version(argv[0]);
           return EL_OK;
       }));
@@ -55,68 +55,65 @@ void run() {
       }));
 
     static_resourse->instance->register_cmd(
-      "BREAK", "Stop all running tasks", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
-          static_resourse->executor->add_task(
-            [cmd = std::string(argv[0])](std::atomic<bool>& stop_token) { break_task(cmd); });
+      "BREAK", "Stop all running tasks", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
+          static_resourse->executor->add_task([cmd = argv[0]](std::atomic<bool>& stop_token) { break_task(cmd); });
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "YIELD", "Yield for 10ms", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "YIELD", "Yield for 10ms", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           vTaskDelay(10 / portTICK_PERIOD_MS);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "LED", "Set LED status", "ENABLE/DISABLE", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "LED", "Set LED status", "ENABLE/DISABLE", repl_cmd_cb_t([](std::vector<std::string> argv) {
           el_status_led(std::atoi(argv[1].c_str()) ? true : false);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "MODELS?", "Get available models", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "MODELS?", "Get available models", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_available_models(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "MODEL", "Load a model by model ID", "MODEL_ID", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "MODEL", "Load a model by model ID", "MODEL_ID", repl_cmd_cb_t([](std::vector<std::string> argv) {
           uint8_t model_id = std::atoi(argv[1].c_str());
-          static_resourse->executor->add_task([&, cmd = std::string(argv[0]), model_id = std::move(model_id)](
+          static_resourse->executor->add_task([cmd = argv[0], model_id = std::move(model_id)](
                                                 std::atomic<bool>& stop_token) { set_model(cmd, model_id); });
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "MODEL?", "Get current model info", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "MODEL?", "Get current model info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_model_info(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "ALGOS?", "Get available algorithms", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "ALGOS?", "Get available algorithms", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_available_algorithms(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "ALGO", "Set a algorithm by algorithm type ID", "ALGORITHM_ID", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "ALGO", "Set a algorithm by algorithm type ID", "ALGORITHM_ID", repl_cmd_cb_t([](std::vector<std::string> argv) {
           el_algorithm_type_t algorithm_type = static_cast<el_algorithm_type_t>(std::atoi(argv[1].c_str()));
-          static_resourse->executor->add_task(
-            [&, cmd = std::string(argv[0]), algorithm_type = std::move(algorithm_type)](std::atomic<bool>& stop_token) {
-                set_algorithm(cmd, algorithm_type);
-            });
+          static_resourse->executor->add_task([cmd = argv[0], algorithm_type = std::move(algorithm_type)](
+                                                std::atomic<bool>& stop_token) { set_algorithm(cmd, algorithm_type); });
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "ALGO?", "Get current algorithm info", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "ALGO?", "Get current algorithm info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_algorithm_info(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "SENSORS?", "Get available sensors", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "SENSORS?", "Get available sensors", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_available_sensors(argv[0]);
           return EL_OK;
       }));
@@ -129,13 +126,13 @@ void run() {
           uint8_t sensor_id = std::atoi(argv[1].c_str());
           bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
           static_resourse->executor->add_task(
-            [&, cmd = std::string(argv[0]), sensor_id = std::move(sensor_id), enable = std::move(enable)](
+            [cmd = argv[0], sensor_id = std::move(sensor_id), enable = std::move(enable)](
               std::atomic<bool>& stop_token) { set_sensor(cmd, sensor_id, enable); });
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "SENSOR?", "Get current sensor info", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "SENSOR?", "Get current sensor info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_sensor_info(argv[0]);
           return EL_OK;
       }));
@@ -143,17 +140,17 @@ void run() {
     // TODO: sensor config command
 
     static_resourse->instance->register_cmd(
-      "SAMPLE", "Sample data from current sensor", "N_TIMES", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "SAMPLE", "Sample data from current sensor", "N_TIMES", repl_cmd_cb_t([](std::vector<std::string> argv) {
           int n_times = std::atoi(argv[1].c_str());
           static_resourse->executor->add_task(
-            [&, cmd = std::string(argv[0]), n_times = std::move(n_times)](std::atomic<bool>& stop_token) {
+            [cmd = argv[0], n_times = std::move(n_times)](std::atomic<bool>& stop_token) {
                 run_sample(cmd, n_times, stop_token);
             });
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "SAMPLE?", "Get sample task status", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "SAMPLE?", "Get sample task status", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           task_status(argv[0], static_resourse->is_sample);
           return EL_OK;
       }));
@@ -166,7 +163,7 @@ void run() {
           int  n_times     = std::atoi(argv[1].c_str());
           bool result_only = std::atoi(argv[2].c_str()) ? true : false;
           static_resourse->executor->add_task(
-            [&, cmd = std::string(argv[0]), n_times = std::move(n_times), result_only = std::move(result_only)](
+            [cmd = argv[0], n_times = std::move(n_times), result_only = std::move(result_only)](
               std::atomic<bool>& stop_token) mutable { run_invoke(cmd, n_times, result_only, stop_token); });
           return EL_OK;
       }));
@@ -184,25 +181,25 @@ void run() {
     static_resourse->instance->register_cmd("ACTION",
                                             "Set action trigger",
                                             "\"COND\",\"TRUE_CMD\",\"FALSE_CMD\", \"EXCEPTION_CMD\"",
-                                            repl_cmd_cb_t([&](std::vector<std::string> argv) {
+                                            repl_cmd_cb_t([](std::vector<std::string> argv) {
                                                 set_action(argv);
                                                 return EL_OK;
                                             }));
 
     static_resourse->instance->register_cmd(
-      "ACTION?", "Get action trigger", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "ACTION?", "Get action trigger", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_action(argv[0]);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "INFO", "Store info string to device flash", "\"INFO_STRING\"", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "INFO", "Store info string to device flash", "\"INFO_STRING\"", repl_cmd_cb_t([](std::vector<std::string> argv) {
           set_info(argv);
           return EL_OK;
       }));
 
     static_resourse->instance->register_cmd(
-      "INFO?", "Get info string from device flash", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "INFO?", "Get info string from device flash", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           get_info(argv[0]);
           return EL_OK;
       }));
