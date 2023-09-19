@@ -39,8 +39,6 @@
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 
-#define CONFIG_EL_LIB_FLASHDB
-
 #ifdef CONFIG_EL_LIB_FLASHDB
 
     #include "third_party/FlashDB/flashdb.h"
@@ -138,7 +136,56 @@ class Storage {
     el_err_code_t init(const char* name = CONFIG_EL_STORAGE_NAME, const char* path = CONFIG_EL_STORAGE_PATH);
     void          deinit();
 
-    struct Iterator;
+    struct Iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = const char[FDB_KV_NAME_MAX];
+        using pointer           = value_type*;
+        using reference         = value_type&;
+
+        explicit Iterator(const Storage* const storage)
+            : ___storage(storage), ___kvdb(nullptr), ___iterator(), ___reach_end(true) {
+            if (!___storage) return;
+            const Guard<Mutex> guard(___storage->__lock);
+            ___kvdb = storage->__kvdb;
+            if (___kvdb) [[likely]] {
+                fdb_kv_iterator_init(___kvdb, &___iterator);
+                ___reach_end = !fdb_kv_iterate(___kvdb, &___iterator);
+            }
+        }
+
+        reference operator*() const { return ___iterator.curr_kv.name; }
+
+        pointer operator->() const { return &___iterator.curr_kv.name; }
+
+        Iterator& operator++() {
+            if (!___storage || !___kvdb) [[unlikely]]
+                return *this;
+            const Guard<Mutex> guard(___storage->__lock);
+            ___reach_end = !fdb_kv_iterate(___kvdb, &___iterator);
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        friend bool operator==(const Iterator& lfs, const Iterator& rhs) {
+            return lfs.___reach_end == rhs.___reach_end;
+        };
+
+        friend bool operator!=(const Iterator& lfs, const Iterator& rhs) {
+            return lfs.___reach_end != rhs.___reach_end;
+        }
+
+       protected:
+        const Storage* const ___storage;
+        fdb_kvdb_t           ___kvdb;
+        fdb_kv_iterator      ___iterator;
+        bool                 ___reach_end;
+    };
 
     bool contains(const char* key) const;
 
