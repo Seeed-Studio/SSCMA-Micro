@@ -43,9 +43,9 @@ el_err_code_t el_model_partition_mmap_init(const char*              partition_na
                                            uint32_t*                partition_start_addr,
                                            uint32_t*                partition_size,
                                            const uint8_t**          flash_2_memory_map,
-                                           spi_flash_mmap_handle_t* mmap_handler);
+                                           el_model_mmap_handler_t* mmap_handler);
 
-void el_model_partition_mmap_deinit(spi_flash_mmap_handle_t* mmap_handler);
+void el_model_partition_mmap_deinit(el_model_mmap_handler_t* mmap_handler);
 
 #ifdef CONFIG_EL_LIB_FLASHDB
     #include "third_party/FlashDB/fal_def.h"

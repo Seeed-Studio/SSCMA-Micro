@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef _EL_BOARD_CONDIG_H_
-#define _EL_BOARD_CONDIG_H_
+#ifndef _EL_BOARD_CONFIG_H_
+#define _EL_BOARD_CONFIG_H_
 
 #include <sdkconfig.h>
 

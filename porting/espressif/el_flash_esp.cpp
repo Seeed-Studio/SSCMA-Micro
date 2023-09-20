@@ -38,7 +38,7 @@ el_err_code_t el_model_partition_mmap_init(const char*              partition_na
                                            uint32_t*                partition_start_addr,
                                            uint32_t*                partition_size,
                                            const uint8_t**          flash_2_memory_map,
-                                           spi_flash_mmap_handle_t* mmap_handler) {
+                                           el_model_mmap_handler_t* mmap_handler) {
     const esp_partition_t* partition{
       esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, partition_name)};
     if (!partition) [[unlikely]]
