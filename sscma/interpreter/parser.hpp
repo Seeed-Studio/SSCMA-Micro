@@ -59,14 +59,15 @@ class Parser {
                     return false;
             }
 
-            if (_node_stack.size() != 2) return false;
+            if (_node_stack.size() != 2) [[unlikely]]
+                return false;
 
             ASTNode* right = _node_stack.top();
             _node_stack.pop();
             ASTNode* left = _node_stack.top();
             _node_stack.pop();
 
-            _node_stack.push(new BinaryOperatorNode(operator_token.value, left, right));
+            _node_stack.push(new OperatorNode(operator_token.value, left, right));
 
             return true;
         }
@@ -87,7 +88,7 @@ class Parser {
    private:
     Lexer&               _lexer;
     Token                _current_token;
-    Mutables&          _mut;
+    Mutables&            _mut;
     std::stack<ASTNode*> _node_stack;
 };
 
