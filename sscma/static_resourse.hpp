@@ -16,7 +16,7 @@
 #include "sscma/repl/executor.hpp"
 #include "sscma/repl/server.hpp"
 #include "sscma/utility.hpp"
-#include "porting/espressif/el_device_esp.h"
+#include "porting/el_device.h"
 
 namespace sscma {
 
@@ -82,7 +82,7 @@ class StaticResourse {
 
    protected:
     StaticResourse() {
-        device             = DeviceEsp::get_device();
+        device             = Device::get_device();
         transport          = device->get_serial();
         models             = new Models();
         storage            = new Storage();

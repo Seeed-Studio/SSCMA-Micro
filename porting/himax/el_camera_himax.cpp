@@ -79,7 +79,7 @@ el_err_code_t CameraHimax::get_frame(el_img_t* img) {
 
     img->width  = this->config.data.camera_cfg.width;
     img->height = this->config.data.camera_cfg.height;
-    img->data   = yuv422_addr;
+    img->data   = reinterpret_cast<uint8_t*>(yuv422_addr);
     img->size   = img->width * img->height * 2;
     img->format = EL_PIXEL_FORMAT_YUV422;
 

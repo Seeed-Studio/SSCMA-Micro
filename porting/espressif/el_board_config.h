@@ -28,6 +28,7 @@
 
 #include <sdkconfig.h>
 
+#include "core/el_config.h"
 #include "boards/boards.h"
 
 #endif

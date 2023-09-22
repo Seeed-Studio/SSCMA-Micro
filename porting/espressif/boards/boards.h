@@ -26,7 +26,7 @@
 #ifndef _BOARDS_H_
 #define _BOARDS_H_
 
-#include <sdkconfig.h>
+#include "core/el_config.h"
 
 #ifdef CONFIG_EL_BOARD_SEEED_XIAO_ESP32S3
     #include "seeed_xiao_esp32s3/board.h"

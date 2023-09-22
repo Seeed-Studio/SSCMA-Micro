@@ -27,7 +27,6 @@
 #define _EL_MISC_H_
 
 #include <cstdint>
-#include <cstdio>
 
 namespace edgelab {
 
@@ -46,8 +45,6 @@ void el_free(void* ptr);
 int el_printf(const char* format, ...);
 
 int el_putchar(char c);
-
-size_t el_getline(char** lineptr, size_t* n, FILE* stream);
 
 void el_reset(void);
 

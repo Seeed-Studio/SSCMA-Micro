@@ -26,10 +26,9 @@
 #ifndef _EL_ENGINE_TFLITE_H_
 #define _EL_ENGINE_TFLITE_H_
 
-#include <tensorflow/lite/core/c/common.h>
+#include <tensorflow/lite/c/common.h>
 #include <tensorflow/lite/micro/compatibility.h>
 #include <tensorflow/lite/micro/micro_interpreter.h>
-#include <tensorflow/lite/micro/micro_log.h>
 #include <tensorflow/lite/micro/micro_mutable_op_resolver.h>
 #include <tensorflow/lite/micro/system_setup.h>
 #include <tensorflow/lite/schema/schema_generated.h>

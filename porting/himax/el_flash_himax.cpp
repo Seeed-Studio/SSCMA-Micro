@@ -25,7 +25,6 @@
 
 #include "el_flash_himax.h"
 
-#include <embARC_debug.h>
 #include <internal_flash.h>
 
 #include "core/el_debug.h"

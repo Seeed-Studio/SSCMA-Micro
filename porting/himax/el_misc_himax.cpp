@@ -32,6 +32,7 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 
 #include "core/el_compiler.h"
 #include "porting/el_misc.h"

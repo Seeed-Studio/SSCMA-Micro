@@ -26,7 +26,7 @@
 #ifndef _BOARDS_H_
 #define _BOARDS_H_
 
-#include <sdkconfig.h>
+#include "core/el_config.h"
 
 #ifdef CONFIG_EL_BOARD_WE_1
     #include "we_1/board.h"
