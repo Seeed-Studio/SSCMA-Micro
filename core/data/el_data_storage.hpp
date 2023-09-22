@@ -92,7 +92,7 @@ template <typename T> static inline constexpr const char* get_type_name() { retu
 //          a. too compilcate to use const difference to determine whether to delete the key (need to set to nullptr while copy/assign, etc.)
 //          b. not wise to use a bool flag to dertermine whether to delete the key (because copy/assign would be a continuation of the key)
 template <typename VarType, typename ValueTypeNoCV = typename std::remove_cv<VarType>::type>
-static inline constexpr el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarType&& data) {
+static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarType&& data) {
     using VarTypeNoCVRef               = typename std::remove_cv<typename std::remove_reference<VarType>::type>::type;
     const char*          type_name     = get_type_name<VarTypeNoCVRef>();
     unsigned long        hash          = djb2_hash(reinterpret_cast<const unsigned char*>(type_name));

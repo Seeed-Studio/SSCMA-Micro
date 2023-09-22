@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,34 @@
  *
  */
 
-#ifndef _EL_MUTEX_HPP_
-#define _EL_MUTEX_HPP_
+#ifndef _EL_CAMERA_HIMAX_H_
+#define _EL_CAMERA_HIMAX_H_
 
-#include "core/el_config_internal.h"
+#include <logger.h>
+#include <sensor_core.h>
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    #include <freertos/FreeRTOS.h>
-    #include <freertos/semphr.h>
-#endif
+#include "core/el_types.h"
+#include "porting/el_camera.h"
+#include "porting/himax/el_board_config.h"
 
 namespace edgelab {
 
-class Mutex {
+class CameraHimax : public Camera {
    public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    Mutex() noexcept : _lock(xSemaphoreCreateCounting(1, 1)) {}
-    ~Mutex() noexcept { vSemaphoreDelete(_lock); }
-#else
-    Mutex() noexcept  = default;
-    ~Mutex() noexcept = default;
-#endif
+    CameraHimax()  = default;
+    ~CameraHimax() = default;
 
-    inline void lock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreTake(_lock, portMAX_DELAY);
-#endif
-    }
+    el_err_code_t init(size_t width, size_t height) override;
+    el_err_code_t deinit() override;
 
-    inline void unlock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreGive(_lock);
-#endif
-    }
+    el_err_code_t start_stream() override;
+    el_err_code_t stop_stream() override;
+
+    el_err_code_t get_frame(el_img_t* img) override;
+    el_err_code_t get_jpeg(el_img_t* img);
 
    private:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    mutable SemaphoreHandle_t _lock;
-#endif
+    Sensor_Cfg_t config;
 };
 
 }  // namespace edgelab

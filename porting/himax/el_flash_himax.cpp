@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,69 +23,59 @@
  *
  */
 
-#include "el_flash_esp.h"
+#include "el_flash_himax.h"
+
+#include <internal_flash.h>
 
 #include "core/el_debug.h"
-#include "core/synchronize/el_guard.hpp"
-#include "core/synchronize/el_mutex.hpp"
 
 namespace edgelab {
-
-static Mutex                  el_flash_db_lock;
-const static esp_partition_t* el_flash_db_partition = nullptr;
 
 el_err_code_t el_model_partition_mmap_init(const char*              partition_name,
                                            uint32_t*                partition_start_addr,
                                            uint32_t*                partition_size,
                                            const uint8_t**          flash_2_memory_map,
                                            el_model_mmap_handler_t* mmap_handler) {
-    const esp_partition_t* partition{
-      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, partition_name)};
-    if (!partition) [[unlikely]]
-        return EL_EINVAL;
-
-    *partition_start_addr = partition->address;
-    *partition_size       = partition->size;
-
-    esp_err_t ret = spi_flash_mmap(*partition_start_addr,
-                                   *partition_size,
-                                   SPI_FLASH_MMAP_DATA,
-                                   reinterpret_cast<const void**>(flash_2_memory_map),
-                                   mmap_handler);
-
-    return ret != ESP_OK ? EL_EINVAL : EL_OK;
+    return EL_OK;
 }
 
-void el_model_partition_mmap_deinit(spi_flash_mmap_handle_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
+void el_model_partition_mmap_deinit(el_model_mmap_handler_t* mmap_handler) {}
 
-static int el_flash_db_init(void) {
-    el_flash_db_partition = esp_partition_find_first(
-      ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, CONFIG_EL_STORAGE_PARTITION_NAME);
-    EL_ASSERT(el_flash_db_partition != nullptr);
-    return 1;
-}
+static int el_flash_db_init(void) { return 1; }
 
 static int el_flash_db_read(long offset, uint8_t* buf, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
-    return esp_partition_read(el_flash_db_partition, offset, buf, size);
+    int8_t   ret  = 0;
+    uint32_t addr = el_flash_db_nor_flash0.addr + offset;
+
+    ret = internal_flash_read(addr, buf, size);
+    //EMBARC_PRINTF("flash db read 0x%08x 0x%08x str:%s\n", addr, size, buf);
+    return ret;
 }
 
 static int el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
-    return esp_partition_write(el_flash_db_partition, offset, buf, size);
+    int8_t   ret  = 0;
+    uint32_t addr = el_flash_db_nor_flash0.addr + offset;
+    //EMBARC_PRINTF("flash db write 0x%08x 0x%08x str:%s\n", addr, size, buf);
+    ret = internal_flash_write(addr, (void*)buf, size);
+
+    return ret;
 }
 
 static int el_flash_db_erase(long offset, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
-    int32_t            erase_size = ((size - 1) / FDB_BLOCK_SIZE) + 1;
-    return esp_partition_erase_range(el_flash_db_partition, offset, erase_size * FDB_BLOCK_SIZE);
+    int8_t   ret  = 0;
+    uint32_t addr = el_flash_db_nor_flash0.addr + offset;
+    //EMBARC_PRINTF("flash db erase 0x%08x 0x%08x\n", addr, size);
+    ret = internal_flash_clear(addr, size);
+
+    return ret;
 }
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 const struct fal_flash_dev el_flash_db_nor_flash0 = {
-  .name       = NOR_FLASH_DEV_NAME,
-  .addr       = 0x0,
-  .len        = 192 * 1024,
+  {.name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT},
+ //0x200000 is the flash size of himax6538, 0x10000 is the data size for flashdb
+  .addr       = (0x200000 - 0x10000),
+  .len        = 0x10000,
   .blk_size   = FDB_BLOCK_SIZE,
   .ops        = {el_flash_db_init, el_flash_db_read, el_flash_db_write, el_flash_db_erase},
   .write_gran = FDB_WRITE_GRAN,

@@ -29,6 +29,7 @@
 
 #include "core/el_common.h"
 #include "core/el_compiler.h"
+#include "core/el_config_internal.h"
 #include "core/el_debug.h"
 #include "core/el_types.h"
 
@@ -986,9 +987,11 @@ EL_ATTR_WEAK el_err_code_t el_img_convert(const el_img_t* src, el_img_t* dst) {
 
     if (src->format == EL_PIXEL_FORMAT_RGB565 || src->format == EL_PIXEL_FORMAT_RGB888 ||
         src->format == EL_PIXEL_FORMAT_GRAYSCALE) {
+#ifdef CONFIG_EL_LIB_JPEGENC
         if (dst->format == EL_PIXEL_FORMAT_JPEG) {
             return rgb_to_jpeg(src, dst);
         }
+#endif
 
         if (dst->format == EL_PIXEL_FORMAT_RGB565 || dst->format == EL_PIXEL_FORMAT_RGB888 ||
             dst->format == EL_PIXEL_FORMAT_GRAYSCALE) {

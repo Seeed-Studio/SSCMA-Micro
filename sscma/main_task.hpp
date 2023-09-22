@@ -62,7 +62,7 @@ void run() {
 
     static_resourse->instance->register_cmd(
       "YIELD", "Yield for 10ms", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          vTaskDelay(10 / portTICK_PERIOD_MS);
+          el_sleep(10);
           return EL_OK;
       }));
 
@@ -229,8 +229,14 @@ void run() {
     // enter service loop (TODO: pipeline builder)
     char* buf = new char[CMD_MAX_LENGTH + sizeof(int)]{};
     for (;;) {
+#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
         static_resourse->transport->get_line(buf, CMD_MAX_LENGTH);
         static_resourse->instance->exec(buf);
+#else
+        static_resourse->instance->loop(static_resourse->transport->get_char());
+        static_resourse->executor->run();
+        el_sleep(10);
+#endif
     }
     delete[] buf;
 }

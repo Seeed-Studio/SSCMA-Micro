@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,19 @@
  *
  */
 
-#ifndef _EL_MUTEX_HPP_
-#define _EL_MUTEX_HPP_
+#ifndef _EL_DEVICE_HIMAX_H_
+#define _EL_DEVICE_HIMAX_H_
 
-#include "core/el_config_internal.h"
-
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    #include <freertos/FreeRTOS.h>
-    #include <freertos/semphr.h>
-#endif
+#include "porting/el_device.h"
 
 namespace edgelab {
 
-class Mutex {
+class DeviceHimax : public Device {
    public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    Mutex() noexcept : _lock(xSemaphoreCreateCounting(1, 1)) {}
-    ~Mutex() noexcept { vSemaphoreDelete(_lock); }
-#else
-    Mutex() noexcept  = default;
-    ~Mutex() noexcept = default;
-#endif
+    DeviceHimax();
+    ~DeviceHimax();
 
-    inline void lock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreTake(_lock, portMAX_DELAY);
-#endif
-    }
-
-    inline void unlock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreGive(_lock);
-#endif
-    }
-
-   private:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    mutable SemaphoreHandle_t _lock;
-#endif
+    void restart() override;
 };
 
 }  // namespace edgelab

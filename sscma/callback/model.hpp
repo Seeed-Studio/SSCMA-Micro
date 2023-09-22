@@ -39,7 +39,7 @@ void set_model(const std::string& cmd, uint8_t model_id) {
         goto ModelReply;
 
     // TODO: move heap_caps_malloc to port/el_memory or el_system
-    static auto* tensor_arena = heap_caps_malloc(TENSOR_ARENA_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    static auto* tensor_arena =  el_malloc(TENSOR_ARENA_SIZE);
     memset(tensor_arena, 0, TENSOR_ARENA_SIZE);
 
     ret = static_resourse->engine->init(tensor_arena, TENSOR_ARENA_SIZE);

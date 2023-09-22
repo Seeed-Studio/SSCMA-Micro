@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,46 +23,44 @@
  *
  */
 
-#ifndef _EL_MUTEX_HPP_
-#define _EL_MUTEX_HPP_
+#include "el_device_himax.h"
 
-#include "core/el_config_internal.h"
+#include <powermode.h>
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    #include <freertos/FreeRTOS.h>
-    #include <freertos/semphr.h>
-#endif
+#include "porting/himax/el_camera_himax.h"
+#include "porting/himax/el_serial_himax.h"
 
 namespace edgelab {
 
-class Mutex {
-   public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    Mutex() noexcept : _lock(xSemaphoreCreateCounting(1, 1)) {}
-    ~Mutex() noexcept { vSemaphoreDelete(_lock); }
+DeviceHimax::DeviceHimax() {
+    this->_device_name = "Seeed Studio Grove Vision AI (WE-I)";
+    this->_device_id   = 0x0001;
+    this->_revision_id = 0x0001;
+
+    static CameraHimax camera{};
+    static SerialEsp   serial{};
+
+    this->_camera = &camera;
+    this->_serial = &serial;
+
+    static uint8_t sensor_id = 0;
+    this->_registered_sensors.emplace_front(el_sensor_info_t{
+      .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
+}
+
+DeviceHimax::~DeviceHimax() {}
+
+Device* Device::get_device() {
+    static DeviceHimax device;
+    return &device;
+}
+
+void DeviceHimax::restart() {
+#ifdef EXTERNAL_LDO
+    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_EXTERNAL_LDO);
 #else
-    Mutex() noexcept  = default;
-    ~Mutex() noexcept = default;
+    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_INTERNAL_LDO);
 #endif
-
-    inline void lock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreTake(_lock, portMAX_DELAY);
-#endif
-    }
-
-    inline void unlock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreGive(_lock);
-#endif
-    }
-
-   private:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    mutable SemaphoreHandle_t _lock;
-#endif
-};
+}
 
 }  // namespace edgelab
-
-#endif

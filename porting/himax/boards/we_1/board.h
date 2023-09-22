@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,46 +23,7 @@
  *
  */
 
-#ifndef _EL_MUTEX_HPP_
-#define _EL_MUTEX_HPP_
-
-#include "core/el_config_internal.h"
-
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    #include <freertos/FreeRTOS.h>
-    #include <freertos/semphr.h>
-#endif
-
-namespace edgelab {
-
-class Mutex {
-   public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    Mutex() noexcept : _lock(xSemaphoreCreateCounting(1, 1)) {}
-    ~Mutex() noexcept { vSemaphoreDelete(_lock); }
-#else
-    Mutex() noexcept  = default;
-    ~Mutex() noexcept = default;
-#endif
-
-    inline void lock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreTake(_lock, portMAX_DELAY);
-#endif
-    }
-
-    inline void unlock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-        xSemaphoreGive(_lock);
-#endif
-    }
-
-   private:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    mutable SemaphoreHandle_t _lock;
-#endif
-};
-
-}  // namespace edgelab
+#ifndef _WE_1_BOARD_H_
+#define _WE_1_BOARD_H_
 
 #endif

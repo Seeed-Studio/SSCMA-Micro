@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,21 +23,18 @@
  *
  */
 
-#ifndef _EL_FLASH_ESP_H_
-#define _EL_FLASH_ESP_H_
-
-#include <esp_partition.h>
-#include <spi_flash_mmap.h>
+#ifndef _EL_FLASH_HIMAX_H_
+#define _EL_FLASH_HIMAX_H_
 
 #include "core/el_config_internal.h"
 #include "core/el_types.h"
 
 #ifdef __cplusplus
-namespace edgelab {
 extern "C" {
+namespace edgelab {
 #endif
 
-typedef spi_flash_mmap_handle_t el_model_mmap_handler_t;
+typedef int8_t el_model_mmap_handler_t;
 
 el_err_code_t el_model_partition_mmap_init(const char*              partition_name,
                                            uint32_t*                partition_start_addr,
@@ -72,10 +69,10 @@ void el_model_partition_mmap_deinit(el_model_mmap_handler_t* mmap_handler);
         #define FDB_KV_AUTO_UPDATE
     #endif
     #define FDB_USING_FAL_MODE
-    #define FDB_WRITE_GRAN (1)
+    #define FDB_WRITE_GRAN (32)
     #define FDB_BLOCK_SIZE (8 * 1024)
 
-    #if CONFIG_EL_DEBUG >= 1
+    #ifdef CONFIG_EL_DEBUG
         #define FDB_DEBUG_ENABLE
     #endif
 

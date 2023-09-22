@@ -26,12 +26,13 @@
 #ifndef _EL_FLASH_H_
 #define _EL_FLASH_H_
 
-#include <sdkconfig.h>
-
+#include "core/el_config.h"
 #include "core/el_config_internal.h"
 
 #ifdef CONFIG_EL_TARGET_ESPPRESSIF
     #include "porting/espressif/el_flash_esp.h"
+#elif defined(CONFIG_EL_TARGET_HIMAX)
+    #include "porting/himax/el_flash_himax.h"
 #endif
 
 #endif
