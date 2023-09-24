@@ -72,7 +72,7 @@ static int el_flash_db_erase(long offset, size_t size) {
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 const struct fal_flash_dev el_flash_db_nor_flash0 = {
-  {.name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT},
+  .name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT,
  //0x200000 is the flash size of himax6538, 0x10000 is the data size for flashdb
   .addr       = (0x200000 - 0x10000),
   .len        = 0x10000,
