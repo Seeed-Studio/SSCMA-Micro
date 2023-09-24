@@ -27,7 +27,9 @@
 #define _EL_DATA_STORAGE_HPP_
 
 #include <algorithm>
+#include <cstdarg>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <forward_list>
 #include <iterator>
@@ -36,6 +38,7 @@
 
 #include "core/el_config_internal.h"
 #include "core/el_debug.h"
+#include "core/el_types.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 
@@ -114,7 +117,7 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
         static_buffer = it->second;
     else {
         static_buffer = new char[buffer_size]{};  // we're not going to delete it
-        std::sprintf(static_buffer, format_str, hash);
+        std::snprintf(static_buffer, buffer_size, format_str, hash);
         hash_list.emplace_front(hash, static_buffer);
     }
     EL_ASSERT(static_buffer != nullptr);

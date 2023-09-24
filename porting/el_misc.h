@@ -27,6 +27,7 @@
 #define _EL_MISC_H_
 
 #include <cstdint>
+#include <cstddef>
 
 namespace edgelab {
 

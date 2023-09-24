@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+#include "internal/algorithm_config_helper.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resourse.hpp"
 #include "sscma/utility.hpp"
