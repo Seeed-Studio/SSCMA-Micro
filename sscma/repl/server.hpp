@@ -29,6 +29,7 @@
 #include <forward_list>
 #include <functional>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -76,6 +77,10 @@ struct repl_cmd_t {
 }  // namespace sscma
 
 namespace sscma::repl {
+
+using namespace edgelab;
+
+using namespace sscma::types;
 
 class Server {
    public:
