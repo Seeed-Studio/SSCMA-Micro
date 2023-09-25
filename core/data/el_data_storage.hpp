@@ -43,9 +43,9 @@
 #include "core/synchronize/el_mutex.hpp"
 
 #ifdef CONFIG_EL_LIB_FLASHDB
-
+extern "C" {
     #include "third_party/FlashDB/flashdb.h"
-
+}
 namespace edgelab {
 
 namespace types {
