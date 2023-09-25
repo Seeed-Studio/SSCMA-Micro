@@ -26,7 +26,5 @@
 #ifndef _EL_CONFIG_H_
 #define _EL_CONFIG_H_
 
-#define CONFIG_EL_TARGET_ESPPRESSIF
-#define CONFIG_EL_BOARD_SEEED_XIAO_ESP32S3
 
 #endif
