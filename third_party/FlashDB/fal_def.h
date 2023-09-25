@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stddef.h>
 #ifdef FDB_USING_NATIVE_ASSERT
 #include <assert.h>
