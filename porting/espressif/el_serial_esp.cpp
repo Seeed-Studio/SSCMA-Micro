@@ -27,7 +27,7 @@
 
 #include <driver/usb_serial_jtag.h>
 
-#include <locale>
+#include <cctype>
 
 #include "core/el_debug.h"
 #include "core/el_types.h"

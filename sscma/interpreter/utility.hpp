@@ -1,6 +1,6 @@
 #pragma once
 
-#include <locale>
+#include <cctype>
 
 #include "sscma/interpreter/types.hpp"
 
