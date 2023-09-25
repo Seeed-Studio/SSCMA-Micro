@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stddef.h>
 #ifdef FDB_USING_NATIVE_ASSERT
 #include <assert.h>
 #endif
@@ -123,7 +124,7 @@ struct fal_flash_dev
         int (*erase)(long offset, size_t size);
     } ops;
 
-    /* write minimum granularity, unit: bit. 
+    /* write minimum granularity, unit: bit.
        1(nor flash)/ 8(stm32f2/f4)/ 32(stm32f1)/ 64(stm32l4)
        0 will not take effect. */
     size_t write_gran;
