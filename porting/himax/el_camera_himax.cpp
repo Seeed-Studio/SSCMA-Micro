@@ -64,7 +64,7 @@ el_err_code_t CameraHimax::start_stream() {
 }
 
 el_err_code_t CameraHimax::stop_stream() {
-    camera_deinit();
+    datapath_stop_work();
     this->_is_streaming = false;
     return EL_OK;
 }
