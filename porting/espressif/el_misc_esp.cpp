@@ -55,7 +55,11 @@ EL_ATTR_WEAK int el_printf(const char* fmt, ...) {
 
 EL_ATTR_WEAK int el_putchar(char c) { return putchar(c); }
 
-EL_ATTR_WEAK void* el_malloc(size_t size) { return malloc(size); }
+EL_ATTR_WEAK void* el_malloc(size_t size) {
+    static uint8_t tensor_arena[450 * 1024] __attribute__((aligned(16)));
+
+    return reinterpret_cast<void*>(tensor_arena);
+}
 
 EL_ATTR_WEAK void* el_calloc(size_t nmemb, size_t size) { return calloc(nmemb, size); }
 
