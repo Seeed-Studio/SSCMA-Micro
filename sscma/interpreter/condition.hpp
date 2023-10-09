@@ -57,16 +57,6 @@ class Condition {
         _mutable_map = map;
     }
 
-    void set_true_cb(branch_cb_t cb) {
-        const Guard<Mutex> guard(_eval_lock);
-        _true_cb = cb;
-    }
-
-    void set_false_cb(branch_cb_t cb) {
-        const Guard<Mutex> guard(_eval_lock);
-        _false_cb = cb;
-    }
-
     void set_exception_cb(branch_cb_t cb) {
         const Guard<Mutex> guard(_eval_lock);
         _exception_cb = cb;
@@ -88,14 +78,6 @@ class Condition {
         if (result.status != EvalStatus::OK) [[unlikely]] {
             if (_exception_cb) [[likely]]
                 _exception_cb();
-        } else {
-            if (result.value) {
-                if (_true_cb) [[likely]]
-                    _true_cb();
-            } else {
-                if (_false_cb) [[likely]]
-                    _false_cb();
-            }
         }
     }
 
@@ -116,8 +98,6 @@ class Condition {
 
     mutable_map_t _mutable_map;
 
-    branch_cb_t _true_cb;
-    branch_cb_t _false_cb;
     branch_cb_t _exception_cb;
 };
 

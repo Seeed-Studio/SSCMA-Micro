@@ -174,13 +174,13 @@ void run() {
           return EL_OK;
       }));
 
-    // Note:
-    //    AT+ACTION="count(id,0)>=3","LED=1","LED=0","YIELD"
-    //    AT+ACTION="max_score(target,0)>=80","LED=1","LED=0","YIELD"
-    //    AT+ACTION="(count(target,0)>=3)||(max_score(target,0)>=80)","LED=1","LED=0","YIELD"
+    // Note (wip):
+    //    AT+ACTION="((count(id,0)>=3)&&led(1))||led(0)"
+    //    AT+ACTION="((max_score(target,0)>=80)&&led(1))||led(0)"
+    //    AT+ACTION="(((count(target,0)>=3)||(max_score(target,0)>=80))&&led(1))||led(0)"
     static_resourse->instance->register_cmd("ACTION",
                                             "Set action trigger",
-                                            "\"COND\",\"TRUE_CMD\",\"FALSE_CMD\", \"EXCEPTION_CMD\"",
+                                            "\"EXPRESSION\"",
                                             repl_cmd_cb_t([](std::vector<std::string> argv) {
                                                 set_action(argv);
                                                 return EL_OK;
