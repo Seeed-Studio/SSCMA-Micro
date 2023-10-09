@@ -24,6 +24,7 @@
  */
 
 #include <driver/gpio.h>
+#include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -31,6 +32,7 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 
 #include "core/el_compiler.h"
 #include "porting/el_misc.h"
@@ -55,11 +57,7 @@ EL_ATTR_WEAK int el_printf(const char* fmt, ...) {
 
 EL_ATTR_WEAK int el_putchar(char c) { return putchar(c); }
 
-EL_ATTR_WEAK void* el_malloc(size_t size) {
-    static uint8_t tensor_arena[450 * 1024] __attribute__((aligned(16)));
-
-    return reinterpret_cast<void*>(tensor_arena);
-}
+EL_ATTR_WEAK void* el_malloc(size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
 
 EL_ATTR_WEAK void* el_calloc(size_t nmemb, size_t size) { return calloc(nmemb, size); }
 
