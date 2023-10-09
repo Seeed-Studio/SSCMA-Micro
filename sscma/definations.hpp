@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <sstream>
+#include <string>
 
 #define REPL_EXECUTOR_STACK_SIZE (40960)
 #define REPL_EXECUTOR_PRIO       (5)
@@ -17,14 +17,15 @@
 
 namespace sscma::definations {
 
-using delim_f_t                = std::function<void(std::ostringstream& os)>;
-static delim_f_t delim_f       = [](std::ostringstream& os) {};
-static delim_f_t print_delim_f = [](std::ostringstream& os) { os << ", "; };
-static delim_f_t print_void_f  = [](std::ostringstream& os) { delim_f = print_delim_f; };
+using delim_f_t = std::function<void(std::string& os)>;
+
+static delim_f_t delim_f       = [](std::string&) {};
+static delim_f_t print_delim_f = [](std::string& ss) { ss += ", "; };
+static delim_f_t print_void_f  = [](std::string&) { delim_f = print_delim_f; };
 
 #define DELIM_RESET \
     { sscma::definations::delim_f = sscma::definations::print_void_f; }
-#define DELIM_PRINT(OS) \
-    { sscma::definations::delim_f(OS); }
+#define DELIM_PRINT(SS) \
+    { sscma::definations::delim_f(SS); }
 
 }  // namespace sscma::definations

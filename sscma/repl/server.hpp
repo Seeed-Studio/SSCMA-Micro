@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <forward_list>
 #include <functional>
-#include <sstream>
 #include <stack>
 #include <string>
 #include <utility>
@@ -210,16 +209,16 @@ class Server {
                     }
                 } else if (_ctrl_line.compare("[H") == 0) {
                     _line_index = 0;
-                    m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", _line_index + 3, "G");
+                    m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 3), "G");
                 } else if (_ctrl_line.compare("[F") == 0) {
                     _line_index = _line.size() - 1;
-                    m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", _line_index + 4, "G");
+                    m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
                 } else if (_ctrl_line.compare("[3~") == 0) {
                     if (_line_index < (_line.size() - 1)) {
                         if (!_line.empty() && _line_index >= 0) {
                             _line.erase(_line_index + 1, 1);
                             --_line_index;
-                            m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", _line_index + 4, "G");
+                            m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
                         }
                     }
                 } else
@@ -252,7 +251,7 @@ class Server {
             if (!_line.empty() && _line_index >= 0) {
                 _line.erase(_line_index, 1);
                 --_line_index;
-                m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", _line_index + 4, "G");
+                m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
             }
             break;
 
@@ -264,9 +263,9 @@ class Server {
             if (std::isprint(c)) {
                 _line.insert(++_line_index, 1, c);
                 if (_line_index == (_line.size() - 1))
-                    m_echo_cb(EL_OK, c);
+                    m_echo_cb(EL_OK, std::to_string(c));
                 else
-                    m_echo_cb(EL_OK, "\r> ", _line, "\033[", _line_index + 4, "G");
+                    m_echo_cb(EL_OK, "\r> ", _line, "\033[", std::to_string(_line_index + 4), "G");
             }
         }
     }
@@ -357,9 +356,9 @@ class Server {
     }
 
     template <typename... Args> inline void m_echo_cb(el_err_code_t ret, Args&&... args) {
-        auto os{std::ostringstream(std::ios_base::ate)};
-        ((os << (std::forward<Args>(args))), ...);
-        _echo_cb(ret, os.str());
+        std::string ss;
+        (ss.append(std::forward<Args>(args)), ...);  // TODO: preserve space before appending args
+        _echo_cb(ret, ss);
     }
 
    private:

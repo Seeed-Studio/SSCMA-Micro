@@ -1,10 +1,7 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <forward_list>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -22,21 +19,32 @@ namespace sscma::utility {
 using namespace edgelab;
 using namespace edgelab::utility;
 
-std::string quoted_stringify(const std::string& str) {
-    std::string ss(1, '"');
-    for (char c : str) {
-        if (c == '"') [[unlikely]]
-            ss += "\\\"";
-        else if (c == '\n') [[unlikely]]
-            ss += "\\n";
-        else if (std::isprint(c)) [[likely]]
-            ss += c;
-    }
-    ss += '"';
-    return ss;
+namespace string_concat {
+
+constexpr inline std::size_t lengthof(const char* s) {
+    std::size_t size = 0;
+    while (*(s + size) != '\0') ++size;
+    return size;
 }
 
-inline uint32_t color_literal(uint8_t i) {
+template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T (&)[N]) noexcept { return N; }
+
+constexpr inline std::size_t lengthof(const std::string& s) { return s.length(); }
+
+template <typename... Args> constexpr std::string concat_strings(Args&&... args) {
+    std::size_t length{(lengthof(args) + ...)};
+    std::string result;
+    result.reserve(length);
+    return (result.append(std::forward<Args>(args)), ...);
+}
+
+}  // namespace string_concat
+
+using namespace string_concat;
+
+namespace improc {
+
+inline static uint32_t color_literal(uint8_t i) {
     static const uint16_t color[] = {
       0x0000,
       0x03E0,
@@ -49,7 +57,7 @@ inline uint32_t color_literal(uint8_t i) {
 
 void draw_results_on_image(const std::forward_list<el_point_t>& results, el_img_t* img) {
     uint8_t i = 0;
-    for (const auto& point : results) edgelab::el_draw_point(img, point.x, point.y, color_literal(++i));
+    for (const auto& point : results) el_draw_point(img, point.x, point.y, color_literal(++i));
 }
 
 void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t* img) {
@@ -57,148 +65,202 @@ void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t*
     for (const auto& box : results) {
         int16_t y = box.y - (box.h >> 1);
         int16_t x = box.x - (box.w >> 1);
-        edgelab::el_draw_rect(img, x, y, box.w, box.h, color_literal(++i), 4);
+        el_draw_rect(img, x, y, box.w, box.h, color_literal(++i), 4);
     }
+}
+
+}  // namespace improc
+
+using namespace improc;
+
+std::string quoted(const std::string& str, const char delim = '"') {
+    std::size_t sz = 0;
+    for (char c : str)
+        if (c == delim) [[unlikely]]
+            ++sz;
+    std::string ss(1, delim);
+    ss.reserve(str.length() + (sz << 1));
+    for (char c : str) {
+        if (c == delim) [[unlikely]]
+            ss += '\\';
+        if (c != '\n') [[likely]]
+            ss += c;
+    }
+    ss += delim;
+    return ss;
 }
 
 std::string model_info_2_json_str(el_model_info_t model_info) {
-    auto os{std::ostringstream(std::ios_base::ate)};
-
-    os << "{\"id\": " << static_cast<unsigned>(model_info.id)
-       << ", \"type\": " << static_cast<unsigned>(model_info.type) << ", \"address\": \"0x" << std::hex
-       << static_cast<unsigned>(model_info.addr_flash) << "\", \"size\": \"0x" << static_cast<unsigned>(model_info.size)
-       << "\"}";
-
-    return std::string(os.str());
+    return concat_strings("{\"id\": ",
+                          std::to_string(model_info.id),
+                          ", \"type\": ",
+                          std::to_string(model_info.type),
+                          ", \"address\": ",
+                          std::to_string(model_info.addr_flash),
+                          ", \"size\": ",
+                          std::to_string(model_info.size),
+                          "}");
 }
 
 std::string sensor_info_2_json_str(el_sensor_info_t sensor_info) {
-    auto os{std::ostringstream(std::ios_base::ate)};
-
-    os << "{\"id\": " << static_cast<unsigned>(sensor_info.id)
-       << ", \"type\": " << static_cast<unsigned>(sensor_info.type)
-       << ", \"state\": " << static_cast<unsigned>(sensor_info.state) << "}";
-
-    return std::string(os.str());
+    return concat_strings("{\"id\": ",
+                          std::to_string(sensor_info.id),
+                          ", \"type\": ",
+                          std::to_string(sensor_info.type),
+                          ", \"state\": ",
+                          std::to_string(sensor_info.state),
+                          "}");
 }
 
 template <typename T> constexpr std::string results_2_json_str(const std::forward_list<T>& results) {
-    auto os{std::ostringstream(std::ios_base::ate)};
+    std::string ss;
 
     DELIM_RESET;
     if constexpr (std::is_same<T, el_box_t>::value) {
-        os << "\"boxes\": [";
+        ss += "\"boxes\": [";
         for (const auto& box : results) {
-            DELIM_PRINT(os);
-            os << "[" << static_cast<unsigned>(box.x) << ", " << static_cast<unsigned>(box.y) << ", "
-               << static_cast<unsigned>(box.w) << ", " << static_cast<unsigned>(box.h) << ", "
-               << static_cast<unsigned>(box.score) << ", " << static_cast<unsigned>(box.target) << "]";
+            DELIM_PRINT(ss);
+            ss += concat_strings("[",
+                                 std::to_string(box.x),
+                                 ", ",
+                                 std::to_string(box.y),
+                                 ", ",
+                                 std::to_string(box.w),
+                                 ", ",
+                                 std::to_string(box.h),
+                                 ", ",
+                                 std::to_string(box.score),
+                                 ", ",
+                                 std::to_string(box.target),
+                                 "]");
         }
     } else if constexpr (std::is_same<T, el_point_t>::value) {
-        os << "\"points\": [";
+        ss += "\"points\": [";
         for (const auto& point : results) {
-            DELIM_PRINT(os);
-            os << "[" << static_cast<unsigned>(point.x) << ", " << static_cast<unsigned>(point.y) << ", "
-               << static_cast<unsigned>(point.score) << ", " << static_cast<unsigned>(point.target) << "]";
+            DELIM_PRINT(ss);
+            ss += concat_strings("[",
+                                 std::to_string(point.x),
+                                 ", ",
+                                 std::to_string(point.y),
+                                 ", ",
+                                 std::to_string(point.score),
+                                 ", ",
+                                 std::to_string(point.target),
+                                 "]");
         }
     } else if constexpr (std::is_same<T, el_class_t>::value) {
-        os << "\"classes\": [";
+        ss += "\"classes\": [";
         for (const auto& cls : results) {
-            DELIM_PRINT(os);
-            os << "[" << static_cast<unsigned>(cls.score) << ", " << static_cast<unsigned>(cls.target) << "]";
+            DELIM_PRINT(ss);
+            ss += concat_strings("[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
         }
     }
-    os << "]";
+    ss += "]";
 
-    return std::string(os.str());
+    return ss;
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
 std::string img_2_jpeg_json_str(const el_img_t* img) {
-    auto os = std::ostringstream(std::ios_base::ate);
-
     if (!img || !img->data) [[unlikely]]
         return "\"image\": \"\"";
 
-    os << "\"image\": \"";
-    size_t size     = img->width * img->height * 3;
-    auto   jpeg_img = el_img_t{.data   = new uint8_t[size]{},
-                               .size   = size,
-                               .width  = img->width,
-                               .height = img->height,
-                               .format = EL_PIXEL_FORMAT_JPEG,
-                               .rotate = img->rotate};
-
-    el_err_code_t ret = el_img_convert(img, &jpeg_img);
-    if (ret == EL_OK) [[likely]] {
-        auto* buffer = new char[((jpeg_img.size + 2) / 3) * 4 + 1]{};
+    std::string ss("\"image\": \"");
+    // TODO: reallocate jpeg_data buffer when resolution changed
+    static std::size_t size      = img->width * img->height * 3;
+    static uint8_t*    jpeg_data = new uint8_t[size]{};
+    static auto        jpeg_img  = el_img_t{.data   = jpeg_data,
+                                            .size   = size,
+                                            .width  = img->width,
+                                            .height = img->height,
+                                            .format = EL_PIXEL_FORMAT_JPEG,
+                                            .rotate = img->rotate};
+    std::memset(jpeg_data, 0, size);
+    if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
+        // allocate static buffer using maxium size
+        static auto  buffer_size = ((size + 2) / 3) * 4 + 1;
+        static auto* buffer      = new char[buffer_size]{};
+        std::memset(buffer, 0, buffer_size);
         el_base64_encode(jpeg_img.data, jpeg_img.size, buffer);
-        os << buffer;
-        delete[] buffer;
+        ss += buffer;
     }
-    delete[] jpeg_img.data;
-    os << "\"";
+    ss += "\"";
 
-    return std::string(os.str());
+    return ss;
 }
 
 std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
-    auto os{std::ostringstream(std::ios_base::ate)};
+    std::string ss;
 
-    os << "{\"type\": " << static_cast<unsigned>(info->type)
-       << ", \"categroy\": " << static_cast<unsigned>(info->categroy)
-       << ", \"input_from\": " << static_cast<unsigned>(info->input_from) << "}";
-
-    return std::string(os.str());
+    return concat_strings("{\"type\": ",
+                          std::to_string(info->type),
+                          ", \"categroy\": ",
+                          std::to_string(info->categroy),
+                          ", \"input_from\": ",
+                          std::to_string(info->input_from),
+                          "}");
 }
 
 template <typename InfoConfType> std::string algorithm_info_and_conf_2_json_str(const InfoConfType& info_and_conf) {
-    auto os{std::ostringstream(std::ios_base::ate)};
+    std::string ss;
 
-    os << "{\"type\": " << static_cast<unsigned>(info_and_conf.info.type)
-       << ", \"categroy\": " << static_cast<unsigned>(info_and_conf.info.categroy)
-       << ", \"input_from\": " << static_cast<unsigned>(info_and_conf.info.input_from) << ", \"config\": {";
+    ss += concat_strings("{\"type\": ",
+                         std::to_string(info_and_conf.info.type),
+                         ", \"categroy\": ",
+                         std::to_string(info_and_conf.info.categroy),
+                         ", \"input_from\": ",
+                         std::to_string(info_and_conf.info.input_from),
+                         ", \"config\": {");
     if constexpr (std::is_same<InfoConfType, el_algorithm_fomo_config_t>::value ||
                   std::is_same<InfoConfType, el_algorithm_imcls_config_t>::value)
-        os << "\"tscore\": " << static_cast<unsigned>(info_and_conf.score_threshold);
+        ss += concat_strings("\"tscore\": ", std::to_string(info_and_conf.score_threshold));
     else if constexpr (std::is_same<InfoConfType, el_algorithm_yolo_config_t>::value)
-        os << "\"tscore\": " << static_cast<unsigned>(info_and_conf.score_threshold)
-           << ", \"tiou\": " << static_cast<unsigned>(info_and_conf.iou_threshold);
-    os << "}}";
+        ss += concat_strings("\"tscore\": ",
+                             std::to_string(info_and_conf.score_threshold),
+                             ", \"tiou\": ",
+                             std::to_string(info_and_conf.iou_threshold));
+    ss += "}}";
 
-    return std::string(os.str());
+    return ss;
 }
 
 template <typename AlgorithmType>
 std::string img_invoke_results_2_json_str(
   const AlgorithmType* algorithm, const el_img_t* img, const std::string& cmd, bool result_only, el_err_code_t ret) {
-    auto os{std::ostringstream(std::ios_base::ate)};
+    std::string ss(REPLY_EVT_HEADER);
 
-    os << REPLY_EVT_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(ret)
-       << ", \"data\": {\"perf\": [" << static_cast<unsigned>(algorithm->get_preprocess_time()) << ", "
-       << static_cast<unsigned>(algorithm->get_run_time()) << ", "
-       << static_cast<unsigned>(algorithm->get_postprocess_time()) << "], "
-       << results_2_json_str(algorithm->get_results());
-    if (!result_only) os << ", " << img_2_jpeg_json_str(img);
-    os << "}}\n";
+    ss += concat_strings("\"name\": \"",
+                         cmd,
+                         "\", \"code\": ",
+                         std::to_string(ret),
+                         ", \"data\": {\"perf\": [",
+                         std::to_string(algorithm->get_preprocess_time()),
+                         ", ",
+                         std::to_string(algorithm->get_run_time()),
+                         ", ",
+                         std::to_string(algorithm->get_postprocess_time()),
+                         "], ",
+                         results_2_json_str(algorithm->get_results()));
+    if (!result_only) ss += concat_strings(", ", img_2_jpeg_json_str(img));
+    ss += "}}\n";
 
-    return std::string(os.str());
+    return ss;
 }
 
 std::vector<std::string> tokenize_function_2_argv(const std::string& input) {
     std::vector<std::string> argv;
 
-    size_t index = 0;
-    size_t size  = input.size();
-    char   c     = {};
+    std::size_t index = 0;
+    std::size_t size  = input.size();
+    char        c     = {};
 
     while (index < size) {
         c = input.at(index);
-        if (std::isalnum(c) || c == '_') {
+        if (std::isalnum(c) || c == '_') [[likely]] {
             size_t prev = index;
             while (++index < size) {
                 c = input.at(index);
-                if (!std::isalnum(c) && c != '_') [[unlikely]]
+                if (!(std::isalnum(c) || c == '_')) [[unlikely]]
                     break;
             }
             argv.push_back(input.substr(prev, index - prev));
@@ -211,31 +273,19 @@ std::vector<std::string> tokenize_function_2_argv(const std::string& input) {
 }
 
 std::string action_str_2_json_str(const char* str) {
-    std::ostringstream         os;
-    std::string                buf;
-    std::stringstream          ss(str);
-    std::array<std::string, 3> argv_3{};
+    std::string ss("\"action\": ");
 
-    for (size_t i = 0; i < argv_3.size() && std::getline(ss, buf, '\t'); ++i) argv_3[i] = buf;
+    ss += quoted(str);
 
-    os << "\"cond\": " << quoted_stringify(argv_3[0]) << ", \"true\": " << quoted_stringify(argv_3[1])
-       << ", \"false\": " << quoted_stringify(argv_3[2]) << ", \"exception\": " << quoted_stringify(argv_3[3]);
-
-    return std::string(os.str());
+    return ss;
 }
 
 std::string action_str_2_cmd_str(const char* str) {
-    std::ostringstream         os;
-    std::string                buf;
-    std::stringstream          ss(str);
-    std::array<std::string, 3> argv_3{};
+    std::string ss("AT+ACTION=");
 
-    for (size_t i = 0; i < argv_3.size() && std::getline(ss, buf, '\t'); ++i) argv_3[i] = buf;
+    ss += quoted(str);
 
-    os << "AT+ACTION=" << quoted_stringify(argv_3[0]) << "," << quoted_stringify(argv_3[1]) << ","
-       << quoted_stringify(argv_3[2]);
-
-    return std::string(os.str());
+    return ss;
 }
 
 }  // namespace sscma::utility

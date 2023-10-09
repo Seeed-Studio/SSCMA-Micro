@@ -1,9 +1,6 @@
 #pragma once
 
-#include <atomic>
 #include <cstdint>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 #include "sscma/definations.hpp"
@@ -15,25 +12,24 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void get_available_sensors(const std::string& cmd) {
-    auto        os                 = std::ostringstream(std::ios_base::ate);
+    std::string ss(REPLY_CMD_HEADER);
     const auto& registered_sensors = static_resourse->device->get_all_sensor_info();
 
-    os << REPLY_CMD_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(EL_OK) << ", \"data\": [";
+    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [");
     DELIM_RESET;
     for (const auto& i : registered_sensors) {
-        DELIM_PRINT(os);
-        os << sensor_info_2_json_str(i);
+        DELIM_PRINT(ss);
+        ss += sensor_info_2_json_str(i);
     }
-    os << "]}\n";
+    ss += "]}\n";
 
-    const auto& str{os.str()};
-    static_resourse->transport->send_bytes(str.c_str(), str.size());
+    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
-    auto os          = std::ostringstream(std::ios_base::ate);
-    auto sensor_info = static_resourse->device->get_sensor_info(sensor_id);
-    auto ret         = sensor_info.id ? EL_OK : EL_EINVAL;
+    std::string ss(REPLY_CMD_HEADER);
+    auto        sensor_info = static_resourse->device->get_sensor_info(sensor_id);
+    auto        ret         = sensor_info.id ? EL_OK : EL_EINVAL;
 
     if (ret != EL_OK) [[unlikely]]
         goto SensorReply;
@@ -60,7 +56,8 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
         if (static_resourse->current_sensor_id != sensor_id) {
             static_resourse->current_sensor_id = sensor_id;
             if (static_resourse->is_ready.load()) [[likely]]
-                *static_resourse->storage << el_make_storage_kv("current_sensor_id", static_resourse->current_sensor_id);
+                *static_resourse->storage
+                  << el_make_storage_kv("current_sensor_id", static_resourse->current_sensor_id);
         }
     } else
         ret = EL_ENOTSUP;
@@ -70,22 +67,30 @@ SensorError:
     static_resourse->current_sensor_id = 0;
 
 SensorReply:
-    os << REPLY_CMD_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(ret)
-       << ", \"data\": {\"sensor\": " << sensor_info_2_json_str(sensor_info) << "}}\n";
+    ss += concat_strings("\"name\": \"",
+                         cmd,
+                         "\", \"code\": ",
+                         std::to_string(ret),
+                         ", \"data\": {\"sensor\": ",
+                         sensor_info_2_json_str(sensor_info),
+                         "}}\n");
 
-    const auto& str{os.str()};
-    static_resourse->transport->send_bytes(str.c_str(), str.size());
+    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_sensor_info(const std::string& cmd) {
+    std::string ss(REPLY_CMD_HEADER);
     const auto& sensor_info = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
-    auto        os          = std::ostringstream(std::ios_base::ate);
 
-    os << REPLY_CMD_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(EL_OK)
-       << ", \"data\": " << sensor_info_2_json_str(sensor_info) << "}\n";
+    ss += concat_strings("\"name\": \"",
+                         cmd,
+                         "\", \"code\": ",
+                         std::to_string(EL_OK),
+                         ", \"data\": ",
+                         sensor_info_2_json_str(sensor_info),
+                         "}\n");
 
-    const auto& str{os.str()};
-    static_resourse->transport->send_bytes(str.c_str(), str.size());
+    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

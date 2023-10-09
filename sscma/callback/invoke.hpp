@@ -2,8 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 #include "internal/algorithm_config_helper.hpp"
@@ -114,19 +112,25 @@ void run_invoke_on_img(
 }
 
 void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atomic<bool>& stop_token) {
-    auto os             = std::ostringstream(std::ios_base::ate);
-    auto model_info     = el_model_info_t{};
-    auto algorithm_info = el_algorithm_info_t{};
-    auto sensor_info    = el_sensor_info_t{};
-    auto ret            = EL_OK;
-    auto direct_reply   = [&](const std::string& algorithm_info_and_conf) {
-        os << REPLY_CMD_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(ret)
-           << ", \"data\": {\"model\": " << model_info_2_json_str(model_info)
-           << ", \"algorithm\": " << algorithm_info_and_conf << ", \"sensor\": " << sensor_info_2_json_str(sensor_info)
-           << "}}\n";
+    std::string ss(REPLY_CMD_HEADER);
+    auto        model_info     = el_model_info_t{};
+    auto        algorithm_info = el_algorithm_info_t{};
+    auto        sensor_info    = el_sensor_info_t{};
+    auto        ret            = EL_OK;
+    auto        direct_reply   = [&](const std::string& algorithm_info_and_conf) {
+        ss += concat_strings("\"name\": \"",
+                             cmd,
+                             "\", \"code\": ",
+                             std::to_string(ret),
+                             ", \"data\": {\"model\": ",
+                             model_info_2_json_str(model_info),
+                             ", \"algorithm\": ",
+                             algorithm_info_and_conf,
+                             ", \"sensor\": ",
+                             sensor_info_2_json_str(sensor_info),
+                             "}}\n");
 
-        const auto& str{os.str()};
-        static_resourse->transport->send_bytes(str.c_str(), str.size());
+        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
 
     model_info = static_resourse->models->get_model_info(static_resourse->current_model_id);

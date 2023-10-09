@@ -3,7 +3,6 @@
 #include <atomic>
 #include <cstdbool>
 #include <cstdint>
-#include <sstream>
 #include <string>
 
 #include "core/algorithm/el_algorithm_delegate.h"
@@ -12,20 +11,20 @@
 #include "core/el_common.h"
 #include "core/engine/el_engine_tflite.h"
 #include "core/utils/el_hash.h"
+#include "porting/el_device.h"
 #include "sscma/interpreter/condition.hpp"
 #include "sscma/repl/executor.hpp"
 #include "sscma/repl/server.hpp"
 #include "sscma/utility.hpp"
-#include "porting/el_device.h"
 
 namespace sscma {
+
+using namespace edgelab;
+using namespace edgelab::base;
 
 using namespace sscma::utility;
 using namespace sscma::interpreter;
 using namespace sscma::repl;
-
-using namespace edgelab;
-using namespace edgelab::base;
 
 class StaticResourse {
    public:
@@ -107,12 +106,16 @@ class StaticResourse {
     void inter_init() {
         transport->init();
         instance->init([this](el_err_code_t ret, const std::string& msg) {
-            auto os = std::ostringstream(std::ios_base::ate);
-            if (ret != EL_OK)
-                os << REPLY_LOG_HEADER << "\"name\": \"AT\", \"code\": " << static_cast<int>(ret)
-                   << ", \"data\": " << quoted_stringify(msg) << "}\n";
-            const auto& str{os.str()};
-            this->transport->send_bytes(str.c_str(), str.size());
+            std::string ss;
+            if (ret != EL_OK) [[unlikely]] {
+                ss += concat_strings(REPLY_LOG_HEADER,
+                                     "\"name\": \"AT\", \"code\": ",
+                                     std::to_string(ret),
+                                     ", \"data\": ",
+                                     quoted(msg),
+                                     "}\n");
+                this->transport->send_bytes(ss.c_str(), ss.size());
+            }
         });
         models->init();
         storage->init();

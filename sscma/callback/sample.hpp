@@ -2,8 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 #include "sscma/definations.hpp"
@@ -18,19 +16,22 @@ void run_sample(const std::string& cmd, int n_times, std::atomic<bool>& stop_tok
     const auto& sensor_info  = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
     auto        ret          = (sensor_info.id && sensor_info.state == EL_SENSOR_STA_AVAIL) ? EL_OK : EL_EINVAL;
     auto        direct_reply = [&]() {
-        auto os = std::ostringstream(std::ios_base::ate);
-        os << REPLY_CMD_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(ret)
-           << ", \"data\": {\"sensor\": " << sensor_info_2_json_str(sensor_info) << "}}\n";
-        const auto& str{os.str()};
-        static_resourse->transport->send_bytes(str.c_str(), str.size());
+        std::string ss(REPLY_CMD_HEADER);
+        ss += concat_strings("\"name\": \"",
+                             cmd,
+                             "\", \"code\": ",
+                             std::to_string(ret),
+                             ", \"data\": {\"sensor\": ",
+                             sensor_info_2_json_str(sensor_info),
+                             "}}\n");
+        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
     auto event_reply = [&](const std::string& sample_data_str) {
-        auto os = std::ostringstream(std::ios_base::ate);
-        os << REPLY_EVT_HEADER << "\"name\": \"" << cmd << "\", \"code\": " << static_cast<int>(ret) << ", \"data\": {"
-           << sample_data_str << "}}\n";
+        std::string ss(REPLY_EVT_HEADER);
+        ss += concat_strings(
+          "\"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), ", \"data\": {", sample_data_str, "}}\n");
 
-        const auto& str{os.str()};
-        static_resourse->transport->send_bytes(str.c_str(), str.size());
+        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
 
     if (ret != EL_OK) [[unlikely]]
