@@ -32,7 +32,7 @@
 #include "core/el_types.h"
 #include "porting/el_misc.h"
 
-#define EL_VERSION                 "2023.09.12"
+#define EL_VERSION                 "2023.10.10"
 #define EL_VERSION_LENTH_MAX       32
 
 #define EL_CONCAT(a, b)            a##b
