@@ -14,10 +14,10 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void get_available_algorithms(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& registered_algorithms = static_resourse->algorithm_delegate->get_all_algorithm_info();
 
-    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [");
+    std::string ss{
+      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     DELIM_RESET;
     for (const auto& i : registered_algorithms) {
         DELIM_PRINT(ss);
@@ -29,7 +29,6 @@ void get_available_algorithms(const std::string& cmd) {
 }
 
 void set_algorithm(const std::string& cmd, el_algorithm_type_t algorithm_type) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& algorithm_info = static_resourse->algorithm_delegate->get_algorithm_info(algorithm_type);
     auto        ret            = algorithm_type == algorithm_info.type ? EL_OK : EL_EINVAL;
 
@@ -40,8 +39,8 @@ void set_algorithm(const std::string& cmd, el_algorithm_type_t algorithm_type) {
                                                             static_resourse->current_algorithm_type);
     }
 
-    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), ", \"data\": ");
-
+    std::string ss{
+      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), ", \"data\": ")};
     switch (algorithm_info.type) {
     case EL_ALGO_TYPE_FOMO: {
         el_algorithm_fomo_config_t info_and_conf{};
@@ -90,11 +89,11 @@ void set_algorithm(const std::string& cmd, el_algorithm_type_t algorithm_type) {
 }
 
 void get_algorithm_info(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& algorithm_info =
       static_resourse->algorithm_delegate->get_algorithm_info(static_resourse->current_algorithm_type);
 
-    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": ");
+    std::string ss{
+      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": ")};
 
     switch (algorithm_info.type) {
     case EL_ALGO_TYPE_FOMO: {

@@ -23,19 +23,19 @@ void set_action(const std::vector<std::string>& argv) {
         if (ret != EL_OK) [[unlikely]]
             goto ActionReply;
 
-        static_resourse->action_cond->set_exception_cb([=]() {
-            std::string ss(REPLY_EVT_HEADER);
+        static_resourse->action_cond->set_exception_cb(
+          [cmd = argv[0], ec = std::to_string(EL_ELOG), crc = std::to_string(crc16_maxim)]() {
+              std::string ss{concat_strings(REPLY_EVT_HEADER,
+                                            "\"name\": \"",
+                                            cmd,
+                                            "\", \"code\": ",
+                                            ec,
+                                            ", \"data\": {\"crc16_maxim\": ",
+                                            crc,
+                                            "}}\n")};
 
-            ss += concat_strings("\"name\": \"",
-                                 argv[0],
-                                 "\", \"code\": ",
-                                 std::to_string(EL_ELOG),
-                                 ", \"data\": {\"crc16_maxim\": ",
-                                 std::to_string(crc16_maxim),
-                                 "}}\n");
-
-            static_resourse->transport->send_bytes(ss.c_str(), ss.size());
-        });
+              static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+          });
 
         {
             auto mutable_map = static_resourse->action_cond->get_mutable_map();
@@ -46,9 +46,9 @@ void set_action(const std::vector<std::string>& argv) {
 
                 if (argv[0] == "led") {
                     if (argv.size() == 2) {
-                        uint8_t target = std::atoi(argv[1].c_str());
-                        kv.second      = [=]() -> int {
-                            el_status_led(target);
+                        bool enable = std::atoi(argv[1].c_str());
+                        kv.second   = [enable]() -> int {
+                            el_status_led(enable);
                             return 1;
                         };
                     }
@@ -59,8 +59,9 @@ void set_action(const std::vector<std::string>& argv) {
     }
 
     if (static_resourse->is_ready.load()) [[likely]] {
-        char        action[CMD_MAX_LENGTH]{};
-        std::strncpy(action, argv[1].c_str(), argv[1].length() < CMD_MAX_LENGTH ? argv[1].length() : CMD_MAX_LENGTH - 1);
+        char action[CMD_MAX_LENGTH]{};
+        std::strncpy(
+          action, argv[1].c_str(), argv[1].length() < CMD_MAX_LENGTH ? argv[1].length() : CMD_MAX_LENGTH - 1);
         ret = static_resourse->storage->emplace(el_make_storage_kv("edgelab_action", action)) ? EL_OK : EL_EIO;
     }
 
@@ -79,25 +80,25 @@ ActionReply:
 }
 
 void get_action(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
-    char        action[CMD_MAX_LENGTH]{};
-    uint16_t    crc16_maxim = 0xffff;
-    auto        ret         = EL_OK;
+    char     action[CMD_MAX_LENGTH]{};
+    uint16_t crc16_maxim = 0xffff;
+    auto     ret         = EL_OK;
 
     if (static_resourse->action_cond->has_condition() && static_resourse->storage->contains("edgelab_action")) {
         ret         = static_resourse->storage->get(el_make_storage_kv("edgelab_action", action)) ? EL_OK : EL_EINVAL;
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(ret),
-                         ", \"data\": {\"crc16_maxim\": ",
-                         std::to_string(crc16_maxim),
-                         ", ",
-                         action_str_2_json_str(action),
-                         "}}\n");
+    std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": {\"crc16_maxim\": ",
+                                  std::to_string(crc16_maxim),
+                                  ", \"action\": ",
+                                  quoted(action),
+                                  "}}\n")};
 
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }

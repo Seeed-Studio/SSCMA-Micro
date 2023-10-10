@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 
 #include "sscma/definations.hpp"
@@ -12,10 +11,10 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void get_available_models(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& models_info = static_resourse->models->get_all_model_info();
 
-    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [");
+    std::string ss{
+      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     DELIM_RESET;
     for (const auto& i : models_info) {
         DELIM_PRINT(ss);
@@ -27,10 +26,9 @@ void get_available_models(const std::string& cmd) {
 }
 
 void set_model(const std::string& cmd, uint8_t model_id) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& model_info = static_resourse->models->get_model_info(model_id);
-    auto        ret        = model_info.id ? EL_OK : EL_EINVAL;
 
+    auto ret = model_info.id ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto ModelReply;
 
@@ -57,34 +55,33 @@ void set_model(const std::string& cmd, uint8_t model_id) {
 ModelError:
     static_resourse->current_model_id = 0;
 
-ModelReply:
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(ret),
-                         ", \"data\": {\"model\": ",
-                         model_info_2_json_str(model_info),
-                         "}}\n");
+ModelReply: {
+    std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": {\"model\": ",
+                                  model_info_2_json_str(model_info),
+                                  "}}\n")};
 
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
+}
 
 void get_model_info(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& model_info = static_resourse->models->get_model_info(static_resourse->current_model_id);
-    auto        ret        = model_info.id ? EL_OK : EL_EINVAL;
 
-    if (ret != EL_OK) [[unlikely]]
-        goto ModelInfoReply;
+    auto ret = model_info.id ? EL_OK : EL_EINVAL;
 
-ModelInfoReply:
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(ret),
-                         ", \"data\": ",
-                         model_info_2_json_str(model_info),
-                         "}\n");
+    std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": ",
+                                  model_info_2_json_str(model_info),
+                                  "}\n")};
 
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }

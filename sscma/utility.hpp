@@ -117,7 +117,7 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
 
     DELIM_RESET;
     if constexpr (std::is_same<T, el_box_t>::value) {
-        ss += "\"boxes\": [";
+        ss = "\"boxes\": [";
         for (const auto& box : results) {
             DELIM_PRINT(ss);
             ss += concat_strings("[",
@@ -135,7 +135,7 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  "]");
         }
     } else if constexpr (std::is_same<T, el_point_t>::value) {
-        ss += "\"points\": [";
+        ss = "\"points\": [";
         for (const auto& point : results) {
             DELIM_PRINT(ss);
             ss += concat_strings("[",
@@ -149,7 +149,7 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  "]");
         }
     } else if constexpr (std::is_same<T, el_class_t>::value) {
-        ss += "\"classes\": [";
+        ss = "\"classes\": [";
         for (const auto& cls : results) {
             DELIM_PRINT(ss);
             ss += concat_strings("[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
@@ -190,8 +190,6 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
 }
 
 std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
-    std::string ss;
-
     return concat_strings("{\"type\": ",
                           std::to_string(info->type),
                           ", \"categroy\": ",
@@ -202,15 +200,13 @@ std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
 }
 
 template <typename InfoConfType> std::string algorithm_info_and_conf_2_json_str(const InfoConfType& info_and_conf) {
-    std::string ss;
-
-    ss += concat_strings("{\"type\": ",
-                         std::to_string(info_and_conf.info.type),
-                         ", \"categroy\": ",
-                         std::to_string(info_and_conf.info.categroy),
-                         ", \"input_from\": ",
-                         std::to_string(info_and_conf.info.input_from),
-                         ", \"config\": {");
+    std::string ss{concat_strings("{\"type\": ",
+                                  std::to_string(info_and_conf.info.type),
+                                  ", \"categroy\": ",
+                                  std::to_string(info_and_conf.info.categroy),
+                                  ", \"input_from\": ",
+                                  std::to_string(info_and_conf.info.input_from),
+                                  ", \"config\": {")};
     if constexpr (std::is_same<InfoConfType, el_algorithm_fomo_config_t>::value ||
                   std::is_same<InfoConfType, el_algorithm_imcls_config_t>::value)
         ss += concat_strings("\"tscore\": ", std::to_string(info_and_conf.score_threshold));
@@ -227,20 +223,19 @@ template <typename InfoConfType> std::string algorithm_info_and_conf_2_json_str(
 template <typename AlgorithmType>
 std::string img_invoke_results_2_json_str(
   const AlgorithmType* algorithm, const el_img_t* img, const std::string& cmd, bool result_only, el_err_code_t ret) {
-    std::string ss(REPLY_EVT_HEADER);
-
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(ret),
-                         ", \"data\": {\"perf\": [",
-                         std::to_string(algorithm->get_preprocess_time()),
-                         ", ",
-                         std::to_string(algorithm->get_run_time()),
-                         ", ",
-                         std::to_string(algorithm->get_postprocess_time()),
-                         "], ",
-                         results_2_json_str(algorithm->get_results()));
+    std::string ss{concat_strings(REPLY_EVT_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": {\"perf\": [",
+                                  std::to_string(algorithm->get_preprocess_time()),
+                                  ", ",
+                                  std::to_string(algorithm->get_run_time()),
+                                  ", ",
+                                  std::to_string(algorithm->get_postprocess_time()),
+                                  "], ",
+                                  results_2_json_str(algorithm->get_results()))};
     if (!result_only) ss += concat_strings(", ", img_2_jpeg_json_str(img));
     ss += "}}\n";
 
@@ -270,22 +265,6 @@ std::vector<std::string> tokenize_function_2_argv(const std::string& input) {
     argv.shrink_to_fit();
 
     return argv;
-}
-
-std::string action_str_2_json_str(const char* str) {
-    std::string ss("\"action\": ");
-
-    ss += quoted(str);
-
-    return ss;
-}
-
-std::string action_str_2_cmd_str(const char* str) {
-    std::string ss("AT+ACTION=");
-
-    ss += quoted(str);
-
-    return ss;
 }
 
 }  // namespace sscma::utility

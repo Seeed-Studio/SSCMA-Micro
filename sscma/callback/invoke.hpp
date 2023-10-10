@@ -42,14 +42,14 @@ void run_invoke_on_img(
             if (argv[0] == "count") {
                 // count items by default
                 if (argv.size() == 1)
-                    kv.second = [=]() -> int {
+                    kv.second = [algorithm]() -> int {
                         const auto& res = algorithm->get_results();
                         return std::distance(res.begin(), res.end());
                     };
                 // count items filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
-                    kv.second      = [=]() -> int {
+                    kv.second      = [algorithm, target]() -> int {
                         size_t      init = 0;
                         const auto& res  = algorithm->get_results();
                         for (const auto& v : res)
@@ -60,7 +60,7 @@ void run_invoke_on_img(
             } else if (argv[0] == "max_score") {
                 // max score
                 if (argv.size() == 1)
-                    kv.second = [=]() -> int {
+                    kv.second = [algorithm]() -> int {
                         uint8_t     init = 0;
                         const auto& res  = algorithm->get_results();
                         for (const auto& v : res)
@@ -70,7 +70,7 @@ void run_invoke_on_img(
                 // max score filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
-                    kv.second      = [=]() -> int {
+                    kv.second      = [algorithm, target]() -> int {
                         uint8_t     init = 0;
                         const auto& res  = algorithm->get_results();
                         for (const auto& v : res)
@@ -112,23 +112,23 @@ void run_invoke_on_img(
 }
 
 void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atomic<bool>& stop_token) {
-    std::string ss(REPLY_CMD_HEADER);
-    auto        model_info     = el_model_info_t{};
-    auto        algorithm_info = el_algorithm_info_t{};
-    auto        sensor_info    = el_sensor_info_t{};
-    auto        ret            = EL_OK;
-    auto        direct_reply   = [&](const std::string& algorithm_info_and_conf) {
-        ss += concat_strings("\"name\": \"",
-                             cmd,
-                             "\", \"code\": ",
-                             std::to_string(ret),
-                             ", \"data\": {\"model\": ",
-                             model_info_2_json_str(model_info),
-                             ", \"algorithm\": ",
-                             algorithm_info_and_conf,
-                             ", \"sensor\": ",
-                             sensor_info_2_json_str(sensor_info),
-                             "}}\n");
+    auto model_info     = el_model_info_t{};
+    auto algorithm_info = el_algorithm_info_t{};
+    auto sensor_info    = el_sensor_info_t{};
+    auto ret            = EL_OK;
+    auto direct_reply   = [&](const std::string& algorithm_info_and_conf) {
+        std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                      "\"name\": \"",
+                                      cmd,
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": {\"model\": ",
+                                      model_info_2_json_str(model_info),
+                                      ", \"algorithm\": ",
+                                      algorithm_info_and_conf,
+                                      ", \"sensor\": ",
+                                      sensor_info_2_json_str(sensor_info),
+                                      "}}\n")};
 
         static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };

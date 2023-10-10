@@ -2,7 +2,7 @@
 
 #include "sscma/callback/action.hpp"
 #include "sscma/callback/algorithm.hpp"
-#include "sscma/callback/default.hpp"
+#include "sscma/callback/common.hpp"
 #include "sscma/callback/info.hpp"
 #include "sscma/callback/invoke.hpp"
 #include "sscma/callback/model.hpp"
@@ -178,13 +178,11 @@ void run() {
     //    AT+ACTION="((count(target,0)>=3)&&led(1))||led(0)"
     //    AT+ACTION="((max_score(target,0)>=80)&&led(1))||led(0)"
     //    AT+ACTION="(((count(target,0)>=3)||(max_score(target,0)>=80))&&led(1))||led(0)"
-    static_resourse->instance->register_cmd("ACTION",
-                                            "Set action trigger",
-                                            "\"EXPRESSION\"",
-                                            repl_cmd_cb_t([](std::vector<std::string> argv) {
-                                                set_action(argv);
-                                                return EL_OK;
-                                            }));
+    static_resourse->instance->register_cmd(
+      "ACTION", "Set action trigger", "\"EXPRESSION\"", repl_cmd_cb_t([](std::vector<std::string> argv) {
+          set_action(argv);
+          return EL_OK;
+      }));
 
     static_resourse->instance->register_cmd(
       "ACTION?", "Get action trigger", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
@@ -211,17 +209,18 @@ void run() {
     {
         std::string cmd;
         if (static_resourse->current_model_id) {
-            cmd = std::string("AT+MODEL=") + std::to_string(static_resourse->current_model_id);
+            cmd = concat_strings("AT+MODEL=", std::to_string(static_resourse->current_model_id));
             static_resourse->instance->exec(cmd);
         }
         if (static_resourse->current_sensor_id) {
-            cmd = std::string("AT+SENSOR=") + std::to_string(static_resourse->current_sensor_id) + ",1";
+            cmd = concat_strings("AT+SENSOR=", std::to_string(static_resourse->current_sensor_id), ",1");
             static_resourse->instance->exec(cmd);
         }
         if (static_resourse->storage->contains("edgelab_action")) {
             char action[CMD_MAX_LENGTH]{};
             *static_resourse->storage >> el_make_storage_kv("edgelab_action", action);
-            static_resourse->instance->exec(action_str_2_cmd_str(action));
+            cmd = concat_strings("AT+ACTION=", quoted(action));
+            static_resourse->instance->exec(cmd);
         }
         static_resourse->is_ready.store(true);
     }

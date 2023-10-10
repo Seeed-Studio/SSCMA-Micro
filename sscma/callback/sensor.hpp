@@ -12,10 +12,10 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void get_available_sensors(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& registered_sensors = static_resourse->device->get_all_sensor_info();
 
-    ss += concat_strings("\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [");
+    std::string ss{
+      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     DELIM_RESET;
     for (const auto& i : registered_sensors) {
         DELIM_PRINT(ss);
@@ -27,15 +27,14 @@ void get_available_sensors(const std::string& cmd) {
 }
 
 void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
-    std::string ss(REPLY_CMD_HEADER);
-    auto        sensor_info = static_resourse->device->get_sensor_info(sensor_id);
-    auto        ret         = sensor_info.id ? EL_OK : EL_EINVAL;
+    auto sensor_info = static_resourse->device->get_sensor_info(sensor_id);
 
+    auto ret = sensor_info.id ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto SensorReply;
 
     // camera
-    if (sensor_info.type == el_sensor_type_t::EL_SENSOR_TYPE_CAM) {
+    if (sensor_info.type == EL_SENSOR_TYPE_CAM) {
         auto* camera = static_resourse->device->get_camera();
 
         static_resourse->device->set_sensor_state(sensor_id, EL_SENSOR_STA_LOCKED);
@@ -66,29 +65,31 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
 SensorError:
     static_resourse->current_sensor_id = 0;
 
-SensorReply:
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(ret),
-                         ", \"data\": {\"sensor\": ",
-                         sensor_info_2_json_str(sensor_info),
-                         "}}\n");
+SensorReply: {
+    std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": {\"sensor\": ",
+                                  sensor_info_2_json_str(sensor_info),
+                                  "}}\n")};
 
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
+}
 
 void get_sensor_info(const std::string& cmd) {
-    std::string ss(REPLY_CMD_HEADER);
     const auto& sensor_info = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
 
-    ss += concat_strings("\"name\": \"",
-                         cmd,
-                         "\", \"code\": ",
-                         std::to_string(EL_OK),
-                         ", \"data\": ",
-                         sensor_info_2_json_str(sensor_info),
-                         "}\n");
+    std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                  "\"name\": \"",
+                                  cmd,
+                                  "\", \"code\": ",
+                                  std::to_string(EL_OK),
+                                  ", \"data\": ",
+                                  sensor_info_2_json_str(sensor_info),
+                                  "}\n")};
 
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }

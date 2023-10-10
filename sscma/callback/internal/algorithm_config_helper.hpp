@@ -27,21 +27,21 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
                       std::is_same<ConfigType, el_algorithm_yolo_config_t>::value) {
             if (static_resourse->instance->register_cmd(
                   "TSCORE", "Set score threshold", "SCORE_THRESHOLD", [this, &kv](std::vector<std::string> argv) {
-                      std::string ss(REPLY_CMD_HEADER);
-                      uint8_t     value = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
+                      uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100u ? EL_OK : EL_EINVAL;
                       if (ret == EL_OK) [[likely]] {
                           this->_algorithm->set_score_threshold(value);
                           kv.value.score_threshold = value;
                           *static_resourse->storage << kv;
                       }
-                      ss += concat_strings("\"name\": \"",
-                                           argv[0],
-                                           "\", \"code\": ",
-                                           std::to_string(ret),
-                                           ", \"data\": ",
-                                           std::to_string(kv.value.score_threshold),
-                                           "}\n");
+                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                                    "\"name\": \"",
+                                                    argv[0],
+                                                    "\", \"code\": ",
+                                                    std::to_string(ret),
+                                                    ", \"data\": ",
+                                                    std::to_string(kv.value.score_threshold),
+                                                    "}\n")};
                       static_resourse->transport->send_bytes(ss.c_str(), ss.size());
                       return EL_OK;
                   }) == EL_OK) [[likely]]
@@ -49,14 +49,14 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
 
             if (static_resourse->instance->register_cmd(
                   "TSCORE?", "Get score threshold", "", [this](std::vector<std::string> argv) {
-                      std::string ss(REPLY_CMD_HEADER);
-                      ss += concat_strings("\"name\": \"",
-                                           argv[0],
-                                           "\", \"code\": ",
-                                           std::to_string(EL_OK),
-                                           ", \"data\": ",
-                                           std::to_string(this->_algorithm->get_score_threshold()),
-                                           "}\n");
+                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                                    "\"name\": \"",
+                                                    argv[0],
+                                                    "\", \"code\": ",
+                                                    std::to_string(EL_OK),
+                                                    ", \"data\": ",
+                                                    std::to_string(this->_algorithm->get_score_threshold()),
+                                                    "}\n")};
                       static_resourse->transport->send_bytes(ss.c_str(), ss.size());
                       return EL_OK;
                   }) == EL_OK) [[likely]]
@@ -66,21 +66,21 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
         if constexpr (std::is_same<ConfigType, el_algorithm_yolo_config_t>::value) {
             if (static_resourse->instance->register_cmd(
                   "TIOU", "Set IoU threshold", "IOU_THRESHOLD", [this, &kv](std::vector<std::string> argv) {
-                      std::string ss(REPLY_CMD_HEADER);
-                      uint8_t     value = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
+                      uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100 ? EL_OK : EL_EINVAL;
                       if (ret == EL_OK) [[likely]] {
                           this->_algorithm->set_iou_threshold(value);
                           kv.value.iou_threshold = value;
                           *static_resourse->storage << kv;
                       }
-                      ss += concat_strings("\"name\": \"",
-                                           argv[0],
-                                           "\", \"code\": ",
-                                           std::to_string(ret),
-                                           ", \"data\": ",
-                                           std::to_string(kv.value.iou_threshold),
-                                           "}\n");
+                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                                    "\"name\": \"",
+                                                    argv[0],
+                                                    "\", \"code\": ",
+                                                    std::to_string(ret),
+                                                    ", \"data\": ",
+                                                    std::to_string(kv.value.iou_threshold),
+                                                    "}\n")};
                       static_resourse->transport->send_bytes(ss.c_str(), ss.size());
                       return EL_OK;
                   }) == EL_OK) [[likely]]
@@ -88,14 +88,14 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
 
             if (static_resourse->instance->register_cmd(
                   "TIOU?", "Get IoU threshold", "", [this](std::vector<std::string> argv) {
-                      std::string ss(REPLY_CMD_HEADER);
-                      ss += concat_strings("\"name\": \"",
-                                           argv[0],
-                                           "\", \"code\": ",
-                                           std::to_string(EL_OK),
-                                           ", \"data\": ",
-                                           std::to_string(this->_algorithm->get_iou_threshold()),
-                                           "}\n");
+                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                                    "\"name\": \"",
+                                                    argv[0],
+                                                    "\", \"code\": ",
+                                                    std::to_string(EL_OK),
+                                                    ", \"data\": ",
+                                                    std::to_string(this->_algorithm->get_iou_threshold()),
+                                                    "}\n")};
                       static_resourse->transport->send_bytes(ss.c_str(), ss.size());
                       return EL_OK;
                   }) == EL_OK) [[likely]]

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cstdint>
 #include <string>
 
 #include "sscma/definations.hpp"
@@ -16,21 +15,25 @@ void run_sample(const std::string& cmd, int n_times, std::atomic<bool>& stop_tok
     const auto& sensor_info  = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
     auto        ret          = (sensor_info.id && sensor_info.state == EL_SENSOR_STA_AVAIL) ? EL_OK : EL_EINVAL;
     auto        direct_reply = [&]() {
-        std::string ss(REPLY_CMD_HEADER);
-        ss += concat_strings("\"name\": \"",
-                             cmd,
-                             "\", \"code\": ",
-                             std::to_string(ret),
-                             ", \"data\": {\"sensor\": ",
-                             sensor_info_2_json_str(sensor_info),
-                             "}}\n");
+        std::string ss{concat_strings(REPLY_CMD_HEADER,
+                                      "\"name\": \"",
+                                      cmd,
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": {\"sensor\": ",
+                                      sensor_info_2_json_str(sensor_info),
+                                      "}}\n")};
         static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
     auto event_reply = [&](const std::string& sample_data_str) {
-        std::string ss(REPLY_EVT_HEADER);
-        ss += concat_strings(
-          "\"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), ", \"data\": {", sample_data_str, "}}\n");
-
+        std::string ss{concat_strings(REPLY_EVT_HEADER,
+                                      "\"name\": \"",
+                                      cmd,
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": {",
+                                      sample_data_str,
+                                      "}}\n")};
         static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
 
