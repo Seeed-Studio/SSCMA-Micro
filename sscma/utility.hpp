@@ -169,7 +169,7 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
     // TODO: reallocate jpeg_data buffer when resolution changed
     static std::size_t size      = img->width * img->height * 3;
     static uint8_t*    jpeg_data = new uint8_t[size]{};
-    static auto        jpeg_img  = el_img_t{.data   = jpeg_data,
+    auto               jpeg_img  = el_img_t{.data   = jpeg_data,
                                             .size   = size,
                                             .width  = img->width,
                                             .height = img->height,
@@ -178,8 +178,8 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
     std::memset(jpeg_data, 0, size);
     if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
         // allocate static buffer using maxium size
-        static auto  buffer_size = ((size + 2) / 3) * 4 + 1;
-        static auto* buffer      = new char[buffer_size]{};
+        static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
+        static char*       buffer      = new char[buffer_size]{};
         std::memset(buffer, 0, buffer_size);
         el_base64_encode(jpeg_img.data, jpeg_img.size, buffer);
         ss += buffer;
