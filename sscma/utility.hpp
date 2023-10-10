@@ -31,7 +31,7 @@ template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T 
 
 constexpr inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
-template <typename... Args> constexpr std::string concat_strings(Args&&... args) {
+template <typename... Args> constexpr inline std::string concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};
     std::string result;
     result.reserve(length);
@@ -67,7 +67,7 @@ void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t*
 
 using namespace improc;
 
-std::string quoted(const std::string& str, const char delim = '"') {
+inline std::string quoted(const std::string& str, const char delim = '"') {
     std::size_t sz = 0;
     for (char c : str)
         if (c == delim) [[unlikely]]
