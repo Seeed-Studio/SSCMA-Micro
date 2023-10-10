@@ -1,11 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>
 
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
+#include "core/utils/el_hash.h"
 #include "sscma/interpreter/lexer.hpp"
 #include "sscma/interpreter/parser.hpp"
 #include "sscma/interpreter/types.hpp"
@@ -21,7 +23,7 @@ using namespace sscma::interpreter::types;
 
 class Condition {
    public:
-    Condition() : _node(nullptr), _eval_lock() {}
+    Condition() : _node(nullptr), _exp_hash(0xffff), _eval_lock() {}
 
     ~Condition() { m_unset_condition(); }
 
@@ -33,20 +35,36 @@ class Condition {
     bool set_condition(const std::string& input) {
         const Guard<Mutex> guard(_eval_lock);
 
-        m_unset_condition();
+        if (!input.size()) [[unlikely]] {
+            m_unset_condition();
+            _exp_hash = 0xffff;
+            return true;
+        }
+
+        uint16_t exp_hash = el_crc16_maxim(reinterpret_cast<const uint8_t*>(input.c_str()), input.size());
+        if (exp_hash == _exp_hash) [[unlikely]]
+            return true;
 
         Lexer    lexer(input);
         Mutables mutables;
         Parser   parser(lexer, mutables);
 
-        _node = parser.parse();
-
-        if (!_node) [[unlikely]]
+        auto* node = parser.parse();
+        if (!node) [[unlikely]]
             return false;
+
+        m_unset_condition();
+        _node     = node;
+        _exp_hash = exp_hash;
 
         for (const auto& tok : mutables) _mutable_map[tok.value] = nullptr;
 
         return true;
+    }
+
+    uint16_t get_condition_hash() {
+        const Guard<Mutex> guard(_eval_lock);
+        return _exp_hash;
     }
 
     const mutable_map_t& get_mutable_map() {
@@ -93,13 +111,11 @@ class Condition {
     }
 
    private:
-    ASTNode* _node;
-
-    Mutex _eval_lock;
-
+    ASTNode*      _node;
+    uint16_t      _exp_hash;
+    Mutex         _eval_lock;
     mutable_map_t _mutable_map;
-
-    branch_cb_t _exception_cb;
+    branch_cb_t   _exception_cb;
 };
 
 }  // namespace sscma::interpreter

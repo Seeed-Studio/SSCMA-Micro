@@ -32,7 +32,8 @@ void run_invoke_on_img(
         event_reply();
         return;
     }
-    {
+    uint16_t action_hash   = 0xffff;
+    auto     action_inject = [algorithm]() {
         auto mutable_map = static_resourse->action_cond->get_mutable_map();
         for (auto& kv : mutable_map) {
             const auto& argv = tokenize_function_2_argv(kv.first);
@@ -81,7 +82,7 @@ void run_invoke_on_img(
             }
         }
         static_resourse->action_cond->set_mutable_map(mutable_map);
-    }
+    };
 
     static_resourse->is_invoke.store(true);
     while ((n_times < 0 || --n_times >= 0) && !stop_token.load()) {
@@ -97,6 +98,10 @@ void run_invoke_on_img(
         if (ret != EL_OK) [[unlikely]]
             goto InvokeErrorReply;
 
+        if (action_hash != static_resourse->action_cond->get_condition_hash()) [[unlikely]] {
+            action_hash = static_resourse->action_cond->get_condition_hash();
+            action_inject();
+        }
         static_resourse->action_cond->evalute();
 
         event_reply();
