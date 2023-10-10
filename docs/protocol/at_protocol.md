@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.09.08
+# AT Protocol Specification v2023.10.10
 
 
 ## Transmission Layer
@@ -39,7 +39,7 @@ Example;
       "type": 0,
       "name": "10@ID?",
       "code": 0,
-      "data": "B63E3DA5"
+      "data": 657103005
     }\n
     ```
 
@@ -139,7 +139,7 @@ Response:
   "type": 0,
   "name": "ID?",
   "code": 0,
-  "data": "B63E3DA5"
+  "data": 657103005
 }\n
 ```
 
@@ -190,7 +190,7 @@ Response:
   "name": "VER?",
   "code": 0,
   "data": {
-    "software": "2023.09.08",
+    "software": "2023.10.10",
     "hardware": "1"
   }
 }\n
@@ -265,14 +265,14 @@ Response:
     {
       "id": 2,
       "type": 3,
-      "address": "0x500000",
-      "size": "0x41310"
+      "address": 5242880,
+      "size": 267024
     },
     {
       "id": 5,
       "type": 3,
-      "address": "0x400000",
-      "size": "0x41310"
+      "address": 4194304,
+      "size": 267024
     }
   ]
 }\n
@@ -294,8 +294,8 @@ Response:
   "data": {
     "id": 2,
     "type": 3,
-    "address": "0x500000",
-    "size": "0x41310"
+    "address": 5242880,
+    "size": 267024
   }
 }\n
 ```
@@ -449,15 +449,13 @@ Response:
   "name": "ACTION?",
   "code": 0,
   "data": {
-    "crc16_maxim": 16828,
-    "cond": "(count(target,0)>=3)||(max_score(target,0)>=80)",
-    "true": "LED=1",
-    "false_or_exception": "LED=0"
+    "crc16_maxim": 19753,
+    "action": "((max_score(target,0)>=80)&&led(1))||led(0)"
   }
 }\n
 ```
 
-Note: `crc16_maxim` is calculated on string `cond + '\t' + true + '\t' + false_or_exception`.
+Note: `crc16_maxim` is calculated on action string.
 
 ### Execute operation
 
@@ -478,8 +476,8 @@ Response:
     "model": {
       "id": 2,
       "type": 3,
-      "address": "0x500000",
-      "size": "0x41310"
+      "address": 5242880,
+      "size": 267024
     }
   }
 }\n
@@ -563,8 +561,8 @@ Response:
     "model": {
       "id": 2,
       "type": 3,
-      "address": "0x500000",
-      "size": "0x41310"
+      "address": 5242880,
+      "size": 267024
     },
     "algorithm": {
       "type": 3,
@@ -639,9 +637,9 @@ Note: Max string length is `4096 - strlen("AT+INFO=\"\"\r") - 1 - TagLength`.
 
 #### Set action trigger (Experimental)
 
-Pattern: `AT+ACTION=<"COND","TRUE_CMD","FALSE_OR_EXCEPTION_CMD">\r`
+Pattern: `AT+ACTION=<"EXPRESSION">\r`
 
-Request: `AT+ACTION="(count(target,0)>=3)||(max_score(target,0)>=80)","LED=1","LED=0"\r`
+Request: `AT+ACTION="((max_score(target,0)>=80)&&led(1))||led(0)"\r`
 
 Response:
 
@@ -651,10 +649,8 @@ Response:
   "name": "ACTION",
   "code": 0,
   "data": {
-    "crc16_maxim": 16828,
-    "cond": "(count(target,0)>=3)||(max_score(target,0)>=80)",
-    "true": "LED=1",
-    "false_or_exception": "LED=0"
+    "crc16_maxim": 19753,
+    "action": "((max_score(target,0)>=80)&&led(1))||led(0)"
   }
 }\n
 ```
@@ -663,33 +659,34 @@ Events:
 
 ```json
 \r{
-  "type": 1,
+  "type": 0,
   "name": "ACTION",
-  "code": 0,
+  "code": <Integer>,
   "data": {
-    "true": "LED=1"
+    "crc16_maxim": <Integer>,
+    "action": "<String>"
   }
 }\n
 ```
 
 Function map:
 
-| Name                   | Brief                                                  |
-|------------------------|--------------------------------------------------------|
-| `count()`              | Count the number of all results                        |
-| `count(target,id)`     | Count the number of the results filter by a target id  |
-| `max_score()`          | Get the max score of all results                       |
-| `max_score(target,id)` | Get the max score of the results filter by a target id |
+| Name                   | Brief                                                              |
+|------------------------|--------------------------------------------------------------------|
+| `count()`              | Count the number of all results                                    |
+| `count(target,id)`     | Count the number of the results filter by a target id              |
+| `max_score()`          | Get the max score of all results                                   |
+| `max_score(target,id)` | Get the max score of the results filter by a target id             |
+| `led(enable)`          | When `enable` larger than `1`, turn the status LED, otherwise else |
 
 Note:
 
-1. The `crc16_maxim` is calculated on string `cond + '\t' + true + '\t' + false_or_exception`.
-1. Only have events reply when condition evaluation is `true`.
-1. When evaluation fail, if it is a condition function call, identifier or operator, its value will be `0` and with no exception reply.
+1. Default events reply could be emmited by the failure of condition evaluation or by function calls.
+1. When evaluation fail, if it is a condition function call, identifier or operator, its value will be `0`.
 1. Complex conditions are supported, e.g.:
-    - `count(target,0)>=3`
-    - `max_score(target,0)>=80`
-    - `(count(target,0)>=3)||(max_score(target,0)>=80)`
+    - `((count(target,0)>=3)&&led(1))||led(0)`
+    - `((max_score(target,0)>=80)&&led(1))||led(0)`
+    - `(((count(target,0)>=3)||(max_score(target,0)>=80))&&led(1))||led(0)`
     - `(count(target,0)-count(target,1))>=(count(target,3)+count(target,4)+count(target,5))`
     - `(count(target,0)>1)&&(count(target,3)<=5)||((count(target,4)+count(target,2))<10)`
 1. Supported expression tokens:
