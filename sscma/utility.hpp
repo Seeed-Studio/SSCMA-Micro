@@ -45,13 +45,7 @@ using namespace string_concat;
 namespace improc {
 
 inline static uint32_t color_literal(uint8_t i) {
-    static const uint16_t color[] = {
-      0x0000,
-      0x03E0,
-      0x001F,
-      0x7FE0,
-      0xFFFF,
-    };
+    static const uint16_t color[] = {0x0000, 0x03E0, 0x001F, 0x7FE0, 0xFFFF};
     return color[i % 5];
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     #include <freertos/FreeRTOS.h>
     #include <freertos/task.h>
 #endif
@@ -24,7 +24,7 @@ using namespace sscma::types;
 
 class Executor {
    public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     Executor(size_t worker_stack_size = REPL_EXECUTOR_STACK_SIZE, size_t worker_priority = REPL_EXECUTOR_PRIO)
         : _task_queue_lock(),
           _task_stop_requested(false),
@@ -45,7 +45,7 @@ class Executor {
     ~Executor() { stop(); }
 
     void start() {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         _worker_ret =
           xTaskCreate(&Executor::c_run, _worker_name, _worker_stack_size, this, _worker_priority, &_worker_handler);
 #endif
@@ -53,7 +53,7 @@ class Executor {
 
     void stop() {
         _worker_thread_stop_requested.store(true, std::memory_order_relaxed);
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         if (_worker_ret == pdPASS) [[likely]]
             vTaskDelete(_worker_handler);
 #endif
@@ -66,7 +66,7 @@ class Executor {
     }
 
     const char* get_worker_name() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         return _worker_name;
 #else
         return "";
@@ -74,7 +74,7 @@ class Executor {
     }
 
     void run() {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         while (!_worker_thread_stop_requested.load(std::memory_order_relaxed)) {
             repl_task_t task;
             {
@@ -115,7 +115,7 @@ class Executor {
     std::atomic<bool> _task_stop_requested;
     std::atomic<bool> _worker_thread_stop_requested;
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     BaseType_t   _worker_ret;
     TaskHandle_t _worker_handler;
     char*        _worker_name;

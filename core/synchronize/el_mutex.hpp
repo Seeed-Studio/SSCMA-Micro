@@ -28,7 +28,7 @@
 
 #include "core/el_config_internal.h"
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     #include <freertos/FreeRTOS.h>
     #include <freertos/semphr.h>
 #endif
@@ -37,7 +37,7 @@ namespace edgelab {
 
 class Mutex {
    public:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     Mutex() noexcept : _lock(xSemaphoreCreateCounting(1, 1)) {}
     ~Mutex() noexcept { vSemaphoreDelete(_lock); }
 #else
@@ -46,19 +46,19 @@ class Mutex {
 #endif
 
     inline void lock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         xSemaphoreTake(_lock, portMAX_DELAY);
 #endif
     }
 
     inline void unlock() const {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         xSemaphoreGive(_lock);
 #endif
     }
 
    private:
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     mutable SemaphoreHandle_t _lock;
 #endif
 };

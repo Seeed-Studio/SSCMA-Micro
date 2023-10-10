@@ -49,6 +49,11 @@
     #endif
 #endif
 
+/* os related config check */
+#ifndef CONFIG_EL_HAS_FREERTOS_SUPPORT
+    #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
+#endif
+
 /* engine related config */
 #ifndef CONFIG_EL_TFLITE
     #define CONFIG_EL_TFLITE

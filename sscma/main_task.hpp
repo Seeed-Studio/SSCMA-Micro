@@ -228,7 +228,7 @@ void run() {
     // enter service loop (TODO: pipeline builder)
     char* buf = new char[CMD_MAX_LENGTH + sizeof(int)]{};
     for (;;) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         static_resourse->transport->get_line(buf, CMD_MAX_LENGTH);
         static_resourse->instance->exec(buf);
 #else
