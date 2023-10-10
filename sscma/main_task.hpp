@@ -174,8 +174,8 @@ void run() {
           return EL_OK;
       }));
 
-    // Note (wip):
-    //    AT+ACTION="((count(id,0)>=3)&&led(1))||led(0)"
+    // Note:
+    //    AT+ACTION="((count(target,0)>=3)&&led(1))||led(0)"
     //    AT+ACTION="((max_score(target,0)>=80)&&led(1))||led(0)"
     //    AT+ACTION="(((count(target,0)>=3)||(max_score(target,0)>=80))&&led(1))||led(0)"
     static_resourse->instance->register_cmd("ACTION",
