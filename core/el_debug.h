@@ -26,6 +26,7 @@
 #ifndef _EL_DEBUG_H_
 #define _EL_DEBUG_H_
 
+#include "core/el_config_internal.h"
 #include "porting/el_misc.h"
 
 #if CONFIG_EL_DEBUG
