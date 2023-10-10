@@ -27,11 +27,11 @@
 #define _EL_CONFIG_H_
 
 /* thirdparty */
-#define CONFIG_EL_LIB_FLASHDB
-#define CONFIG_EL_LIB_JPEGENC
+// #define CONFIG_EL_LIB_FLASHDB
+// #define CONFIG_EL_LIB_JPEGENC
 
 /* os related config */
-#define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
+// #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 
 /* device related config */
 // #define CONFIG_EL_TARGET_ESPPRESSIF
