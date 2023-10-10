@@ -23,7 +23,7 @@ class Condition {
    public:
     Condition() : _node(nullptr), _eval_lock() {}
 
-    ~Condition() { unset_condition(); }
+    ~Condition() { m_unset_condition(); }
 
     bool has_condition() {
         const Guard<Mutex> guard(_eval_lock);
@@ -32,6 +32,8 @@ class Condition {
 
     bool set_condition(const std::string& input) {
         const Guard<Mutex> guard(_eval_lock);
+
+        m_unset_condition();
 
         Lexer    lexer(input);
         Mutables mutables;
@@ -81,9 +83,8 @@ class Condition {
         }
     }
 
-    void unset_condition() {
-        const Guard<Mutex> guard(_eval_lock);
-
+   protected:
+    void m_unset_condition() {
         if (_node) [[likely]] {
             delete _node;
             _node = nullptr;
