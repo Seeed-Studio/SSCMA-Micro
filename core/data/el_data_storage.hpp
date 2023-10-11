@@ -26,23 +26,25 @@
 #ifndef _EL_DATA_STORAGE_HPP_
 #define _EL_DATA_STORAGE_HPP_
 
-#include <algorithm>
-#include <cstdarg>
-#include <cstddef>
-#include <cstdio>
-#include <cstring>
-#include <forward_list>
-#include <iterator>
-#include <type_traits>
-#include <utility>
-
 #include "core/el_config_internal.h"
-#include "core/el_debug.h"
-#include "core/el_types.h"
-#include "core/synchronize/el_guard.hpp"
-#include "core/synchronize/el_mutex.hpp"
 
 #ifdef CONFIG_EL_STORAGE
+
+    #include <algorithm>
+    #include <cstdarg>
+    #include <cstddef>
+    #include <cstdio>
+    #include <cstring>
+    #include <forward_list>
+    #include <iterator>
+    #include <type_traits>
+    #include <utility>
+
+    #include "core/el_debug.h"
+    #include "core/el_types.h"
+    #include "core/synchronize/el_guard.hpp"
+    #include "core/synchronize/el_mutex.hpp"
+
     #ifdef CONFIG_EL_LIB_FLASHDB
         #include "third_party/FlashDB/flashdb.h"
     #endif

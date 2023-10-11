@@ -25,9 +25,9 @@
 
 #include "el_data_models.h"
 
-#include <algorithm>
-
 #ifdef CONFIG_EL_MODEL
+
+    #include <algorithm>
 
 namespace edgelab {
 

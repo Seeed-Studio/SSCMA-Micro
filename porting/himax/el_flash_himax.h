@@ -34,6 +34,8 @@ extern "C" {
 namespace edgelab {
 #endif
 
+#ifdef CONFIG_EL_MODEL
+
 typedef int8_t el_model_mmap_handler_t;
 
 el_err_code_t el_model_partition_mmap_init(const char*              partition_name,
@@ -44,7 +46,10 @@ el_err_code_t el_model_partition_mmap_init(const char*              partition_na
 
 void el_model_partition_mmap_deinit(el_model_mmap_handler_t* mmap_handler);
 
+#endif
+
 #ifdef CONFIG_EL_LIB_FLASHDB
+
     #include "third_party/FlashDB/fal_def.h"
 
     #define NOR_FLASH_DEV_NAME CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT

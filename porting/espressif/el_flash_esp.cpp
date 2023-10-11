@@ -31,6 +31,8 @@
 
 namespace edgelab {
 
+#ifdef CONFIG_EL_MODEL
+
 el_err_code_t el_model_partition_mmap_init(const char*              partition_name,
                                            uint32_t*                partition_start_addr,
                                            uint32_t*                partition_size,
@@ -54,6 +56,8 @@ el_err_code_t el_model_partition_mmap_init(const char*              partition_na
 }
 
 void el_model_partition_mmap_deinit(spi_flash_mmap_handle_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
+
+#endif
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 
