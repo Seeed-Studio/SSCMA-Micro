@@ -27,6 +27,8 @@
 
 #include <algorithm>
 
+#ifdef CONFIG_EL_MODEL
+
 namespace edgelab {
 
 Models::Models()
@@ -157,3 +159,5 @@ const std::forward_list<el_model_info_t>& Models::get_all_model_info() const { r
 size_t Models::get_all_model_info_size() const { return std::distance(__model_info.begin(), __model_info.end()); }
 
 }  // namespace edgelab
+
+#endif

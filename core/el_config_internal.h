@@ -84,22 +84,34 @@
 #endif
 
 /* model related config */
-#ifndef CONFIG_EL_MODEL
+#ifdef CONFIG_EL_MODEL
     #define CONFIG_EL_MODEL_TFLITE_MAGIC   0x54464C33
     #define CONFIG_EL_MODEL_HEADER_MAGIC   0x4C4854
     #define CONFIG_EL_MODEL_PARTITION_NAME "models"
+#else
+    #define CONFIG_EL_MODEL_TFLITE_MAGIC   0xFFFFFFFF
+    #define CONFIG_EL_MODEL_HEADER_MAGIC   0xFFFFFF
+    #define CONFIG_EL_MODEL_PARTITION_NAME ""
 #endif
 
 /* storage related config */
-#ifndef CONFIG_EL_STORAGE
+#ifdef CONFIG_EL_STORAGE
     #ifndef CONFIG_EL_LIB_FLASHDB
-        #error "Storage depends on FlashDB."
+        #warning "Storage depends on FlashDB."
     #endif
     #define CONFIG_EL_STORAGE_NAME                  "edgelab_db"
     #define CONFIG_EL_STORAGE_PATH                  "kvdb0"
     #define CONFIG_EL_STORAGE_PARTITION_NAME        "db"
     #define CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT "nor_flash0"
     #define CONFIG_EL_STORAGE_PARTITION_FS_NAME_0   "kvdb0"
+    #define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (192 * 1024)
+    #define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
+#else
+    #define CONFIG_EL_STORAGE_NAME                  ""
+    #define CONFIG_EL_STORAGE_PATH                  ""
+    #define CONFIG_EL_STORAGE_PARTITION_NAME        ""
+    #define CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT ""
+    #define CONFIG_EL_STORAGE_PARTITION_FS_NAME_0   ""
     #define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (192 * 1024)
     #define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
 #endif

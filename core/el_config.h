@@ -26,6 +26,10 @@
 #ifndef _EL_CONFIG_H_
 #define _EL_CONFIG_H_
 
+/* optional */
+// #define CONFIG_EL_MODEL
+// #define CONFIG_EL_STORAGE
+
 /* thirdparty */
 // #define CONFIG_EL_LIB_FLASHDB
 // #define CONFIG_EL_LIB_JPEGENC

@@ -31,9 +31,6 @@
 
 namespace edgelab {
 
-static Mutex                  el_flash_db_lock;
-const static esp_partition_t* el_flash_db_partition = nullptr;
-
 el_err_code_t el_model_partition_mmap_init(const char*              partition_name,
                                            uint32_t*                partition_start_addr,
                                            uint32_t*                partition_size,
@@ -58,6 +55,11 @@ el_err_code_t el_model_partition_mmap_init(const char*              partition_na
 
 void el_model_partition_mmap_deinit(spi_flash_mmap_handle_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
 
+#ifdef CONFIG_EL_LIB_FLASHDB
+
+static Mutex                  el_flash_db_lock;
+const static esp_partition_t* el_flash_db_partition = nullptr;
+
 static int el_flash_db_init(void) {
     el_flash_db_partition = esp_partition_find_first(
       ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, CONFIG_EL_STORAGE_PARTITION_NAME);
@@ -81,7 +83,6 @@ static int el_flash_db_erase(long offset, size_t size) {
     return esp_partition_erase_range(el_flash_db_partition, offset, erase_size * FDB_BLOCK_SIZE);
 }
 
-#ifdef CONFIG_EL_LIB_FLASHDB
 const struct fal_flash_dev el_flash_db_nor_flash0 = {
   .name       = NOR_FLASH_DEV_NAME,
   .addr       = 0x0,
@@ -90,6 +91,7 @@ const struct fal_flash_dev el_flash_db_nor_flash0 = {
   .ops        = {el_flash_db_init, el_flash_db_read, el_flash_db_write, el_flash_db_erase},
   .write_gran = FDB_WRITE_GRAN,
 };
+
 #endif
 
 }  // namespace edgelab
