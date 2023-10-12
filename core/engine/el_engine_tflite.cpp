@@ -107,7 +107,7 @@ OpsResolver::OpsResolver() {
     #ifdef CONFIG_EL_TFLITE_OP_EQUAL
     AddEqual();
     #endif
-    #ifdef CONFIG_EL_TFLITE_ETHOS_U
+    #ifdef CONFIG_EL_TFLITE_OP_ETHOS_U
     AddEthosU();
     #endif
     #ifdef CONFIG_EL_TFLITE_OP_EXP
@@ -146,7 +146,9 @@ OpsResolver::OpsResolver() {
     #ifdef CONFIG_EL_TFLITE_OP_HARD_SWISH
     AddHardSwish();
     #endif
+    #ifdef CONFIG_EL_TFLITE_OP_IF
     AddIf();
+    #endif
     #ifdef CONFIG_EL_TFLITE_OP_L2_NORMALIZATION
     AddL2Normalization();
     #endif
@@ -327,8 +329,6 @@ OpsResolver::OpsResolver() {
 
 namespace edgelab {
 
-tflite::OpsResolver EngineTFLite::resolver;
-
 EngineTFLite::EngineTFLite() {
     interpreter      = nullptr;
     model            = nullptr;
@@ -388,7 +388,7 @@ el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size
     if (model == nullptr) {
         return EL_EINVAL;
     }
-
+    static tflite::OpsResolver resolver;
     interpreter =
       new tflite::MicroInterpreter(model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size);
     if (interpreter == nullptr) {

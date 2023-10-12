@@ -28,7 +28,14 @@
 
 #include <sdkconfig.h>
 
-#include "core/el_config.h"
 #include "boards/boards.h"
+#include "core/el_config.h"
+
+#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+    #include <freertos/FreeRTOS.h>
+    #include <freertos/queue.h>
+    #include <freertos/semphr.h>
+    #include <freertos/task.h>
+#endif
 
 #endif

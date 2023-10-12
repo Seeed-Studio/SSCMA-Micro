@@ -120,7 +120,7 @@ enum OpsCount : unsigned int {
 #ifdef CONFIG_EL_TFLITE_OP_EQUAL
     AddEqual,
 #endif
-#ifdef CONFIG_EL_TFLITE_ETHOS_U
+#ifdef CONFIG_EL_TFLITE_OP_ETHOS_U
     AddEthosU,
 #endif
 #ifdef CONFIG_EL_TFLITE_OP_EXP
@@ -159,7 +159,9 @@ enum OpsCount : unsigned int {
 #ifdef CONFIG_EL_TFLITE_OP_HARD_SWISH
     AddHardSwish,
 #endif
+#ifdef CONFIG_EL_TFLITE_OP_IF
     AddIf,
+#endif
 #ifdef CONFIG_EL_TFLITE_OP_L2_NORMALIZATION
     AddL2Normalization,
 #endif
@@ -389,10 +391,9 @@ class EngineTFLite : public base::Engine {
 #endif
 
    private:
-    static tflite::OpsResolver resolver;
-    tflite::MicroInterpreter*  interpreter;
-    const tflite::Model*       model;
-    el_memory_pool_t           memory_pool;
+    tflite::MicroInterpreter*   interpreter;
+    const tflite::Model*        model;
+    el_memory_pool_t            memory_pool;
 
 #ifdef CONFIG_EL_FILESYSTEM
     const char* model_file;
