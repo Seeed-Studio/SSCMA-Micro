@@ -329,8 +329,6 @@ OpsResolver::OpsResolver() {
 
 namespace edgelab {
 
-tflite::OpsResolver EngineTFLite::resolver;
-
 EngineTFLite::EngineTFLite() {
     interpreter      = nullptr;
     model            = nullptr;
@@ -390,7 +388,7 @@ el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size
     if (model == nullptr) {
         return EL_EINVAL;
     }
-
+    static tflite::OpsResolver resolver;
     interpreter =
       new tflite::MicroInterpreter(model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size);
     if (interpreter == nullptr) {

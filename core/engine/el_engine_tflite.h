@@ -391,10 +391,9 @@ class EngineTFLite : public base::Engine {
 #endif
 
    private:
-    static tflite::OpsResolver resolver;
-    tflite::MicroInterpreter*  interpreter;
-    const tflite::Model*       model;
-    el_memory_pool_t           memory_pool;
+    tflite::MicroInterpreter*   interpreter;
+    const tflite::Model*        model;
+    el_memory_pool_t            memory_pool;
 
 #ifdef CONFIG_EL_FILESYSTEM
     const char* model_file;
