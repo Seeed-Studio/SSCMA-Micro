@@ -104,4 +104,6 @@
     #define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
 #endif
 
+#include "el_board_config.h"
+
 #endif
