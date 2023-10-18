@@ -39,6 +39,10 @@
 #include "core/el_types.h"
 #include "el_engine_base.h"
 
+#ifdef CONFIG_EL_TARGET_WE1
+    #include <tensorflow/lite/micro/micro_error_reporter.h>
+#endif
+
 #define TF_LITE_SATTIC_MEMORY
 
 namespace tflite {
@@ -391,9 +395,9 @@ class EngineTFLite : public base::Engine {
 #endif
 
    private:
-    tflite::MicroInterpreter*   interpreter;
-    const tflite::Model*        model;
-    el_memory_pool_t            memory_pool;
+    tflite::MicroInterpreter* interpreter;
+    const tflite::Model*      model;
+    el_memory_pool_t          memory_pool;
 
 #ifdef CONFIG_EL_FILESYSTEM
     const char* model_file;

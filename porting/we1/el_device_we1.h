@@ -23,9 +23,21 @@
  *
  */
 
-#ifndef _EL_BOARD_CONFIG_H_
-#define _EL_BOARD_CONFIG_H_
+#ifndef _EL_DEVICE_HIMAX_H_
+#define _EL_DEVICE_HIMAX_H_
 
-#include "boards/boards.h"
+#include "porting/el_device.h"
+
+namespace edgelab {
+
+class DeviceWE1 : public Device {
+   public:
+    DeviceWE1();
+    ~DeviceWE1();
+
+    void restart() override;
+};
+
+}  // namespace edgelab
 
 #endif

@@ -23,7 +23,7 @@
  *
  */
 
-#include "el_serial_himax.h"
+#include "el_serial_we1.h"
 
 #include <cctype>
 

@@ -23,7 +23,15 @@
  *
  */
 
-#ifndef _WE_1_BOARD_H_
-#define _WE_1_BOARD_H_
+#ifndef _BOARDS_H_
+#define _BOARDS_H_
+
+#include "core/el_config.h"
+
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI
+    #include "grove_vision_ai/board.h"
+#else
+    #error "No board defined"
+#endif
 
 #endif

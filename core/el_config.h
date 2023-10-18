@@ -26,7 +26,7 @@
 #ifndef _EL_CONFIG_H_
 #define _EL_CONFIG_H_
 
-#define CONFIG_EL_TARGET_WE2
+#define CONFIG_EL_TARGET_WE1
 #define CONFIG_EL_BOARD_GROVE_VISION_AI
 
 #define CONFIG_EL_DEBUG 4
@@ -48,12 +48,12 @@
 
 #define CONFIG_EL_TFLITE                        1
 #define CONFIG_EL_TFLITE_OP_PADV2               1
-#define CONFIG_EL_TFLITE_OP_TRANSPOSE           1
-#define CONFIG_EL_TFLITE_OP_ETHOS_U             1
-#define CONFIG_EL_TFLITE_OP_DEQUANTIZE          1
-#define CONFIG_EL_TFLITE_OP_QUANTIZE            1
-#define CONFIG_EL_TFLITE_OP_FULLY_CONNECTED     1
-#define CONFIG_EL_TFLITE_OP_GATHER              1
+// #define CONFIG_EL_TFLITE_OP_TRANSPOSE           1
+// #define CONFIG_EL_TFLITE_OP_ETHOS_U             1
+// #define CONFIG_EL_TFLITE_OP_DEQUANTIZE          1
+// #define CONFIG_EL_TFLITE_OP_QUANTIZE            1
+// #define CONFIG_EL_TFLITE_OP_FULLY_CONNECTED     1
+// #define CONFIG_EL_TFLITE_OP_GATHER              1
 
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT          1
 

@@ -9,9 +9,9 @@ LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/core/engine
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/core/algorithm
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/core/synchronize
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting
-LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we2
-LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we2/boards
-LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we2/drivers
+LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we1
+LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we1/boards
+LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/porting/we1/drivers
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/sscma
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/sscma/callback
 LIB_SSCMA_MICRO_DIR += $(LIBRARIES_ROOT)/sscma_micro/sscma/interpreter
@@ -34,8 +34,6 @@ LIB_SSCMA_MICRO_COBJS = $(call get_relobjs, $(LIB_SSCMA_MICRO_CSRCS))
 LIB_SSCMA_MICRO_CXXOBJS = $(call get_relobjs, $(LIB_SSCMA_MICRO_CXXSRCS))
 LIB_SSCMA_MICRO_ASMOBJS = $(call get_relobjs, $(LIB_SSCMA_MICRO_ASMSRCS))
 LIB_SSCMA_MICRO_OBJS = $(LIB_SSCMA_MICRO_COBJS) $(LIB_SSCMA_MICRO_ASMOBJS) $(LIB_SSCMA_MICRO_CXXOBJS)
-
-$(info LIB_SSCMA_MICRO_CXXSRCS - $(LIB_SSCMA_MICRO_CXXSRCS))
 
 # get dependency files
 LIB_SSCMA_MICRO_DEPS = $(call get_deps, $(LIB_SSCMA_MICRO_OBJS))

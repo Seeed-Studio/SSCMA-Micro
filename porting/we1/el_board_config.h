@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,18 @@
  *
  */
 
-#ifndef _BOARDS_H_
-#define _BOARDS_H_
+#ifndef _EL_BOARD_CONFIG_H_
+#define _EL_BOARD_CONFIG_H_
 
-#include "core/el_config.h"
+#include "boards/boards.h"
 
-#ifdef CONFIG_EL_BOARD_WE_1
-    #include "we_1/board.h"
-#else
-    #error "No board defined"
+
+#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+#include "queue.h"
+#include "timers.h"
 #endif
 
 #endif

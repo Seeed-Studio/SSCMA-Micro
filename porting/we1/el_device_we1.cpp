@@ -23,21 +23,43 @@
  *
  */
 
-#ifndef _EL_DEVICE_HIMAX_H_
-#define _EL_DEVICE_HIMAX_H_
+#include <powermode.h>
 
-#include "porting/el_device.h"
+#include "el_device_we1.h"
+//#include "porting/himax/el_camera_himax.h"
+#include "porting/we1/el_serial_we1.h"
 
 namespace edgelab {
 
-class DeviceHimax : public Device {
-   public:
-    DeviceHimax();
-    ~DeviceHimax();
+DeviceWE1::DeviceWE1() {
+    this->_device_name = "Seeed Studio Grove Vision AI (WE-I)";
+    this->_device_id   = 0x0001;
+    this->_revision_id = 0x0001;
 
-    void restart() override;
-};
+    // static CameraHimax camera{};
+    // static SerialEsp   serial{};
+
+    // this->_camera = &camera;
+    // this->_serial = &serial;
+
+    // static uint8_t sensor_id = 0;
+    // this->_registered_sensors.emplace_front(el_sensor_info_t{
+    //   .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
+}
+
+DeviceWE1::~DeviceWE1() {}
+
+Device* Device::get_device() {
+    static DeviceWE1 device;
+    return &device;
+}
+
+void DeviceWE1::restart() {
+#ifdef EXTERNAL_LDO
+    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_EXTERNAL_LDO);
+#else
+    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_INTERNAL_LDO);
+#endif
+}
 
 }  // namespace edgelab
-
-#endif

@@ -327,6 +327,11 @@ OpsResolver::OpsResolver() {
 
 }  // namespace tflite
 
+    #ifdef CONFIG_TARGET_WE1
+// TFu debug log, make it hardware platform print
+extern "C" void DebugLog(const char* s) { el_printf("%s", s); }  //{ fprintf(stderr, "%s", s); }
+    #endif
+
 namespace edgelab {
 
 EngineTFLite::EngineTFLite() {
@@ -389,8 +394,15 @@ el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size
         return EL_EINVAL;
     }
     static tflite::OpsResolver resolver;
+    #ifdef CONFIG_EL_TARGET_WE1
+    static tflite::MicroErrorReporter micro_error_reporter;
+    interpreter    = new tflite::MicroInterpreter(
+      model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size, &micro_error_reporter);
+    #else
     interpreter =
       new tflite::MicroInterpreter(model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size);
+    #endif
+
     if (interpreter == nullptr) {
         return EL_ENOMEM;
     }
