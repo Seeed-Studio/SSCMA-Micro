@@ -26,7 +26,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
                       std::is_same<ConfigType, el_algorithm_imcls_config_t>::value ||
                       std::is_same<ConfigType, el_algorithm_yolo_config_t>::value) {
             if (static_resourse->instance->register_cmd(
-                  "TSCORE", "Set score threshold", "SCORE_THRESHOLD", [this, &kv](std::vector<std::string> argv) {
+                  "TSCORE", "Set score threshold", "SCORE_THRESHOLD", [this, kv](std::vector<std::string> argv) {
                       uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100u ? EL_OK : EL_EINVAL;
                       if (ret == EL_OK) [[likely]] {
@@ -65,7 +65,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
 
         if constexpr (std::is_same<ConfigType, el_algorithm_yolo_config_t>::value) {
             if (static_resourse->instance->register_cmd(
-                  "TIOU", "Set IoU threshold", "IOU_THRESHOLD", [this, &kv](std::vector<std::string> argv) {
+                  "TIOU", "Set IoU threshold", "IOU_THRESHOLD", [this, kv](std::vector<std::string> argv) {
                       uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100 ? EL_OK : EL_EINVAL;
                       if (ret == EL_OK) [[likely]] {
