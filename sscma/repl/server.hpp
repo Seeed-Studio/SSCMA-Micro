@@ -37,6 +37,7 @@
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "sscma/repl/history.hpp"
+#include "sscma/utility.hpp"
 
 namespace sscma {
 
@@ -48,7 +49,7 @@ class Server;
 
 namespace types {
 
-typedef std::function<void(el_err_code_t, const std::string&)> repl_echo_cb_t;
+typedef std::function<void(el_err_code_t, std::string)> repl_echo_cb_t;
 
 typedef std::function<el_err_code_t(std::vector<std::string>)> repl_cmd_cb_t;
 
@@ -125,7 +126,7 @@ class Server {
         return it != _cmd_list.end();
     }
 
-    el_err_code_t register_cmd(const repl_cmd_t& cmd) {
+    el_err_code_t register_cmd(repl_cmd_t cmd) {
         const Guard<Mutex> guard(_cmd_list_lock);
 
         if (cmd.cmd.empty()) [[unlikely]]
@@ -134,7 +135,7 @@ class Server {
         auto it = std::find_if(
           _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(cmd.cmd) == 0; });
         if (it != _cmd_list.end()) [[unlikely]]
-            *it = cmd;
+            *it = cmd;  // never use move
         else
             _cmd_list.emplace_front(std::move(cmd));
 
@@ -283,7 +284,7 @@ class Server {
         size_t pos = cmd.find_first_of("=");
         if (pos != std::string::npos) {
             cmd_name = cmd.substr(0, pos);
-            cmd_args = cmd.substr(pos + 1);
+            cmd_args = cmd.substr(pos + 1, cmd.size());
         } else
             cmd_name = cmd;
 
@@ -293,14 +294,14 @@ class Server {
             m_echo_cb(EL_EINVAL, "Unknown command: ", cmd, "\n");
             return EL_EINVAL;
         }
-
-        cmd_name = cmd_name.substr(3);
+        cmd_name = cmd_name.substr(3, cmd_name.size());
 
         _cmd_list_lock.lock();
-        auto it = std::find_if(_cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) {
-            size_t cmd_body_pos = cmd_name.rfind("@");
-            return c.cmd.compare(cmd_name.substr(cmd_body_pos != std::string::npos ? cmd_body_pos + 1 : 0)) == 0;
-        });
+        size_t cmd_body_pos    = cmd_name.rfind("@");
+        cmd_body_pos           = cmd_body_pos != std::string::npos ? cmd_body_pos + 1 : 0;
+        std::string target_cmd = cmd_name.substr(cmd_body_pos, cmd_name.size());
+        auto        it         = std::find_if(
+          _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(target_cmd) == 0; });
         if (it == _cmd_list.end()) [[unlikely]] {
             m_echo_cb(EL_EINVAL, "Unknown command: ", cmd, "\n");
             _cmd_list_lock.unlock();
@@ -356,9 +357,9 @@ class Server {
     }
 
     template <typename... Args> inline void m_echo_cb(el_err_code_t ret, Args&&... args) {
-        std::string ss;
-        (ss.append(std::forward<Args>(args)), ...);  // TODO: preserve space before appending args
-        _echo_cb(ret, ss);
+        using namespace sscma::utility::string_concat;
+        std::string ss{concat_strings(std::forward<Args>(args)...)};
+        _echo_cb(ret, std::move(ss));
     }
 
    private:
