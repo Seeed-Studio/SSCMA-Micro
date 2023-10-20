@@ -142,8 +142,8 @@ class Server {
         return EL_OK;
     }
 
-    el_err_code_t register_cmd(const char* cmd, const char* desc, const char* arg, repl_cmd_cb_t cmd_cb) {
-        repl_cmd_t cmd_t(cmd, desc, arg, std::move(cmd_cb));
+    el_err_code_t register_cmd(const char* cmd, const char* desc, const char* args, repl_cmd_cb_t cmd_cb) {
+        repl_cmd_t cmd_t(cmd, desc, args, std::move(cmd_cb));
 
         return register_cmd(std::move(cmd_t));
     }

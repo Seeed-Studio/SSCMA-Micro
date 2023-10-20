@@ -11,7 +11,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-void print_help(std::forward_list<repl_cmd_t> cmd_list) {
+void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {
     std::string ss;
 
     for (const auto& cmd : cmd_list) {
