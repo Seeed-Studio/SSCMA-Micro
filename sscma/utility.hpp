@@ -31,11 +31,12 @@ template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T 
 
 constexpr inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
-template <typename... Args> constexpr inline std::string concat_strings(Args&&... args) {
+template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};
     std::string result;
-    result.reserve(length);
-    return (result.append(std::forward<Args>(args)), ...);
+    result.reserve(length + 1);
+    (result.append(std::forward<Args>(args)), ...);
+    return result;
 }
 
 }  // namespace string_concat

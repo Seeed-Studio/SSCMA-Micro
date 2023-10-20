@@ -56,7 +56,8 @@ class Executor {
 
     void add_task(repl_task_t task) {
         const Guard<Mutex> guard(_task_queue_lock);
-        _task_queue.push(task);
+
+        _task_queue.push(std::move(task));
         _task_stop_requested.store(true, std::memory_order_relaxed);
     }
 

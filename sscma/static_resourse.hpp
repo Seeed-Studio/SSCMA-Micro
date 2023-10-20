@@ -105,7 +105,7 @@ class StaticResourse {
 
     void inter_init() {
         transport->init();
-        instance->init([this](el_err_code_t ret, const std::string& msg) {
+        instance->init([this](el_err_code_t ret, std::string msg) {
             std::string ss;
             if (ret != EL_OK) [[unlikely]] {
                 ss += concat_strings(REPLY_LOG_HEADER,

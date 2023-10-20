@@ -48,7 +48,7 @@ void run() {
       }));
 
     static_resourse->instance->register_cmd(
-      "RST", "Reboot device", "", repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      "RST", "Reboot device", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
           static_resourse->executor->add_task(
             [&](std::atomic<bool>& stop_token) { static_resourse->device->restart(); });
           return EL_OK;
@@ -81,7 +81,7 @@ void run() {
     static_resourse->instance->register_cmd(
       "MODEL", "Load a model by model ID", "MODEL_ID", repl_cmd_cb_t([](std::vector<std::string> argv) {
           uint8_t model_id = std::atoi(argv[1].c_str());
-          static_resourse->executor->add_task([cmd = argv[0], model_id = std::move(model_id)](
+          static_resourse->executor->add_task([cmd = std::move(argv[0]), model_id = std::move(model_id)](
                                                 std::atomic<bool>& stop_token) { set_model(cmd, model_id); });
           return EL_OK;
       }));
@@ -101,7 +101,7 @@ void run() {
     static_resourse->instance->register_cmd(
       "ALGO", "Set a algorithm by algorithm type ID", "ALGORITHM_ID", repl_cmd_cb_t([](std::vector<std::string> argv) {
           el_algorithm_type_t algorithm_type = static_cast<el_algorithm_type_t>(std::atoi(argv[1].c_str()));
-          static_resourse->executor->add_task([cmd = argv[0], algorithm_type = std::move(algorithm_type)](
+          static_resourse->executor->add_task([cmd = std::move(argv[0]), algorithm_type = std::move(algorithm_type)](
                                                 std::atomic<bool>& stop_token) { set_algorithm(cmd, algorithm_type); });
           return EL_OK;
       }));
@@ -122,11 +122,11 @@ void run() {
       "SENSOR",
       "Set a default sensor by sensor ID",
       "SENSOR_ID,ENABLE/DISABLE",
-      repl_cmd_cb_t([&](std::vector<std::string> argv) {
+      repl_cmd_cb_t([](std::vector<std::string> argv) {
           uint8_t sensor_id = std::atoi(argv[1].c_str());
           bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
           static_resourse->executor->add_task(
-            [cmd = argv[0], sensor_id = std::move(sensor_id), enable = std::move(enable)](
+            [cmd = std::move(argv[0]), sensor_id = std::move(sensor_id), enable = std::move(enable)](
               std::atomic<bool>& stop_token) { set_sensor(cmd, sensor_id, enable); });
           return EL_OK;
       }));
@@ -143,7 +143,7 @@ void run() {
       "SAMPLE", "Sample data from current sensor", "N_TIMES", repl_cmd_cb_t([](std::vector<std::string> argv) {
           int n_times = std::atoi(argv[1].c_str());
           static_resourse->executor->add_task(
-            [cmd = argv[0], n_times = std::move(n_times)](std::atomic<bool>& stop_token) {
+            [cmd = std::move(argv[0]), n_times = std::move(n_times)](std::atomic<bool>& stop_token) {
                 run_sample(cmd, n_times, stop_token);
             });
           return EL_OK;
@@ -163,7 +163,7 @@ void run() {
           int  n_times     = std::atoi(argv[1].c_str());
           bool result_only = std::atoi(argv[2].c_str()) ? true : false;
           static_resourse->executor->add_task(
-            [cmd = argv[0], n_times = std::move(n_times), result_only = std::move(result_only)](
+            [cmd = std::move(argv[0]), n_times = std::move(n_times), result_only = std::move(result_only)](
               std::atomic<bool>& stop_token) mutable { run_invoke(cmd, n_times, result_only, stop_token); });
           return EL_OK;
       }));
