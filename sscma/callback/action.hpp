@@ -41,7 +41,7 @@ void set_action(const std::vector<std::string>& argv) {
           });
         auto mutable_map = static_resourse->action_cond->get_mutable_map();
         for (auto& kv : mutable_map) {
-            const auto& argv = tokenize_function_2_argv(kv.first);
+            auto argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
                 continue;
 

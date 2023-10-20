@@ -85,7 +85,7 @@ using namespace sscma::types;
 class Server {
    public:
     Server() : _cmd_list_lock(), _exec_lock(), _is_ctrl(false), _line_index(-1) {
-        register_cmd("HELP", "List available commands", "", [this](std::vector<std::string>) -> el_err_code_t {
+        register_cmd("HELP?", "List available commands", "", [this](std::vector<std::string>) -> el_err_code_t {
             this->print_help();
             return EL_OK;
         });
@@ -102,7 +102,7 @@ class Server {
             _echo_cb = echo_cb;
         }
 
-        m_echo_cb(EL_OK, "Welcome to EegeLab REPL.\n", "Type 'AT+HELP' for command list.\n", "> ");
+        m_echo_cb(EL_OK, "Welcome to EegeLab REPL.\n", "Type 'AT+HELP?' for command list.\n", "> ");
     }
 
     void deinit() {
@@ -143,7 +143,7 @@ class Server {
     }
 
     el_err_code_t register_cmd(const char* cmd, const char* desc, const char* arg, repl_cmd_cb_t cmd_cb) {
-        repl_cmd_t cmd_t(cmd, desc, arg, cmd_cb);
+        repl_cmd_t cmd_t(cmd, desc, arg, std::move(cmd_cb));
 
         return register_cmd(std::move(cmd_t));
     }

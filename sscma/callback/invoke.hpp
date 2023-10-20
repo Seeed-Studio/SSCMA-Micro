@@ -25,7 +25,7 @@ void run_invoke_on_img(
                                  .rotate = EL_PIXEL_ROTATE_UNKNOWN};
     auto  ret         = algorithm ? EL_OK : EL_EINVAL;
     auto  event_reply = [&]() {
-        const auto& str = img_invoke_results_2_json_str(algorithm, &img, cmd, result_only, ret);
+        auto str = img_invoke_results_2_json_str(algorithm, &img, cmd, result_only, ret);
         static_resourse->transport->send_bytes(str.c_str(), str.size());
     };
     if (ret != EL_OK) [[unlikely]] {
@@ -36,7 +36,7 @@ void run_invoke_on_img(
     auto     action_inject = [algorithm]() {
         auto mutable_map = static_resourse->action_cond->get_mutable_map();
         for (auto& kv : mutable_map) {
-            const auto& argv = tokenize_function_2_argv(kv.first);
+            auto argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
                 continue;
 
