@@ -164,7 +164,7 @@ void run() {
           bool result_only = std::atoi(argv[2].c_str()) ? true : false;
           static_resourse->executor->add_task(
             [cmd = std::move(argv[0]), n_times = std::move(n_times), result_only = std::move(result_only)](
-              std::atomic<bool>& stop_token) mutable { run_invoke(cmd, n_times, result_only, stop_token); });
+              std::atomic<bool>& stop_token) { run_invoke(cmd, n_times, result_only, stop_token); });
           return EL_OK;
       }));
 

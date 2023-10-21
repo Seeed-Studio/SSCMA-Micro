@@ -54,10 +54,10 @@ class Executor {
 #endif
     }
 
-    void add_task(repl_task_t task) {
+    template <typename Callable> void add_task(Callable&& task) {
         const Guard<Mutex> guard(_task_queue_lock);
 
-        _task_queue.push(std::move(task));
+        _task_queue.push(std::forward<Callable>(task));
         _task_stop_requested.store(true, std::memory_order_relaxed);
     }
 
@@ -72,11 +72,11 @@ class Executor {
     void run() {
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
         while (!_worker_thread_stop_requested.load(std::memory_order_relaxed)) {
-            repl_task_t task;
+            repl_task_t task{};
             {
                 const Guard<Mutex> guard(_task_queue_lock);
                 if (!_task_queue.empty()) {
-                    task = std::move(_task_queue.front());
+                    task = std::move(_task_queue.front());  // or std::function::swap
                     _task_queue.pop();
                     if (_task_queue.empty()) [[likely]]
                         _task_stop_requested.store(false, std::memory_order_seq_cst);
@@ -88,7 +88,7 @@ class Executor {
             vTaskDelay(15 / portTICK_PERIOD_MS);  // TODO: use yield
         }
 #else
-        repl_task_t task;
+        repl_task_t task{};
         {
             const Guard<Mutex> guard(_task_queue_lock);
             if (!_task_queue.empty()) {

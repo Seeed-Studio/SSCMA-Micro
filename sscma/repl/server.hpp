@@ -54,9 +54,42 @@ typedef std::function<void(el_err_code_t, std::string)> repl_echo_cb_t;
 typedef std::function<el_err_code_t(std::vector<std::string>)> repl_cmd_cb_t;
 
 struct repl_cmd_t {
-    repl_cmd_t(std::string cmd_, std::string desc_, std::string args_, repl_cmd_cb_t cmd_cb_)
-        : cmd(cmd_), desc(desc_), args(args_), cmd_cb(cmd_cb_), _argc(0) {
+    template <typename Callable>
+    repl_cmd_t(std::string cmd_, std::string desc_, std::string args_, Callable&& cmd_cb_)
+        : cmd(cmd_), desc(desc_), args(args_), cmd_cb(std::forward<Callable>(cmd_cb_)), _argc(0) {
         if (args.size()) _argc = std::count(args.begin(), args.end(), ',') + 1;
+    }
+
+    repl_cmd_t(repl_cmd_t&& repl_cmd)
+        : cmd(std::move(repl_cmd.cmd)),
+          desc(std::move(repl_cmd.desc)),
+          args(std::move(repl_cmd.args)),
+          cmd_cb(std::move(repl_cmd.cmd_cb)),
+          _argc(repl_cmd._argc) {}
+
+    repl_cmd_t(const repl_cmd_t& repl_cmd)
+        : cmd(repl_cmd.cmd), desc(repl_cmd.desc), args(repl_cmd.args), cmd_cb(repl_cmd.cmd_cb), _argc(repl_cmd._argc) {}
+
+    repl_cmd_t& operator=(repl_cmd_t&& repl_cmd) {
+        if (this != &repl_cmd) [[likely]] {
+            cmd    = std::move(repl_cmd.cmd);
+            desc   = std::move(repl_cmd.desc);
+            args   = std::move(repl_cmd.args);
+            cmd_cb = std::move(repl_cmd.cmd_cb);
+            _argc  = repl_cmd._argc;
+        }
+        return *this;
+    }
+
+    repl_cmd_t& operator=(const repl_cmd_t& repl_cmd) {
+        if (this != &repl_cmd) [[likely]] {
+            cmd    = repl_cmd.cmd;
+            desc   = repl_cmd.desc;
+            args   = repl_cmd.args;
+            cmd_cb = repl_cmd.cmd_cb;
+            _argc  = repl_cmd._argc;
+        }
+        return *this;
     }
 
     ~repl_cmd_t() = default;
@@ -96,10 +129,12 @@ class Server {
     Server(Server const&)            = delete;
     Server& operator=(Server const&) = delete;
 
-    void init(repl_echo_cb_t echo_cb) {
+    template <typename Callable> void init(Callable&& echo_cb) {
         {
             const Guard<Mutex> guard(_cmd_list_lock);
-            _echo_cb = echo_cb;
+            _echo_cb = std::forward<Callable>(echo_cb);
+            if (!_echo_cb) [[unlikely]]
+                _echo_cb = [](el_err_code_t, std::string msg) { el_printf("%s\n", msg.c_str()); };
         }
 
         m_echo_cb(EL_OK, "Welcome to EegeLab REPL.\n", "Type 'AT+HELP?' for command list.\n", "> ");
@@ -126,7 +161,7 @@ class Server {
         return it != _cmd_list.end();
     }
 
-    el_err_code_t register_cmd(repl_cmd_t cmd) {
+    template <typename Command> el_err_code_t register_cmd(Command&& cmd) {
         const Guard<Mutex> guard(_cmd_list_lock);
 
         if (cmd.cmd.empty()) [[unlikely]]
@@ -134,17 +169,18 @@ class Server {
 
         auto it = std::find_if(
           _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(cmd.cmd) == 0; });
-        if (it != _cmd_list.end()) [[unlikely]]
-            *it = cmd;  // never use move
-        else
-            _cmd_list.emplace_front(std::move(cmd));
+        if (it != _cmd_list.end()) [[unlikely]] {
+            const Guard<Mutex> guard(_exec_lock);
+            *it = std::forward<Command>(cmd);  // overloaded construct (copy or move)
+        } else
+            _cmd_list.emplace_front(std::forward<Command>(cmd));  // inplace construct (copy or move)
 
         return EL_OK;
     }
 
-    el_err_code_t register_cmd(const char* cmd, const char* desc, const char* args, repl_cmd_cb_t cmd_cb) {
-        repl_cmd_t cmd_t(cmd, desc, args, std::move(cmd_cb));
-
+    template <typename Callable>
+    el_err_code_t register_cmd(const char* cmd, const char* desc, const char* args, Callable&& cmd_cb) {
+        repl_cmd_t cmd_t{cmd, desc, args, std::forward<Callable>(cmd_cb)};
         return register_cmd(std::move(cmd_t));
     }
 
@@ -171,6 +207,7 @@ class Server {
         }
     }
 
+    // use exec_non_lock since no recursive mutex implemented
     el_err_code_t exec_non_lock(std::string line) {
         auto it = std::remove_if(line.begin(), line.end(), [](char c) { return !std::isprint(c); });
         line.erase(it, line.end());
@@ -272,7 +309,8 @@ class Server {
     }
 
    protected:
-    void m_unregister_cmd(const std::string& cmd) {
+    void m_unregister_cmd(std::string cmd) {
+        const Guard<Mutex> guard(_exec_lock);
         _cmd_list.remove_if([&](const repl_cmd_t& c) { return c.cmd.compare(cmd) == 0; });
     }
 
@@ -307,10 +345,12 @@ class Server {
             _cmd_list_lock.unlock();
             return ret;
         }
-        repl_cmd_t cmd_copy = *it;
         _cmd_list_lock.unlock();
 
-        if (!cmd_copy.cmd_cb) [[unlikely]]
+        // TODO: use dispatch queue to avoid concurrency modification of cmd list
+        // maybe unsafe if executing some cmd callback while the command got unregistered or changed
+
+        if (!it->cmd_cb) [[unlikely]]
             return ret;
 
         // tokenize
@@ -319,7 +359,7 @@ class Server {
         std::stack<char> stk;
         size_t           index = 0;
         size_t           size  = cmd_args.size();
-        while (index < size && argv.size() < (cmd_copy._argc + 1)) {
+        while (index < size && argv.size() < (it->_argc + 1)) {
             char c = cmd_args.at(index);
             if (c == '\'' || c == '"') [[unlikely]] {
                 stk.push(c);
@@ -344,12 +384,12 @@ class Server {
         }
         argv.shrink_to_fit();
 
-        if (argv.size() != (cmd_copy._argc + 1)) [[unlikely]] {
+        if (argv.size() != (it->_argc + 1)) [[unlikely]] {
             m_echo_cb(EL_EINVAL, "Command ", cmd_name, " got wrong arguements.\n");
             return ret;
         }
 
-        ret = cmd_copy.cmd_cb(std::move(argv));
+        ret = it->cmd_cb(std::move(argv));
         if (ret != EL_OK) [[unlikely]]
             m_echo_cb(EL_EINVAL, "Command ", cmd_name, " failed.\n");
 
