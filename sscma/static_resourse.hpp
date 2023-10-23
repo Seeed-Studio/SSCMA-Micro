@@ -106,14 +106,14 @@ class StaticResourse {
     void inter_init() {
         transport->init();
         instance->init([this](el_err_code_t ret, std::string msg) {
-            std::string ss;
+            ;
             if (ret != EL_OK) [[unlikely]] {
-                ss += concat_strings(REPLY_LOG_HEADER,
-                                     "\"name\": \"AT\", \"code\": ",
-                                     std::to_string(ret),
-                                     ", \"data\": ",
-                                     quoted(msg),
-                                     "}\n");
+                const auto& ss{concat_strings(REPLY_LOG_HEADER,
+                                              "\"name\": \"AT\", \"code\": ",
+                                              std::to_string(ret),
+                                              ", \"data\": ",
+                                              quoted(msg),
+                                              "}\n")};
                 this->transport->send_bytes(ss.c_str(), ss.size());
             }
         });

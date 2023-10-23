@@ -122,7 +122,7 @@ void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atom
     auto sensor_info    = el_sensor_info_t{};
     auto ret            = EL_OK;
     auto direct_reply   = [&](const std::string& algorithm_info_and_conf) {
-        std::string ss{concat_strings(REPLY_CMD_HEADER,
+        const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                       "\"name\": \"",
                                       cmd,
                                       "\", \"code\": ",
@@ -134,7 +134,6 @@ void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atom
                                       ", \"sensor\": ",
                                       sensor_info_2_json_str(sensor_info),
                                       "}}\n")};
-
         static_resourse->transport->send_bytes(ss.c_str(), ss.size());
     };
 

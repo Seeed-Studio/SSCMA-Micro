@@ -34,7 +34,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
                           kv.value.score_threshold = value;
                           *static_resourse->storage << kv;
                       }
-                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                      const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                                     "\"name\": \"",
                                                     argv[0],
                                                     "\", \"code\": ",
@@ -49,7 +49,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
 
             if (static_resourse->instance->register_cmd(
                   "TSCORE?", "Get score threshold", "", [this](std::vector<std::string> argv) {
-                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                      const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                                     "\"name\": \"",
                                                     argv[0],
                                                     "\", \"code\": ",
@@ -73,7 +73,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
                           kv.value.iou_threshold = value;
                           *static_resourse->storage << kv;
                       }
-                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                      const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                                     "\"name\": \"",
                                                     argv[0],
                                                     "\", \"code\": ",
@@ -88,7 +88,7 @@ template <typename AlgorithmType> class AlgorithmConfigHelper {
 
             if (static_resourse->instance->register_cmd(
                   "TIOU?", "Get IoU threshold", "", [this](std::vector<std::string> argv) {
-                      std::string ss{concat_strings(REPLY_CMD_HEADER,
+                      const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                                     "\"name\": \"",
                                                     argv[0],
                                                     "\", \"code\": ",

@@ -26,17 +26,16 @@ void set_action(const std::vector<std::string>& argv) {
            exp = quoted(argv[1]),
            ec  = std::to_string(EL_ELOG),
            crc = std::to_string(static_resourse->action_cond->get_condition_hash())]() {
-              std::string ss{concat_strings(REPLY_EVT_HEADER,
-                                            "\"name\": \"",
-                                            cmd,
-                                            "\", \"code\": ",
-                                            ec,
-                                            ", \"data\": {\"crc16_maxim\": ",
-                                            crc,
-                                            ", \"action\": ",
-                                            exp,
-                                            "}}\n")};
-
+              const auto& ss = concat_strings(REPLY_EVT_HEADER,
+                                              "\"name\": \"",
+                                              cmd,
+                                              "\", \"code\": ",
+                                              ec,
+                                              ", \"data\": {\"crc16_maxim\": ",
+                                              crc,
+                                              ", \"action\": ",
+                                              exp,
+                                              "}}\n");
               static_resourse->transport->send_bytes(ss.c_str(), ss.size());
           });
         auto mutable_map = static_resourse->action_cond->get_mutable_map();
@@ -66,7 +65,7 @@ void set_action(const std::vector<std::string>& argv) {
     }
 
 ActionReply:
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
@@ -90,7 +89,7 @@ void get_action(const std::string& cmd) {
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",

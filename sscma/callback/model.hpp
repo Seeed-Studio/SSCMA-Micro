@@ -56,7 +56,7 @@ ModelError:
     static_resourse->current_model_id = 0;
 
 ModelReply: {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -64,7 +64,6 @@ ModelReply: {
                                   ", \"data\": {\"model\": ",
                                   model_info_2_json_str(model_info),
                                   "}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 }
@@ -74,7 +73,7 @@ void get_model_info(const std::string& cmd) {
 
     auto ret = model_info.id ? EL_OK : EL_EINVAL;
 
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -82,7 +81,6 @@ void get_model_info(const std::string& cmd) {
                                   ", \"data\": ",
                                   model_info_2_json_str(model_info),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 

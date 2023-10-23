@@ -17,7 +17,7 @@ void set_info(const std::vector<std::string>& argv) {
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
     auto ret = static_resourse->storage->emplace(el_make_storage_kv("edgelab_info", info)) ? EL_OK : EL_EINVAL;
 
-    std::string ss{
+    const auto& ss{
       concat_strings(REPLY_CMD_HEADER,
                      "\"name\": \"",
                      argv[0],
@@ -26,7 +26,6 @@ void set_info(const std::vector<std::string>& argv) {
                      ", \"data\": {\"crc16_maxim\": ",
                      std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
                      "}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -37,7 +36,7 @@ void get_info(const std::string& cmd) {
     if (static_resourse->storage->contains("edgelab_info"))
         ret = static_resourse->storage->get(el_make_storage_kv("edgelab_info", info)) ? EL_OK : EL_EINVAL;
 
-    std::string ss{
+    const auto& ss{
       concat_strings(REPLY_CMD_HEADER,
                      "\"name\": \"",
                      cmd,
@@ -48,7 +47,6 @@ void get_info(const std::string& cmd) {
                      ", \"info\": ",
                      quoted(info),
                      "}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 

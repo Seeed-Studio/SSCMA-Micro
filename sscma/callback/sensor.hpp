@@ -66,7 +66,7 @@ SensorError:
     static_resourse->current_sensor_id = 0;
 
 SensorReply: {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -74,7 +74,6 @@ SensorReply: {
                                   ", \"data\": {\"sensor\": ",
                                   sensor_info_2_json_str(sensor_info),
                                   "}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 }
@@ -82,7 +81,7 @@ SensorReply: {
 void get_sensor_info(const std::string& cmd) {
     const auto& sensor_info = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
 
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -90,7 +89,6 @@ void get_sensor_info(const std::string& cmd) {
                                   ", \"data\": ",
                                   sensor_info_2_json_str(sensor_info),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 

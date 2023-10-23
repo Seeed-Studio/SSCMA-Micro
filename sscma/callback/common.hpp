@@ -25,7 +25,7 @@ void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {
 }
 
 void get_device_id(const std::string& cmd) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -33,12 +33,11 @@ void get_device_id(const std::string& cmd) {
                                   ", \"data\": ",
                                   std::to_string(static_resourse->device->get_device_id()),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_name(const std::string& cmd) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -46,12 +45,11 @@ void get_device_name(const std::string& cmd) {
                                   ", \"data\": ",
                                   quoted(static_resourse->device->get_device_name()),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_status(const std::string& cmd) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -61,12 +59,11 @@ void get_device_status(const std::string& cmd) {
                                   ", \"is_ready\": ",
                                   std::to_string(static_resourse->is_ready.load() ? 1 : 0),
                                   "}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_version(const std::string& cmd) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -76,12 +73,11 @@ void get_version(const std::string& cmd) {
                                   "\", \"hardware\": \"",
                                   std::to_string(static_resourse->device->get_chip_revision_id()),
                                   "\"}}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void break_task(const std::string& cmd) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -89,12 +85,11 @@ void break_task(const std::string& cmd) {
                                   ", \"data\": ",
                                   std::to_string(el_get_time_ms()),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
+    const auto& ss{concat_strings(REPLY_CMD_HEADER,
                                   "\"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -102,7 +97,6 @@ void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
                                   ", \"data\": ",
                                   std::to_string(sta.load() ? 1 : 0),
                                   "}\n")};
-
     static_resourse->transport->send_bytes(ss.c_str(), ss.size());
 }
 
