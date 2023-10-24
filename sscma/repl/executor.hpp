@@ -47,7 +47,7 @@ class Executor {
     }
 
     void stop() {
-        _worker_thread_stop_requested.store(true, std::memory_order_relaxed);
+        _worker_thread_stop_requested.store(true);
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
         if (_worker_ret == pdPASS) [[likely]]
             vTaskDelete(_worker_handler);
@@ -58,7 +58,7 @@ class Executor {
         const Guard<Mutex> guard(_task_queue_lock);
 
         _task_queue.push(std::forward<Callable>(task));
-        _task_stop_requested.store(true, std::memory_order_relaxed);
+        _task_stop_requested.store(true);
     }
 
     const char* get_worker_name() const {
@@ -71,7 +71,7 @@ class Executor {
 
     void run() {
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
-        while (!_worker_thread_stop_requested.load(std::memory_order_relaxed)) {
+        while (!_worker_thread_stop_requested.load()) {
             repl_task_t task{};
             {
                 const Guard<Mutex> guard(_task_queue_lock);
@@ -79,9 +79,9 @@ class Executor {
                     task = std::move(_task_queue.front());  // or std::function::swap
                     _task_queue.pop();
                     if (_task_queue.empty()) [[likely]]
-                        _task_stop_requested.store(false, std::memory_order_seq_cst);
+                        _task_stop_requested.store(false);
                     else
-                        _task_stop_requested.store(true, std::memory_order_seq_cst);
+                        _task_stop_requested.store(true);
                 }
             }
             if (task) task(_task_stop_requested);
@@ -95,9 +95,9 @@ class Executor {
                 task = std::move(_task_queue.front());
                 _task_queue.pop();
                 if (_task_queue.empty()) [[likely]]
-                    _task_stop_requested.store(false, std::memory_order_seq_cst);
+                    _task_stop_requested.store(false);
                 else
-                    _task_stop_requested.store(true, std::memory_order_seq_cst);
+                    _task_stop_requested.store(true);
             }
             if (task) task(_task_stop_requested);
         }
