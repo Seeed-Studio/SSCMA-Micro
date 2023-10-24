@@ -120,7 +120,7 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
         static_buffer = it->second;
     else {
         static_buffer = new char[buffer_size]{};  // we're not going to delete it
-        std::snprintf(static_buffer, buffer_size, format_str, hash);
+        std::snprintf(static_buffer, buffer_size - 1, format_str, hash);
         hash_list.emplace_front(hash, static_buffer);
     }
     EL_ASSERT(static_buffer != nullptr);
