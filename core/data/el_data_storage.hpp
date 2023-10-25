@@ -107,7 +107,7 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
     static const char*   key_header    = "edgelab#type_name#";
     static const uint8_t header_size   = std::strlen(key_header);
     static const uint8_t buffer_size   = [&]() -> uint8_t {
-        // 8 for hash hex (unsigned long), 1 for terminator, -1 for bit hacks (remove last 1 in binary)
+        // 8 for hash hex (uint32_t), 1 for terminator, -1 for bit hacks (remove last 1 in binary)
         uint8_t len = static_cast<uint8_t>(header_size + (sizeof(hash) << 1) + 1u - 1u);
         len |= len >> 1;
         len |= len >> 2;
@@ -127,14 +127,13 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
         union hex_fmt {
             uint32_t i;
             uint8_t  o[sizeof(uint32_t)];
-
             hex_fmt(uint32_t n) : i(__builtin_bswap32(n)) {}  // assuming n is little-endian, not platform consistent
         };
-        hex_fmt   f{hash};
+        hex_fmt   f{hash};  // wtf snprinf crashes the program, skip use that
         uint16_t* fmt_ptr = reinterpret_cast<uint16_t*>(static_buffer + header_size);
-        for (uint8_t i = 0; i < sizeof(uint32_t); ++i) {
-            fmt_ptr[i] = hex_literals[f.o[i] >> 4] | (hex_literals[f.o[i] & 0x0f]) << 8;
-        }
+        for (uint8_t i = 0; i < sizeof(decltype(hex_fmt::i)); ++i)
+            fmt_ptr[i] = (hex_literals[f.o[i] & 0x0f] << 8) | hex_literals[f.o[i] >> 4];
+
         hash_list.emplace_front(hash, static_buffer);
     }
 
