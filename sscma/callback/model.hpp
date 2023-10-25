@@ -12,13 +12,13 @@ using namespace sscma::utility;
 
 void get_available_models(const std::string& cmd) {
     const auto& models_info = static_resourse->models->get_all_model_info();
+    const char* delim       = "";
 
     std::string ss{
       concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
-    DELIM_RESET;
     for (const auto& i : models_info) {
-        DELIM_PRINT(ss);
-        ss += model_info_2_json_str(i);
+        ss += concat_strings(delim, model_info_2_json_str(i));
+        delim = ", ";
     }
     ss += "]}\n";
 

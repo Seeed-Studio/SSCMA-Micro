@@ -13,13 +13,14 @@ using namespace sscma::utility;
 
 void get_available_sensors(const std::string& cmd) {
     const auto& registered_sensors = static_resourse->device->get_all_sensor_info();
+    const char* delim              = "";
 
     std::string ss{
       concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
-    DELIM_RESET;
+
     for (const auto& i : registered_sensors) {
-        DELIM_PRINT(ss);
-        ss += sensor_info_2_json_str(i);
+        ss += concat_strings(delim, sensor_info_2_json_str(i));
+        delim = ", ";
     }
     ss += "]}\n";
 

@@ -109,13 +109,13 @@ std::string sensor_info_2_json_str(el_sensor_info_t sensor_info) {
 
 template <typename T> constexpr std::string results_2_json_str(const std::forward_list<T>& results) {
     std::string ss;
+    const char* delim = "";
 
-    DELIM_RESET;
     if constexpr (std::is_same<T, el_box_t>::value) {
         ss = "\"boxes\": [";
         for (const auto& box : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[",
+            ss += concat_strings(delim,
+                                 "[",
                                  std::to_string(box.x),
                                  ", ",
                                  std::to_string(box.y),
@@ -128,12 +128,13 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  ", ",
                                  std::to_string(box.target),
                                  "]");
+            delim = ", ";
         }
     } else if constexpr (std::is_same<T, el_point_t>::value) {
         ss = "\"points\": [";
         for (const auto& point : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[",
+            ss += concat_strings(delim,
+                                 "[",
                                  std::to_string(point.x),
                                  ", ",
                                  std::to_string(point.y),
@@ -142,12 +143,13 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  ", ",
                                  std::to_string(point.target),
                                  "]");
+            delim = ", ";
         }
     } else if constexpr (std::is_same<T, el_class_t>::value) {
         ss = "\"classes\": [";
         for (const auto& cls : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
+            ss += concat_strings(delim, "[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
+            delim = ", ";
         }
     }
     ss += "]";

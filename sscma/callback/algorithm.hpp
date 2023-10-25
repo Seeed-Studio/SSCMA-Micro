@@ -15,13 +15,13 @@ using namespace sscma::utility;
 
 void get_available_algorithms(const std::string& cmd) {
     const auto& registered_algorithms = static_resourse->algorithm_delegate->get_all_algorithm_info();
+    const char* delim                 = "";
 
     std::string ss{
       concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
-    DELIM_RESET;
     for (const auto& i : registered_algorithms) {
-        DELIM_PRINT(ss);
-        ss += algorithm_info_2_json_str(i);
+        ss += concat_strings(delim, algorithm_info_2_json_str(i));
+        delim = ", ";
     }
     ss += "]}\n";
 

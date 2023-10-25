@@ -112,7 +112,7 @@
             if (!(expr)) {                                     \
                 el_printf(EL_DEBUG_COLOR_RED "[ASSERT]");      \
                 EL_DEBUG_MORE_INFO();                          \
-                el_printf("Failed assertion `%s'\r\n", #expr); \
+                el_printf("Failed assertion '%s'\r\n", #expr); \
                 el_printf(EL_DEBUG_COLOR_RESET);               \
                 while (1) {                                    \
                 }                                              \

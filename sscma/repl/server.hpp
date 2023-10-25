@@ -252,7 +252,7 @@ class Server {
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
                 } else if (_ctrl_line.compare("[3~") == 0) {
-                    if (_line_index < (_line.size() - 1)) {
+                    if (_line_index < _line.size() - 1) {
                         if (!_line.empty() && _line_index >= 0) {
                             _line.erase(_line_index + 1, 1);
                             --_line_index;

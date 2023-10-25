@@ -54,7 +54,7 @@ class History {
         if (_history_index < 0) [[unlikely]]
             _history_index = _history.size() - 1;
 
-        if (_history_index < (_history.size() - 1)) [[likely]]
+        if (_history_index < _history.size() - 1) [[likely]]
             ++_history_index;
 
         line = _history[_history_index];
@@ -73,7 +73,7 @@ class History {
     }
 
     bool reset() {
-        bool is_tail   = _history_index == (_history.size() - 1);
+        bool is_tail   = _history_index == _history.size() - 1;
         _history_index = _history.size() - 1;
 
         return is_tail;
