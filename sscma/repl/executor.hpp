@@ -29,15 +29,28 @@ class Executor {
           _worker_name(new char[configMAX_TASK_NAME_LEN]{}),
           _worker_stack_size(worker_stack_size),
           _worker_priority(worker_priority) {
-        static uint16_t worker_id = 0;
-        volatile size_t length    = configMAX_TASK_NAME_LEN - 1;
-        std::snprintf(_worker_name, length, "task_executor_%2X", worker_id++);
+        static uint8_t       worker_id    = 0u;
+        static const char*   hex_literals = "0123456789ABCDEF";
+        static const char*   header_name  = "sscma#executor#00";
+        static const uint8_t header_size  = std::strlen(header_name);
+
+        EL_ASSERT(header_size <= configMAX_TASK_NAME_LEN);
+
+        std::memset(_worker_name, 0, configMAX_TASK_NAME_LEN);  // not trust initializer
+        std::memcpy(_worker_name, header_name, header_size);
+
+        _worker_name[header_size - 2] = hex_literals[worker_id >> 4];
+        _worker_name[header_size - 1] = hex_literals[worker_id & 0x0f];
     }
 #else
     Executor() : _task_queue_lock(), _task_stop_requested(false), _worker_thread_stop_requested(false) {}
 #endif
 
-    ~Executor() { stop(); }
+    ~Executor() {
+        stop();
+        delete[] _worker_name;
+        _worker_name = nullptr;
+    }
 
     void start() {
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT

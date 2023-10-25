@@ -83,9 +83,9 @@ static inline constexpr el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv(const 
 
 using namespace edgelab::utility;
 
-static inline unsigned long djb2_hash(const unsigned char* bytes) {
-    unsigned long hash = 0x1505;
-    unsigned char byte;
+static inline uint32_t djb2_hash(const uint8_t* bytes) {
+    uint32_t hash = 0x1505;
+    uint8_t  byte{};
     while ((byte = *bytes++)) hash = ((hash << 5) + hash) + byte;
     return hash;
 }
@@ -101,12 +101,14 @@ template <typename VarType, typename ValueTypeNoCV = typename std::remove_cv<Var
 static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarType&& data) {
     using VarTypeNoCVRef               = typename std::remove_cv<typename std::remove_reference<VarType>::type>::type;
     const char*          type_name     = get_type_name<VarTypeNoCVRef>();
-    unsigned long        hash          = djb2_hash(reinterpret_cast<const unsigned char*>(type_name));
+    uint32_t             hash          = djb2_hash(reinterpret_cast<const uint8_t*>(type_name));
     char*                static_buffer = nullptr;
-    static const char*   format_str    = "edgelab#type_name#%.8lX";
+    static const char*   hex_literals  = "0123456789ABCDEF";
+    static const char*   key_header    = "edgelab#type_name#";
+    static const uint8_t header_size   = std::strlen(key_header);
     static const uint8_t buffer_size   = [&]() -> uint8_t {
-        // 1 for terminator, -4 for formatter, 8 for hash hex (unsigned long), -1 for bit hacks (remove last 1 in binary)
-        uint8_t len = static_cast<uint8_t>(std::strlen(format_str) + 1u - 4u + 8u - 1u);
+        // 8 for hash hex (unsigned long), 1 for terminator, -1 for bit hacks (remove last 1 in binary)
+        uint8_t len = static_cast<uint8_t>(header_size + (sizeof(hash) << 1) + 1u - 1u);
         len |= len >> 1;
         len |= len >> 2;
         len |= len >> 4;
@@ -119,11 +121,25 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
     if (it != hash_list.end())
         static_buffer = it->second;
     else {
-        static_buffer = new char[buffer_size]{};  // we're not going to delete it
-        std::snprintf(static_buffer, buffer_size - 1, format_str, hash);
+        static_buffer = new char[buffer_size]{};     // we're not going to delete it
+        std::memset(static_buffer, 0, buffer_size);  // not trust initializer
+        std::memcpy(static_buffer, key_header, header_size);
+        union hex_fmt {
+            uint32_t i;
+            uint8_t  o[sizeof(uint32_t)];
+
+            hex_fmt(uint32_t n) : i(__builtin_bswap32(n)) {}  // assuming n is little-endian, not platform consistent
+        };
+        hex_fmt   f{hash};
+        uint16_t* fmt_ptr = reinterpret_cast<uint16_t*>(static_buffer + header_size);
+        for (uint8_t i = 0; i < sizeof(uint32_t); ++i) {
+            fmt_ptr[i] = hex_literals[f.o[i] >> 4] | (hex_literals[f.o[i] & 0x0f]) << 8;
+        }
         hash_list.emplace_front(hash, static_buffer);
     }
+
     EL_ASSERT(static_buffer != nullptr);
+    EL_ASSERT(buffer_size <= FDB_KV_NAME_MAX);
 
     return el_make_storage_kv(static_buffer, std::forward<VarType>(data));
 }
