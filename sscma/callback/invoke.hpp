@@ -14,8 +14,11 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 template <typename AlgorithmType>
-void run_invoke_on_img(
-  AlgorithmType* algorithm, const std::string& cmd, int n_times, bool result_only, std::atomic<bool>& stop_token) {
+void run_invoke_on_img(AlgorithmType*           algorithm,
+                       const std::string&       cmd,
+                       int                      n_times,
+                       bool                     result_only,
+                       const std::atomic<bool>& stop_token) {
     auto* camera      = static_resourse->device->get_camera();
     auto  img         = el_img_t{.data   = nullptr,
                                  .size   = 0,
@@ -116,7 +119,7 @@ void run_invoke_on_img(
     static_resourse->is_invoke.store(false);
 }
 
-void run_invoke(const std::string& cmd, int n_times, bool result_only, std::atomic<bool>& stop_token) {
+void run_invoke(const std::string& cmd, int n_times, bool result_only, const std::atomic<bool>& stop_token) {
     auto model_info     = el_model_info_t{};
     auto algorithm_info = el_algorithm_info_t{};
     auto sensor_info    = el_sensor_info_t{};

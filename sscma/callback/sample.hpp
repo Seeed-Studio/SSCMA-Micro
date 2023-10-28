@@ -11,7 +11,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-void run_sample(const std::string& cmd, int n_times, std::atomic<bool>& stop_token) {
+void run_sample(const std::string& cmd, int n_times, const std::atomic<bool>& stop_token) {
     const auto& sensor_info  = static_resourse->device->get_sensor_info(static_resourse->current_sensor_id);
     auto        ret          = (sensor_info.id && sensor_info.state == EL_SENSOR_STA_AVAIL) ? EL_OK : EL_EINVAL;
     auto        direct_reply = [&]() {
