@@ -159,19 +159,23 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
 
 // TODO: avoid repeatly allocate/release memory in for loop
 std::string img_2_jpeg_json_str(const el_img_t* img) {
-    if (!img || !img->data) [[unlikely]]
-        return "\"image\": \"\"";
-
     std::string ss("\"image\": \"");
-    // TODO: reallocate jpeg_data buffer when resolution changed
+    if (!img || !img->data) [[unlikely]]
+        return ss += "\"";
+
     static std::size_t size      = img->width * img->height * 3;
     static uint8_t*    jpeg_data = new uint8_t[size]{};
-    auto               jpeg_img  = el_img_t{.data   = jpeg_data,
-                                            .size   = size,
-                                            .width  = img->width,
-                                            .height = img->height,
-                                            .format = EL_PIXEL_FORMAT_JPEG,
-                                            .rotate = img->rotate};
+    if (img->width * img->height * 3 != size) [[unlikely]] {
+        size = img->width * img->height * 3;
+        delete[] jpeg_data;
+        jpeg_data = new uint8_t[size]{};
+    }
+    auto jpeg_img = el_img_t{.data   = jpeg_data,
+                             .size   = size,
+                             .width  = img->width,
+                             .height = img->height,
+                             .format = EL_PIXEL_FORMAT_JPEG,
+                             .rotate = img->rotate};
     std::memset(jpeg_data, 0, size);
     if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
         // allocate static buffer using maxium size
