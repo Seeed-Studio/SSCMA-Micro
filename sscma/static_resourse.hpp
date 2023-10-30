@@ -46,6 +46,7 @@ class StaticResourse {
     uint8_t             current_model_id;
     el_algorithm_type_t current_algorithm_type;
     uint8_t             current_sensor_id;
+    std::atomic<size_t> current_task_id;
     std::atomic<bool>   is_ready;
     std::atomic<bool>   is_sample;
     std::atomic<bool>   is_invoke;

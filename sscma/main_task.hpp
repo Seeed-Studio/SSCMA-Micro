@@ -56,6 +56,7 @@ void run() {
 
     static_resourse->instance->register_cmd(
       "BREAK", "Stop all running tasks", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
+          static_resourse->current_task_id.fetch_add(1, std::memory_order_seq_cst);
           static_resourse->executor->try_stop_task();
           break_task(argv[0]);
           return EL_OK;
@@ -146,7 +147,8 @@ void run() {
           int n_times = std::atoi(argv[1].c_str());
           static_resourse->executor->add_task(
             [cmd = std::move(argv[0]), n_times = std::move(n_times)](const std::atomic<bool>& stop_token) {
-                run_sample(cmd, n_times, stop_token);
+                static_resourse->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+                Sample::create(static_resourse, cmd, n_times)->run();
             });
           return EL_OK;
       }));

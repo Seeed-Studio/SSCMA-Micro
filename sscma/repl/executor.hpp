@@ -34,14 +34,14 @@ class Executor {
         _worker_name += hex_literals[worker_id >> 4];
         _worker_name += hex_literals[worker_id & 0x0f];
 
-        auto ret = xTaskCreate(
+        [[maybe_unused]] auto ret = xTaskCreate(
           &Executor::c_run, _worker_name.c_str(), REPL_EXECUTOR_STACK_SIZE, this, REPL_EXECUTOR_PRIO, &_worker_handler);
         EL_ASSERT(ret != pdPASS);
     }
 
     ~Executor() {
-        _task_stop_requested.store(true, std::memory_order_acquire);
-        _worker_thread_stop_requested.store(true, std::memory_order_acquire);
+        _task_stop_requested.store(true, std::memory_order_seq_cst);
+        _worker_thread_stop_requested.store(true, std::memory_order_seq_cst);
         while (_worker_thread_stop_requested.load(std::memory_order_release)) yield();  // wait for destory
         vTaskDelete(_worker_handler);
     }
@@ -51,17 +51,16 @@ class Executor {
         _task_queue.push(std::forward<Callable>(task));
     }
 
-    bool stop_task() {
-        bool has_requested = _task_stop_requested.load(std::memory_order_release);
-        _task_stop_requested.store(true, std::memory_order_acquire);
-        while (_task_stop_requested.load(std::memory_order_release)) yield();  // wait for stop
+    bool try_stop_task() {
+        bool has_requested = !_task_stop_requested.load(std::memory_order_release);
+        _task_stop_requested.store(true, std::memory_order_seq_cst);
         return has_requested;
     }
 
-    bool try_stop_task() {
-        bool has_requested = !_task_stop_requested.load(std::memory_order_release);
-        _task_stop_requested.store(true, std::memory_order_acquire);
-        return has_requested;
+    void cancel_all_tasks() {
+        const Guard<Mutex> guard(_task_queue_lock);
+        try_stop_task();
+        while (!_task_queue.empty()) _task_queue.pop();
     }
 
    protected:
@@ -80,12 +79,13 @@ class Executor {
             if (task) [[likely]] {
                 task(_task_stop_requested);
                 if (_task_stop_requested.load(std::memory_order_release)) [[unlikely]]  // did request stop
-                    _task_stop_requested.store(false, std::memory_order_acquire);       // reset the flag
+                    _task_stop_requested.store(false, std::memory_order_seq_cst);       // reset the flag
                 continue;                                                               // skip yield
             }
+            _task_stop_requested.store(false, std::memory_order_seq_cst);
             yield();
         }
-        _worker_thread_stop_requested.store(false, std::memory_order_acquire);  // reset the flag
+        _worker_thread_stop_requested.store(false, std::memory_order_seq_cst);  // reset the flag
     }
 
     static void c_run(void* this_pointer) { static_cast<Executor*>(this_pointer)->run(); }
