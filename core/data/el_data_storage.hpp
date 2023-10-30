@@ -74,11 +74,14 @@ namespace utility {
 
 template <typename ValueType,
           typename ValueTypeNoRef = typename std::remove_reference<ValueType>::type,
-          typename ValueTypeNoCV  = typename std::remove_cv<ValueType>::type,
           typename std::enable_if<std::is_trivial<ValueTypeNoRef>::value ||
                                   std::is_standard_layout<ValueTypeNoRef>::value>::type* = nullptr>
-static inline constexpr el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv(const char* key, ValueType&& value) {
-    return el_storage_kv_t<ValueTypeNoCV>(key, std::forward<ValueTypeNoCV>(value));
+static inline constexpr el_storage_kv_t<ValueType> el_make_storage_kv(const char* key, ValueType&& value) {
+    if constexpr (std::is_same<std::decay<typename std::remove_const<ValueTypeNoRef>::type>, char*>::value)
+        return el_storage_kv_t<ValueType>(
+          key, std::forward<ValueType>(value), std::strlen(std::forward<ValueType>(value)));
+
+    return el_storage_kv_t<ValueType>(key, std::forward<ValueType>(value));
 }
 
 using namespace edgelab::utility;
