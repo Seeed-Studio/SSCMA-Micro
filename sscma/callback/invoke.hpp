@@ -7,7 +7,7 @@
 #include <string>
 
 #include "sscma/definations.hpp"
-#include "sscma/static_resourse.hpp"
+#include "sscma/static_resource.hpp"
 #include "sscma/traits.hpp"
 #include "sscma/utility.hpp"
 
@@ -26,7 +26,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         };
     }
 
-    ~Invoke() { static_resourse->is_invoke.store(false, std::memory_order_release); }
+    ~Invoke() { static_resource->is_invoke.store(false, std::memory_order_release); }
 
     inline void run() { prepare(); }
 
@@ -35,13 +35,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         : _cmd{cmd},
           _n_times{n_times},
           _results_only{results_only},
-          _task_id{static_resourse->current_task_id.load(std::memory_order_seq_cst)},
-          _sensor_info{static_resourse->device->get_sensor_info(static_resourse->current_sensor_id)},
-          _model_info{static_resourse->models->get_model_info(static_resourse->current_model_id)},
+          _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
+          _sensor_info{static_resource->device->get_sensor_info(static_resource->current_sensor_id)},
+          _model_info{static_resource->models->get_model_info(static_resource->current_model_id)},
           _times{0},
           _ret{EL_OK},
           _action_hash{0} {
-        static_resourse->is_invoke.store(true, std::memory_order_release);
+        static_resource->is_invoke.store(true, std::memory_order_release);
     }
 
    private:
@@ -58,18 +58,18 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     inline void reset_action_hash() { _action_hash = 0; }
 
     inline void reset_config_cmds() {
-        for (const auto& cmd : _config_cmds) static_resourse->instance->unregister_cmd(cmd);
+        for (const auto& cmd : _config_cmds) static_resource->instance->unregister_cmd(cmd);
     }
 
     void prepare_algorithm_info() {
-        if (static_resourse->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED)
+        if (static_resource->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED)
             _algorithm_info =
-              static_resourse->algorithm_delegate->get_algorithm_info(static_resourse->current_algorithm_type);
+              static_resource->algorithm_delegate->get_algorithm_info(static_resource->current_algorithm_type);
         else
             _algorithm_info = _model_info.type != EL_ALGO_TYPE_UNDEFINED
-                                ? static_resourse->algorithm_delegate->get_algorithm_info(_model_info.type)
-                                : static_resourse->algorithm_delegate->get_algorithm_info(
-                                    el_algorithm_type_from_engine(static_resourse->engine));
+                                ? static_resource->algorithm_delegate->get_algorithm_info(_model_info.type)
+                                : static_resource->algorithm_delegate->get_algorithm_info(
+                                    el_algorithm_type_from_engine(static_resource->engine));
     }
 
     void check_sensor_status() {
@@ -106,7 +106,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                       ", \"sensor\": ",
                                       sensor_info_2_json_str(_sensor_info),
                                       "}}\n")};
-        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_reply(std::string data) {
@@ -118,13 +118,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                       std::to_string(_times),
                                       data,
                                       "}}\n")};
-        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
     void event_loop() {
         switch (_algorithm_info.type) {
         case EL_ALGO_TYPE_YOLO: {
-            auto algorithm{std::make_shared<AlgorithmYOLO>(static_resourse->engine)};
+            auto algorithm{std::make_shared<AlgorithmYOLO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
             return event_loop_cam(algorithm);
@@ -138,22 +138,22 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     template <typename AlgorithmType> void register_config_cmds(std::shared_ptr<AlgorithmType> algorithm) {
         auto config = algorithm->get_algorithm_config();
         auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resourse->storage->contains(kv.key)) [[likely]]
-            *static_resourse->storage >> kv;
+        if (static_resource->storage->contains(kv.key)) [[likely]]
+            *static_resource->storage >> kv;
         else
-            *static_resourse->storage << kv;
+            *static_resource->storage << kv;
         algorithm->set_algorithm_config(kv.value);
 
         if constexpr (has_method_set_score_threshold<AlgorithmType>())
-            if (static_resourse->instance->register_cmd(
+            if (static_resource->instance->register_cmd(
                   "TSCORE", "Set score threshold", "SCORE_THRESHOLD", [algorithm](std::vector<std::string> argv) {
                       uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100u ? EL_OK : EL_EINVAL;
-                      static_resourse->executor->add_task(
+                      static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), value, ret](const std::atomic<bool>&) mutable {
                             if (ret == EL_OK) [[likely]] {
                                 algorithm->set_score_threshold(value);
-                                ret = static_resourse->storage->emplace(
+                                ret = static_resource->storage->emplace(
                                         el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
                                         ? EL_OK
                                         : EL_EIO;
@@ -165,16 +165,16 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                           ", \"data\": ",
                                                           std::to_string(algorithm->get_score_threshold()),
                                                           "}\n")};
-                            static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+                            static_resource->transport->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
                   }) == EL_OK) [[likely]]
                 _config_cmds.emplace_front("TSCORE");
 
         if constexpr (has_method_get_score_threshold<AlgorithmType>())
-            if (static_resourse->instance->register_cmd(
+            if (static_resource->instance->register_cmd(
                   "TSCORE?", "Get score threshold", "", [algorithm](std::vector<std::string> argv) {
-                      static_resourse->executor->add_task(
+                      static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0])](const std::atomic<bool>&) {
                             const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                                           cmd,
@@ -183,22 +183,22 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                           ", \"data\": ",
                                                           std::to_string(algorithm->get_score_threshold()),
                                                           "}\n")};
-                            static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+                            static_resource->transport->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
                   }) == EL_OK) [[likely]]
                 _config_cmds.emplace_front("TSCORE?");
 
         if constexpr (has_method_set_iou_threshold<AlgorithmType>())
-            if (static_resourse->instance->register_cmd(
+            if (static_resource->instance->register_cmd(
                   "TIOU", "Set IoU threshold", "IOU_THRESHOLD", [algorithm](std::vector<std::string> argv) {
                       uint8_t value     = std::atoi(argv[1].c_str());  // implicit conversion eliminates negtive values
                       el_err_code_t ret = value <= 100u ? EL_OK : EL_EINVAL;
-                      static_resourse->executor->add_task(
+                      static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), value, ret](const std::atomic<bool>&) mutable {
                             if (ret == EL_OK) [[likely]] {
                                 algorithm->set_iou_threshold(value);
-                                ret = static_resourse->storage->emplace(
+                                ret = static_resource->storage->emplace(
                                         el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
                                         ? EL_OK
                                         : EL_EIO;
@@ -210,16 +210,16 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                           ", \"data\": ",
                                                           std::to_string(algorithm->get_iou_threshold()),
                                                           "}\n")};
-                            static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+                            static_resource->transport->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
                   }) == EL_OK) [[likely]]
                 _config_cmds.emplace_front("TIOU");
 
         if constexpr (has_method_get_iou_threshold<AlgorithmType>())
-            if (static_resourse->instance->register_cmd(
+            if (static_resource->instance->register_cmd(
                   "TIOU?", "Get IoU threshold", "", [algorithm](std::vector<std::string> argv) {
-                      static_resourse->executor->add_task(
+                      static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0])](const std::atomic<bool>&) {
                             const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                                           cmd,
@@ -228,7 +228,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                           ", \"data\": ",
                                                           std::to_string(algorithm->get_iou_threshold()),
                                                           "}\n")};
-                            static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+                            static_resource->transport->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
                   }) == EL_OK) [[likely]]
@@ -240,21 +240,21 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             reset_config_cmds();
             return;
         }
-        if (static_resourse->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]] {
+        if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]] {
             reset_config_cmds();
             return;
         }
-        if (static_resourse->current_sensor_id != _sensor_info.id) [[unlikely]] {
+        if (static_resource->current_sensor_id != _sensor_info.id) [[unlikely]] {
             prepare();
             return;
         }
-        if (static_resourse->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED &&
-            static_resourse->current_algorithm_type != _algorithm_info.type) [[unlikely]] {
+        if (static_resource->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED &&
+            static_resource->current_algorithm_type != _algorithm_info.type) [[unlikely]] {
             prepare();
             return;
         }
 
-        auto camera = static_resourse->device->get_camera();
+        auto camera = static_resource->device->get_camera();
         auto frame  = el_img_t{};
 
         _ret = camera->start_stream();
@@ -269,11 +269,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        if (_action_hash != static_resourse->action_cond->get_condition_hash()) [[unlikely]] {
-            _action_hash = static_resourse->action_cond->get_condition_hash();
+        if (_action_hash != static_resource->action_cond->get_condition_hash()) [[unlikely]] {
+            _action_hash = static_resource->action_cond->get_condition_hash();
             action_injection(algorithm);
         }
-        static_resourse->action_cond->evalute();
+        static_resource->action_cond->evalute();
 
         if (_results_only)
             event_reply(
@@ -285,7 +285,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        static_resourse->executor->add_task(
+        static_resource->executor->add_task(
           [_this = std::move(getptr()), _algorithm = std::move(algorithm)](const std::atomic<bool>& stop_token) {
               if (stop_token.load(std::memory_order_seq_cst)) [[unlikely]]
                   return;
@@ -298,7 +298,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     template <typename AlgorithmType> void action_injection(std::shared_ptr<AlgorithmType> algorithm) {
-        auto mutable_map = static_resourse->action_cond->get_mutable_map();
+        auto mutable_map = static_resource->action_cond->get_mutable_map();
         for (auto& kv : mutable_map) {
             const auto& argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
@@ -349,7 +349,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 continue;
             }
         }
-        static_resourse->action_cond->set_mutable_map(mutable_map);
+        static_resource->action_cond->set_mutable_map(mutable_map);
     }
 
     inline bool is_everything_ok() const { return _ret == EL_OK; }

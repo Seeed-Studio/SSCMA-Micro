@@ -4,7 +4,7 @@
 #include <string>
 
 #include "sscma/definations.hpp"
-#include "sscma/static_resourse.hpp"
+#include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
@@ -21,7 +21,7 @@ void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {
         ss += concat_strings("\n    ", cmd.desc, "\n");
     }
 
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_id(const std::string& cmd) {
@@ -31,9 +31,9 @@ void get_device_id(const std::string& cmd) {
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
                                   ", \"data\": ",
-                                  std::to_string(static_resourse->device->get_device_id()),
+                                  std::to_string(static_resource->device->get_device_id()),
                                   "}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_name(const std::string& cmd) {
@@ -43,9 +43,9 @@ void get_device_name(const std::string& cmd) {
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
                                   ", \"data\": ",
-                                  quoted(static_resourse->device->get_device_name()),
+                                  quoted(static_resource->device->get_device_name()),
                                   "}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_status(const std::string& cmd) {
@@ -55,11 +55,11 @@ void get_device_status(const std::string& cmd) {
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
                                   ", \"data\": {\"boot_count\": ",
-                                  std::to_string(static_resourse->boot_count),
+                                  std::to_string(static_resource->boot_count),
                                   ", \"is_ready\": ",
-                                  std::to_string(static_resourse->is_ready.load() ? 1 : 0),
+                                  std::to_string(static_resource->is_ready.load() ? 1 : 0),
                                   "}}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_version(const std::string& cmd) {
@@ -71,9 +71,9 @@ void get_version(const std::string& cmd) {
                                   ", \"data\": {\"software\": \"",
                                   EL_VERSION,
                                   "\", \"hardware\": \"",
-                                  std::to_string(static_resourse->device->get_chip_revision_id()),
+                                  std::to_string(static_resource->device->get_chip_revision_id()),
                                   "\"}}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void break_task(const std::string& cmd) {
@@ -85,7 +85,7 @@ void break_task(const std::string& cmd) {
                                   ", \"data\": ",
                                   std::to_string(el_get_time_ms()),
                                   "}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
@@ -97,7 +97,7 @@ void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
                                   ", \"data\": ",
                                   std::to_string(sta.load() ? 1 : 0),
                                   "}\n")};
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

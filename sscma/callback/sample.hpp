@@ -5,7 +5,7 @@
 #include <string>
 
 #include "sscma/definations.hpp"
-#include "sscma/static_resourse.hpp"
+#include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
@@ -22,7 +22,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         };
     }
 
-    ~Sample() { static_resourse->is_sample.store(false, std::memory_order_release); }
+    ~Sample() { static_resource->is_sample.store(false, std::memory_order_release); }
 
     inline void run() { prepare(); }
 
@@ -30,11 +30,11 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     Sample(std::string cmd, std::size_t n_times)
         : _cmd{cmd},
           _n_times{n_times},
-          _task_id{static_resourse->current_task_id.load(std::memory_order_seq_cst)},
-          _sensor_info{static_resourse->device->get_sensor_info(static_resourse->current_sensor_id)},
+          _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
+          _sensor_info{static_resource->device->get_sensor_info(static_resource->current_sensor_id)},
           _times{0},
           _ret{EL_OK} {
-        static_resourse->is_sample.store(true, std::memory_order_release);
+        static_resource->is_sample.store(true, std::memory_order_release);
     }
 
    private:
@@ -60,7 +60,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                       ", \"data\": {\"sensor\": ",
                                       sensor_info_2_json_str(_sensor_info),
                                       "}}\n")};
-        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_reply(std::string data) {
@@ -72,7 +72,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                       std::to_string(_times),
                                       data,
                                       "}}\n")};
-        static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
     void event_loop() {
@@ -89,14 +89,14 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     void event_loop_cam() {
         if (_times++ == _n_times) [[unlikely]]
             return;
-        if (static_resourse->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
+        if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
-        if (static_resourse->current_sensor_id != _sensor_info.id) [[unlikely]] {
+        if (static_resource->current_sensor_id != _sensor_info.id) [[unlikely]] {
             prepare();
             return;
         }
 
-        auto camera = static_resourse->device->get_camera();
+        auto camera = static_resource->device->get_camera();
         auto frame  = el_img_t{};
 
         _ret = camera->start_stream();
@@ -113,7 +113,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        static_resourse->executor->add_task(
+        static_resource->executor->add_task(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop_cam(); });
         return;
 

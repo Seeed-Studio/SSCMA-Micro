@@ -26,7 +26,7 @@ using namespace sscma::utility;
 using namespace sscma::interpreter;
 using namespace sscma::repl;
 
-class StaticResourse {
+class StaticResource {
    public:
     // external
     Device*            device;
@@ -52,7 +52,7 @@ class StaticResourse {
     std::atomic<bool>   is_invoke;
 
     // destructor
-    ~StaticResourse() {
+    ~StaticResource() {
         if (engine) [[likely]] {
             delete engine;
             engine = nullptr;
@@ -75,13 +75,13 @@ class StaticResourse {
     }
 
     // initializer
-    static StaticResourse* get_static_resource() {
-        static StaticResourse static_resourse{};
-        return &static_resourse;
+    static StaticResource* get_static_resource() {
+        static StaticResource static_resource{};
+        return &static_resource;
     }
 
    protected:
-    StaticResourse() {
+    StaticResource() {
         device             = Device::get_device();
         transport          = device->get_serial();
         models             = new Models();
@@ -139,6 +139,6 @@ class StaticResourse {
     }
 };
 
-static auto* static_resourse{StaticResourse::get_static_resource()};
+static auto* static_resource{StaticResource::get_static_resource()};
 
 }  // namespace sscma
