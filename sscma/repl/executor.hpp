@@ -46,7 +46,7 @@ class Executor {
         vTaskDelete(_worker_handler);
     }
 
-    template <typename Callable> void add_task(Callable&& task) {
+    template <typename Callable> inline void add_task(Callable&& task) {
         const Guard<Mutex> guard(_task_queue_lock);
         _task_queue.push(std::forward<Callable>(task));
     }
@@ -64,7 +64,7 @@ class Executor {
     }
 
    protected:
-    void yield() { vTaskDelay(15 / portTICK_PERIOD_MS); }
+    inline void yield() const { vTaskDelay(15 / portTICK_PERIOD_MS); }
 
     void run() {
         while (!_worker_thread_stop_requested.load(std::memory_order_release)) {
@@ -76,7 +76,7 @@ class Executor {
                     _task_queue.pop();
                 }
             }  // RAII is important here
-            if (task) [[likely]] {
+            if (task && !_task_stop_requested.load(std::memory_order_release)) [[likely]] {
                 task(_task_stop_requested);
                 if (_task_stop_requested.load(std::memory_order_release)) [[unlikely]]  // did request stop
                     _task_stop_requested.store(false, std::memory_order_seq_cst);       // reset the flag

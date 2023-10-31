@@ -13,11 +13,13 @@
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
 #include "sscma/definations.hpp"
+#include "sscma/traits.hpp"
 
 namespace sscma::utility {
 
 using namespace edgelab;
 using namespace edgelab::utility;
+using namespace sscma::traits;
 
 namespace string_concat {
 
@@ -200,36 +202,35 @@ std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
                           "}");
 }
 
-template <typename InfoConfType> std::string algorithm_info_and_conf_2_json_str(const InfoConfType& info_and_conf) {
+template <typename AlgorithmConfigType> std::string algorithm_config_2_json_str(const AlgorithmConfigType& config) {
+    bool        comma  = false;
     std::string ss{concat_strings("{\"type\": ",
-                                  std::to_string(info_and_conf.info.type),
+                                  std::to_string(config.info.type),
                                   ", \"categroy\": ",
-                                  std::to_string(info_and_conf.info.categroy),
+                                  std::to_string(config.info.categroy),
                                   ", \"input_from\": ",
-                                  std::to_string(info_and_conf.info.input_from),
+                                  std::to_string(config.info.input_from),
                                   ", \"config\": {")};
-    if constexpr (std::is_same<InfoConfType, el_algorithm_fomo_config_t>::value ||
-                  std::is_same<InfoConfType, el_algorithm_imcls_config_t>::value)
-        ss += concat_strings("\"tscore\": ", std::to_string(info_and_conf.score_threshold));
-    else if constexpr (std::is_same<InfoConfType, el_algorithm_yolo_config_t>::value)
-        ss += concat_strings("\"tscore\": ",
-                             std::to_string(info_and_conf.score_threshold),
-                             ", \"tiou\": ",
-                             std::to_string(info_and_conf.iou_threshold));
+    if constexpr (has_member_score_threshold<typename std::remove_reference<decltype(config)>::type>()) {
+        ss += concat_strings("\"tscore\": ", std::to_string(config.score_threshold));
+        comma = true;
+    }
+    if constexpr (has_member_iou_threshold<typename std::remove_reference<decltype(config)>::type>()) {
+        if (comma) ss += ", ";
+        ss += concat_strings("\"tiou\": ", std::to_string(config.iou_threshold));
+        comma = true;
+    }
     ss += "}}";
 
     return ss;
 }
 
-template <typename AlgorithmType>
-std::string img_invoke_results_2_json_str(
-  const AlgorithmType* algorithm, const el_img_t* img, const std::string& cmd, bool result_only, el_err_code_t ret) {
-    std::string ss{concat_strings(REPLY_EVT_HEADER,
-                                  "\"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"perf\": [",
+template <typename AlgorithmType> std::string algorithm_config_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+    return algorithm_config_2_json_str(algorithm->get_algorithm_config());
+}
+
+template <typename AlgorithmType> std::string algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+    std::string ss{concat_strings("\"perf\": [",
                                   std::to_string(algorithm->get_preprocess_time()),
                                   ", ",
                                   std::to_string(algorithm->get_run_time()),
@@ -237,8 +238,6 @@ std::string img_invoke_results_2_json_str(
                                   std::to_string(algorithm->get_postprocess_time()),
                                   "], ",
                                   results_2_json_str(algorithm->get_results()))};
-    if (!result_only) ss += concat_strings(", ", img_2_jpeg_json_str(img));
-    ss += "}}\n";
 
     return ss;
 }

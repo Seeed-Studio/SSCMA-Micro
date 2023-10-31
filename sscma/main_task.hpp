@@ -144,12 +144,8 @@ void run() {
 
     static_resourse->instance->register_cmd(
       "SAMPLE", "Sample data from current sensor", "N_TIMES", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          int n_times = std::atoi(argv[1].c_str());
-          static_resourse->executor->add_task(
-            [cmd = std::move(argv[0]), n_times = std::move(n_times)](const std::atomic<bool>& stop_token) {
-                static_resourse->current_task_id.fetch_add(1, std::memory_order_seq_cst);
-                Sample::create(static_resourse, cmd, n_times)->run();
-            });
+          static_resourse->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+          Sample::create(std::move(argv[0]), std::atoi(argv[1].c_str()))->run();
           return EL_OK;
       }));
 
@@ -164,11 +160,8 @@ void run() {
       "Invoke for N times (-1 for infinity loop)",
       "N_TIMES,RESULT_ONLY",
       repl_cmd_cb_t([&](std::vector<std::string> argv) {
-          int  n_times     = std::atoi(argv[1].c_str());
-          bool result_only = std::atoi(argv[2].c_str()) ? true : false;
-          static_resourse->executor->add_task(
-            [cmd = std::move(argv[0]), n_times = std::move(n_times), result_only = std::move(result_only)](
-              const std::atomic<bool>& stop_token) { run_invoke(cmd, n_times, result_only, stop_token); });
+          static_resourse->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+          Invoke::create(std::move(argv[0]), std::atoi(argv[1].c_str()), std::atoi(argv[2].c_str()))->run();
           return EL_OK;
       }));
 
