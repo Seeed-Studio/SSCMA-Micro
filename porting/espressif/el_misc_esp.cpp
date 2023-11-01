@@ -57,6 +57,12 @@ EL_ATTR_WEAK int el_putchar(char c) { return putchar(c); }
 
 EL_ATTR_WEAK void* el_malloc(size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
 
+EL_ATTR_WEAK void* el_aligned_malloc_once(size_t align, size_t size) {
+    void*  p = el_malloc(size + align);
+    size_t o = align - (reinterpret_cast<size_t>(p) % align);
+    return p + o;
+}
+
 EL_ATTR_WEAK void* el_calloc(size_t nmemb, size_t size) { return calloc(nmemb, size); }
 
 EL_ATTR_WEAK void el_free(void* ptr) { free(ptr); }

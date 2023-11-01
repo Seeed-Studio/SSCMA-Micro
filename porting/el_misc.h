@@ -26,8 +26,8 @@
 #ifndef _EL_MISC_H_
 #define _EL_MISC_H_
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace edgelab {
 
@@ -38,6 +38,8 @@ uint64_t el_get_time_ms(void);
 uint64_t el_get_time_us(void);
 
 void* el_malloc(size_t size);
+
+void* el_aligned_malloc_once(size_t align, size_t size);
 
 void* el_calloc(size_t nmemb, size_t size);
 

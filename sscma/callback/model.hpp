@@ -32,8 +32,8 @@ void set_model(const std::string& cmd, uint8_t model_id) {
     if (ret != EL_OK) [[unlikely]]
         goto ModelReply;
 
-    // TODO: move heap_caps_malloc to port/el_memory or el_system
-    static auto* tensor_arena = el_malloc(TENSOR_ARENA_SIZE);
+    // TODO: allow custom align using marco
+    static auto* tensor_arena = el_aligned_malloc_once(32, TENSOR_ARENA_SIZE);
     memset(tensor_arena, 0, TENSOR_ARENA_SIZE);
 
     ret = static_resource->engine->init(tensor_arena, TENSOR_ARENA_SIZE);
