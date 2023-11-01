@@ -15,7 +15,7 @@ void get_available_models(const std::string& cmd) {
     const char* delim       = "";
 
     std::string ss{
-      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
+      concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     for (const auto& i : models_info) {
         ss += concat_strings(delim, model_info_2_json_str(i));
         delim = ", ";
@@ -56,8 +56,7 @@ ModelError:
     static_resource->current_model_id = 0;
 
 ModelReply: {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -73,8 +72,7 @@ void get_model_info(const std::string& cmd) {
 
     auto ret = model_info.id ? EL_OK : EL_EINVAL;
 
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),

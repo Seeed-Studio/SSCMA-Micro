@@ -25,8 +25,7 @@ void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {
 }
 
 void get_device_id(const std::string& cmd) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
@@ -37,8 +36,7 @@ void get_device_id(const std::string& cmd) {
 }
 
 void get_device_name(const std::string& cmd) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
@@ -49,8 +47,7 @@ void get_device_name(const std::string& cmd) {
 }
 
 void get_device_status(const std::string& cmd) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
@@ -63,8 +60,7 @@ void get_device_status(const std::string& cmd) {
 }
 
 void get_version(const std::string& cmd) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
@@ -77,8 +73,7 @@ void get_version(const std::string& cmd) {
 }
 
 void break_task(const std::string& cmd) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
@@ -89,8 +84,7 @@ void break_task(const std::string& cmd) {
 }
 
 void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),

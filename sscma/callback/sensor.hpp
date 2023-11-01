@@ -16,7 +16,7 @@ void get_available_sensors(const std::string& cmd) {
     const char* delim              = "";
 
     std::string ss{
-      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
+      concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
 
     for (const auto& i : registered_sensors) {
         ss += concat_strings(delim, sensor_info_2_json_str(i));
@@ -67,8 +67,7 @@ SensorError:
     static_resource->current_sensor_id = 0;
 
 SensorReply: {
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -82,8 +81,7 @@ SensorReply: {
 void get_sensor_info(const std::string& cmd) {
     const auto& sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
 
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),

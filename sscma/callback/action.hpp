@@ -26,8 +26,7 @@ void set_action(const std::vector<std::string>& argv) {
            exp = quoted(argv[1]),
            ec  = std::to_string(EL_ELOG),
            crc = std::to_string(static_resource->action->get_condition_hash())]() {
-              const auto& ss = concat_strings(REPLY_EVT_HEADER,
-                                              "\"name\": \"",
+              const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
                                               cmd,
                                               "\", \"code\": ",
                                               ec,
@@ -65,8 +64,7 @@ void set_action(const std::vector<std::string>& argv) {
     }
 
 ActionReply:
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -89,8 +87,7 @@ void get_action(const std::string& cmd) {
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
-    const auto& ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),

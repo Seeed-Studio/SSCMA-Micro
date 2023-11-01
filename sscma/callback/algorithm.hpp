@@ -17,7 +17,7 @@ void get_available_algorithms(const std::string& cmd) {
     const char* delim                 = "";
 
     std::string ss{
-      concat_strings(REPLY_CMD_HEADER, "\"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
+      concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     for (const auto& i : registered_algorithms) {
         ss += concat_strings(delim, algorithm_info_2_json_str(i));
         delim = ", ";
@@ -38,8 +38,7 @@ void set_algorithm(const std::string& cmd, el_algorithm_type_t algorithm_type) {
                                                             static_resource->current_algorithm_type);
     }
 
-    const std::string& ss{concat_strings(REPLY_CMD_HEADER,
-                                         "\"name\": \"",
+    const std::string& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                          cmd,
                                          "\", \"code\": ",
                                          std::to_string(ret),
@@ -54,8 +53,7 @@ void get_algorithm_info(const std::string& cmd) {
     const auto& algorithm_info =
       static_resource->algorithm_delegate->get_algorithm_info(static_resource->current_algorithm_type);
 
-    const std::string& ss{concat_strings(REPLY_CMD_HEADER,
-                                         "\"name\": \"",
+    const std::string& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                          cmd,
                                          "\", \"code\": ",
                                          std::to_string(EL_OK),

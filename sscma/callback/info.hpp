@@ -18,8 +18,7 @@ void set_info(const std::vector<std::string>& argv) {
     auto ret = static_resource->storage->emplace(el_make_storage_kv("edgelab#info", info)) ? EL_OK : EL_EINVAL;
 
     const auto& ss{
-      concat_strings(REPLY_CMD_HEADER,
-                     "\"name\": \"",
+      concat_strings("\r{\"type\": 0, \"name\": \"",
                      argv[0],
                      "\", \"code\": ",
                      std::to_string(ret),
@@ -37,8 +36,7 @@ void get_info(const std::string& cmd) {
         ret = static_resource->storage->get(el_make_storage_kv("edgelab#info", info)) ? EL_OK : EL_EINVAL;
 
     const auto& ss{
-      concat_strings(REPLY_CMD_HEADER,
-                     "\"name\": \"",
+      concat_strings("\r{\"type\": 0, \"name\": \"",
                      cmd,
                      "\", \"code\": ",
                      std::to_string(ret),
