@@ -83,7 +83,7 @@ class StaticResource {
         is_invoke       = false;
 
         device    = Device::get_device();
-        transport = device->get_serial();
+        transport = device->get_transport();
         static auto v_models{Models()};
         models = &v_models;
         static auto v_storage{Storage()};

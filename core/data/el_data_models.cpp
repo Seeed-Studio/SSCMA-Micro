@@ -25,11 +25,21 @@
 
 #include "el_data_models.h"
 
-#ifdef CONFIG_EL_MODEL
-
+#if CONFIG_EL_MODEL
     #include <algorithm>
 
 namespace edgelab {
+
+namespace internal {
+
+extern el_err_code_t el_model_partition_mmap_init(uint32_t*       partition_start_addr,
+                                                  uint32_t*       partition_size,
+                                                  const uint8_t** flash_2_memory_map,
+                                                  uint32_t*       mmap_handler);
+
+extern void el_model_partition_mmap_deinit(uint32_t* mmap_handler);
+
+}  // namespace internal
 
 Models::Models()
     : __partition_start_addr(0u),
@@ -41,18 +51,18 @@ Models::Models()
 
 Models::~Models() { deinit(); }
 
-el_err_code_t Models::init(const char* partition_name, const el_model_format_v& model_format) {
-    el_err_code_t ret = el_model_partition_mmap_init(
-      partition_name, &__partition_start_addr, &__partition_size, &__flash_2_memory_map, &__mmap_handler);
+el_err_code_t Models::init(el_model_format_v model_format) {
+    el_err_code_t ret = internal::el_model_partition_mmap_init(
+      &__partition_start_addr, &__partition_size, &__flash_2_memory_map, &__mmap_handler);
     if (ret != EL_OK) return ret;
     seek_models_from_flash(model_format);
     return ret;
 }
 
 void Models::deinit() {
-    el_model_partition_mmap_deinit(&__mmap_handler);
+    internal::el_model_partition_mmap_deinit(&__mmap_handler);
     __flash_2_memory_map = nullptr;
-    __mmap_handler       = el_model_mmap_handler_t{};
+    __mmap_handler       = 0;
     __model_info.clear();
 }
 

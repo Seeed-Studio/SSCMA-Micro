@@ -185,7 +185,7 @@
     #define el_le32toh(u32) (EL_BSWAP32(u32))
 
 #else
-    #error Byte order is undefined
+    #error "Byte order is undefined"
 #endif
 
 #endif

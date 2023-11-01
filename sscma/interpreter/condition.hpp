@@ -27,7 +27,7 @@ class Condition {
 
     ~Condition() { m_unset_condition(); }
 
-    bool has_condition() {
+    inline bool has_condition() {
         const Guard<Mutex> guard(_eval_lock);
         return _node ? true : false;
     }
@@ -62,27 +62,27 @@ class Condition {
         return true;
     }
 
-    uint16_t get_condition_hash() {
+    inline uint16_t get_condition_hash() {
         const Guard<Mutex> guard(_eval_lock);
         return _exp_hash;
     }
 
-    const mutable_map_t& get_mutable_map() {
+    inline const mutable_map_t& get_mutable_map() {
         const Guard<Mutex> guard(_eval_lock);
         return _mutable_map;
     }
 
-    void set_mutable_map(const mutable_map_t& map) {
+    inline void set_mutable_map(const mutable_map_t& map) {
         const Guard<Mutex> guard(_eval_lock);
         _mutable_map = map;
     }
 
-    void set_exception_cb(branch_cb_t cb) {
+    inline void set_exception_cb(branch_cb_t cb) {
         const Guard<Mutex> guard(_eval_lock);
         _exception_cb = cb;
     }
 
-    void evalute() {
+    inline void evalute() {
         const Guard<Mutex> guard(_eval_lock);
 
         if (!_node) [[unlikely]]
@@ -102,7 +102,7 @@ class Condition {
     }
 
    protected:
-    void m_unset_condition() {
+    inline void m_unset_condition() {
         if (_node) [[likely]] {
             delete _node;
             _node = nullptr;

@@ -36,7 +36,7 @@ class Executor {
 
         [[maybe_unused]] auto ret = xTaskCreate(
           &Executor::c_run, _worker_name.c_str(), REPL_EXECUTOR_STACK_SIZE, this, REPL_EXECUTOR_PRIO, &_worker_handler);
-        EL_ASSERT(ret != pdPASS);
+        EL_ASSERT(ret == pdPASS);
     }
 
     ~Executor() {

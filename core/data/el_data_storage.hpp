@@ -28,7 +28,7 @@
 
 #include "core/el_config_internal.h"
 
-#ifdef CONFIG_EL_STORAGE
+#if CONFIG_EL_STORAGE
 
     #include <algorithm>
     #include <cstdarg>
@@ -45,7 +45,7 @@
     #include "core/synchronize/el_guard.hpp"
     #include "core/synchronize/el_mutex.hpp"
 
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         #include "third_party/FlashDB/flashdb.h"
     #endif
 
@@ -163,7 +163,7 @@ class Storage {
     struct Iterator {
         using iterator_category = std::forward_iterator_tag;
         using difference_type   = std::ptrdiff_t;
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         using value_type = const char[FDB_KV_NAME_MAX];
     #else
         using value_type = const char[CONFIG_EL_STORAGE_KEY_SIZE_MAX];
@@ -171,7 +171,7 @@ class Storage {
         using pointer   = value_type*;
         using reference = value_type&;
 
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         explicit Iterator(const Storage* const storage)
             : ___storage(storage), ___kvdb(nullptr), ___iterator(), ___reach_end(true) {
             if (!___storage) return;
@@ -187,7 +187,7 @@ class Storage {
     #endif
 
         reference operator*() const {
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
             return ___iterator.curr_kv.name;
     #else
             static value_type v{};
@@ -196,7 +196,7 @@ class Storage {
         }
 
         pointer operator->() const {
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
             return &___iterator.curr_kv.name;
     #else
             static value_type v{};
@@ -205,7 +205,7 @@ class Storage {
         }
 
         Iterator& operator++() {
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
             if (!___storage || !___kvdb) [[unlikely]]
                 return *this;
             const Guard<Mutex> guard(___storage->__lock);
@@ -230,7 +230,7 @@ class Storage {
 
        protected:
         const Storage* const ___storage;
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         fdb_kvdb_t      ___kvdb;
         fdb_kv_iterator ___iterator;
     #endif
@@ -243,7 +243,7 @@ class Storage {
     template <typename ValueType, typename std::enable_if<!std::is_const<ValueType>::value>::type* = nullptr>
     bool get(types::el_storage_kv_t<ValueType>& kv) const {
         const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         if (!kv.size || !__kvdb) [[unlikely]]
             return false;
 
@@ -297,7 +297,7 @@ class Storage {
 
     template <typename ValueType> bool emplace(const types::el_storage_kv_t<ValueType>& kv) {
         const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         fdb_blob blob{};
         return fdb_kv_set_blob(__kvdb, kv.key, fdb_blob_make(&blob, &kv.value, kv.size)) == FDB_NO_ERR;
     #else
@@ -314,7 +314,7 @@ class Storage {
 
     template <typename ValueType> bool try_emplace(const types::el_storage_kv_t<ValueType>& kv) {
         const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
         if (!kv.key || !__kvdb) [[unlikely]]
             return false;
         fdb_kv kv_{};
@@ -337,7 +337,7 @@ class Storage {
 
    private:
     Mutex __lock;
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     fdb_kvdb_t __kvdb;
     #endif
 };
@@ -345,4 +345,5 @@ class Storage {
 }  // namespace edgelab
 
 #endif
+
 #endif

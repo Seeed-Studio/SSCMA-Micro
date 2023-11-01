@@ -30,7 +30,7 @@
 
 namespace edgelab {
 
-class DeviceEsp : public Device {
+class DeviceEsp final : public Device {
    public:
     DeviceEsp();
     ~DeviceEsp() = default;

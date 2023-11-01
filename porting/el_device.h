@@ -47,9 +47,9 @@ class Device {
     uint32_t    get_device_id() const { return _device_id; }
     uint32_t    get_chip_revision_id() const { return _revision_id; }
 
-    Camera*  get_camera() { return _camera; }
-    Display* get_display() { return _display; }
-    Serial*  get_serial() { return _serial; }
+    Camera*    get_camera() { return _camera; }
+    Display*   get_display() { return _display; }
+    Transport* get_transport() { return _transport; }
 
     virtual void restart() = 0;
 
@@ -100,15 +100,15 @@ class Device {
 
    protected:
     Device()
-        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _serial(nullptr) {}
+        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _transport(nullptr) {}
 
     const char* _device_name;
     uint32_t    _device_id;
     uint32_t    _revision_id;
 
-    Camera*  _camera;
-    Display* _display;
-    Serial*  _serial;
+    Camera*    _camera;
+    Display*   _display;
+    Transport* _transport;
 
     std::forward_list<el_sensor_info_t> _registered_sensors;
 };

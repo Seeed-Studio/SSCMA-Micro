@@ -14,7 +14,7 @@ class IdentifierNode : public ASTNode {
 
     ~IdentifierNode() = default;
 
-    Result evaluate(EvalCallback callback) const override { return callback(NodeType::IDENTIFIER, _identifier_name); }
+    inline Result evaluate(EvalCallback callback) const override { return callback(NodeType::IDENTIFIER, _identifier_name); }
 
    private:
     std::string _identifier_name;
@@ -26,7 +26,7 @@ class ConstantNode : public ASTNode {
 
     ~ConstantNode() = default;
 
-    Result evaluate(EvalCallback) const override { return Result{.status = EvalStatus::OK, .value = _value}; }
+    inline Result evaluate(EvalCallback) const override { return Result{.status = EvalStatus::OK, .value = _value}; }
 
    private:
     int _value;

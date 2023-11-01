@@ -33,8 +33,8 @@
 #include <cstdlib>
 
 #include "core/el_compiler.h"
+#include "el_config_porting.h"
 #include "porting/el_misc.h"
-#include "porting/espressif/el_board_config.h"
 
 namespace edgelab {
 

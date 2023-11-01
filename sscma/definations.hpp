@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/el_config_internal.h"
+
 #ifndef REPL_EXECUTOR_STACK_SIZE
     #define REPL_EXECUTOR_STACK_SIZE (20480)
 #endif

@@ -34,7 +34,7 @@
 
 namespace edgelab {
 
-class DisplayEsp : public Display {
+class DisplayEsp final : public Display {
    public:
     DisplayEsp()  = default;
     ~DisplayEsp() = default;

@@ -26,7 +26,7 @@
 #include "el_display_esp.h"
 
 #include "core/el_debug.h"
-#include "porting/espressif/el_board_config.h"
+#include "el_config_porting.h"
 
 namespace edgelab {
 
