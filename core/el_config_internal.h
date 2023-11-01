@@ -114,7 +114,7 @@
 
 #if CONFIG_EL_STORAGE
     #ifndef CONFIG_EL_LIB_FLASHDB
-        #warning "Storage depends on FlashDB."
+        #warning "Storage depends on FlashDB"
     #endif
 #endif
 

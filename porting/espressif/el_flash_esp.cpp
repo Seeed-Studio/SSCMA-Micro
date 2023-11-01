@@ -64,7 +64,7 @@ void el_model_partition_mmap_deinit(uint32_t* mmap_handler) { spi_flash_munmap(*
 #endif
 
 #if CONFIG_EL_LIB_FLASHDB
-static Mutex                  el_flash_db_lock;
+static Mutex                  el_flash_db_lock{};
 const static esp_partition_t* el_flash_db_partition = nullptr;
 
 static int el_flash_db_init(void) {
@@ -99,7 +99,7 @@ extern "C" {
     #endif
 
 const struct fal_flash_dev el_flash_db_nor_flash0 {
-    .name = NOR_FLASH_DEV_NAME, .addr = 0x00000000, .len = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0,
+    .name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT, .addr = 0x00000000, .len = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0,
     .blk_size   = FDB_BLOCK_SIZE,
     .ops        = {edgelab::el_flash_db_init,
                    edgelab::el_flash_db_read,
