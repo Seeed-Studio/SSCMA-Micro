@@ -49,22 +49,30 @@ void run() {
 
     static_resource->instance->register_cmd(
       "RST", "Reboot device", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [&](const std::atomic<bool>& stop_token) { static_resource->device->restart(); });
+          static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->device->restart(); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "BREAK", "Stop all running tasks", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
           static_resource->executor->try_stop_task();
-          break_task(argv[0]);
+          static_resource->executor->add_task([cmd = std::move(argv[0])](const std::atomic<bool>&) {
+              static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+              break_task(cmd);
+          });
+
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
-      "YIELD", "Yield for 10ms", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          el_sleep(10);
+      "YIELD", "Yield running tasks for a period time", "TIME_S", repl_cmd_cb_t([](std::vector<std::string> argv) {
+          static_resource->executor->add_task([cmd = std::move(argv[0]), period = std::atoi(argv[1].c_str())](
+                                                const std::atomic<bool>& stop_token) mutable {
+              while (stop_token.load(std::memory_order_seq_cst) && period > 0) {
+                  el_sleep(1000);
+                  period -= 1;
+              }
+          });
           return EL_OK;
       }));
 
@@ -76,7 +84,8 @@ void run() {
 
     static_resource->instance->register_cmd(
       "MODELS?", "Get available models", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_available_models(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_available_models(cmd); });
           return EL_OK;
       }));
 
@@ -90,13 +99,15 @@ void run() {
 
     static_resource->instance->register_cmd(
       "MODEL?", "Get current model info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_model_info(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_model_info(cmd); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "ALGOS?", "Get available algorithms", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_available_algorithms(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_available_algorithms(cmd); });
           return EL_OK;
       }));
 
@@ -111,13 +122,15 @@ void run() {
 
     static_resource->instance->register_cmd(
       "ALGO?", "Get current algorithm info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_algorithm_info(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_algorithm_info(cmd); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "SENSORS?", "Get available sensors", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_available_sensors(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_available_sensors(cmd); });
           return EL_OK;
       }));
 
@@ -136,7 +149,8 @@ void run() {
 
     static_resource->instance->register_cmd(
       "SENSOR?", "Get current sensor info", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_sensor_info(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_sensor_info(cmd); });
           return EL_OK;
       }));
 
@@ -219,17 +233,11 @@ void run() {
         static_resource->is_ready.store(true);
     }
 
-    // enter service loop (TODO: pipeline builder)
+    // enter service loop
     char* buf = new char[CMD_MAX_LENGTH + sizeof(int)]{};
     for (;;) {
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
         static_resource->transport->get_line(buf, CMD_MAX_LENGTH);
         static_resource->instance->exec(buf);
-#else
-        static_resource->instance->loop(static_resource->transport->get_char());
-        static_resource->executor->run();
-        el_sleep(10);
-#endif
     }
     delete[] buf;
 }

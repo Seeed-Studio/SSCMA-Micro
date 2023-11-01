@@ -51,20 +51,20 @@ class Executor {
         _task_queue.push(std::forward<Callable>(task));
     }
 
-    bool try_stop_task() {
+    inline bool try_stop_task() {
         bool has_requested = !_task_stop_requested.load(std::memory_order_release);
         _task_stop_requested.store(true, std::memory_order_seq_cst);
         return has_requested;
     }
 
-    void cancel_all_tasks() {
+    inline void cancel_all_tasks() {
         const Guard<Mutex> guard(_task_queue_lock);
         try_stop_task();
         while (!_task_queue.empty()) _task_queue.pop();
     }
 
    protected:
-    inline void yield() const { vTaskDelay(15 / portTICK_PERIOD_MS); }
+    inline void yield() const { vTaskDelay(10 / portTICK_PERIOD_MS); }
 
     void run() {
         while (!_worker_thread_stop_requested.load(std::memory_order_release)) {

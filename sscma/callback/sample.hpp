@@ -31,7 +31,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         : _cmd{cmd},
           _n_times{n_times},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
-          _sensor_info{static_resource->device->get_sensor_info(static_resource->current_sensor_id)},
+
           _times{0},
           _ret{EL_OK} {
         static_resource->is_sample.store(true, std::memory_order_release);
@@ -39,13 +39,16 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
    private:
     void prepare() {
+        prepare_sensor_info();
         check_sensor_status();
-        direct_reply();
-
         event_loop();
     }
 
-    void check_sensor_status() {
+    inline void prepare_sensor_info() {
+        _sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
+    }
+
+    inline void check_sensor_status() {
         _ret = _sensor_info.id != 0 ? EL_OK : EL_EIO;
         if (_ret != EL_OK) [[unlikely]]
             return;
@@ -75,7 +78,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
-    void event_loop() {
+    inline void event_loop() {
         switch (_sensor_info.type) {
         case EL_SENSOR_TYPE_CAM:
             direct_reply();
@@ -124,8 +127,8 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     inline bool is_everything_ok() const { return _ret == EL_OK; }
 
    private:
-    std::string     _cmd;
-    std::size_t     _n_times;
+    std::string _cmd;
+    std::size_t _n_times;
 
     std::size_t      _task_id;
     el_sensor_info_t _sensor_info;

@@ -14,18 +14,18 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void set_action(const std::vector<std::string>& argv) {
-    auto hash = static_resource->action_cond->get_condition_hash();
-    auto ret  = static_resource->action_cond->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
+    auto hash = static_resource->action->get_condition_hash();
+    auto ret  = static_resource->action->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto ActionReply;
 
-    if (hash != static_resource->action_cond->get_condition_hash()) [[likely]] {
-        hash = static_resource->action_cond->get_condition_hash();
-        static_resource->action_cond->set_exception_cb(
+    if (hash != static_resource->action->get_condition_hash()) [[likely]] {
+        hash = static_resource->action->get_condition_hash();
+        static_resource->action->set_exception_cb(
           [cmd = argv[0],
            exp = quoted(argv[1]),
            ec  = std::to_string(EL_ELOG),
-           crc = std::to_string(static_resource->action_cond->get_condition_hash())]() {
+           crc = std::to_string(static_resource->action->get_condition_hash())]() {
               const auto& ss = concat_strings(REPLY_EVT_HEADER,
                                               "\"name\": \"",
                                               cmd,
@@ -38,7 +38,7 @@ void set_action(const std::vector<std::string>& argv) {
                                               "}}\n");
               static_resource->transport->send_bytes(ss.c_str(), ss.size());
           });
-        auto mutable_map = static_resource->action_cond->get_mutable_map();
+        auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
             auto argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
@@ -54,7 +54,7 @@ void set_action(const std::vector<std::string>& argv) {
                 }
             }
         }
-        static_resource->action_cond->set_mutable_map(mutable_map);
+        static_resource->action->set_mutable_map(mutable_map);
 
         if (static_resource->is_ready.load()) [[likely]] {
             char action[CMD_MAX_LENGTH]{};
@@ -84,7 +84,7 @@ void get_action(const std::string& cmd) {
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 
-    if (static_resource->action_cond->has_condition() && static_resource->storage->contains("edgelab_action")) {
+    if (static_resource->action->has_condition() && static_resource->storage->contains("edgelab_action")) {
         ret         = static_resource->storage->get(el_make_storage_kv("edgelab_action", action)) ? EL_OK : EL_EINVAL;
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }

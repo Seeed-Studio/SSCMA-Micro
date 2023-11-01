@@ -36,7 +36,7 @@ constexpr inline std::size_t lengthof(const std::string& s) { return s.length();
 template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};
     std::string result;
-    result.reserve(length + 1);
+    result.reserve(length);
     (result.append(std::forward<Args>(args)), ...);
     return result;
 }
@@ -203,7 +203,7 @@ std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
 }
 
 template <typename AlgorithmConfigType> std::string algorithm_config_2_json_str(const AlgorithmConfigType& config) {
-    bool        comma  = false;
+    bool        comma{false};
     std::string ss{concat_strings("{\"type\": ",
                                   std::to_string(config.info.type),
                                   ", \"categroy\": ",

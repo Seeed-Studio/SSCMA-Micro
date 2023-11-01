@@ -36,8 +36,6 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _n_times{n_times},
           _results_only{results_only},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
-          _sensor_info{static_resource->device->get_sensor_info(static_resource->current_sensor_id)},
-          _model_info{static_resource->models->get_model_info(static_resource->current_model_id)},
           _times{0},
           _ret{EL_OK},
           _action_hash{0} {
@@ -48,7 +46,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     void prepare() {
         reset_action_hash();
         reset_config_cmds();
+        prepare_sensor_info();
         check_sensor_status();
+        prepare_model_info();
         check_model_status();
         prepare_algorithm_info();
         check_algorithm_info();
@@ -61,7 +61,15 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         for (const auto& cmd : _config_cmds) static_resource->instance->unregister_cmd(cmd);
     }
 
-    void prepare_algorithm_info() {
+    inline void prepare_sensor_info() {
+        _sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
+    }
+
+    inline void prepare_model_info() {
+        _model_info = static_resource->models->get_model_info(static_resource->current_model_id);
+    }
+
+    inline void prepare_algorithm_info() {
         if (static_resource->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED)
             _algorithm_info =
               static_resource->algorithm_delegate->get_algorithm_info(static_resource->current_algorithm_type);
@@ -72,20 +80,20 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                     el_algorithm_type_from_engine(static_resource->engine));
     }
 
-    void check_sensor_status() {
+    inline void check_sensor_status() {
         _ret = _sensor_info.id != 0 ? EL_OK : EL_EIO;
         if (_ret != EL_OK) [[unlikely]]
             return;
         _ret = _sensor_info.state == EL_SENSOR_STA_AVAIL ? EL_OK : EL_EIO;
     }
 
-    void check_model_status() {
+    inline void check_model_status() {
         if (_ret != EL_OK) [[unlikely]]
             return;
         _ret = _model_info.id != 0 ? EL_OK : EL_EINVAL;
     }
 
-    void check_algorithm_info() {
+    inline void check_algorithm_info() {
         if (_ret != EL_OK) [[unlikely]]
             return;
         _ret = _algorithm_info.type != EL_ALGO_TYPE_UNDEFINED ? EL_OK : EL_EINVAL;
@@ -121,7 +129,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
-    void event_loop() {
+    inline void event_loop() {
         switch (_algorithm_info.type) {
         case EL_ALGO_TYPE_YOLO: {
             auto algorithm{std::make_shared<AlgorithmYOLO>(static_resource->engine)};
@@ -135,7 +143,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         }
     }
 
-    template <typename AlgorithmType> void register_config_cmds(std::shared_ptr<AlgorithmType> algorithm) {
+    template <typename AlgorithmType> constexpr void register_config_cmds(std::shared_ptr<AlgorithmType> algorithm) {
         auto config = algorithm->get_algorithm_config();
         auto kv     = el_make_storage_kv_from_type(config);
         if (static_resource->storage->contains(kv.key)) [[likely]]
@@ -269,17 +277,17 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        if (_action_hash != static_resource->action_cond->get_condition_hash()) [[unlikely]] {
-            _action_hash = static_resource->action_cond->get_condition_hash();
+        if (_action_hash != static_resource->action->get_condition_hash()) [[unlikely]] {
+            _action_hash = static_resource->action->get_condition_hash();
             action_injection(algorithm);
         }
-        static_resource->action_cond->evalute();
+        static_resource->action->evalute();
 
         if (_results_only)
+            event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
+        else
             event_reply(
               concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_jpeg_json_str(&frame)));
-        else
-            event_reply(concat_strings(", ", img_2_jpeg_json_str(&frame)));
 
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -298,7 +306,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     template <typename AlgorithmType> void action_injection(std::shared_ptr<AlgorithmType> algorithm) {
-        auto mutable_map = static_resource->action_cond->get_mutable_map();
+        auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
             const auto& argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
@@ -349,7 +357,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 continue;
             }
         }
-        static_resource->action_cond->set_mutable_map(mutable_map);
+        static_resource->action->set_mutable_map(mutable_map);
     }
 
     inline bool is_everything_ok() const { return _ret == EL_OK; }
