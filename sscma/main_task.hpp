@@ -224,9 +224,9 @@ void run() {
             static_resource->instance->exec(
               concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1"));
 
-        if (static_resource->storage->contains("edgelab#action")) [[likely]] {
+        if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
             char action[CMD_MAX_LENGTH]{};
-            *static_resource->storage >> el_make_storage_kv("edgelab#action", action);
+            *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
             static_resource->instance->exec(concat_strings("AT+ACTION=", quoted(action)));
         }
 
@@ -237,7 +237,8 @@ void run() {
     char* buf = new char[CMD_MAX_LENGTH]{};
     for (;;) {
         static_resource->transport->get_line(buf, CMD_MAX_LENGTH);
-        static_resource->instance->exec(buf);
+        if (std::strlen(buf) > 1) [[likely]]
+            static_resource->instance->exec(buf);
     }
     delete[] buf;
 }

@@ -59,7 +59,8 @@ void set_action(const std::vector<std::string>& argv) {
             char action[CMD_MAX_LENGTH]{};
             std::strncpy(
               action, argv[1].c_str(), argv[1].length() < CMD_MAX_LENGTH ? argv[1].length() : CMD_MAX_LENGTH - 1);
-            ret = static_resource->storage->emplace(el_make_storage_kv("edgelab#action", action)) ? EL_OK : EL_EIO;
+            ret =
+              static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         }
     }
 
@@ -82,8 +83,8 @@ void get_action(const std::string& cmd) {
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 
-    if (static_resource->action->has_condition() && static_resource->storage->contains("edgelab#action")) {
-        ret         = static_resource->storage->get(el_make_storage_kv("edgelab#action", action)) ? EL_OK : EL_EINVAL;
+    if (static_resource->action->has_condition() && static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) {
+        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EINVAL;
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 

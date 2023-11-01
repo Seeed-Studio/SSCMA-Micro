@@ -107,12 +107,12 @@ class StaticResource {
         models->init();
         storage->init();
 
-        if (!storage->contains("edgelab") || [this]() -> bool {
+        if (!storage->contains(SSCMA_STORAGE_KEY_VERSION) || [this]() -> bool {
                 char version[EL_VERSION_LENTH_MAX]{};
-                *this->storage >> el_make_storage_kv("edgelab", version);
+                *this->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
                 return std::string(EL_VERSION) != version;
             }())
-            *storage << el_make_storage_kv("edgelab", EL_VERSION)
+            *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, EL_VERSION)
                      << el_make_storage_kv("current_model_id", current_model_id)
                      << el_make_storage_kv("current_algorithm_type", current_algorithm_type)
                      << el_make_storage_kv("current_sensor_id", current_sensor_id)

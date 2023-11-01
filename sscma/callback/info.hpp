@@ -15,7 +15,7 @@ void set_info(const std::vector<std::string>& argv) {
     char info[CMD_MAX_LENGTH]{};
 
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
-    auto ret = static_resource->storage->emplace(el_make_storage_kv("edgelab#info", info)) ? EL_OK : EL_EINVAL;
+    auto ret = static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EINVAL;
 
     const auto& ss{
       concat_strings("\r{\"type\": 0, \"name\": \"",
@@ -32,8 +32,8 @@ void get_info(const std::string& cmd) {
     char info[CMD_MAX_LENGTH]{};
     auto ret = EL_OK;
 
-    if (static_resource->storage->contains("edgelab#info"))
-        ret = static_resource->storage->get(el_make_storage_kv("edgelab#info", info)) ? EL_OK : EL_EINVAL;
+    if (static_resource->storage->contains(SSCMA_STORAGE_KEY_INFO))
+        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EINVAL;
 
     const auto& ss{
       concat_strings("\r{\"type\": 0, \"name\": \"",
