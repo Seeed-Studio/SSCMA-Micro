@@ -49,7 +49,7 @@ struct el_algorithm_imcls_config_t {
 
 }  // namespace types
 
-class AlgorithmIMCLS : public Algorithm {
+class AlgorithmIMCLS final : public Algorithm {
    public:
     using ImageType  = el_img_t;
     using ClassType  = el_class_t;

@@ -49,7 +49,7 @@ struct el_algorithm_fomo_config_t {
 
 }  // namespace types
 
-class AlgorithmFOMO : public Algorithm {
+class AlgorithmFOMO final : public Algorithm {
    public:
     using ImageType  = el_img_t;
     using BoxType    = el_box_t;

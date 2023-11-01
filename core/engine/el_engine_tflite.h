@@ -351,7 +351,7 @@ class OpsResolver : public MicroMutableOpResolver<OpsCount::OpsTail - OpsCount::
 
 namespace edgelab {
 
-class EngineTFLite : public base::Engine {
+class EngineTFLite final : public base::Engine {
    public:
     EngineTFLite();
     ~EngineTFLite();
@@ -391,9 +391,9 @@ class EngineTFLite : public base::Engine {
 #endif
 
    private:
-    tflite::MicroInterpreter*   interpreter;
-    const tflite::Model*        model;
-    el_memory_pool_t            memory_pool;
+    tflite::MicroInterpreter* interpreter;
+    const tflite::Model*      model;
+    el_memory_pool_t          memory_pool;
 
 #ifdef CONFIG_EL_FILESYSTEM
     const char* model_file;

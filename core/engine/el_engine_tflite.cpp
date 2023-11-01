@@ -389,6 +389,12 @@ el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size
         return EL_EINVAL;
     }
     static tflite::OpsResolver resolver;
+    #if EL_DEALLOCATE_USED_INTERPRETER
+    if (interpreter) {
+        delete interpreter;
+        interpreter = nullptr;
+    }
+    #endif
     interpreter =
       new tflite::MicroInterpreter(model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size);
     if (interpreter == nullptr) {
