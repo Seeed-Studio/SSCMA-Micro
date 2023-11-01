@@ -191,50 +191,50 @@ void run() {
     //    AT+ACTION="(((count(target,0)>=3)||(max_score(target,0)>=80))&&led(1))||led(0)"
     static_resource->instance->register_cmd(
       "ACTION", "Set action trigger", "\"EXPRESSION\"", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          set_action(argv);
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) { set_action(argv); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "ACTION?", "Get action trigger", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_action(argv[0]);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_action(cmd); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "INFO", "Store info string to device flash", "\"INFO_STRING\"", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          set_info(argv);
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) { set_info(argv); });
           return EL_OK;
       }));
 
     static_resource->instance->register_cmd(
       "INFO?", "Get info string from device flash", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          get_info(argv[0]);
+          static_resource->executor->add_task([cmd = std::move(argv[0])](const std::atomic<bool>&) { get_info(cmd); });
           return EL_OK;
       }));
 
-    // setup components
+    // init commands
     {
-        std::string cmd;
-        if (static_resource->current_model_id) {
-            cmd = concat_strings("AT+MODEL=", std::to_string(static_resource->current_model_id));
-            static_resource->instance->exec(cmd);
-        }
-        if (static_resource->current_sensor_id) {
-            cmd = concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1");
-            static_resource->instance->exec(cmd);
-        }
-        if (static_resource->storage->contains("edgelab_action")) {
+        if (static_resource->current_model_id) [[likely]]
+            static_resource->instance->exec(
+              concat_strings("AT+MODEL=", std::to_string(static_resource->current_model_id)));
+
+        if (static_resource->current_sensor_id) [[likely]]
+            static_resource->instance->exec(
+              concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1"));
+
+        if (static_resource->storage->contains("edgelab#action")) [[likely]] {
             char action[CMD_MAX_LENGTH]{};
-            *static_resource->storage >> el_make_storage_kv("edgelab_action", action);
-            cmd = concat_strings("AT+ACTION=", quoted(action));
-            static_resource->instance->exec(cmd);
+            *static_resource->storage >> el_make_storage_kv("edgelab#action", action);
+            static_resource->instance->exec(concat_strings("AT+ACTION=", quoted(action)));
         }
-        static_resource->is_ready.store(true);
+
+        static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
     }
 
     // enter service loop
-    char* buf = new char[CMD_MAX_LENGTH + sizeof(int)]{};
+    char* buf = new char[CMD_MAX_LENGTH]{};
     for (;;) {
         static_resource->transport->get_line(buf, CMD_MAX_LENGTH);
         static_resource->instance->exec(buf);
