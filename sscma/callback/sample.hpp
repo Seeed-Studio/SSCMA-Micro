@@ -106,11 +106,19 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
+#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+        _ret = camera->get_processed_frame(&frame);
+#else
         _ret = camera->get_frame(&frame);
+#endif
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
+#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+        event_reply(concat_strings(", ", img_2_json_str(&frame)));
+#else
         event_reply(concat_strings(", ", img_2_jpeg_json_str(&frame)));
+#endif
 
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]

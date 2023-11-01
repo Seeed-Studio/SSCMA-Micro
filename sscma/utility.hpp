@@ -159,11 +159,24 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
     return ss;
 }
 
+// TODO: support reallocate memory when image size (width or height) changes
+std::string img_2_json_str(const el_img_t* img) {
+    if (!img || !img->data) [[unlikely]]
+        return "\"image\": \"\"";
+
+    static std::size_t size        = img->width * img->height * 3;
+    static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
+    static char*       buffer      = new char[buffer_size]{};
+    std::memset(buffer, 0, buffer_size);
+    el_base64_encode(img->data, img->size, buffer);
+
+    return concat_strings("\"image\": \"", buffer, "\"");
+}
+
 // TODO: avoid repeatly allocate/release memory in for loop
 std::string img_2_jpeg_json_str(const el_img_t* img) {
-    std::string ss("\"image\": \"");
     if (!img || !img->data) [[unlikely]]
-        return ss += "\"";
+        return "\"image\": \"\"";
 
     static std::size_t size      = img->width * img->height * 3;
     static uint8_t*    jpeg_data = new uint8_t[size]{};
@@ -185,11 +198,10 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
         static char*       buffer      = new char[buffer_size]{};
         std::memset(buffer, 0, buffer_size);
         el_base64_encode(jpeg_img.data, jpeg_img.size, buffer);
-        ss += buffer;
+        return concat_strings("\"image\": \"", buffer, "\"");
     }
-    ss += "\"";
 
-    return ss;
+    return "\"image\": \"\"";
 }
 
 std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {

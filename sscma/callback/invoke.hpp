@@ -264,6 +264,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         auto camera = static_resource->device->get_camera();
         auto frame  = el_img_t{};
+#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+        auto processed_frame = el_img_t{};
+#endif
 
         _ret = camera->start_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -272,6 +275,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _ret = camera->get_frame(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
+#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+        _ret = camera->get_processed_frame(&processed_frame);
+        if (!is_everything_ok()) [[unlikely]]
+            goto Err;
+#endif
 
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
@@ -285,10 +293,15 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         if (_results_only)
             event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
-        else
+        else {
+#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+            event_reply(
+              concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_json_str(&processed_frame)));
+#else
             event_reply(
               concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_jpeg_json_str(&frame)));
-
+#endif
+        }
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]
             goto Err;

@@ -91,6 +91,11 @@
     #define CONFIG_EL_MODEL_PARTITION_NAME "models"
 #endif
 
+/* sensor related config */
+#ifndef CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+    #define CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC 0
+#endif
+
 /* third-party libraries */
 #ifndef CONFIG_EL_LIB_FLASHDB
     #define CONFIG_EL_LIB_FLASHDB 1

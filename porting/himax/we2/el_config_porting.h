@@ -77,6 +77,8 @@
 #define CONFIG_EL_MODEL_HEADER_MAGIC            0x004C4854
 #define CONFIG_EL_MODEL_PARTITION_NAME          "models"
 
+#define CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC    1
+
 #define CONFIG_EL_LIB_FLASHDB                   1
 #define CONFIG_EL_LIB_JPEGENC                   0
 
