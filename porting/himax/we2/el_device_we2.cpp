@@ -96,6 +96,8 @@ void DeviceWE2::init() {
     hx_drv_pmu_get_ctrl(PMU_pmu_wakeup_EVT1, &wakeup_event1);
     EL_LOGD("wakeup_event=0x%x,WakeupEvt1=0x%x", wakeup_event, wakeup_event1);
 
+    hx_drv_uart_init(USE_DW_UART_0, HX_UART0_BASE);
+
     porting::_arm_npu_init(true, true);
 
     this->_device_name = "Grove Vision AI (WE-II)";

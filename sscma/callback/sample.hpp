@@ -12,6 +12,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
+
 class Sample final : public std::enable_shared_from_this<Sample> {
    public:
     std::shared_ptr<Sample> getptr() { return shared_from_this(); }

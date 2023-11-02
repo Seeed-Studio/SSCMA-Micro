@@ -32,9 +32,18 @@ extern "C" {
 
 namespace edgelab {
 
-el_err_code_t CameraHM0360::init(size_t width, size_t height) { return drv_hm0360_init(width, height); }
+el_err_code_t CameraHM0360::init(size_t width, size_t height) {
+    EL_ASSERT(!this->_is_present);
+    auto ret          = drv_hm0360_init(width, height);
+    this->_is_present = ret == EL_OK;
+    return ret;
+}
 
-el_err_code_t CameraHM0360::deinit() { return drv_hm0360_deinit(); }
+el_err_code_t CameraHM0360::deinit() {
+    auto ret          = drv_hm0360_deinit();
+    this->_is_present = false;
+    return ret;
+}
 
 el_err_code_t CameraHM0360::start_stream() {
     this->_is_streaming = true;

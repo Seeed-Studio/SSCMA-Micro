@@ -38,7 +38,7 @@ SerialEsp::~SerialEsp() { deinit(); }
 
 el_err_code_t SerialEsp::init() {
     this->console_uart = hx_drv_uart_get_dev((USE_SS_UART_E)CONSOLE_UART_ID);
-    this->_is_present  = (this->console_uart != nullptr);
+    this->_is_present  = this->console_uart != nullptr;
 
     return this->_is_present ? EL_OK : EL_EIO;
 }

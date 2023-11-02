@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <console_io.h>
+#include <hx_drv_uart.h>
 }
 
 #include <cctype>
@@ -42,19 +43,19 @@ namespace container {
 
 class RingBuffer {
    public:
-    RingBuffer(size_t size) : _s{size}, _p{0}, _c{0}, _l{0}, _b{new char[size]} {}
+    RingBuffer(size_t size) : _s{size}, _p{0}, _c{0}, _l{0}, _b{new char[size]{}} {}
 
     ~RingBuffer() {
         if (_b) [[likely]]
             delete[] _b;
     }
 
-     void push(char ch) {
+    inline void push(char ch) {
         _b[_p++ % _s] = ch;
         ++_l;
     }
 
-     bool get(char& ch) {
+    inline bool get(char& ch) {
         if (_l) [[likely]] {
             ch = _b[_c++ % _s];
             --_l;
@@ -75,9 +76,9 @@ class RingBuffer {
 
 namespace porting {
 
-static auto               _serial_ring_buffer  = new container::RingBuffer{8192};
-static auto               _serial_char_buffer  = new char[32]{};
-volatile static DEV_UART* _serial_port_handler = nullptr;
+static container::RingBuffer* _serial_ring_buffer = nullptr;
+static char                   _serial_char_buffer[32]{};
+volatile static DEV_UART*     _serial_port_handler = nullptr;
 
 void _serial_uart_dma_recv(void*) {
     _serial_ring_buffer->push(_serial_char_buffer[0]);
@@ -86,16 +87,25 @@ void _serial_uart_dma_recv(void*) {
 
 }  // namespace porting
 
+using namespace porting;
+
 SerialWE2::~SerialWE2() { deinit(); }
 
 el_err_code_t SerialWE2::init() {
+    EL_ASSERT(!this->_is_present);
+
     this->console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)CONSOLE_UART_ID);
     this->console_uart->uart_open(UART_BAUDRATE_921600);
 
-    porting::_serial_port_handler = this->console_uart;
-    porting::_serial_uart_dma_recv(nullptr);
+    if (!_serial_ring_buffer) [[likely]]
+        _serial_ring_buffer = new container::RingBuffer{8192};
 
-    this->_is_present = (this->console_uart != nullptr);
+    EL_ASSERT(_serial_ring_buffer);
+
+    _serial_port_handler = this->console_uart;
+    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
+
+    this->_is_present = this->console_uart != nullptr;
 
     return this->_is_present ? EL_OK : EL_EIO;
 }

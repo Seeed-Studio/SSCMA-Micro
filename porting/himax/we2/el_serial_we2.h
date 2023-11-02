@@ -26,7 +26,9 @@
 #ifndef _EL_SERIAL_WE2_H_
 #define _EL_SERIAL_WE2_H_
 
+extern "C" {
 #include <hx_drv_uart.h>
+}
 
 #include "porting/el_serial.h"
 

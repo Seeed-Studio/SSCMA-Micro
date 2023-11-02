@@ -32,9 +32,18 @@ extern "C" {
 
 namespace edgelab {
 
-el_err_code_t CameraOV5647::init(size_t width, size_t height) { return drv_ov5647_init(width, height); }
+el_err_code_t CameraOV5647::init(size_t width, size_t height) {
+    EL_ASSERT(!this->_is_present);
+    auto ret          = drv_ov5647_init(width, height);
+    this->_is_present = ret == EL_OK;
+    return ret;
+}
 
-el_err_code_t CameraOV5647::deinit() { return drv_ov5647_deinit(); }
+el_err_code_t CameraOV5647::deinit() {
+    auto ret          = drv_ov5647_deinit();
+    this->_is_present = false;
+    return ret;
+}
 
 el_err_code_t CameraOV5647::start_stream() {
     this->_is_streaming = true;
@@ -47,7 +56,7 @@ el_err_code_t CameraOV5647::stop_stream() {
 }
 
 el_err_code_t CameraOV5647::get_frame(el_img_t* img) {
-    if (!this->_is_streaming) {
+    if (!this->_is_streaming) [[likely]] {
         return EL_EIO;
     }
     *img = drv_ov5647_get_frame();
@@ -55,7 +64,7 @@ el_err_code_t CameraOV5647::get_frame(el_img_t* img) {
 }
 
 el_err_code_t CameraOV5647::get_processed_frame(el_img_t* img) {
-    if (!this->_is_streaming) {
+    if (!this->_is_streaming) [[likely]] {
         return EL_EIO;
     }
     *img = drv_ov5647_get_jpeg();

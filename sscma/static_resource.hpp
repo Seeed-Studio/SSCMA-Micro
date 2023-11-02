@@ -26,7 +26,7 @@ using namespace sscma::utility;
 using namespace sscma::interpreter;
 using namespace sscma::repl;
 
-class StaticResource {
+class StaticResource final {
    public:
     // library features
     Server*    instance;
