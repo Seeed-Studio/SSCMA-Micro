@@ -106,9 +106,7 @@ DeviceWE2::DeviceWE2() {
     this->_transport = &transport;
 }
 
-void DeviceWE2::restart() {
-    // TODO: reset device
-}
+void DeviceWE2::restart() { __NVIC_SystemReset(); }
 
 Device* Device::get_device() {
     static DeviceWE2 device;

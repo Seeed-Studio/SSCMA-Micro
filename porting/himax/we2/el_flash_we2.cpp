@@ -35,12 +35,13 @@ namespace edgelab {
 #if CONFIG_EL_MODEL
 namespace internal {
 
-static void enable_we2_xip() {
+static int enable_we2_xip() {
     static int once_please = []() {
         hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q);
         hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
         return 0;
     }();
+    return once_please;
 }
 
 el_err_code_t el_model_partition_mmap_init(uint32_t*       partition_start_addr,
@@ -68,7 +69,7 @@ const static size_t el_flash_db_partition_end = 0x00800000;
 const static size_t el_flash_db_partition     = el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
 
 static int el_flash_db_init(void) {
-    enable_we2_xip();
+    edgelab::internal::enable_we2_xip();
     return 1;
 }
 
@@ -114,16 +115,17 @@ static int el_flash_db_erase(long offset, size_t size) {
 
     return ret;
 }
+#endif
 
 }  // namespace edgelab
 
-    #if CONFIG_EL_LIB_FLASHDB
-        #ifdef __cpluscplus
+#if CONFIG_EL_LIB_FLASHDB
+    #ifdef __cpluscplus
 extern "C" {
-        #endif
+    #endif
 
 const struct fal_flash_dev el_flash_db_nor_flash0 {
-    .name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT, .addr = el_flash_db_partition,
+    .name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT, .addr = edgelab::el_flash_db_partition,
     .len = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0, .blk_size = FDB_BLOCK_SIZE,
     .ops        = {edgelab::el_flash_db_init,
                    edgelab::el_flash_db_read,
@@ -132,7 +134,7 @@ const struct fal_flash_dev el_flash_db_nor_flash0 {
     .write_gran = FDB_WRITE_GRAN,
 };
 
-        #ifdef __cpluscplus
+    #ifdef __cpluscplus
 }
-        #endif
     #endif
+#endif

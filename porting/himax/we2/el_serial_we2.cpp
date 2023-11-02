@@ -49,7 +49,7 @@ class RingBuffer {
 
     void push(char ch) {
         _b[_p++ % _s] = ch;
-        ++l;
+        ++_l;
     }
 
     size_t get(char& ch) {
@@ -70,12 +70,12 @@ class RingBuffer {
 };
 
 static RingBuffer         ring_buffer{8192};
-volatile static char      buffer[128]{};
+static char      buffer[128]{};
 volatile static DEV_UART* port{nullptr};
 
 void dma_recv(void*) {
     ring_buffer.push(buffer[0]);
-    port->uart_read_udma(buffer, 1, dma_recv);
+    port->uart_read_udma(edgelab::internal::buffer, 1, (void*)edgelab::internal::dma_recv);
 }
 
 }  // namespace internal
@@ -89,7 +89,7 @@ el_err_code_t SerialWE2::init() {
     this->console_uart->uart_open(UART_BAUDRATE_921600);
 
     internal::port = this->console_uart;
-    internal::port->uart_read_udma(rb, 1, (void*)dma_recv);
+    internal::port->uart_read_udma(internal::buffer, 1, (void*)internal::dma_recv);
 
     this->_is_present = (this->console_uart != nullptr);
 

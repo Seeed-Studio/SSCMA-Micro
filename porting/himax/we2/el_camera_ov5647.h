@@ -43,7 +43,7 @@ class CameraOV5647 final : public Camera {
     el_err_code_t stop_stream() override;
 
     el_err_code_t get_frame(el_img_t* img) override;
-    el_err_code_t get_jpeg(el_img_t* img) override;
+    el_err_code_t get_processed_frame(el_img_t* img) override;
 };
 
 }  // namespace edgelab

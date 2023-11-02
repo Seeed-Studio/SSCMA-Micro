@@ -52,7 +52,7 @@ el_err_code_t CameraOV5647::get_frame(el_img_t* img) {
     return EL_OK;
 }
 
-el_err_code_t CameraOV5647::get_jpeg(el_img_t* img) {
+el_err_code_t CameraOV5647::get_processed_frame(el_img_t* img) {
     if (!this->_is_streaming) {
         return EL_EIO;
     }

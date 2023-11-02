@@ -27,11 +27,14 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include "core/el_debug.h"
 #include "core/el_types.h"
 #include "el_config_porting.h"
 
+namespace edgelab {
+
 EL_ATTR_WEAK void el_sleep(uint32_t ms) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     vTaskDelay(ms / portTICK_PERIOD_MS);
 #else
     board_delay_ms(ms);
@@ -39,7 +42,7 @@ EL_ATTR_WEAK void el_sleep(uint32_t ms) {
 }
 
 EL_ATTR_WEAK uint64_t el_get_time_ms(void) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     return xTaskGetTickCount() * portTICK_PERIOD_MS;
 #else
     uint32_t tick = 0;
@@ -50,7 +53,7 @@ EL_ATTR_WEAK uint64_t el_get_time_ms(void) {
 }
 
 EL_ATTR_WEAK uint64_t el_get_time_us(void) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     return xTaskGetTickCount() * portTICK_PERIOD_MS * 1000;
 #else
     return el_get_time_ms() * 1000;
@@ -70,7 +73,7 @@ EL_ATTR_WEAK int el_printf(const char* fmt, ...) {
 EL_ATTR_WEAK int el_putchar(char c) { return 0; }
 
 EL_ATTR_WEAK void* el_malloc(size_t size) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     return pvPortMalloc(size);
 #else
     return malloc(size);
@@ -90,7 +93,7 @@ EL_ATTR_WEAK void* el_aligned_malloc_once(size_t align, size_t size) {
 }
 
 EL_ATTR_WEAK void* el_calloc(size_t nmemb, size_t size) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     return pvPortMalloc(nmemb * size);
 #else
     return calloc(nmemb, size);
@@ -98,7 +101,7 @@ EL_ATTR_WEAK void* el_calloc(size_t nmemb, size_t size) {
 }
 
 EL_ATTR_WEAK void el_free(void* ptr) {
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
     vPortFree(ptr);
 #else
     free(ptr);
@@ -109,7 +112,9 @@ EL_ATTR_WEAK void el_reset(void) { exit(0); }
 
 EL_ATTR_WEAK void el_status_led(bool on) { el_printf("TEST LED STAT: %s\n", on ? "on" : "off"); }
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
+}  // namespace edgelab
+
+#if CONFIG_EL_HAS_FREERTOS_SUPPORT
 
 EL_ATTR_WEAK void* operator new[](size_t size) { return pvPortMalloc(size); }
 

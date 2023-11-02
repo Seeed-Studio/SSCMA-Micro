@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/el_debug.h"
+
 /* MCU */
 #include <WE2_core.h>
 #include <hx_drv_CIS_common.h>
