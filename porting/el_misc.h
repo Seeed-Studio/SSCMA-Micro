@@ -26,10 +26,18 @@
 #ifndef _EL_MISC_H_
 #define _EL_MISC_H_
 
-#include <cstddef>
-#include <cstdint>
+#ifdef __cplusplus
+    #include <cstddef>
+    #include <cstdint>
+#else
+    #include <stddef.h>
+    #include <stdint.h>
+#endif
 
+#ifdef __cplusplus
 namespace edgelab {
+extern "C" {
+#endif
 
 void el_sleep(uint32_t ms);
 
@@ -53,6 +61,9 @@ void el_reset(void);
 
 void el_status_led(bool on);
 
-}  // namespace edgelab
+#ifdef __cplusplus
+}
+}
+#endif
 
 #endif

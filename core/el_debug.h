@@ -97,13 +97,13 @@
                 el_printf(EL_DEBUG_COLOR_RESET "\r\n"); \
             } while (0)
     #else
-        #define LOG_D(...)
+        #define EL_LOGD(...)
     #endif
 #else
     #define EL_ELOG(...)
     #define EL_LOGW(...)
     #define EL_LOGI(...)
-    #define LOG_D(...)
+    #define EL_LOGD(...)
 #endif
 
 #ifndef CONFIG_EL_ASSERT
