@@ -38,7 +38,9 @@
 
 namespace edgelab {
 
-static inline uint32_t device_id_from_efuse() {
+namespace porting {
+
+static inline uint32_t _device_id_from_efuse() {
     char*     id_full = new char[16]{};
     esp_err_t err     = esp_efuse_read_field_blob(ESP_EFUSE_OPTIONAL_UNIQUE_ID, id_full, 16u << 3);
 
@@ -57,9 +59,11 @@ static inline uint32_t device_id_from_efuse() {
     return hash;
 }
 
-DeviceEsp::DeviceEsp() {
+}  // namespace porting
+
+void DeviceEsp::init() {
     this->_device_name = "Seeed Studio XIAO (ESP32-S3)";
-    this->_device_id   = device_id_from_efuse();
+    this->_device_id   = porting::_device_id_from_efuse();
     this->_revision_id = efuse_hal_chip_revision();
 
     static uint8_t sensor_id = 0;
@@ -78,7 +82,7 @@ DeviceEsp::DeviceEsp() {
     this->_transport = &transport;
 }
 
-void DeviceEsp::restart() { esp_restart(); }
+void DeviceEsp::reset() { esp_restart(); }
 
 Device* Device::get_device() {
     static DeviceEsp device{};

@@ -96,9 +96,11 @@
 #if CONFIG_EL_LIB_FLASHDB
     #include "third_party/FlashDB/fal_def.h"
 
+extern const struct fal_flash_dev _el_flash_db_nor_flash0;
+
     #define NOR_FLASH_DEV_NAME CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT
     #define FAL_FLASH_DEV_TABLE \
-        { &el_flash_db_nor_flash0, }
+        { &_el_flash_db_nor_flash0, }
 
     #define FAL_PART_HAS_TABLE_CFG
     #ifdef FAL_PART_HAS_TABLE_CFG
@@ -127,8 +129,6 @@
     #elif CONFIG_EL_DEBUG >= 1
         #define FDB_DEBUG_ENABLE
     #endif
-
-extern const struct fal_flash_dev el_flash_db_nor_flash0;
 #endif
 
 #endif

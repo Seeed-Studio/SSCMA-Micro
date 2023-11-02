@@ -80,7 +80,7 @@ el_err_code_t DisplayEsp::init() {
 
     _lcd.get_info(&_lcd_info);
 
-    LOG_D("[Screen] name:%s | width:%d | height:%d", _lcd_info.name, _lcd_info.width, _lcd_info.height);
+    EL_LOGD("[Screen] name:%s | width:%d | height:%d", _lcd_info.name, _lcd_info.width, _lcd_info.height);
 
     this->_is_present = true;
     return EL_OK;

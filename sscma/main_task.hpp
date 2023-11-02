@@ -17,6 +17,8 @@ using namespace sscma::types;
 using namespace sscma::callback;
 
 void run() {
+    static_resource->init();
+
     static_resource->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
         const auto& registered_cmds = static_resource->instance->get_registered_cmds();
         print_help(registered_cmds);

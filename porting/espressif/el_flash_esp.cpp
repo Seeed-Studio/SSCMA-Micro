@@ -34,13 +34,13 @@
 
 namespace edgelab {
 
-#if CONFIG_EL_MODEL
-namespace internal {
+namespace porting {
 
+#if CONFIG_EL_MODEL
 el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
-                                           uint32_t*       partition_size,
-                                           const uint8_t** flash_2_memory_map,
-                                           uint32_t*       mmap_handler) {
+                                            uint32_t*       partition_size,
+                                            const uint8_t** flash_2_memory_map,
+                                            uint32_t*       mmap_handler) {
     const esp_partition_t* partition{esp_partition_find_first(
       ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, CONFIG_EL_MODEL_PARTITION_NAME)};
     if (!partition) [[unlikely]]
@@ -59,56 +59,45 @@ el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr
 }
 
 void _el_model_partition_mmap_deinit(uint32_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
-
-}  // namespace internal
 #endif
 
 #if CONFIG_EL_LIB_FLASHDB
-static Mutex                  el_flash_db_lock{};
-const static esp_partition_t* el_flash_db_partition = nullptr;
+static Mutex                  _el_flash_lock{};
+const static esp_partition_t* _el_flash_db_partition = nullptr;
 
-static int el_flash_db_init(void) {
-    el_flash_db_partition = esp_partition_find_first(
+static int _el_flash_db_init(void) {
+    _el_flash_db_partition = esp_partition_find_first(
       ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, CONFIG_EL_STORAGE_PARTITION_NAME);
-    EL_ASSERT(el_flash_db_partition != nullptr);
+    EL_ASSERT(_el_flash_db_partition != nullptr);
     return 1;
 }
 
-static int el_flash_db_read(long offset, uint8_t* buf, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
-    return esp_partition_read(el_flash_db_partition, offset, buf, size);
+static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
+    const Guard<Mutex> guard(_el_flash_lock);
+    return esp_partition_read(_el_flash_db_partition, offset, buf, size);
 }
 
-static int el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
-    return esp_partition_write(el_flash_db_partition, offset, buf, size);
+static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
+    const Guard<Mutex> guard(_el_flash_lock);
+    return esp_partition_write(_el_flash_db_partition, offset, buf, size);
 }
 
-static int el_flash_db_erase(long offset, size_t size) {
-    const Guard<Mutex> guard(el_flash_db_lock);
+static int _el_flash_db_erase(long offset, size_t size) {
+    const Guard<Mutex> guard(_el_flash_lock);
     int32_t            erase_size = ((size - 1) / FDB_BLOCK_SIZE) + 1;
-    return esp_partition_erase_range(el_flash_db_partition, offset, erase_size * FDB_BLOCK_SIZE);
+    return esp_partition_erase_range(_el_flash_db_partition, offset, erase_size * FDB_BLOCK_SIZE);
 }
+
+extern "C" const struct fal_flash_dev _el_flash_db_nor_flash0 = {
+  .name       = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT,
+  .addr       =  0x00000000,
+  .len        = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0,
+  .blk_size   = FDB_BLOCK_SIZE,
+  .ops        = {_el_flash_db_init, _el_flash_db_read, _el_flash_db_write, _el_flash_db_erase},
+  .write_gran = FDB_WRITE_GRAN,
+};
 #endif
+
+}  // namespace porting
 
 }  // namespace edgelab
-
-#if CONFIG_EL_LIB_FLASHDB
-    #ifdef __cpluscplus
-extern "C" {
-    #endif
-
-const struct fal_flash_dev el_flash_db_nor_flash0 {
-    .name = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT, .addr = 0x00000000, .len = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0,
-    .blk_size   = FDB_BLOCK_SIZE,
-    .ops        = {edgelab::el_flash_db_init,
-                   edgelab::el_flash_db_read,
-                   edgelab::el_flash_db_write,
-                   edgelab::el_flash_db_erase},
-    .write_gran = FDB_WRITE_GRAN,
-};
-
-    #ifdef __cpluscplus
-}
-    #endif
-#endif
