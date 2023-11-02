@@ -12,7 +12,7 @@ namespace sscma::repl {
 
 class History {
    public:
-    History(int max_size = REPL_HISTORY_MAX) : _max_size(max_size) {}
+    History(int max_size = CONFIG_SSCMA_REPL_HISTORY_MAX) : _max_size(max_size) {}
 
     ~History() = default;
 
@@ -27,7 +27,7 @@ class History {
         if (it != _history.end()) [[likely]]
             _history.erase(it);
 
-        while (_history.size() >= _max_size) _history.pop_front();
+        while (_history.size() >= static_cast<std::size_t>(_max_size)) _history.pop_front();
 
         _history.push_back(line);
         _history.shrink_to_fit();
@@ -39,7 +39,7 @@ class History {
     bool add(const char* line) { return add(std::string(line)); }
 
     bool get(std::string& line, int index) {
-        if (index < 0 || index >= _history.size()) [[unlikely]]
+        if (index < 0 || static_cast<std::size_t>(index) >= _history.size()) [[unlikely]]
             return false;
 
         line = _history[index];
@@ -54,7 +54,7 @@ class History {
         if (_history_index < 0) [[unlikely]]
             _history_index = _history.size() - 1;
 
-        if (_history_index < (_history.size() - 1)) [[likely]]
+        if (_history_index < static_cast<int>(_history.size()) - 1) [[likely]]
             ++_history_index;
 
         line = _history[_history_index];
@@ -73,7 +73,7 @@ class History {
     }
 
     bool reset() {
-        bool is_tail   = _history_index == (_history.size() - 1);
+        bool is_tail   = _history_index == static_cast<int>(_history.size()) - 1;
         _history_index = _history.size() - 1;
 
         return is_tail;

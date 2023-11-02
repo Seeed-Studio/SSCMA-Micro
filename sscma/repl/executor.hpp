@@ -1,10 +1,10 @@
 #pragma once
 
 #include <atomic>
-#include <cstdio>
 #include <functional>
 #include <memory>
 #include <queue>
+#include <string>
 #include <utility>
 
 #include "core/synchronize/el_guard.hpp"
@@ -19,88 +19,77 @@ using namespace sscma::types;
 
 class Executor {
    public:
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-    Executor(size_t worker_stack_size = REPL_EXECUTOR_STACK_SIZE, size_t worker_priority = REPL_EXECUTOR_PRIO)
+    Executor()
         : _task_queue_lock(),
           _task_stop_requested(false),
           _worker_thread_stop_requested(false),
-          _worker_ret(),
-          _worker_handler(),
-          _worker_name(new char[configMAX_TASK_NAME_LEN]{}),
-          _worker_stack_size(worker_stack_size),
-          _worker_priority(worker_priority) {
-        static uint16_t worker_id = 0;
-        volatile size_t length    = configMAX_TASK_NAME_LEN - 1;
-        std::snprintf(_worker_name, length, "task_executor_%2X", worker_id++);
-    }
-#else
-    Executor() : _task_queue_lock(), _task_stop_requested(false), _worker_thread_stop_requested(false) {}
-#endif
+          _worker_name("sscma#executor#"),
+          _worker_handler() {
+        static uint8_t     worker_id    = 0u;
+        static const char* hex_literals = "0123456789ABCDEF";
 
-    ~Executor() { stop(); }
+        _worker_name.reserve(_worker_name.length() + (sizeof(uint8_t) << 1) + 1);
+        EL_ASSERT(_worker_name.size() < configMAX_TASK_NAME_LEN);
 
-    void start() {
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-        _worker_ret =
-          xTaskCreate(&Executor::c_run, _worker_name, _worker_stack_size, this, _worker_priority, &_worker_handler);
-#endif
+        _worker_name += hex_literals[worker_id >> 4];
+        _worker_name += hex_literals[worker_id & 0x0f];
+
+        [[maybe_unused]] auto ret = xTaskCreate(&Executor::c_run,
+                                                _worker_name.c_str(),
+                                                CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE,
+                                                this,
+                                                CONFIG_SSCMA_REPL_EXECUTOR_PRIO,
+                                                &_worker_handler);
+        EL_ASSERT(ret == pdPASS);
     }
 
-    void stop() {
-        _worker_thread_stop_requested.store(true, std::memory_order_relaxed);
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-        if (_worker_ret == pdPASS) [[likely]]
-            vTaskDelete(_worker_handler);
-#endif
+    ~Executor() {
+        _task_stop_requested.store(true, std::memory_order_seq_cst);
+        _worker_thread_stop_requested.store(true, std::memory_order_seq_cst);
+        while (_worker_thread_stop_requested.load()) yield();  // wait for destory
+        vTaskDelete(_worker_handler);
     }
 
-    void add_task(repl_task_t task) {
+    template <typename Callable> inline void add_task(Callable&& task) {
         const Guard<Mutex> guard(_task_queue_lock);
-        _task_queue.push(task);
-        _task_stop_requested.store(true, std::memory_order_relaxed);
+        _task_queue.push(std::forward<Callable>(task));
     }
 
-    const char* get_worker_name() const {
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-        return _worker_name;
-#else
-        return "";
-#endif
+    inline bool try_stop_task() {
+        bool has_requested = !_task_stop_requested.load();
+        _task_stop_requested.store(true, std::memory_order_seq_cst);
+        return has_requested;
     }
+
+    inline void cancel_all_tasks() {
+        const Guard<Mutex> guard(_task_queue_lock);
+        try_stop_task();
+        while (!_task_queue.empty()) _task_queue.pop();
+    }
+
+   protected:
+    inline void yield() const { vTaskDelay(10 / portTICK_PERIOD_MS); }
 
     void run() {
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-        while (!_worker_thread_stop_requested.load(std::memory_order_relaxed)) {
-            repl_task_t task;
+        while (!_worker_thread_stop_requested.load()) {
+            repl_task_t task{};
             {
                 const Guard<Mutex> guard(_task_queue_lock);
-                if (!_task_queue.empty()) {
-                    task = std::move(_task_queue.front());
+                if (!_task_queue.empty()) [[likely]] {
+                    task = std::move(_task_queue.front());  // or std::function::swap
                     _task_queue.pop();
-                    if (_task_queue.empty()) [[likely]]
-                        _task_stop_requested.store(false, std::memory_order_seq_cst);
-                    else
-                        _task_stop_requested.store(true, std::memory_order_seq_cst);
                 }
+            }  // RAII is important here
+            if (task) [[likely]] {
+                task(_task_stop_requested);
+                if (_task_stop_requested.load()) [[unlikely]]                      // did request stop
+                    _task_stop_requested.store(false, std::memory_order_seq_cst);  // reset the flag
+                continue;                                                          // skip yield
             }
-            if (task) task(_task_stop_requested);
-            vTaskDelay(15 / portTICK_PERIOD_MS);  // TODO: use yield
+            _task_stop_requested.store(false, std::memory_order_seq_cst);
+            yield();
         }
-#else
-        repl_task_t task;
-        {
-            const Guard<Mutex> guard(_task_queue_lock);
-            if (!_task_queue.empty()) {
-                task = std::move(_task_queue.front());
-                _task_queue.pop();
-                if (_task_queue.empty()) [[likely]]
-                    _task_stop_requested.store(false, std::memory_order_seq_cst);
-                else
-                    _task_stop_requested.store(true, std::memory_order_seq_cst);
-            }
-            if (task) task(_task_stop_requested);
-        }
-#endif
+        _worker_thread_stop_requested.store(false, std::memory_order_seq_cst);  // reset the flag
     }
 
     static void c_run(void* this_pointer) { static_cast<Executor*>(this_pointer)->run(); }
@@ -110,13 +99,8 @@ class Executor {
     std::atomic<bool> _task_stop_requested;
     std::atomic<bool> _worker_thread_stop_requested;
 
-#if CONFIG_EL_HAS_FREERTOS_SUPPORT
-    BaseType_t   _worker_ret;
+    std::string  _worker_name;
     TaskHandle_t _worker_handler;
-    char*        _worker_name;
-    size_t       _worker_stack_size;
-    size_t       _worker_priority;
-#endif
 
     std::queue<repl_task_t> _task_queue;
 };

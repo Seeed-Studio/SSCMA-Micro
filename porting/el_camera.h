@@ -44,7 +44,8 @@ class Camera {
     virtual el_err_code_t start_stream() = 0;
     virtual el_err_code_t stop_stream()  = 0;
 
-    virtual el_err_code_t get_frame(el_img_t* img) = 0;
+    virtual el_err_code_t get_frame(el_img_t* img)           = 0;
+    virtual el_err_code_t get_processed_frame(el_img_t* img) = 0;
 
     operator bool() const { return _is_present; }
 

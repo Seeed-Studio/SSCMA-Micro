@@ -39,13 +39,13 @@
         #define EL_DEBUG_COLOR_CYAN    "\033[36m"
         #define EL_DEBUG_COLOR_RESET   "\033[0m"
     #else
-        #define EL_DEBUG_COLOR_RED
-        #define EL_DEBUG_COLOR_GREEN
-        #define EL_DEBUG_COLOR_YELLOW
-        #define EL_DEBUG_COLOR_BLUE
-        #define EL_DEBUG_COLOR_MAGENTA
-        #define EL_DEBUG_COLOR_CYAN
-        #define EL_DEBUG_COLOR_RESET
+        #define EL_DEBUG_COLOR_RED     ""
+        #define EL_DEBUG_COLOR_GREEN   ""
+        #define EL_DEBUG_COLOR_YELLOW  ""
+        #define EL_DEBUG_COLOR_BLUE    ""
+        #define EL_DEBUG_COLOR_MAGENTA ""
+        #define EL_DEBUG_COLOR_CYAN    ""
+        #define EL_DEBUG_COLOR_RESET   ""
     #endif
 
     #if CONFIG_EL_DEBUG_MORE_INFO
@@ -97,13 +97,19 @@
                 el_printf(EL_DEBUG_COLOR_RESET "\r\n"); \
             } while (0)
     #else
-        #define LOG_D(...)
+        #define EL_LOGD(...)
     #endif
 #else
     #define EL_ELOG(...)
     #define EL_LOGW(...)
     #define EL_LOGI(...)
-    #define LOG_D(...)
+    #define EL_LOGD(...)
+#endif
+
+#ifndef CONFIG_EL_ASSERT
+    #if CONFIG_EL_DEBUG >= 1
+        #define CONFIG_EL_ASSERT 1
+    #endif
 #endif
 
 #if CONFIG_EL_ASSERT
@@ -112,7 +118,7 @@
             if (!(expr)) {                                     \
                 el_printf(EL_DEBUG_COLOR_RED "[ASSERT]");      \
                 EL_DEBUG_MORE_INFO();                          \
-                el_printf("Failed assertion `%s'\r\n", #expr); \
+                el_printf("Failed assertion '%s'\r\n", #expr); \
                 el_printf(EL_DEBUG_COLOR_RESET);               \
                 while (1) {                                    \
                 }                                              \

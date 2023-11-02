@@ -26,10 +26,20 @@
 #ifndef _EL_MISC_H_
 #define _EL_MISC_H_
 
-#include <cstdint>
-#include <cstddef>
+#ifdef __cplusplus
+    #include <cstdbool>
+    #include <cstddef>
+    #include <cstdint>
+#else
+    #include <stdbool.h>
+    #include <stddef.h>
+    #include <stdint.h>
+#endif
 
+#ifdef __cplusplus
 namespace edgelab {
+extern "C" {
+#endif
 
 void el_sleep(uint32_t ms);
 
@@ -38,6 +48,8 @@ uint64_t el_get_time_ms(void);
 uint64_t el_get_time_us(void);
 
 void* el_malloc(size_t size);
+
+void* el_aligned_malloc_once(size_t align, size_t size);
 
 void* el_calloc(size_t nmemb, size_t size);
 
@@ -51,6 +63,9 @@ void el_reset(void);
 
 void el_status_led(bool on);
 
-}  // namespace edgelab
+#ifdef __cplusplus
+}
+}
+#endif
 
 #endif

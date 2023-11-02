@@ -30,12 +30,13 @@
 
 namespace edgelab {
 
-class DeviceEsp : public Device {
+class DeviceEsp final : public Device {
    public:
-    DeviceEsp();
+    DeviceEsp()  = default;
     ~DeviceEsp() = default;
 
-    void restart() override;
+    void init() override;
+    void reset() override;
 };
 
 }  // namespace edgelab

@@ -7,7 +7,7 @@
 
 namespace sscma::types {
 
-typedef std::function<void(std::atomic<bool>&)> repl_task_t;
+typedef std::function<void(const std::atomic<bool>&)> repl_task_t;
 
 typedef std::function<void(void)>                     branch_cb_t;
 typedef std::function<int(void)>                      mutable_cb_t;

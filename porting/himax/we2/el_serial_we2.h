@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,36 @@
  *
  */
 
-#ifndef _BOARDS_H_
-#define _BOARDS_H_
+#ifndef _EL_SERIAL_WE2_H_
+#define _EL_SERIAL_WE2_H_
 
-#include "core/el_config.h"
+extern "C" {
+#include <hx_drv_uart.h>
+}
 
-#ifdef CONFIG_EL_BOARD_SEEED_XIAO_ESP32S3
-    #include "seeed_xiao_esp32s3/board.h"
-#elif defined(CONFIG_EL_BOARD_ESPRESSIF_ESP32S3_EYE)
-    #include "espressif_esp32s3_eye/board.h"
-#else
-    #error "No board defined"
-#endif
+#include "porting/el_serial.h"
+
+namespace edgelab {
+
+class SerialWE2 final : public Serial {
+   public:
+    SerialWE2() = default;
+    ~SerialWE2();
+
+    el_err_code_t init() override;
+    el_err_code_t deinit() override;
+
+    char   echo(bool only_visible = true) override;
+    char   get_char() override;
+    size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
+
+    el_err_code_t read_bytes(char* buffer, size_t size) override;
+    el_err_code_t send_bytes(const char* buffer, size_t size) override;
+
+   private:
+    DEV_UART* console_uart;
+};
+
+}  // namespace edgelab
 
 #endif

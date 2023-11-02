@@ -33,7 +33,7 @@
 #include "core/el_debug.h"
 #include "core/el_types.h"
 
-#ifdef CONFIG_EL_LIB_JPEGENC
+#if CONFIG_EL_LIB_JPEGENC
     #include "third_party/JPEGENC/JPEGENC.h"
 #endif
 
@@ -927,7 +927,7 @@ EL_ATTR_WEAK void rgb_to_rgb(const el_img_t* src, el_img_t* dst) {
     }
 }
 
-#ifdef CONFIG_EL_LIB_JPEGENC
+#if CONFIG_EL_LIB_JPEGENC
 
 EL_ATTR_WEAK el_err_code_t rgb_to_jpeg(const el_img_t* src, el_img_t* dst) {
     static JPEG   jpg;
@@ -987,7 +987,7 @@ EL_ATTR_WEAK el_err_code_t el_img_convert(const el_img_t* src, el_img_t* dst) {
 
     if (src->format == EL_PIXEL_FORMAT_RGB565 || src->format == EL_PIXEL_FORMAT_RGB888 ||
         src->format == EL_PIXEL_FORMAT_GRAYSCALE) {
-#ifdef CONFIG_EL_LIB_JPEGENC
+#if CONFIG_EL_LIB_JPEGENC
         if (dst->format == EL_PIXEL_FORMAT_JPEG) {
             return rgb_to_jpeg(src, dst);
         }

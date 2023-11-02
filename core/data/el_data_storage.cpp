@@ -25,11 +25,11 @@
 
 #include "el_data_storage.hpp"
 
-#ifdef CONFIG_EL_STORAGE
+#if CONFIG_EL_STORAGE
 
 namespace edgelab {
 
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
 Storage::Storage() : __lock(), __kvdb(new fdb_kvdb{}) { EL_ASSERT(__kvdb); }
     #else
 Storage::Storage() : __lock() {}
@@ -39,7 +39,7 @@ Storage::~Storage() { deinit(); };
 
 el_err_code_t Storage::init(const char* name, const char* path) {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     return fdb_kvdb_init(__kvdb, name, path, nullptr, nullptr) == FDB_NO_ERR ? EL_OK : EL_EINVAL;
     #else
     return EL_OK;
@@ -48,7 +48,7 @@ el_err_code_t Storage::init(const char* name, const char* path) {
 
 void Storage::deinit() {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     if (__kvdb && (fdb_kvdb_deinit(__kvdb) == FDB_NO_ERR)) [[likely]] {
         delete __kvdb;
         __kvdb = nullptr;
@@ -58,7 +58,7 @@ void Storage::deinit() {
 
 bool Storage::contains(const char* key) const {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     if (!key || !__kvdb) [[unlikely]]
         return false;
     fdb_kv kv{};
@@ -70,7 +70,7 @@ bool Storage::contains(const char* key) const {
 
 size_t Storage::get_value_size(const char* key) const {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     fdb_kv   handler{};
     fdb_kv_t p_handler = fdb_kv_get_obj(__kvdb, key, &handler);
     if (!p_handler || !p_handler->value_len) [[unlikely]]
@@ -89,7 +89,7 @@ Storage::Iterator Storage::cend() const { return Iterator(nullptr); }
 
 bool Storage::erase(const char* key) {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     return fdb_kv_del(__kvdb, key) == FDB_NO_ERR;
     #else
     return true;
@@ -98,7 +98,7 @@ bool Storage::erase(const char* key) {
 
 void Storage::clear() {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     if (!__kvdb) [[unlikely]]
         return;
     struct fdb_kv_iterator iterator;
@@ -109,7 +109,7 @@ void Storage::clear() {
 
 bool Storage::reset() {
     const Guard<Mutex> guard(__lock);
-    #ifdef CONFIG_EL_LIB_FLASHDB
+    #if CONFIG_EL_LIB_FLASHDB
     return __kvdb ? fdb_kv_set_default(__kvdb) == FDB_NO_ERR : false;
     #else
     return true;

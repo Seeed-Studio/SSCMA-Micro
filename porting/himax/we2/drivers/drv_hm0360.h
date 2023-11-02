@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 Hongtai Liu, nullptr (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,40 @@
  *
  */
 
-#ifndef _EL_BOARD_CONFIG_H_
-#define _EL_BOARD_CONFIG_H_
+#ifndef _DRV_HM0360_H_
+#define _DRV_HM0360_H_
 
-#include <sdkconfig.h>
+/* MCU */
+#include <WE2_device.h>
+#include <hx_drv_CIS_common.h>
+#include <hx_drv_scu.h>
+#include <sensor_dp_lib.h>
 
-#include "boards/boards.h"
-#include "core/el_config.h"
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    #include <freertos/FreeRTOS.h>
-    #include <freertos/queue.h>
-    #include <freertos/semphr.h>
-    #include <freertos/task.h>
+#include "core/el_debug.h"
+#include "core/el_types.h"
+
+#define DEAULT_XHSUTDOWN_PIN AON_GPIO2
+#define HM0360_MAX_WIDTH     640
+#define HM0360_MAX_HEIGHT    480
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height);
+el_err_code_t drv_hm0360_deinit();
+el_err_code_t drv_hm0360_capture(uint32_t timeout);
+el_img_t      drv_hm0360_get_frame();
+el_img_t      drv_hm0360_get_jpeg();
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

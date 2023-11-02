@@ -6,7 +6,7 @@
 #include <string>
 
 #include "sscma/definations.hpp"
-#include "sscma/static_resourse.hpp"
+#include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
@@ -14,34 +14,32 @@ namespace sscma::callback {
 using namespace sscma::utility;
 
 void set_action(const std::vector<std::string>& argv) {
-    auto hash = static_resourse->action_cond->get_condition_hash();
-    auto ret  = static_resourse->action_cond->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
+    auto hash = static_resource->action->get_condition_hash();
+    auto ret  = static_resource->action->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto ActionReply;
 
-    if (hash != static_resourse->action_cond->get_condition_hash()) [[likely]] {
-        hash = static_resourse->action_cond->get_condition_hash();
-        static_resourse->action_cond->set_exception_cb(
+    if (hash != static_resource->action->get_condition_hash()) [[likely]] {
+        hash = static_resource->action->get_condition_hash();
+        static_resource->action->set_exception_cb(
           [cmd = argv[0],
            exp = quoted(argv[1]),
            ec  = std::to_string(EL_ELOG),
-           crc = std::to_string(static_resourse->action_cond->get_condition_hash())]() {
-              std::string ss{concat_strings(REPLY_EVT_HEADER,
-                                            "\"name\": \"",
-                                            cmd,
-                                            "\", \"code\": ",
-                                            ec,
-                                            ", \"data\": {\"crc16_maxim\": ",
-                                            crc,
-                                            ", \"action\": ",
-                                            exp,
-                                            "}}\n")};
-
-              static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+           crc = std::to_string(static_resource->action->get_condition_hash())]() {
+              const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
+                                              cmd,
+                                              "\", \"code\": ",
+                                              ec,
+                                              ", \"data\": {\"crc16_maxim\": ",
+                                              crc,
+                                              ", \"action\": ",
+                                              exp,
+                                              "}}\n");
+              static_resource->transport->send_bytes(ss.c_str(), ss.size());
           });
-        auto mutable_map = static_resourse->action_cond->get_mutable_map();
+        auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
-            const auto& argv = tokenize_function_2_argv(kv.first);
+            auto argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
                 continue;
 
@@ -55,19 +53,19 @@ void set_action(const std::vector<std::string>& argv) {
                 }
             }
         }
-        static_resourse->action_cond->set_mutable_map(mutable_map);
+        static_resource->action->set_mutable_map(mutable_map);
 
-        if (static_resourse->is_ready.load()) [[likely]] {
-            char action[CMD_MAX_LENGTH]{};
+        if (static_resource->is_ready.load()) [[likely]] {
+            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             std::strncpy(
-              action, argv[1].c_str(), argv[1].length() < CMD_MAX_LENGTH ? argv[1].length() : CMD_MAX_LENGTH - 1);
-            ret = static_resourse->storage->emplace(el_make_storage_kv("edgelab_action", action)) ? EL_OK : EL_EIO;
+              action, argv[1].c_str(), argv[1].length() < CONFIG_SSCMA_CMD_MAX_LENGTH ? argv[1].length() : CONFIG_SSCMA_CMD_MAX_LENGTH - 1);
+            ret =
+              static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         }
     }
 
 ActionReply:
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -77,21 +75,20 @@ ActionReply:
                                   quoted(argv[1]),
                                   "}}\n")};
 
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_action(const std::string& cmd) {
-    char     action[CMD_MAX_LENGTH]{};
+    char     action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 
-    if (static_resourse->action_cond->has_condition() && static_resourse->storage->contains("edgelab_action")) {
-        ret         = static_resourse->storage->get(el_make_storage_kv("edgelab_action", action)) ? EL_OK : EL_EINVAL;
+    if (static_resource->action->has_condition() && static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) {
+        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EINVAL;
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
-    std::string ss{concat_strings(REPLY_CMD_HEADER,
-                                  "\"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -101,7 +98,7 @@ void get_action(const std::string& cmd) {
                                   quoted(action),
                                   "}}\n")};
 
-    static_resourse->transport->send_bytes(ss.c_str(), ss.size());
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

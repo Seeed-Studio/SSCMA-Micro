@@ -13,11 +13,13 @@
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
 #include "sscma/definations.hpp"
+#include "sscma/traits.hpp"
 
 namespace sscma::utility {
 
 using namespace edgelab;
 using namespace edgelab::utility;
+using namespace sscma::traits;
 
 namespace string_concat {
 
@@ -29,13 +31,14 @@ constexpr inline std::size_t lengthof(const char* s) {
 
 template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T (&)[N]) noexcept { return N; }
 
-constexpr inline std::size_t lengthof(const std::string& s) { return s.length(); }
+inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
-template <typename... Args> constexpr inline std::string concat_strings(Args&&... args) {
+template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};
     std::string result;
     result.reserve(length);
-    return (result.append(std::forward<Args>(args)), ...);
+    (result.append(std::forward<Args>(args)), ...);
+    return result;
 }
 
 }  // namespace string_concat
@@ -108,13 +111,13 @@ std::string sensor_info_2_json_str(el_sensor_info_t sensor_info) {
 
 template <typename T> constexpr std::string results_2_json_str(const std::forward_list<T>& results) {
     std::string ss;
+    const char* delim = "";
 
-    DELIM_RESET;
     if constexpr (std::is_same<T, el_box_t>::value) {
         ss = "\"boxes\": [";
         for (const auto& box : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[",
+            ss += concat_strings(delim,
+                                 "[",
                                  std::to_string(box.x),
                                  ", ",
                                  std::to_string(box.y),
@@ -127,12 +130,13 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  ", ",
                                  std::to_string(box.target),
                                  "]");
+            delim = ", ";
         }
     } else if constexpr (std::is_same<T, el_point_t>::value) {
         ss = "\"points\": [";
         for (const auto& point : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[",
+            ss += concat_strings(delim,
+                                 "[",
                                  std::to_string(point.x),
                                  ", ",
                                  std::to_string(point.y),
@@ -141,12 +145,13 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
                                  ", ",
                                  std::to_string(point.target),
                                  "]");
+            delim = ", ";
         }
     } else if constexpr (std::is_same<T, el_class_t>::value) {
         ss = "\"classes\": [";
         for (const auto& cls : results) {
-            DELIM_PRINT(ss);
-            ss += concat_strings("[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
+            ss += concat_strings(delim, "[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
+            delim = ", ";
         }
     }
     ss += "]";
@@ -154,21 +159,38 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
     return ss;
 }
 
+// TODO: support reallocate memory when image size (width or height) changes
+std::string img_2_json_str(const el_img_t* img) {
+    if (!img || !img->data) [[unlikely]]
+        return "\"image\": \"\"";
+
+    static std::size_t size        = img->width * img->height * 3;
+    static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
+    static char*       buffer      = new char[buffer_size]{};
+    std::memset(buffer, 0, buffer_size);
+    el_base64_encode(img->data, img->size, buffer);
+
+    return concat_strings("\"image\": \"", buffer, "\"");
+}
+
 // TODO: avoid repeatly allocate/release memory in for loop
 std::string img_2_jpeg_json_str(const el_img_t* img) {
     if (!img || !img->data) [[unlikely]]
         return "\"image\": \"\"";
 
-    std::string ss("\"image\": \"");
-    // TODO: reallocate jpeg_data buffer when resolution changed
     static std::size_t size      = img->width * img->height * 3;
     static uint8_t*    jpeg_data = new uint8_t[size]{};
-    auto               jpeg_img  = el_img_t{.data   = jpeg_data,
-                                            .size   = size,
-                                            .width  = img->width,
-                                            .height = img->height,
-                                            .format = EL_PIXEL_FORMAT_JPEG,
-                                            .rotate = img->rotate};
+    if (img->width * img->height * 3 != size) [[unlikely]] {
+        size = img->width * img->height * 3;
+        delete[] jpeg_data;
+        jpeg_data = new uint8_t[size]{};
+    }
+    auto jpeg_img = el_img_t{.data   = jpeg_data,
+                             .size   = size,
+                             .width  = img->width,
+                             .height = img->height,
+                             .format = EL_PIXEL_FORMAT_JPEG,
+                             .rotate = img->rotate};
     std::memset(jpeg_data, 0, size);
     if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
         // allocate static buffer using maxium size
@@ -176,11 +198,10 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
         static char*       buffer      = new char[buffer_size]{};
         std::memset(buffer, 0, buffer_size);
         el_base64_encode(jpeg_img.data, jpeg_img.size, buffer);
-        ss += buffer;
+        return concat_strings("\"image\": \"", buffer, "\"");
     }
-    ss += "\"";
 
-    return ss;
+    return "\"image\": \"\"";
 }
 
 std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
@@ -193,36 +214,35 @@ std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
                           "}");
 }
 
-template <typename InfoConfType> std::string algorithm_info_and_conf_2_json_str(const InfoConfType& info_and_conf) {
+template <typename AlgorithmConfigType> std::string algorithm_config_2_json_str(const AlgorithmConfigType& config) {
+    bool        comma{false};
     std::string ss{concat_strings("{\"type\": ",
-                                  std::to_string(info_and_conf.info.type),
+                                  std::to_string(config.info.type),
                                   ", \"categroy\": ",
-                                  std::to_string(info_and_conf.info.categroy),
+                                  std::to_string(config.info.categroy),
                                   ", \"input_from\": ",
-                                  std::to_string(info_and_conf.info.input_from),
+                                  std::to_string(config.info.input_from),
                                   ", \"config\": {")};
-    if constexpr (std::is_same<InfoConfType, el_algorithm_fomo_config_t>::value ||
-                  std::is_same<InfoConfType, el_algorithm_imcls_config_t>::value)
-        ss += concat_strings("\"tscore\": ", std::to_string(info_and_conf.score_threshold));
-    else if constexpr (std::is_same<InfoConfType, el_algorithm_yolo_config_t>::value)
-        ss += concat_strings("\"tscore\": ",
-                             std::to_string(info_and_conf.score_threshold),
-                             ", \"tiou\": ",
-                             std::to_string(info_and_conf.iou_threshold));
+    if constexpr (has_member_score_threshold<typename std::remove_reference<decltype(config)>::type>()) {
+        ss += concat_strings("\"tscore\": ", std::to_string(config.score_threshold));
+        comma = true;
+    }
+    if constexpr (has_member_iou_threshold<typename std::remove_reference<decltype(config)>::type>()) {
+        if (comma) ss += ", ";
+        ss += concat_strings("\"tiou\": ", std::to_string(config.iou_threshold));
+        comma = true;
+    }
     ss += "}}";
 
     return ss;
 }
 
-template <typename AlgorithmType>
-std::string img_invoke_results_2_json_str(
-  const AlgorithmType* algorithm, const el_img_t* img, const std::string& cmd, bool result_only, el_err_code_t ret) {
-    std::string ss{concat_strings(REPLY_EVT_HEADER,
-                                  "\"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"perf\": [",
+template <typename AlgorithmType> std::string algorithm_config_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+    return algorithm_config_2_json_str(algorithm->get_algorithm_config());
+}
+
+template <typename AlgorithmType> std::string algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+    std::string ss{concat_strings("\"perf\": [",
                                   std::to_string(algorithm->get_preprocess_time()),
                                   ", ",
                                   std::to_string(algorithm->get_run_time()),
@@ -230,8 +250,6 @@ std::string img_invoke_results_2_json_str(
                                   std::to_string(algorithm->get_postprocess_time()),
                                   "], ",
                                   results_2_json_str(algorithm->get_results()))};
-    if (!result_only) ss += concat_strings(", ", img_2_jpeg_json_str(img));
-    ss += "}}\n";
 
     return ss;
 }

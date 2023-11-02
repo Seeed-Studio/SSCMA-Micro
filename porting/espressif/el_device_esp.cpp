@@ -32,15 +32,17 @@
 
 #include <cstdint>
 
-#include "porting/espressif/el_camera_esp.h"
-#include "porting/espressif/el_display_esp.h"
-#include "porting/espressif/el_serial_esp.h"
+#include "el_camera_esp.h"
+#include "el_display_esp.h"
+#include "el_serial_esp.h"
 
 namespace edgelab {
 
-static inline uint32_t device_id_from_efuse() {
+namespace porting {
+
+static inline uint32_t _device_id_from_efuse() {
     char*     id_full = new char[16]{};
-    esp_err_t err     = esp_efuse_read_field_blob(ESP_EFUSE_OPTIONAL_UNIQUE_ID, id_full, 16 * 8);
+    esp_err_t err     = esp_efuse_read_field_blob(ESP_EFUSE_OPTIONAL_UNIQUE_ID, id_full, 16u << 3);
 
     if (err != ESP_OK) [[unlikely]]
         return 0ul;
@@ -57,30 +59,33 @@ static inline uint32_t device_id_from_efuse() {
     return hash;
 }
 
-DeviceEsp::DeviceEsp() {
+}  // namespace porting
+
+void DeviceEsp::init() {
     this->_device_name = "Seeed Studio XIAO (ESP32-S3)";
-    this->_device_id   = device_id_from_efuse();
+    this->_device_id   = porting::_device_id_from_efuse();
     this->_revision_id = efuse_hal_chip_revision();
 
-    static CameraEsp  camera{};
-    static DisplayEsp display{};
-    static SerialEsp  serial{
-      usb_serial_jtag_driver_config_t{.tx_buffer_size = 8192, .rx_buffer_size = 8192}
-    };
-
-    this->_camera  = &camera;
-    this->_display = &display;
-    this->_serial  = &serial;
-
     static uint8_t sensor_id = 0;
+
+    static CameraEsp camera{};
+    this->_camera = &camera;
     this->_registered_sensors.emplace_front(el_sensor_info_t{
       .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
+
+    static DisplayEsp display{};
+    this->_display = &display;
+
+    static SerialEsp transport{
+      usb_serial_jtag_driver_config_t{.tx_buffer_size = 8192, .rx_buffer_size = 8192}
+    };
+    this->_transport = &transport;
 }
 
-void DeviceEsp::restart() { esp_restart(); }
+void DeviceEsp::reset() { esp_restart(); }
 
 Device* Device::get_device() {
-    static DeviceEsp device;
+    static DeviceEsp device{};
     return &device;
 }
 

@@ -50,7 +50,7 @@ struct el_algorithm_yolo_config_t {
 
 }  // namespace types
 
-class AlgorithmYOLO : public Algorithm {
+class AlgorithmYOLO final : public Algorithm {
    public:
     using ImageType  = el_img_t;
     using BoxType    = el_box_t;

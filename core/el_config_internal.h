@@ -26,7 +26,7 @@
 #ifndef _EL_CONFIG_INTERNAL_H_
 #define _EL_CONFIG_INTERNAL_H_
 
-#include "core/el_config.h"
+#include <el_config_porting.h>
 
 /* debug config check */
 #ifndef CONFIG_EL_DEBUG
@@ -85,18 +85,29 @@
 
 /* model related config */
 #ifndef CONFIG_EL_MODEL
-    #define CONFIG_EL_MODEL
+    #define CONFIG_EL_MODEL                1
     #define CONFIG_EL_MODEL_TFLITE_MAGIC   0x54464C33
-    #define CONFIG_EL_MODEL_HEADER_MAGIC   0x4C4854
+    #define CONFIG_EL_MODEL_HEADER_MAGIC   0x004C4854
     #define CONFIG_EL_MODEL_PARTITION_NAME "models"
+#endif
+
+/* sensor related config */
+#ifndef CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
+    #define CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC 0
+#endif
+
+/* third-party libraries */
+#ifndef CONFIG_EL_LIB_FLASHDB
+    #define CONFIG_EL_LIB_FLASHDB 1
+#endif
+
+#ifndef CONFIG_EL_LIB_JPEGENC
+    #define CONFIG_EL_LIB_JPEGENC 1
 #endif
 
 /* storage related config */
 #ifndef CONFIG_EL_STORAGE
-    #define CONFIG_EL_STORAGE
-    #ifndef CONFIG_EL_LIB_FLASHDB
-        #warning "Storage depends on FlashDB."
-    #endif
+    #define CONFIG_EL_STORAGE                       1
     #define CONFIG_EL_STORAGE_NAME                  "edgelab_db"
     #define CONFIG_EL_STORAGE_PATH                  "kvdb0"
     #define CONFIG_EL_STORAGE_PARTITION_NAME        "db"
@@ -106,6 +117,10 @@
     #define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
 #endif
 
-#include "el_board_config.h"
+#if CONFIG_EL_STORAGE
+    #ifndef CONFIG_EL_LIB_FLASHDB
+        #warning "Storage depends on FlashDB"
+    #endif
+#endif
 
 #endif

@@ -30,7 +30,6 @@
 #include "core/data/el_data_models.h"
 #include "core/data/el_data_storage.hpp"
 #include "core/el_compiler.h"
-#include "core/el_config_internal.h"
 #include "core/el_debug.h"
 #include "core/el_types.h"
 #include "core/engine/el_engine_tflite.h"

@@ -47,7 +47,7 @@ struct el_algorithm_pfld_config_t {
 
 }  // namespace types
 
-class AlgorithmPFLD : public Algorithm {
+class AlgorithmPFLD final : public Algorithm {
    public:
     using ImageType  = el_img_t;
     using PointType  = el_point_t;

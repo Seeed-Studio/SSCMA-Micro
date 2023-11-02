@@ -28,14 +28,12 @@
 
 #include "core/el_config_internal.h"
 
-#ifdef CONFIG_EL_MODEL
-
+#if CONFIG_EL_MODEL
     #include <cstdint>
     #include <forward_list>
 
     #include "core/el_debug.h"
     #include "core/el_types.h"
-    #include "porting/el_flash.h"
 
 namespace edgelab {
 
@@ -47,8 +45,7 @@ class Models {
     Models(const Models&)            = delete;
     Models& operator=(const Models&) = delete;
 
-    el_err_code_t init(const char*              partition_name = CONFIG_EL_MODEL_PARTITION_NAME,
-                       const el_model_format_v& model_format = EL_MODEL_FMT_PACKED_TFLITE | EL_MODEL_FMT_PLAIN_TFLITE);
+    el_err_code_t init(el_model_format_v model_format = EL_MODEL_FMT_PACKED_TFLITE | EL_MODEL_FMT_PLAIN_TFLITE);
     void          deinit();
 
     size_t                                    seek_models_from_flash(const el_model_format_v& model_format);
@@ -66,7 +63,7 @@ class Models {
     uint32_t                           __partition_start_addr;
     uint32_t                           __partition_size;
     const uint8_t*                     __flash_2_memory_map;
-    el_model_mmap_handler_t            __mmap_handler;
+    uint32_t                           __mmap_handler;
     uint16_t                           __model_id_mask;
     std::forward_list<el_model_info_t> __model_info;
 };

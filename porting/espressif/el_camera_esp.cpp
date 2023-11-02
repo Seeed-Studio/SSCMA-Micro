@@ -25,7 +25,12 @@
 
 #include "el_camera_esp.h"
 
+#include <esp_log.h>
+
 #include "core/el_debug.h"
+#include "el_config_porting.h"
+
+#define XCLK_FREQ_HZ 15000000
 
 namespace edgelab {
 
@@ -117,6 +122,8 @@ el_err_code_t CameraEsp::get_frame(el_img_t* img) {
     img->format = EL_PIXEL_FORMAT_RGB565;
     return EL_OK;
 }
+
+el_err_code_t CameraEsp::get_processed_frame(el_img_t* img) { return EL_ENOTSUP; }
 
 framesize_t CameraEsp::fit_resolution(size_t width, size_t height) {
     framesize_t res = FRAMESIZE_INVALID;

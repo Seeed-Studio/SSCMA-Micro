@@ -27,17 +27,13 @@
 #define _EL_CAMERA_ESP_H_
 
 #include <esp_camera.h>
-#include <esp_log.h>
 
 #include "core/el_types.h"
 #include "porting/el_camera.h"
-#include "porting/espressif/el_board_config.h"
-
-#define XCLK_FREQ_HZ 15000000
 
 namespace edgelab {
 
-class CameraEsp : public Camera {
+class CameraEsp final : public Camera {
    public:
     CameraEsp()  = default;
     ~CameraEsp() = default;
@@ -49,6 +45,7 @@ class CameraEsp : public Camera {
     el_err_code_t stop_stream() override;
 
     el_err_code_t get_frame(el_img_t* img) override;
+    el_err_code_t get_processed_frame(el_img_t* img) override;
 
    protected:
     framesize_t fit_resolution(size_t width, size_t height);
