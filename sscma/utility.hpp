@@ -31,7 +31,7 @@ constexpr inline std::size_t lengthof(const char* s) {
 
 template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T (&)[N]) noexcept { return N; }
 
-constexpr inline std::size_t lengthof(const std::string& s) { return s.length(); }
+inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
 template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};

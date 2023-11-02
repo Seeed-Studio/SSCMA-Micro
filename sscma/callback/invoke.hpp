@@ -26,7 +26,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         };
     }
 
-    ~Invoke() { static_resource->is_invoke.store(false, std::memory_order_release); }
+    ~Invoke() { static_resource->is_invoke.store(false); }
 
     inline void run() { prepare(); }
 
@@ -39,7 +39,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _times{0},
           _ret{EL_OK},
           _action_hash{0} {
-        static_resource->is_invoke.store(true, std::memory_order_release);
+        static_resource->is_invoke.store(true);
     }
 
    private:

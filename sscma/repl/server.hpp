@@ -236,7 +236,7 @@ class Server {
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r> ", _line, "\033[K");
                 } else if (_ctrl_line.compare("[C") == 0) {
-                    if (_line_index < _line.size() - 1) {
+                    if (_line_index < static_cast<int>(_line.size()) - 1) {
                         ++_line_index;
                         m_echo_cb(EL_OK, "\033", _ctrl_line);
                     }
@@ -252,7 +252,7 @@ class Server {
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
                 } else if (_ctrl_line.compare("[3~") == 0) {
-                    if (_line_index < _line.size() - 1) {
+                    if (_line_index < static_cast<int>(_line.size()) - 1) {
                         if (!_line.empty() && _line_index >= 0) {
                             _line.erase(_line_index + 1, 1);
                             --_line_index;
@@ -300,7 +300,7 @@ class Server {
         default:
             if (std::isprint(c)) {
                 _line.insert(++_line_index, 1, c);
-                if (_line_index == (_line.size() - 1))
+                if (_line_index == static_cast<int>(_line.size()) - 1)
                     m_echo_cb(EL_OK, std::to_string(c));
                 else
                     m_echo_cb(EL_OK, "\r> ", _line, "\033[", std::to_string(_line_index + 4), "G");
@@ -359,7 +359,7 @@ class Server {
         std::stack<char> stk;
         size_t           index = 0;
         size_t           size  = cmd_args.size();
-        while (index < size && argv.size() < (it->_argc + 1)) {
+        while (index < size && argv.size() < it->_argc + 1u) {
             char c = cmd_args.at(index);
             if (c == '\'' || c == '"') [[unlikely]] {
                 stk.push(c);
@@ -384,7 +384,7 @@ class Server {
         }
         argv.shrink_to_fit();
 
-        if (argv.size() != (it->_argc + 1)) [[unlikely]] {
+        if (argv.size() != it->_argc + 1u) [[unlikely]] {
             m_echo_cb(EL_EINVAL, "Command ", cmd_name, " got wrong arguements.\n");
             return ret;
         }

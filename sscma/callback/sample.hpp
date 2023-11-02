@@ -22,7 +22,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         };
     }
 
-    ~Sample() { static_resource->is_sample.store(false, std::memory_order_release); }
+    ~Sample() { static_resource->is_sample.store(false); }
 
     inline void run() { prepare(); }
 
@@ -34,7 +34,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
           _times{0},
           _ret{EL_OK} {
-        static_resource->is_sample.store(true, std::memory_order_release);
+        static_resource->is_sample.store(true);
     }
 
    private:

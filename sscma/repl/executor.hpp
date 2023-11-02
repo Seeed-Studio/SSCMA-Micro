@@ -42,7 +42,7 @@ class Executor {
     ~Executor() {
         _task_stop_requested.store(true, std::memory_order_seq_cst);
         _worker_thread_stop_requested.store(true, std::memory_order_seq_cst);
-        while (_worker_thread_stop_requested.load(std::memory_order_release)) yield();  // wait for destory
+        while (_worker_thread_stop_requested.load()) yield();  // wait for destory
         vTaskDelete(_worker_handler);
     }
 
@@ -52,7 +52,7 @@ class Executor {
     }
 
     inline bool try_stop_task() {
-        bool has_requested = !_task_stop_requested.load(std::memory_order_release);
+        bool has_requested = !_task_stop_requested.load();
         _task_stop_requested.store(true, std::memory_order_seq_cst);
         return has_requested;
     }
@@ -67,7 +67,7 @@ class Executor {
     inline void yield() const { vTaskDelay(10 / portTICK_PERIOD_MS); }
 
     void run() {
-        while (!_worker_thread_stop_requested.load(std::memory_order_release)) {
+        while (!_worker_thread_stop_requested.load()) {
             repl_task_t task{};
             {
                 const Guard<Mutex> guard(_task_queue_lock);
@@ -76,9 +76,9 @@ class Executor {
                     _task_queue.pop();
                 }
             }  // RAII is important here
-            if (task && !_task_stop_requested.load(std::memory_order_release)) [[likely]] {
+            if (task && !_task_stop_requested.load()) [[likely]] {
                 task(_task_stop_requested);
-                if (_task_stop_requested.load(std::memory_order_release)) [[unlikely]]  // did request stop
+                if (_task_stop_requested.load()) [[unlikely]]  // did request stop
                     _task_stop_requested.store(false, std::memory_order_seq_cst);       // reset the flag
                 continue;                                                               // skip yield
             }
