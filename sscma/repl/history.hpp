@@ -12,7 +12,7 @@ namespace sscma::repl {
 
 class History {
    public:
-    History(int max_size = REPL_HISTORY_MAX) : _max_size(max_size) {}
+    History(int max_size = CONFIG_SSCMA_REPL_HISTORY_MAX) : _max_size(max_size) {}
 
     ~History() = default;
 

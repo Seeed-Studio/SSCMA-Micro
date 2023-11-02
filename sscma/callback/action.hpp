@@ -56,9 +56,9 @@ void set_action(const std::vector<std::string>& argv) {
         static_resource->action->set_mutable_map(mutable_map);
 
         if (static_resource->is_ready.load()) [[likely]] {
-            char action[CMD_MAX_LENGTH]{};
+            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             std::strncpy(
-              action, argv[1].c_str(), argv[1].length() < CMD_MAX_LENGTH ? argv[1].length() : CMD_MAX_LENGTH - 1);
+              action, argv[1].c_str(), argv[1].length() < CONFIG_SSCMA_CMD_MAX_LENGTH ? argv[1].length() : CONFIG_SSCMA_CMD_MAX_LENGTH - 1);
             ret =
               static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         }
@@ -79,7 +79,7 @@ ActionReply:
 }
 
 void get_action(const std::string& cmd) {
-    char     action[CMD_MAX_LENGTH]{};
+    char     action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 

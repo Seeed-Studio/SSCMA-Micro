@@ -25,8 +25,10 @@
 
 #include "el_camera_ov5647.h"
 
+extern "C" {
 #include <drivers/drv_ov5647.h>
 #include <sensor_dp_lib.h>
+}
 
 namespace edgelab {
 

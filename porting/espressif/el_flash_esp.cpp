@@ -37,7 +37,7 @@ namespace edgelab {
 #if CONFIG_EL_MODEL
 namespace internal {
 
-el_err_code_t el_model_partition_mmap_init(uint32_t*       partition_start_addr,
+el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
                                            uint32_t*       partition_size,
                                            const uint8_t** flash_2_memory_map,
                                            uint32_t*       mmap_handler) {
@@ -58,7 +58,7 @@ el_err_code_t el_model_partition_mmap_init(uint32_t*       partition_start_addr,
     return ret != ESP_OK ? EL_EINVAL : EL_OK;
 }
 
-void el_model_partition_mmap_deinit(uint32_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
+void _el_model_partition_mmap_deinit(uint32_t* mmap_handler) { spi_flash_munmap(*mmap_handler); }
 
 }  // namespace internal
 #endif

@@ -25,8 +25,10 @@
 
 #include "el_camera_hm0360.h"
 
+extern "C" {
 #include <drivers/drv_hm0360.h>
 #include <sensor_dp_lib.h>
+}
 
 namespace edgelab {
 

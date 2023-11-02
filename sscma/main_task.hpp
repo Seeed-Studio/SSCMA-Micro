@@ -49,7 +49,7 @@ void run() {
 
     static_resource->instance->register_cmd(
       "RST", "Reboot device", "", repl_cmd_cb_t([](std::vector<std::string> argv) {
-          static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->device->restart(); });
+          static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->device->reset(); });
           return EL_OK;
       }));
 
@@ -225,7 +225,7 @@ void run() {
               concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1"));
 
         if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
-            char action[CMD_MAX_LENGTH]{};
+            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
             static_resource->instance->exec(concat_strings("AT+ACTION=", quoted(action)));
         }
@@ -234,9 +234,9 @@ void run() {
     }
 
     // enter service loop
-    char* buf = new char[CMD_MAX_LENGTH]{};
+    char* buf = new char[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
     for (;;) {
-        static_resource->transport->get_line(buf, CMD_MAX_LENGTH);
+        static_resource->transport->get_line(buf, CONFIG_SSCMA_CMD_MAX_LENGTH);
         if (std::strlen(buf) > 1) [[likely]]
             static_resource->instance->exec(buf);
     }

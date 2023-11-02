@@ -35,7 +35,7 @@ class Executor {
         _worker_name += hex_literals[worker_id & 0x0f];
 
         [[maybe_unused]] auto ret = xTaskCreate(
-          &Executor::c_run, _worker_name.c_str(), REPL_EXECUTOR_STACK_SIZE, this, REPL_EXECUTOR_PRIO, &_worker_handler);
+          &Executor::c_run, _worker_name.c_str(), CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE, this, CONFIG_SSCMA_REPL_EXECUTOR_PRIO, &_worker_handler);
         EL_ASSERT(ret == pdPASS);
     }
 
@@ -78,9 +78,9 @@ class Executor {
             }  // RAII is important here
             if (task && !_task_stop_requested.load()) [[likely]] {
                 task(_task_stop_requested);
-                if (_task_stop_requested.load()) [[unlikely]]  // did request stop
-                    _task_stop_requested.store(false, std::memory_order_seq_cst);       // reset the flag
-                continue;                                                               // skip yield
+                if (_task_stop_requested.load()) [[unlikely]]                      // did request stop
+                    _task_stop_requested.store(false, std::memory_order_seq_cst);  // reset the flag
+                continue;                                                          // skip yield
             }
             _task_stop_requested.store(false, std::memory_order_seq_cst);
             yield();

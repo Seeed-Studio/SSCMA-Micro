@@ -40,8 +40,10 @@ namespace edgelab {
 class Device {
    public:
     ~Device() = default;
-
     static Device* get_device();
+
+    virtual void init()  = 0;
+    virtual void reset() = 0;
 
     const char* get_device_name() const { return _device_name; }
     uint32_t    get_device_id() const { return _device_id; }
@@ -50,8 +52,6 @@ class Device {
     Camera*    get_camera() { return _camera; }
     Display*   get_display() { return _display; }
     Transport* get_transport() { return _transport; }
-
-    virtual void restart() = 0;
 
     el_sensor_info_t get_sensor_info(uint8_t id) const {
         auto it = std::find_if(_registered_sensors.begin(), _registered_sensors.end(), [&](const el_sensor_info_t& s) {

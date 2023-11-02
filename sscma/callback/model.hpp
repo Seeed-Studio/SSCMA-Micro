@@ -33,10 +33,10 @@ void set_model(const std::string& cmd, uint8_t model_id) {
         goto ModelReply;
 
     // TODO: allow custom align using marco
-    static auto* tensor_arena = el_aligned_malloc_once(32, TENSOR_ARENA_SIZE);
-    memset(tensor_arena, 0, TENSOR_ARENA_SIZE);
+    static auto* tensor_arena = el_aligned_malloc_once(32, CONFIG_SSCMA_TENSOR_ARENA_SIZE);
+    memset(tensor_arena, 0, CONFIG_SSCMA_TENSOR_ARENA_SIZE);
 
-    ret = static_resource->engine->init(tensor_arena, TENSOR_ARENA_SIZE);
+    ret = static_resource->engine->init(tensor_arena, CONFIG_SSCMA_TENSOR_ARENA_SIZE);
     if (ret != EL_OK) [[unlikely]]
         goto ModelError;
 

@@ -131,8 +131,26 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     inline void event_loop() {
         switch (_algorithm_info.type) {
+        case EL_ALGO_TYPE_FOMO: {
+            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
+            register_config_cmds(algorithm);
+            direct_reply(algorithm_config_2_json_str(algorithm));
+            return event_loop_cam(algorithm);
+        }
+        case EL_ALGO_TYPE_PFLD: {
+            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
+            register_config_cmds(algorithm);
+            direct_reply(algorithm_config_2_json_str(algorithm));
+            return event_loop_cam(algorithm);
+        }
         case EL_ALGO_TYPE_YOLO: {
             auto algorithm{std::make_shared<AlgorithmYOLO>(static_resource->engine)};
+            register_config_cmds(algorithm);
+            direct_reply(algorithm_config_2_json_str(algorithm));
+            return event_loop_cam(algorithm);
+        }
+        case EL_ALGO_TYPE_IMCLS: {
+            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
             return event_loop_cam(algorithm);

@@ -30,15 +30,7 @@
 extern "C" {
 #endif
 
-#include <BITOPS.h>
-#include <WE2_core.h>
 #include <WE2_device.h>
-#include <board.h>
-#include <hx_drv_pmu.h>
-#include <hx_drv_pmu_export.h>
-#include <powermode.h>
-#include <powermode_export.h>
-#include <xprintf.h>
 
 #ifdef TRUSTZONE_SEC
     #if (__ARM_FEATURE_CMSE & 1) == 0
@@ -59,9 +51,6 @@ extern "C" {
         #include <secure_port_macros.h>
     #endif
 #endif
-
-#include <ethosu_driver.h>
-#include <spi_eeprom_comm.h>
 
 #ifdef __cplusplus
 }

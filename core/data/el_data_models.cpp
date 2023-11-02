@@ -30,16 +30,16 @@
 
 namespace edgelab {
 
-namespace internal {
+namespace porting {
 
-extern el_err_code_t el_model_partition_mmap_init(uint32_t*       partition_start_addr,
-                                                  uint32_t*       partition_size,
-                                                  const uint8_t** flash_2_memory_map,
-                                                  uint32_t*       mmap_handler);
+extern el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
+                                                   uint32_t*       partition_size,
+                                                   const uint8_t** flash_2_memory_map,
+                                                   uint32_t*       mmap_handler);
 
-extern void el_model_partition_mmap_deinit(uint32_t* mmap_handler);
+extern void _el_model_partition_mmap_deinit(uint32_t* mmap_handler);
 
-}  // namespace internal
+}  // namespace porting
 
 Models::Models()
     : __partition_start_addr(0u),
@@ -52,7 +52,7 @@ Models::Models()
 Models::~Models() { deinit(); }
 
 el_err_code_t Models::init(el_model_format_v model_format) {
-    el_err_code_t ret = internal::el_model_partition_mmap_init(
+    el_err_code_t ret = porting::_el_model_partition_mmap_init(
       &__partition_start_addr, &__partition_size, &__flash_2_memory_map, &__mmap_handler);
     if (ret != EL_OK) return ret;
     seek_models_from_flash(model_format);
@@ -60,7 +60,7 @@ el_err_code_t Models::init(el_model_format_v model_format) {
 }
 
 void Models::deinit() {
-    internal::el_model_partition_mmap_deinit(&__mmap_handler);
+    porting::_el_model_partition_mmap_deinit(&__mmap_handler);
     __flash_2_memory_map = nullptr;
     __mmap_handler       = 0;
     __model_info.clear();

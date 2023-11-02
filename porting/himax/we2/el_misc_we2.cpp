@@ -23,6 +23,10 @@
  *
  */
 
+extern "C" {
+#include <xprintf.h>
+}
+
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
@@ -30,6 +34,7 @@
 #include "core/el_debug.h"
 #include "core/el_types.h"
 #include "el_config_porting.h"
+#include "porting/el_misc.h"
 
 namespace edgelab {
 
@@ -61,12 +66,10 @@ EL_ATTR_WEAK uint64_t el_get_time_us(void) {
 }
 
 EL_ATTR_WEAK int el_printf(const char* fmt, ...) {
-    vPortEnterCritical();
     va_list args;
     va_start(args, fmt);
     xvprintf(fmt, args);
     va_end(args);
-    vPortExitCritical();
     return 0;
 }
 
@@ -88,7 +91,7 @@ EL_ATTR_WEAK void* el_aligned_malloc_once(size_t align, size_t size) {
     size_t                        of      = align - (pv % align);
     void*                         aligned = cp + of;
     cp += size + of;
-    EL_ASSERT((cp - elHeap) < elHeapSize);
+    EL_ASSERT(static_cast<size_t>(cp - elHeap) < elHeapSize);
     return aligned;
 }
 

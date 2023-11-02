@@ -62,8 +62,7 @@ class StaticResource {
         return &static_resource;
     }
 
-   protected:
-    StaticResource() {
+    void init() {
         static auto v_instance{Server()};
         instance = &v_instance;
         static auto v_executor{Executor()};
@@ -82,7 +81,9 @@ class StaticResource {
         is_sample       = false;
         is_invoke       = false;
 
-        device    = Device::get_device();
+        device = Device::get_device();
+        device->init();
+
         transport = device->get_transport();
         static auto v_models{Models()};
         models = &v_models;
@@ -94,6 +95,9 @@ class StaticResource {
 
         inter_init();
     }
+
+   protected:
+    StaticResource() = default;
 
     inline void inter_init() {
         init_hardware();

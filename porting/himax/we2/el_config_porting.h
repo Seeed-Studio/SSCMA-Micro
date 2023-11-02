@@ -45,6 +45,8 @@
 #define CONFIG_EL_DEBUG                3
 
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
+#define CONFIG_SSCMA_REPL_EXECUTOR_PRIO             2
+#define CONFIG_SSCMA_TENSOR_ARENA_SIZE              (600 * 1024)
 
 #define CONFIG_EL_TFLITE
 #define CONFIG_EL_TFLITE_OP_PADV2
@@ -77,9 +79,11 @@
 #if CONFIG_EL_LIB_FLASHDB
     #include "third_party/FlashDB/fal_def.h"
 
+extern const struct fal_flash_dev _el_flash_db_nor_flash0;
+
     #define NOR_FLASH_DEV_NAME CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT
     #define FAL_FLASH_DEV_TABLE \
-        { &el_flash_db_nor_flash0, }
+        { &_el_flash_db_nor_flash0, }
 
     #define FAL_PART_HAS_TABLE_CFG
     #ifdef FAL_PART_HAS_TABLE_CFG
@@ -109,7 +113,6 @@
         #define FDB_DEBUG_ENABLE
     #endif
 
-extern const struct fal_flash_dev el_flash_db_nor_flash0;
 #endif
 
 #endif

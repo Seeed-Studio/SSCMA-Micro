@@ -27,9 +27,11 @@
 #define _EL_MISC_H_
 
 #ifdef __cplusplus
+    #include <cstdbool>
     #include <cstddef>
     #include <cstdint>
 #else
+    #include <stdbool.h>
     #include <stddef.h>
     #include <stdint.h>
 #endif

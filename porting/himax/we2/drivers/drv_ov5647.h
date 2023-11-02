@@ -23,16 +23,8 @@
  *
  */
 
-#ifndef DRV_OV5647_H_
-#define DRV_OV5647_H_
-
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "core/el_debug.h"
+#ifndef _DRV_OV5647_H_
+#define _DRV_OV5647_H_
 
 /* MCU */
 #include <WE2_core.h>
@@ -42,6 +34,15 @@
 #include <hx_drv_scu_export.h>
 #include <hx_drv_timer.h>
 #include <sensor_dp_lib.h>
+
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "core/el_debug.h"
+#include "core/el_types.h"
 
 #ifdef TRUSTZONE_SEC
     #ifdef IP_INST_NS_csirx

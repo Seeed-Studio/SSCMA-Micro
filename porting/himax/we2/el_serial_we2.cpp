@@ -25,7 +25,9 @@
 
 #include "el_serial_we2.h"
 
+extern "C" {
 #include <console_io.h>
+}
 
 #include <cctype>
 #include <cstdint>
@@ -36,7 +38,7 @@
 
 namespace edgelab {
 
-namespace internal {
+namespace container {
 
 class RingBuffer {
    public:
@@ -47,18 +49,18 @@ class RingBuffer {
             delete[] _b;
     }
 
-    void push(char ch) {
+     void push(char ch) {
         _b[_p++ % _s] = ch;
         ++_l;
     }
 
-    size_t get(char& ch) {
+     bool get(char& ch) {
         if (_l) [[likely]] {
             ch = _b[_c++ % _s];
             --_l;
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 
    private:
@@ -69,18 +71,20 @@ class RingBuffer {
     char*           _b;
 };
 
-static RingBuffer         ring_buffer{8192};
-static char      buffer[128]{};
-volatile static DEV_UART* port{nullptr};
+}  // namespace container
 
-void dma_recv(void*) {
-    ring_buffer.push(buffer[0]);
-    port->uart_read_udma(edgelab::internal::buffer, 1, (void*)edgelab::internal::dma_recv);
+namespace porting {
+
+static auto               _serial_ring_buffer  = new container::RingBuffer{8192};
+static auto               _serial_char_buffer  = new char[32]{};
+volatile static DEV_UART* _serial_port_handler = nullptr;
+
+void _serial_uart_dma_recv(void*) {
+    _serial_ring_buffer->push(_serial_char_buffer[0]);
+    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
 }
 
-}  // namespace internal
-
-SerialWE2::SerialWE2() {}
+}  // namespace porting
 
 SerialWE2::~SerialWE2() { deinit(); }
 
@@ -88,8 +92,8 @@ el_err_code_t SerialWE2::init() {
     this->console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)CONSOLE_UART_ID);
     this->console_uart->uart_open(UART_BAUDRATE_921600);
 
-    internal::port = this->console_uart;
-    internal::port->uart_read_udma(internal::buffer, 1, (void*)internal::dma_recv);
+    porting::_serial_port_handler = this->console_uart;
+    porting::_serial_uart_dma_recv(nullptr);
 
     this->_is_present = (this->console_uart != nullptr);
 
@@ -108,13 +112,7 @@ char SerialWE2::echo(bool only_visible) {
     char c{get_char()};
     if (only_visible && !isprint(c)) return c;
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    vPortEnterCritical();
     this->console_uart->uart_write(&c, sizeof(c));
-    vPortExitCritical();
-#else
-    this->console_uart->uart_write(&c, sizeof(c));
-#endif
 
     return c;
 }
@@ -123,7 +121,7 @@ char SerialWE2::get_char() {
     EL_ASSERT(this->_is_present);
 
     char c{'\0'};
-    internal::ring_buffer.get(c);
+    porting::_serial_ring_buffer->get(c);
     return c;
 }
 
@@ -133,7 +131,7 @@ size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
     size_t pos{0};
     char   c{'\0'};
     while (pos < size - 1) {
-        if (!internal::ring_buffer.get(c)) continue;
+        if (!porting::_serial_ring_buffer->get(c)) continue;
 
         if (c == delim || c == 0x00) [[unlikely]] {
             buffer[pos++] = '\0';
@@ -168,9 +166,6 @@ el_err_code_t SerialWE2::send_bytes(const char* buffer, size_t size) {
     size_t sent{0};
     size_t pos_of_bytes{0};
 
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    vPortEnterCritical();
-#endif
     while (size) {
         size_t bytes_to_send{size < 8 ? size : 8};
 
@@ -178,9 +173,6 @@ el_err_code_t SerialWE2::send_bytes(const char* buffer, size_t size) {
         pos_of_bytes += bytes_to_send;
         size -= bytes_to_send;
     }
-#ifdef CONFIG_EL_HAS_FREERTOS_SUPPORT
-    vPortExitCritical();
-#endif
 
     return sent == pos_of_bytes ? EL_OK : EL_AGAIN;
 }

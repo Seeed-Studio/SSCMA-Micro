@@ -23,14 +23,8 @@
  *
  */
 
-#ifndef DRV_HM0360_H_
-#define DRV_HM0360_H_
-
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef _DRV_HM0360_H_
+#define _DRV_HM0360_H_
 
 /* MCU */
 #include <WE2_device.h>
@@ -38,8 +32,14 @@
 #include <hx_drv_scu.h>
 #include <sensor_dp_lib.h>
 
-/* el */
-#include "core/el_common.h"
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "core/el_debug.h"
+#include "core/el_types.h"
 
 #define DEAULT_XHSUTDOWN_PIN AON_GPIO2
 #define HM0360_MAX_WIDTH     640

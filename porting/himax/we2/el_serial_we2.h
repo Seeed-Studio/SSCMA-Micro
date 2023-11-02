@@ -34,8 +34,8 @@ namespace edgelab {
 
 class SerialWE2 final : public Serial {
    public:
-    SerialWE2();
-    ~SerialWE2() override;
+    SerialWE2() = default;
+    ~SerialWE2();
 
     el_err_code_t init() override;
     el_err_code_t deinit() override;

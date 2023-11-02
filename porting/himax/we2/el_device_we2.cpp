@@ -25,6 +25,13 @@
 
 #include "el_device_we2.h"
 
+extern "C" {
+#include <WE2_ARMCM55.h>
+#include <WE2_core.h>
+#include <ethosu_driver.h>
+#include <hx_drv_pmu.h>
+}
+
 #include <cstdint>
 
 #include "core/el_debug.h"
@@ -35,13 +42,13 @@
 
 namespace edgelab {
 
-namespace internal {
+namespace porting {
 
-struct ethosu_driver ethosu_drv; /* Default Ethos-U device driver */
+struct ethosu_driver _ethosu_drv; /* Default Ethos-U device driver */
 
 static void _arm_npu_irq_handler(void) {
     /* Call the default interrupt handler from the NPU driver */
-    ethosu_irq_handler(&ethosu_drv);
+    ethosu_irq_handler(&_ethosu_drv);
 }
 
 static void _arm_npu_irq_init(void) {
@@ -64,32 +71,32 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
     /* Initialise Ethos-U55 device */
     const void* ethosu_base_address = (void*)(U55_BASE);
 
-    if (0 != (err = ethosu_init(&ethosu_drv,          /* Ethos-U driver device pointer */
+    if (0 != (err = ethosu_init(&_ethosu_drv,         /* Ethos-U driver device pointer */
                                 ethosu_base_address,  /* Ethos-U NPU's base address. */
                                 NULL,                 /* Pointer to fast mem area - NULL for U55. */
                                 0,                    /* Fast mem region size. */
                                 security_enable,      /* Security enable. */
                                 privilege_enable))) { /* Privilege enable. */
-        el_printf("Failed to initalise Ethos-U device\n");
+        EL_LOGD("Failed to initalise Ethos-U device");
         return err;
     }
 
-    el_printf("Ethos-U55 device initialised\n");
+    EL_LOGD("Ethos-U55 device initialised");
 
     return 0;
 }
 
-}  // namespace internal
+}  // namespace porting
 
-DeviceWE2::DeviceWE2() {
-    uint32_t wakeup_event;
-    uint32_t wakeup_event1;
+void DeviceWE2::init() {
+    size_t wakeup_event{};
+    size_t wakeup_event1{};
 
     hx_drv_pmu_get_ctrl(PMU_pmu_wakeup_EVT, &wakeup_event);
     hx_drv_pmu_get_ctrl(PMU_pmu_wakeup_EVT1, &wakeup_event1);
-    el_printf("wakeup_event=0x%x,WakeupEvt1=0x%x\n", wakeup_event, wakeup_event1);
+    EL_LOGD("wakeup_event=0x%x,WakeupEvt1=0x%x", wakeup_event, wakeup_event1);
 
-    internal::_arm_npu_init(true, true);
+    porting::_arm_npu_init(true, true);
 
     this->_device_name = "Grove Vision AI (WE-II)";
     this->_device_id   = 0x0001;
@@ -106,10 +113,10 @@ DeviceWE2::DeviceWE2() {
     this->_transport = &transport;
 }
 
-void DeviceWE2::restart() { __NVIC_SystemReset(); }
+void DeviceWE2::reset() { __NVIC_SystemReset(); }
 
 Device* Device::get_device() {
-    static DeviceWE2 device;
+    static DeviceWE2 device{};
     return &device;
 }
 
