@@ -27,6 +27,7 @@ SSCMA-Micro is a cross-platform machine learning inference framework designed fo
 | Espressif ESP32S3 EYE       |      |
 | Seeed Studio XIAO (ESP32S3) |      |
 | Himax WE-I                  |      |
+| Himax WE-II                 |      |
 
 
 ## Structure
