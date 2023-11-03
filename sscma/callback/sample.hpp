@@ -12,7 +12,6 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-
 class Sample final : public std::enable_shared_from_this<Sample> {
    public:
     std::shared_ptr<Sample> getptr() { return shared_from_this(); }
@@ -80,9 +79,11 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     }
 
     inline void event_loop() {
+        direct_reply();
+        if (!is_everything_ok()) [[unlikely]]
+            return;
         switch (_sensor_info.type) {
         case EL_SENSOR_TYPE_CAM:
-            direct_reply();
             return event_loop_cam();
         default:
             _ret = EL_ENOTSUP;

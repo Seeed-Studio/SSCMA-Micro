@@ -135,25 +135,29 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            return event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]]
+                return event_loop_cam(algorithm);
         }
         case EL_ALGO_TYPE_PFLD: {
             auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            return event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]]
+                return event_loop_cam(algorithm);
         }
         case EL_ALGO_TYPE_YOLO: {
             auto algorithm{std::make_shared<AlgorithmYOLO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            return event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]]
+                return event_loop_cam(algorithm);
         }
         case EL_ALGO_TYPE_IMCLS: {
             auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            return event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]]
+                return event_loop_cam(algorithm);
         }
         default:
             _ret = EL_ENOTSUP;
