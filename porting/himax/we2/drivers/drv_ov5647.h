@@ -28,14 +28,13 @@
 
 /* MCU */
 #include <WE2_core.h>
+#include <ctype.h>
 #include <hx_drv_CIS_common.h>
 #include <hx_drv_hxautoi2c_mst.h>
 #include <hx_drv_scu.h>
 #include <hx_drv_scu_export.h>
 #include <hx_drv_timer.h>
 #include <sensor_dp_lib.h>
-
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +42,7 @@
 
 #include "core/el_debug.h"
 #include "core/el_types.h"
+#include "porting/el_misc.h"
 
 #ifdef TRUSTZONE_SEC
     #ifdef IP_INST_NS_csirx

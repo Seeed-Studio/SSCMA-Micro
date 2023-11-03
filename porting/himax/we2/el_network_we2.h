@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu, nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,38 @@
  *
  */
 
-#ifndef _DRV_HM0360_H_
-#define _DRV_HM0360_H_
+#ifndef _EL_NETWORK_WE2_H_
+#define _EL_NETWORK_WE2_H_
 
-/* MCU */
-#include <WE2_device.h>
-#include <ctype.h>
-#include <hx_drv_CIS_common.h>
-#include <hx_drv_scu.h>
-#include <sensor_dp_lib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "el_network_at.h"
 
 #include "core/el_debug.h"
-#include "core/el_types.h"
-#include "porting/el_misc.h"
 
-#define DEAULT_XHSUTDOWN_PIN AON_GPIO2
-#define HM0360_MAX_WIDTH     640
-#define HM0360_MAX_HEIGHT    480
+namespace edgelab {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class NetworkWE2 : public Network {
+public:
+    NetworkWE2()  = default;
+    ~NetworkWE2() = default;
 
-el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height);
-el_err_code_t drv_hm0360_deinit();
-el_err_code_t drv_hm0360_capture(uint32_t timeout);
-el_img_t      drv_hm0360_get_frame();
-el_img_t      drv_hm0360_get_jpeg();
+    void init() override;
+    void deinit() override;
+    el_net_sta_t status() override;
 
-#ifdef __cplusplus
-}
-#endif
+    el_err_code_t join(const char* ssid, const char *pwd) override;
+    el_err_code_t quit() override;
+
+    el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) override;
+    el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) override;
+    el_err_code_t unsubscribe(const char* topic) override;
+    el_err_code_t publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) override;
+
+    operator bool() const { return _is_present; }
+
+private:
+    esp_at_t* _at;
+};
+
+} // namespace edgelab
 
 #endif

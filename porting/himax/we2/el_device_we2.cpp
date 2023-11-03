@@ -36,6 +36,8 @@ extern "C" {
 
 #include "core/el_debug.h"
 #include "el_camera_ov5647.h"
+#include "el_network_at.h"
+#include "el_network_we2.h"
 #include "el_serial_we2.h"
 
 #define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
@@ -113,6 +115,9 @@ void DeviceWE2::init() {
 
     static SerialWE2 transport{};
     this->_transport = &transport;
+
+    static NetworkWE2 network{};
+    this->_network = &network;
 }
 
 void DeviceWE2::reset() { __NVIC_SystemReset(); }

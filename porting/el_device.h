@@ -30,10 +30,11 @@
 #include <forward_list>
 
 #include "core/el_types.h"
-#include "porting/el_camera.h"
-#include "porting/el_display.h"
-#include "porting/el_serial.h"
-#include "porting/el_transport.h"
+#include "el_camera.h"
+#include "el_display.h"
+#include "el_network.h"
+#include "el_serial.h"
+#include "el_transport.h"
 
 namespace edgelab {
 
@@ -52,6 +53,7 @@ class Device {
     Camera*    get_camera() { return _camera; }
     Display*   get_display() { return _display; }
     Transport* get_transport() { return _transport; }
+    Network*   get_network() { return _network; }
 
     el_sensor_info_t get_sensor_info(uint8_t id) const {
         auto it = std::find_if(_registered_sensors.begin(), _registered_sensors.end(), [&](const el_sensor_info_t& s) {
@@ -100,7 +102,7 @@ class Device {
 
    protected:
     Device()
-        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _transport(nullptr) {}
+        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _transport(nullptr), _network{nullptr} {}
 
     const char* _device_name;
     uint32_t    _device_id;
@@ -109,6 +111,7 @@ class Device {
     Camera*    _camera;
     Display*   _display;
     Transport* _transport;
+    Network*   _network;
 
     std::forward_list<el_sensor_info_t> _registered_sensors;
 };
