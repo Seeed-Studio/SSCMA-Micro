@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.10.10
+# AT Protocol Specification v2023.11.01
 
 
 ## Transmission Layer
@@ -216,33 +216,22 @@ Response:
     {
       "type": 4,
       "categroy": 3,
-      "input_from": 1,
-      "config": {
-        "tscore": 50
-      }
+      "input_from": 1
     },
     {
       "type": 3,
       "categroy": 1,
-      "input_from": 1,
-      "config": {
-        "tscore": 50,
-        "tiou": 40
-      }
+      "input_from": 1
     },
     {
       "type": 2,
       "categroy": 2,
-      "input_from": 1,
-      "config": {}
+      "input_from": 1
     },
     {
       "type": 1,
       "categroy": 1,
-      "input_from": 1,
-      "config": {
-        "tscore": 80
-      }
+      "input_from": 1
     }
   ]
 }\n
@@ -539,6 +528,7 @@ Events:
   "name": "SAMPLE",
   "code": 0,
   "data": {
+    "count": 8,
     "image": "<BASE64JPEG:String>"
   }
 }\n
@@ -590,6 +580,7 @@ Events:
   "name": "INVOKE",
   "code": 0,
   "data": {
+    "count": 8,
     "perf": [
       8,
       365,
