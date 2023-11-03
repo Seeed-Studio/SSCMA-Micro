@@ -102,7 +102,7 @@ class Device {
 
    protected:
     Device()
-        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _transport(nullptr) {}
+        : _device_name(""), _device_id(0), _revision_id(0), _camera(nullptr), _display(nullptr), _transport(nullptr), _network{nullptr} {}
 
     const char* _device_name;
     uint32_t    _device_id;

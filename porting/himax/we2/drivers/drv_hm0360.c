@@ -114,7 +114,7 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     EL_LOGD("start_x: %d start_y: %d width: %d height: %d", start_x, start_y, width, height);
 
     // DMA
-    _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 32);
+    _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 64);
     if (_jpegsize_baseaddr == 0) {
         ret = EL_ENOMEM;
         goto err;
