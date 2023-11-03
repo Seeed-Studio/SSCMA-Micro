@@ -28,11 +28,10 @@
 
 /* MCU */
 #include <WE2_device.h>
+#include <ctype.h>
 #include <hx_drv_CIS_common.h>
 #include <hx_drv_scu.h>
 #include <sensor_dp_lib.h>
-
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +39,7 @@
 
 #include "core/el_debug.h"
 #include "core/el_types.h"
+#include "porting/el_misc.h"
 
 #define DEAULT_XHSUTDOWN_PIN AON_GPIO2
 #define HM0360_MAX_WIDTH     640
