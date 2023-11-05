@@ -30,30 +30,6 @@ SSCMA-Micro is a cross-platform machine learning inference framework designed fo
 | Himax WE-II                 |      |
 
 
-## Structure
-
-```
-sscma-micro
-├── core
-│   ├── algorithm
-│   ├── data
-│   ├── engine
-│   ├── synchronize
-│   └── utils
-├── docs
-│   └── images
-├── porting
-├── sscma
-│   ├── callback
-│   │   └── internal
-│   ├── interpreter
-│   └── repl
-└── third_party
-    ├── FlashDB
-    └── JPEGENC
-```
-
-
 ## License
 
 This project is released under the [MIT license](LICENSES).
