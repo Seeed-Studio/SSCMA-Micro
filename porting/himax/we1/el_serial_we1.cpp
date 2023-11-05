@@ -23,33 +23,40 @@
  *
  */
 
-#include "el_serial_himax.h"
+#include "el_serial_we1.h"
+
+extern "C" {
+#include <console_io.h>
+#include <hx_drv_uart.h>
+}
 
 #include <cctype>
+#include <cstdint>
 
 #include "core/el_debug.h"
 #include "core/el_types.h"
+#include "el_config_porting.h"
 
 namespace edgelab {
 
-SerialEsp::SerialEsp() {}
+SerialWE1::SerialWE1() {}
 
-SerialEsp::~SerialEsp() { deinit(); }
+SerialWE1::~SerialWE1() { deinit(); }
 
-el_err_code_t SerialEsp::init() {
+el_err_code_t SerialWE1::init() {
     this->console_uart = hx_drv_uart_get_dev((USE_SS_UART_E)CONSOLE_UART_ID);
     this->_is_present  = this->console_uart != nullptr;
 
     return this->_is_present ? EL_OK : EL_EIO;
 }
 
-el_err_code_t SerialEsp::deinit() {
+el_err_code_t SerialWE1::deinit() {
     this->_is_present = (!hx_drv_uart_deinit((USE_SS_UART_E)CONSOLE_UART_ID) ? false : true);
 
     return !this->_is_present ? EL_OK : EL_EIO;
 }
 
-char SerialEsp::echo(bool only_visible) {
+char SerialWE1::echo(bool only_visible) {
     EL_ASSERT(this->_is_present);
 
     char c{get_char()};
@@ -58,7 +65,7 @@ char SerialEsp::echo(bool only_visible) {
     return c;
 }
 
-char SerialEsp::get_char() {
+char SerialWE1::get_char() {
     EL_ASSERT(this->_is_present);
 
     char c{'\0'};
@@ -66,7 +73,7 @@ char SerialEsp::get_char() {
     return c;
 }
 
-size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
+size_t SerialWE1::get_line(char* buffer, size_t size, const char delim) {
     EL_ASSERT(this->_is_present);
 
     size_t pos{0};
@@ -84,7 +91,7 @@ size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
     return pos;
 }
 
-el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
+el_err_code_t SerialWE1::read_bytes(char* buffer, size_t size) {
     EL_ASSERT(this->_is_present);
 
     size_t read{0};
@@ -101,7 +108,7 @@ el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
     return read > 0 ? EL_OK : EL_AGAIN;
 }
 
-el_err_code_t SerialEsp::send_bytes(const char* buffer, size_t size) {
+el_err_code_t SerialWE1::send_bytes(const char* buffer, size_t size) {
     EL_ASSERT(this->_is_present);
 
     size_t sent{0};

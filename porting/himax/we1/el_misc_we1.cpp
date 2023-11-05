@@ -23,20 +23,23 @@
  *
  */
 
+extern "C" {
 #include <console_io.h>
 #include <debugger.h>
 #include <embARC_debug.h>
 #include <hx_drv_timer.h>
 #include <logger.h>
+#include <xprintf.h>
+}
 
 #include <cstdarg>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 
-#include "core/el_compiler.h"
+#include "core/el_debug.h"
+#include "core/el_types.h"
+#include "el_config_porting.h"
 #include "porting/el_misc.h"
-#include "porting/himax/el_board_config.h"
 
 namespace edgelab {
 
@@ -47,20 +50,14 @@ EL_ATTR_WEAK uint64_t el_get_time_ms(void) { return (uint64_t)board_get_cur_us()
 EL_ATTR_WEAK uint64_t el_get_time_us(void) { return (uint64_t)board_get_cur_us(); }
 
 EL_ATTR_WEAK int el_printf(const char* fmt, ...) {
-    if (!debugger_available()) {
-        return -1;
-    }
-
-    char print_buf[256] = {0};
-
+    if (!debugger_available()) return -1;
+    char    print_buf[256]{};
     va_list args;
     va_start(args, fmt);
     int r = vsnprintf(print_buf, sizeof(print_buf), fmt, args);
     va_end(args);
-
-    if (r > 0) {
-        EMBARC_PRINTF("%s", print_buf);
-    }
+    if (!r) return r;
+    EMBARC_PRINTF("%s", print_buf);
 }
 
 EL_ATTR_WEAK int el_putchar(char c) { return console_putchar(c); }

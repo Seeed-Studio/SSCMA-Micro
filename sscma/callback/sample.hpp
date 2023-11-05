@@ -22,7 +22,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         };
     }
 
-    ~Sample() { static_resource->is_sample.store(false); }
+    ~Sample() { static_resource->is_sample = false; }
 
     inline void run() { prepare(); }
 
@@ -31,28 +31,37 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         : _cmd{cmd},
           _n_times{n_times},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
-
           _times{0},
           _ret{EL_OK} {
-        static_resource->is_sample.store(true);
+        static_resource->is_sample = true;
     }
 
    private:
-    void prepare() {
+    inline void prepare() {
         prepare_sensor_info();
-        check_sensor_status();
-        event_loop();
+        if (!check_sensor_status()) [[unlikely]]
+            goto Err;
+
+        static_resource->executor->add_task(
+          [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop(); });
+        return;
+
+    Err:
+        direct_reply();
     }
 
     inline void prepare_sensor_info() {
         _sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
     }
 
-    inline void check_sensor_status() {
+    inline bool check_sensor_status() {
         _ret = _sensor_info.id != 0 ? EL_OK : EL_EIO;
         if (_ret != EL_OK) [[unlikely]]
-            return;
+            return false;
         _ret = _sensor_info.state == EL_SENSOR_STA_AVAIL ? EL_OK : EL_EIO;
+        if (_ret != EL_OK) [[unlikely]]
+            return false;
+        return true;
     }
 
     inline void direct_reply() {
@@ -79,11 +88,9 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     }
 
     inline void event_loop() {
-        direct_reply();
-        if (!is_everything_ok()) [[unlikely]]
-            return;
         switch (_sensor_info.type) {
         case EL_SENSOR_TYPE_CAM:
+            direct_reply();
             return event_loop_cam();
         default:
             _ret = EL_ENOTSUP;
@@ -96,10 +103,6 @@ class Sample final : public std::enable_shared_from_this<Sample> {
             return;
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
-        if (static_resource->current_sensor_id != _sensor_info.id) [[unlikely]] {
-            prepare();
-            return;
-        }
 
         auto camera = static_resource->device->get_camera();
         auto frame  = el_img_t{};
