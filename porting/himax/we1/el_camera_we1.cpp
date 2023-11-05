@@ -23,14 +23,16 @@
  *
  */
 
-#include "el_camera_himax.h"
+#include "el_camera_we1.h"
 
+extern "C" {
 #include <camera_core.h>
 #include <datapath.h>
+}
 
 namespace edgelab {
 
-el_err_code_t CameraHimax::init(size_t width, size_t height) {
+el_err_code_t CameraWE1::init(size_t width, size_t height) {
     ERROR_T ret                         = ERROR_NONE;
     this->config.sensor_type            = SENSOR_CAMERA;
     this->config.data.camera_cfg.width  = width;
@@ -48,12 +50,12 @@ el_err_code_t CameraHimax::init(size_t width, size_t height) {
     return EL_OK;
 }
 
-el_err_code_t CameraHimax::deinit() {
+el_err_code_t CameraWE1::deinit() {
     camera_deinit();
     return EL_OK;
 }
 
-el_err_code_t CameraHimax::start_stream() {
+el_err_code_t CameraWE1::start_stream() {
     datapath_start_work();
 
     while (!datapath_get_img_state())
@@ -63,13 +65,13 @@ el_err_code_t CameraHimax::start_stream() {
     return EL_OK;
 }
 
-el_err_code_t CameraHimax::stop_stream() {
+el_err_code_t CameraWE1::stop_stream() {
     datapath_stop_work();
     this->_is_streaming = false;
     return EL_OK;
 }
 
-el_err_code_t CameraHimax::get_frame(el_img_t* img) {
+el_err_code_t CameraWE1::get_frame(el_img_t* img) {
     if (!this->_is_streaming) {
         return EL_EIO;
     }
@@ -86,7 +88,7 @@ el_err_code_t CameraHimax::get_frame(el_img_t* img) {
     return EL_OK;
 }
 
-el_err_code_t CameraHimax::get_jpeg(el_img_t* img) {
+el_err_code_t CameraWE1::get_processed_frame(el_img_t* img) {
     if (!this->_is_streaming) {
         return EL_EIO;
     }

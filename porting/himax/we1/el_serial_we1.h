@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,34 @@
  *
  */
 
-#ifndef _EL_DEVICE_HIMAX_H_
-#define _EL_DEVICE_HIMAX_H_
+#ifndef _EL_SERIAL_WE1_H_
+#define _EL_SERIAL_WE1_H_
 
-#include "porting/el_device.h"
+extern "C" {
+#include <hx_drv_uart.h>
+}
+
+#include "porting/el_serial.h"
 
 namespace edgelab {
 
-class DeviceHimax : public Device {
+class SerialWE1 final : public Serial {
    public:
-    DeviceHimax();
-    ~DeviceHimax();
+    SerialWE1();
+    ~SerialWE1() override;
 
-    void restart() override;
+    el_err_code_t init() override;
+    el_err_code_t deinit() override;
+
+    char   echo(bool only_visible = true) override;
+    char   get_char() override;
+    size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
+
+    el_err_code_t read_bytes(char* buffer, size_t size) override;
+    el_err_code_t send_bytes(const char* buffer, size_t size) override;
+
+   private:
+    DEV_UART* console_uart;
 };
 
 }  // namespace edgelab

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,37 @@
  *
  */
 
-#ifndef _WE_1_BOARD_H_
-#define _WE_1_BOARD_H_
+#ifndef _EL_CAMERA_WE1_H_
+#define _EL_CAMERA_WE1_H_
+
+extern "C" {
+#include <sensor_core.h>
+}
+
+#include "core/el_types.h"
+#include "el_config_porting.h"
+#include "porting/el_camera.h"
+
+namespace edgelab {
+
+class CameraWE1 final : public Camera {
+   public:
+    CameraWE1()  = default;
+    ~CameraWE1() = default;
+
+    el_err_code_t init(size_t width, size_t height) override;
+    el_err_code_t deinit() override;
+
+    el_err_code_t start_stream() override;
+    el_err_code_t stop_stream() override;
+
+    el_err_code_t get_frame(el_img_t* img) override;
+    el_err_code_t get_processed_frame(el_img_t* img) override;
+
+   private:
+    Sensor_Cfg_t config;
+};
+
+}  // namespace edgelab
 
 #endif

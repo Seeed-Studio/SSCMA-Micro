@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 (Seeed Technology Inc.)
+ * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,7 @@
  *
  */
 
-#ifndef _EL_BOARD_CONFIG_H_
-#define _EL_BOARD_CONFIG_H_
-
-#include "boards/boards.h"
+#ifndef _BOARD_GROVE_VISION_AI_WE1_H_
+#define _BOARD_GROVE_VISION_AI_WE1_H_
 
 #endif
