@@ -26,7 +26,10 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         };
     }
 
-    ~Invoke() { static_resource->is_invoke.store(false); }
+    ~Invoke() {
+        reset_config_cmds();
+        static_resource->is_invoke = false;
+    }
 
     inline void run() { prepare(); }
 
@@ -39,20 +42,29 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _times{0},
           _ret{EL_OK},
           _action_hash{0} {
-        static_resource->is_invoke.store(true);
+        static_resource->is_invoke = true;
     }
 
    private:
-    void prepare() {
+    inline void prepare() {
         reset_action_hash();
         reset_config_cmds();
         prepare_sensor_info();
-        check_sensor_status();
+        if (!check_sensor_status()) [[unlikely]]
+            goto Err;
         prepare_model_info();
-        check_model_status();
+        if (!check_model_status()) [[unlikely]]
+            goto Err;
         prepare_algorithm_info();
-        check_algorithm_info();
-        event_loop();
+        if (!check_algorithm_info()) [[unlikely]]
+            goto Err;
+
+        static_resource->executor->add_task(
+          [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop(); });
+        return;
+
+    Err:
+        direct_reply(algorithm_info_2_json_str(&_algorithm_info));
     }
 
     inline void reset_action_hash() { _action_hash = 0; }
@@ -80,26 +92,31 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                     el_algorithm_type_from_engine(static_resource->engine));
     }
 
-    inline void check_sensor_status() {
+    inline bool check_sensor_status() {
         _ret = _sensor_info.id != 0 ? EL_OK : EL_EIO;
         if (_ret != EL_OK) [[unlikely]]
-            return;
+            return false;
         _ret = _sensor_info.state == EL_SENSOR_STA_AVAIL ? EL_OK : EL_EIO;
+        if (_ret != EL_OK) [[unlikely]]
+            return false;
+        return true;
     }
 
-    inline void check_model_status() {
-        if (_ret != EL_OK) [[unlikely]]
-            return;
+    inline bool check_model_status() {
         _ret = _model_info.id != 0 ? EL_OK : EL_EINVAL;
+        if (_ret != EL_OK) [[unlikely]]
+            return false;
+        return true;
     }
 
-    inline void check_algorithm_info() {
-        if (_ret != EL_OK) [[unlikely]]
-            return;
+    inline bool check_algorithm_info() {
         _ret = _algorithm_info.type != EL_ALGO_TYPE_UNDEFINED ? EL_OK : EL_EINVAL;
         if (_ret != EL_OK) [[unlikely]]
-            return;
+            return false;
         _ret = _algorithm_info.input_from == _sensor_info.type ? EL_OK : EL_EINVAL;
+        if (_ret != EL_OK) [[unlikely]]
+            return false;
+        return true;
     }
 
     inline void direct_reply(std::string algorithm_config) {
@@ -266,23 +283,10 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     template <typename AlgorithmType> void event_loop_cam(std::shared_ptr<AlgorithmType> algorithm) {
-        if (_times++ == _n_times) [[unlikely]] {
-            reset_config_cmds();
+        if (_times++ == _n_times) [[unlikely]]
             return;
-        }
-        if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]] {
-            reset_config_cmds();
+        if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
-        }
-        if (static_resource->current_sensor_id != _sensor_info.id) [[unlikely]] {
-            prepare();
-            return;
-        }
-        if (static_resource->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED &&
-            static_resource->current_algorithm_type != _algorithm_info.type) [[unlikely]] {
-            prepare();
-            return;
-        }
 
         auto camera = static_resource->device->get_camera();
         auto frame  = el_img_t{};

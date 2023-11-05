@@ -20,8 +20,7 @@ void run() {
     static_resource->init();
 
     static_resource->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
-        const auto& registered_cmds = static_resource->instance->get_registered_cmds();
-        print_help(registered_cmds);
+        print_help(static_resource->instance->get_registered_cmds());
         return EL_OK;
     });
 
@@ -86,9 +85,11 @@ void run() {
 
     static_resource->instance->register_cmd(
       "MODEL", "Load a model by model ID", "MODEL_ID", [](std::vector<std::string> argv) {
-          uint8_t model_id = std::atoi(argv[1].c_str());
-          static_resource->executor->add_task([cmd = std::move(argv[0]), model_id = std::move(model_id)](
-                                                const std::atomic<bool>& stop_token) { set_model(cmd, model_id); });
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), model_id = std::atoi(argv[1].c_str())](const std::atomic<bool>&) {
+                static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+                set_model(cmd, model_id);
+            });
           return EL_OK;
       });
 
@@ -109,8 +110,10 @@ void run() {
       "ALGO", "Set a algorithm by algorithm type ID", "ALGORITHM_ID", [](std::vector<std::string> argv) {
           el_algorithm_type_t algorithm_type = static_cast<el_algorithm_type_t>(std::atoi(argv[1].c_str()));
           static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), algorithm_type = std::move(algorithm_type)](
-              const std::atomic<bool>& stop_token) { set_algorithm(cmd, algorithm_type); });
+            [cmd = std::move(argv[0]), algorithm_type = std::move(algorithm_type)](const std::atomic<bool>&) {
+                static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+                set_algorithm(cmd, algorithm_type);
+            });
           return EL_OK;
       });
 
@@ -131,9 +134,12 @@ void run() {
       "SENSOR", "Set a default sensor by sensor ID", "SENSOR_ID,ENABLE/DISABLE", [](std::vector<std::string> argv) {
           uint8_t sensor_id = std::atoi(argv[1].c_str());
           bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
-          static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), sensor_id = std::move(sensor_id), enable = std::move(enable)](
-              const std::atomic<bool>& stop_token) { set_sensor(cmd, sensor_id, enable); });
+          static_resource->executor->add_task([cmd       = std::move(argv[0]),
+                                               sensor_id = std::move(sensor_id),
+                                               enable    = std::move(enable)](const std::atomic<bool>&) {
+              static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
+              set_sensor(cmd, sensor_id, enable);
+          });
           return EL_OK;
       });
 
@@ -157,7 +163,8 @@ void run() {
       });
 
     static_resource->instance->register_cmd("SAMPLE?", "Get sample task status", "", [](std::vector<std::string> argv) {
-        task_status(argv[0], static_resource->is_sample);
+        static_resource->executor->add_task(
+          [cmd = std::move(argv[0])](const std::atomic<bool>&) { task_status(cmd, static_resource->is_sample); });
         return EL_OK;
     });
 
@@ -174,7 +181,8 @@ void run() {
 
     static_resource->instance->register_cmd(
       "INVOKE?", "Get invoke task status", "", [&](std::vector<std::string> argv) {
-          task_status(argv[0], static_resource->is_invoke);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { task_status(cmd, static_resource->is_invoke); });
           return EL_OK;
       });
 

@@ -42,8 +42,8 @@ class StaticResource final {
 
     std::atomic<size_t> current_task_id;
     std::atomic<bool>   is_ready;
-    std::atomic<bool>   is_sample;
-    std::atomic<bool>   is_invoke;
+    bool                is_sample;
+    bool                is_invoke;
 
     // external resources (hardware related)
     Device*            device;

@@ -83,13 +83,13 @@ void break_task(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void task_status(const std::string& cmd, const std::atomic<bool>& sta) {
+void task_status(const std::string& cmd, bool sta) {
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
                                   ", \"data\": ",
-                                  std::to_string(sta.load() ? 1 : 0),
+                                  std::to_string(sta ? 1 : 0),
                                   "}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
