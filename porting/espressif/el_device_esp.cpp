@@ -35,6 +35,7 @@
 #include "el_camera_esp.h"
 #include "el_display_esp.h"
 #include "el_serial_esp.h"
+#include "el_network_esp.h"
 
 namespace edgelab {
 
@@ -80,6 +81,9 @@ void DeviceEsp::init() {
       usb_serial_jtag_driver_config_t{.tx_buffer_size = 8192, .rx_buffer_size = 8192}
     };
     this->_transport = &transport;
+
+    static NetworkEsp network{};
+    this->_network = &network;
 }
 
 void DeviceEsp::reset() { esp_restart(); }

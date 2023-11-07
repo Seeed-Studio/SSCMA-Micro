@@ -48,6 +48,7 @@ typedef enum {
     EL_EBUSY   = 7,  // busy
     EL_ENOTSUP = 8,  // not supported
     EL_EPERM   = 9,  // operation not permitted
+    EL_FAILED  = 10, // logic error
 } el_err_code_t;
 
 typedef struct EL_ATTR_PACKED el_shape_t {
