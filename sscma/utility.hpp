@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cctype>
 #include <cstdint>
 #include <forward_list>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -19,13 +21,14 @@ namespace sscma::utility {
 
 using namespace edgelab;
 using namespace edgelab::utility;
+using namespace sscma::types;
 using namespace sscma::traits;
 
 namespace string_concat {
 
 constexpr inline std::size_t lengthof(const char* s) {
     std::size_t size = 0;
-    while (*(s + size) != '\0') ++size;
+    while (*(s + size) ^ '\0') ++size;
     return size;
 }
 
@@ -36,7 +39,7 @@ inline std::size_t lengthof(const std::string& s) { return s.length(); }
 template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};
     std::string result;
-    result.reserve(length);
+    result.reserve(length + 1);
     (result.append(std::forward<Args>(args)), ...);
     return result;
 }
@@ -70,24 +73,21 @@ void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t*
 
 using namespace improc;
 
-inline std::string quoted(const std::string& str, const char delim = '"') {
+inline decltype(auto) quoted(const std::string& str, const char delim = '"') {
     std::size_t sz = 0;
-    for (char c : str)
-        if (c == delim) [[unlikely]]
-            ++sz;
+    for (char c : str) sz += !(c ^ delim) | !(c ^ '\\');
     std::string ss(1, delim);
-    ss.reserve(str.length() + (sz << 1));
+    ss.reserve(str.length() + (sz << 1) + 2);
     for (char c : str) {
-        if (c == delim) [[unlikely]]
+        if (!(c ^ delim) | !(c ^ '\\')) [[unlikely]]
             ss += '\\';
-        if (c != '\n') [[likely]]
-            ss += c;
+        ss += c;
     }
     ss += delim;
     return ss;
 }
 
-std::string model_info_2_json_str(el_model_info_t model_info) {
+decltype(auto) model_info_2_json_str(el_model_info_t model_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(model_info.id),
                           ", \"type\": ",
@@ -99,7 +99,7 @@ std::string model_info_2_json_str(el_model_info_t model_info) {
                           "}");
 }
 
-std::string sensor_info_2_json_str(el_sensor_info_t sensor_info) {
+decltype(auto) sensor_info_2_json_str(el_sensor_info_t sensor_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(sensor_info.id),
                           ", \"type\": ",
@@ -109,7 +109,7 @@ std::string sensor_info_2_json_str(el_sensor_info_t sensor_info) {
                           "}");
 }
 
-template <typename T> constexpr std::string results_2_json_str(const std::forward_list<T>& results) {
+template <typename T> constexpr decltype(auto) results_2_json_str(const std::forward_list<T>& results) {
     std::string ss;
     const char* delim = "";
 
@@ -160,9 +160,9 @@ template <typename T> constexpr std::string results_2_json_str(const std::forwar
 }
 
 // TODO: support reallocate memory when image size (width or height) changes
-std::string img_2_json_str(const el_img_t* img) {
+inline decltype(auto) img_2_json_str(const el_img_t* img) {
     if (!img || !img->data) [[unlikely]]
-        return "\"image\": \"\"";
+        return std::string("\"image\": \"\"");
 
     static std::size_t size        = img->width * img->height * 3;
     static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
@@ -174,9 +174,9 @@ std::string img_2_json_str(const el_img_t* img) {
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
-std::string img_2_jpeg_json_str(const el_img_t* img) {
+inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img) {
     if (!img || !img->data) [[unlikely]]
-        return "\"image\": \"\"";
+        return std::string("\"image\": \"\"");
 
     static std::size_t size      = img->width * img->height * 3;
     static uint8_t*    jpeg_data = new uint8_t[size]{};
@@ -201,10 +201,10 @@ std::string img_2_jpeg_json_str(const el_img_t* img) {
         return concat_strings("\"image\": \"", buffer, "\"");
     }
 
-    return "\"image\": \"\"";
+    return std::string("\"image\": \"\"");
 }
 
-std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
+decltype(auto) algorithm_info_2_json_str(const el_algorithm_info_t* info) {
     return concat_strings("{\"type\": ",
                           std::to_string(info->type),
                           ", \"categroy\": ",
@@ -214,7 +214,7 @@ std::string algorithm_info_2_json_str(const el_algorithm_info_t* info) {
                           "}");
 }
 
-template <typename AlgorithmConfigType> std::string algorithm_config_2_json_str(const AlgorithmConfigType& config) {
+template <typename AlgorithmConfigType> decltype(auto) algorithm_config_2_json_str(const AlgorithmConfigType& config) {
     bool        comma{false};
     std::string ss{concat_strings("{\"type\": ",
                                   std::to_string(config.info.type),
@@ -237,11 +237,12 @@ template <typename AlgorithmConfigType> std::string algorithm_config_2_json_str(
     return ss;
 }
 
-template <typename AlgorithmType> std::string algorithm_config_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+template <typename AlgorithmType> decltype(auto) algorithm_config_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
     return algorithm_config_2_json_str(algorithm->get_algorithm_config());
 }
 
-template <typename AlgorithmType> std::string algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
+template <typename AlgorithmType>
+decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algorithm) {
     std::string ss{concat_strings("\"perf\": [",
                                   std::to_string(algorithm->get_preprocess_time()),
                                   ", ",
@@ -254,7 +255,48 @@ template <typename AlgorithmType> std::string algorithm_results_2_json_str(std::
     return ss;
 }
 
-std::vector<std::string> tokenize_function_2_argv(const std::string& input) {
+decltype(auto) wireless_network_config_2_json_str(wireless_network_config_t config) {
+    std::string ss{concat_strings("{\"name_type\": ",
+                                  std::to_string(config.name_type),
+                                  ", \"name\": ",
+                                  quoted(config.name),
+                                  ", \"security\": ",
+                                  std::to_string(config.security_type),
+                                  ", \"password\": ",
+                                  quoted(config.passwd),
+                                  "}")};
+    return ss;
+}
+
+decltype(auto) mqtt_server_config_2_json_str(mqtt_server_config_t config) {
+    std::string ss{concat_strings("{\"client_id\": ",
+                                  quoted(config.client_id),
+                                  ", \"address\": ",
+                                  quoted(config.address),
+                                  ", \"username\": ",
+                                  quoted(config.username),
+                                  ", \"password\": ",
+                                  quoted(config.password),
+                                  ", \"use_ssl\": ",
+                                  std::to_string(config.use_ssl ? 1 : 0),
+                                  "}")};
+    return ss;
+}
+
+decltype(auto) mqtt_pubsub_config_2_json_str(mqtt_pubsub_config_t config) {
+    std::string ss{concat_strings("{\"pub_topic\": ",
+                                  quoted(config.pub_topic),
+                                  ", \"pub_qos\": ",
+                                  std::to_string(config.pub_qos),
+                                  ", \"sub_topic\": ",
+                                  quoted(config.sub_topic),
+                                  ", \"sub_qos\": ",
+                                  std::to_string(config.sub_qos),
+                                  "}")};
+    return ss;
+}
+
+inline decltype(auto) tokenize_function_2_argv(const std::string& input) {
     std::vector<std::string> argv;
 
     std::size_t index = 0;
@@ -277,6 +319,18 @@ std::vector<std::string> tokenize_function_2_argv(const std::string& input) {
     argv.shrink_to_fit();
 
     return argv;
+}
+
+bool is_bssid(const std::string& str) {
+    if (str.length() != 17) return false;
+    for (std::size_t i = 0; i < str.length(); ++i) {
+        if (i % 3 == 2) {
+            if (str[i] != ':' && str[i] != '-') return false;
+        } else {
+            if (!std::isxdigit(str[i])) return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace sscma::utility

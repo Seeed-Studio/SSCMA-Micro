@@ -22,9 +22,43 @@ namespace sscma {
 using namespace edgelab;
 using namespace edgelab::base;
 
-using namespace sscma::utility;
-using namespace sscma::interpreter;
 using namespace sscma::repl;
+using namespace sscma::interpreter;
+using namespace sscma::types;
+using namespace sscma::utility;
+
+namespace types {
+
+class MuxTransport final {
+   public:
+    MuxTransport()  = default;
+    ~MuxTransport() = default;
+
+    void init(Transport* transport, Network* network, mqtt_pubsub_config_t* mqtt_pubsub_config) {
+        _transport          = transport;
+        _network            = network;
+        _mqtt_pubsub_config = mqtt_pubsub_config;
+    }
+
+    size_t get_line(char* buffer, size_t size, const char delim = 0x0d) {
+        return _transport->get_line(buffer, size, delim);
+    }
+
+    el_err_code_t send_bytes(const char* buffer, size_t size) {
+        auto transport_ret = _transport->send_bytes(buffer, size);
+        auto network_ret   = _network->publish(
+          _mqtt_pubsub_config->pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config->pub_qos));
+
+        return (transport_ret & network_ret) ? EL_OK : EL_EIO;
+    }
+
+   private:
+    Transport*            _transport;
+    Network*              _network;
+    mqtt_pubsub_config_t* _mqtt_pubsub_config;
+};
+
+}  // namespace types
 
 class StaticResource final {
    public:
@@ -36,9 +70,10 @@ class StaticResource final {
     // internal status
     int32_t boot_count;
 
-    uint8_t             current_model_id;
-    el_algorithm_type_t current_algorithm_type;
-    uint8_t             current_sensor_id;
+    uint8_t              current_model_id;
+    el_algorithm_type_t  current_algorithm_type;
+    uint8_t              current_sensor_id;
+    mqtt_pubsub_config_t current_mqtt_pubsub_config;
 
     std::atomic<size_t> current_task_id;
     std::atomic<bool>   is_ready;
@@ -47,7 +82,9 @@ class StaticResource final {
 
     // external resources (hardware related)
     Device*            device;
-    Transport*         transport;
+    Transport*         serial;
+    Network*           network;
+    MuxTransport*      transport;
     Models*            models;
     Storage*           storage;
     Engine*            engine;
@@ -63,34 +100,55 @@ class StaticResource final {
     }
 
     void init() {
+        device = Device::get_device();
+        device->init();
+
         static auto v_instance{Server()};
         instance = &v_instance;
+
         static auto v_executor{Executor()};
         executor = &v_executor;
+
         static auto v_action{Condition()};
         action = &v_action;
 
         boot_count = 0;
 
-        current_model_id       = 1;
-        current_algorithm_type = EL_ALGO_TYPE_UNDEFINED;
-        current_sensor_id      = 1;
+        current_model_id           = 1;
+        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
+        current_sensor_id          = 1;
+        current_mqtt_pubsub_config = [this]() {
+            auto default_config = mqtt_pubsub_config_t{};
+            std::snprintf(default_config.pub_topic,
+                          sizeof(default_config.pub_topic) - 1,
+                          "sscma/pub_%ld",
+                          this->device->get_device_id());
+            default_config.pub_qos = 0;
+            std::snprintf(default_config.sub_topic,
+                          sizeof(default_config.sub_topic) - 1,
+                          "sscma/sub_%ld",
+                          this->device->get_device_id());
+            default_config.sub_qos = 0;
+            return default_config;
+        }();
 
         current_task_id = 0;
         is_ready        = false;
         is_sample       = false;
         is_invoke       = false;
 
-        device = Device::get_device();
-        device->init();
+        serial  = device->get_transport();
+        network = device->get_network();
 
-        transport = device->get_transport();
         static auto v_models{Models()};
         models = &v_models;
+
         static auto v_storage{Storage()};
         storage = &v_storage;
+
         static auto v_engine{EngineTFLite()};
-        engine             = &v_engine;
+        engine = &v_engine;
+
         algorithm_delegate = AlgorithmDelegate::get_delegate();
 
         inter_init();
@@ -105,7 +163,11 @@ class StaticResource final {
         init_frontend();
     }
 
-    inline void init_hardware() { transport->init(); }
+    inline void init_hardware() {
+        serial->init();
+        network->init();
+        transport->init(serial, network, &current_mqtt_pubsub_config);
+    }
 
     inline void init_backend() {
         models->init();
@@ -120,11 +182,13 @@ class StaticResource final {
                      << el_make_storage_kv("current_model_id", current_model_id)
                      << el_make_storage_kv("current_algorithm_type", current_algorithm_type)
                      << el_make_storage_kv("current_sensor_id", current_sensor_id)
+                     << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
                      << el_make_storage_kv("boot_count", boot_count);
-
-        *storage >> el_make_storage_kv("current_model_id", current_model_id) >>
-          el_make_storage_kv("current_algorithm_type", current_algorithm_type) >>
-          el_make_storage_kv("current_sensor_id", current_sensor_id) >> el_make_storage_kv("boot_count", boot_count);
+        else
+            *storage >> el_make_storage_kv("current_model_id", current_model_id) >>
+              el_make_storage_kv("current_algorithm_type", current_algorithm_type) >>
+              el_make_storage_kv("current_sensor_id", current_sensor_id) >>
+              el_make_storage_kv_from_type(current_mqtt_pubsub_config) >> el_make_storage_kv("boot_count", boot_count);
 
         *storage << el_make_storage_kv("boot_count", ++boot_count);
     }

@@ -89,7 +89,7 @@
         #define EL_LOGI(...)
     #endif
     #if CONFIG_EL_DEBUG >= 4
-        #define LOG_D(...)                              \
+        #define EL_LOGD(...)                            \
             do {                                        \
                 el_printf(EL_DEBUG_COLOR_GREEN "V ");   \
                 EL_DEBUG_MORE_INFO();                   \
