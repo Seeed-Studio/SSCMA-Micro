@@ -113,8 +113,8 @@ void DeviceWE2::init() {
     this->_registered_sensors.emplace_front(el_sensor_info_t{
       .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
 
-    static SerialWE2 transport{};
-    this->_transport = &transport;
+    static SerialWE2 serial{};
+    this->_serial = &serial;
 
     static NetworkWE2 network{};
     this->_network = &network;
