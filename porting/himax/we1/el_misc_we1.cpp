@@ -41,8 +41,6 @@ extern "C" {
 #include "el_config_porting.h"
 #include "porting/el_misc.h"
 
-namespace edgelab {
-
 EL_ATTR_WEAK void el_sleep(uint32_t ms) { board_delay_cycle(ms * 400000); }
 
 EL_ATTR_WEAK uint64_t el_get_time_ms(void) { return (uint64_t)board_get_cur_us() / 1000; }
@@ -71,5 +69,3 @@ EL_ATTR_WEAK void el_free(void* ptr) { free(ptr); }
 EL_ATTR_WEAK void el_reset(void) { exit(0); }
 
 EL_ATTR_WEAK void el_status_led(bool on) { EMBARC_PRINTF("TEST LED STAT: %s", on ? "on" : "off"); }
-
-}  // namespace edgelab
