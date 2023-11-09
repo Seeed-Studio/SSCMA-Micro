@@ -55,7 +55,11 @@ void set_model(const std::string& cmd, uint8_t model_id) {
 ModelError:
     static_resource->current_model_id = 0;
 
-ModelReply: {
+ModelReply:
+#if CONFIG_EL_DEBUG == 0
+    if (!static_resource->is_ready.load()) return;
+#endif
+
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -64,7 +68,6 @@ ModelReply: {
                                   model_info_2_json_str(model_info),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
-}
 }
 
 void get_model_info(const std::string& cmd) {

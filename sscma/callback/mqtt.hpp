@@ -31,13 +31,16 @@ void set_mqtt_server(const std::vector<std::string>& argv) {
     std::strncpy(config.address, argv[2].c_str(), sizeof(config.address) - 1);
     std::strncpy(config.username, argv[3].c_str(), sizeof(config.username) - 1);
     std::strncpy(config.password, argv[4].c_str(), sizeof(config.password) - 1);
-    config.use_ssl = std::atoi(argv[5].c_str()) != 0;  // TODO: add SSL config support
+    config.use_ssl = std::atoi(argv[5].c_str()) != 0;  // TODO: driver add SSL config support
 
     if (static_resource->is_ready.load()) [[likely]] {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
         if (ret != EL_OK) [[unlikely]]
             goto Reply;
     }
+
+    if (!argv[1].c_str() || !argv[2].c_str())  // TODO: driver add disconnect support
+        goto Reply;
 
     while (--retry_cnt && static_resource->network->status() != NETWORK_CONNECTED) {
         ret = static_resource->network->connect(
@@ -47,6 +50,10 @@ void set_mqtt_server(const std::vector<std::string>& argv) {
     }
 
 Reply:
+#if CONFIG_EL_DEBUG == 0
+    if (!static_resource->is_ready.load()) return;
+#endif
+
     connected = retry_cnt && static_resource->network->status() == NETWORK_CONNECTED;
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],

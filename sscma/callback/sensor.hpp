@@ -66,7 +66,11 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
 SensorError:
     static_resource->current_sensor_id = 0;
 
-SensorReply: {
+SensorReply:
+#if CONFIG_EL_DEBUG == 0
+    if (!static_resource->is_ready.load()) return;
+#endif
+
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
@@ -75,7 +79,6 @@ SensorReply: {
                                   sensor_info_2_json_str(sensor_info),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
-}
 }
 
 void get_sensor_info(const std::string& cmd) {

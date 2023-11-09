@@ -45,6 +45,12 @@ void set_wireless_network(const std::vector<std::string>& argv) {
             goto Reply;
     }
 
+    if (!argv[1].c_str()) {
+        ret = static_resource->network->quit();
+        el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
+        goto Reply;
+    }
+
     retry_cnt = SSCMA_WIRELESS_NETWORK_CONN_RETRY;
     while (--retry_cnt && static_resource->network->status() != NETWORK_JOINED) {
         ret = static_resource->network->join(config.name, config.passwd);
@@ -53,6 +59,10 @@ void set_wireless_network(const std::vector<std::string>& argv) {
     }
 
 Reply:
+#if CONFIG_EL_DEBUG == 0
+    if (!static_resource->is_ready.load()) return;
+#endif
+
     joined = retry_cnt && static_resource->network->status() == NETWORK_JOINED;
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],

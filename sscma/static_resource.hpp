@@ -106,6 +106,9 @@ class StaticResource final {
         serial  = device->get_serial();
         network = device->get_network();
 
+        static auto v_transport{MuxTransport()};
+        transport = &v_transport;
+
         static auto v_instance{Server()};
         instance = &v_instance;
 
@@ -196,6 +199,7 @@ class StaticResource final {
     inline void init_frontend() {
         instance->init([this](el_err_code_t ret, std::string msg) {
             if (ret != EL_OK) [[unlikely]] {
+                msg.erase(std::remove_if(msg.begin(), msg.end(), [](char c) { return std::iscntrl(c); }), msg.end());
                 const auto& ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",
                                               std::to_string(ret),
                                               ", \"data\": ",

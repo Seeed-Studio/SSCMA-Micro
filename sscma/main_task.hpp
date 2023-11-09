@@ -265,57 +265,71 @@ void run() {
           return EL_OK;
       });
 
-    // init commands (TODO: call init functions directly)
-    {  // set model
-        if (static_resource->current_model_id) [[likely]]
-            static_resource->instance->exec(
-              concat_strings("AT+MODEL=", std::to_string(static_resource->current_model_id)));
+    // init commands
+    // set model
+    if (static_resource->current_model_id) [[likely]]
+        set_model("set_model", static_resource->current_model_id);
+
+    // set sensor
+    if (static_resource->current_sensor_id) [[likely]]
+        set_sensor("set_sensor", static_resource->current_sensor_id, true);
+
+    // set action
+    if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
+        char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+        *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
+        std::vector<std::string> argv{"set_action", action};
+        set_action(argv);
     }
-    {  // set sensor
-        if (static_resource->current_sensor_id) [[likely]]
-            static_resource->instance->exec(
-              concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1"));
-    }
-    {  // set action
-        if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
-            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-            *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-            static_resource->instance->exec(concat_strings("AT+ACTION=", quoted(action)));
-        }
-    }
-    {  // connect to wireless network
+
+    // connect to wireless network and setup MQTT
+    {
         auto config = wireless_network_config_t{};
         auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->contains(kv.key)) [[likely]] {
+        if (!static_resource->storage->contains(kv.key)) [[unlikely]]
+            goto Finish;
+        {
             *static_resource->storage >> kv;
-            static_resource->instance->exec(concat_strings(
-              "AT+WIFI=", quoted(config.name), std::to_string(config.security_type), quoted(config.passwd)));
+            std::vector<std::string> argv{
+              "set_wireless_network", quoted(config.name), std::to_string(config.security_type), quoted(config.passwd)};
+            set_wireless_network(argv);
         }
-    }
-    {  // connect to MQTT server
-        auto config = mqtt_server_config_t{};
-        auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->contains(kv.key)) [[likely]] {
-            *static_resource->storage >> kv;
-            static_resource->instance->exec(concat_strings("AT+MQTTSERVER=",
-                                                           quoted(config.client_id),
-                                                           quoted(config.address),
-                                                           quoted(config.username),
-                                                           quoted(config.password),
-                                                           std::to_string(config.use_ssl ? 1 : 0)));
+        if (static_resource->network->status() != NETWORK_JOINED) goto Finish;
+        {
+            auto config = mqtt_server_config_t{};
+            auto kv     = el_make_storage_kv_from_type(config);
+            if (static_resource->storage->contains(kv.key)) [[unlikely]]
+                goto Finish;
+            {
+                *static_resource->storage >> kv;
+                std::vector<std::string> argv{"set_mqtt_server",
+                                              quoted(config.client_id),
+                                              quoted(config.address),
+                                              quoted(config.username),
+                                              quoted(config.password),
+                                              std::to_string(config.use_ssl ? 1 : 0)};
+                set_mqtt_server(argv);
+            }
+            if (static_resource->network->status() != NETWORK_CONNECTED) goto Finish;
+            {
+                auto config = mqtt_pubsub_config_t{};
+                auto kv     = el_make_storage_kv_from_type(config);
+                if (static_resource->storage->contains(kv.key)) [[unlikely]]
+                    goto Finish;
+                {
+                    *static_resource->storage >> kv;
+                    *static_resource->storage >> kv;
+                    std::vector<std::string> argv{"set_mqtt_pubsub",
+                                                  quoted(config.pub_topic),
+                                                  std::to_string(config.pub_qos),
+                                                  quoted(config.sub_topic),
+                                                  std::to_string(config.sub_qos)};
+                    set_mqtt_pubsub(argv);
+                }
+            }
         }
-    }
-    {  // set MQTT publish, subcribe topic
-        auto config = mqtt_pubsub_config_t{};
-        auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->contains(kv.key)) [[likely]] {
-            *static_resource->storage >> kv;
-            static_resource->instance->exec(concat_strings("AT+MQTTPUBSUB=",
-                                                           quoted(config.pub_topic),
-                                                           std::to_string(config.pub_qos),
-                                                           quoted(config.sub_topic),
-                                                           std::to_string(config.sub_qos)));
-        }
+
+    Finish:;
     }
 
     // mark the system status as ready
