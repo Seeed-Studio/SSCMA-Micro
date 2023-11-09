@@ -34,26 +34,26 @@ class MuxTransport final {
     MuxTransport()  = default;
     ~MuxTransport() = default;
 
-    void init(Transport* transport, Network* network, mqtt_pubsub_config_t* mqtt_pubsub_config) {
-        _transport          = transport;
+    void init(Serial* serial, Network* network, mqtt_pubsub_config_t* mqtt_pubsub_config) {
+        _serial             = serial;
         _network            = network;
         _mqtt_pubsub_config = mqtt_pubsub_config;
     }
 
-    size_t get_line(char* buffer, size_t size, const char delim = 0x0d) {
-        return _transport->get_line(buffer, size, delim);
+    inline size_t get_line(char* buffer, size_t size, const char delim = 0x0d) {
+        return _serial->get_line(buffer, size, delim);
     }
 
-    el_err_code_t send_bytes(const char* buffer, size_t size) {
-        auto transport_ret = _transport->send_bytes(buffer, size);
-        auto network_ret   = _network->publish(
+    inline el_err_code_t send_bytes(const char* buffer, size_t size) {
+        auto serial_ret  = _serial->send_bytes(buffer, size);
+        auto network_ret = _network->publish(
           _mqtt_pubsub_config->pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config->pub_qos));
 
-        return (transport_ret & network_ret) ? EL_OK : EL_EIO;
+        return ((serial_ret ^ EL_OK) | (network_ret ^ EL_OK)) ? EL_EIO : EL_OK;  // require both ok
     }
 
    private:
-    Transport*            _transport;
+    Serial*               _serial;
     Network*              _network;
     mqtt_pubsub_config_t* _mqtt_pubsub_config;
 };
@@ -82,7 +82,7 @@ class StaticResource final {
 
     // external resources (hardware related)
     Device*            device;
-    Transport*         serial;
+    Serial*            serial;
     Network*           network;
     MuxTransport*      transport;
     Models*            models;
@@ -101,7 +101,10 @@ class StaticResource final {
 
     void init() {
         device = Device::get_device();
-        device->init();
+        device->init();  // TODO: do init in its constructor
+
+        serial  = device->get_serial();
+        network = device->get_network();
 
         static auto v_instance{Server()};
         instance = &v_instance;
@@ -136,9 +139,6 @@ class StaticResource final {
         is_ready        = false;
         is_sample       = false;
         is_invoke       = false;
-
-        serial  = device->get_transport();
-        network = device->get_network();
 
         static auto v_models{Models()};
         models = &v_models;

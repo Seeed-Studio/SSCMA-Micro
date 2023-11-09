@@ -214,7 +214,7 @@ decltype(auto) algorithm_info_2_json_str(const el_algorithm_info_t* info) {
                           "}");
 }
 
-template <typename AlgorithmConfigType> decltype(auto) algorithm_config_2_json_str(const AlgorithmConfigType& config) {
+template <typename AlgorithmConfigType> constexpr decltype(auto) algorithm_config_2_json_str(const AlgorithmConfigType& config) {
     bool        comma{false};
     std::string ss{concat_strings("{\"type\": ",
                                   std::to_string(config.info.type),
