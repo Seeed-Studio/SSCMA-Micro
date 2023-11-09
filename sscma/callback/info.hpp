@@ -3,12 +3,14 @@
 #include <cstring>
 #include <string>
 
+#include "core/utils/el_hash.h"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
 
+using namespace edgelab;
 using namespace sscma::utility;
 
 void set_info(const std::vector<std::string>& argv) {

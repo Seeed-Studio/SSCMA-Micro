@@ -3,12 +3,14 @@
 #include <atomic>
 #include <string>
 
+#include "core/el_version.h"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
 
+using namespace edgelab;
 using namespace sscma::utility;
 
 void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {

@@ -16,7 +16,6 @@
 namespace sscma::interpreter {
 
 using namespace edgelab;
-
 using namespace sscma::types;
 using namespace sscma::interpreter;
 using namespace sscma::interpreter::types;
