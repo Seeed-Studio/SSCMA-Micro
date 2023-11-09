@@ -66,9 +66,6 @@
     #endif
 #endif
 
-/* el */
-#include "core/el_common.h"
-
 #define DEAULT_XHSUTDOWN_PIN      AON_GPIO2
 #define OV5647_MAX_WIDTH          640
 #define OV5647_MAX_HEIGHT         480

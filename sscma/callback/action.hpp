@@ -69,6 +69,10 @@ void set_action(const std::vector<std::string>& argv) {
     }
 
 ActionReply:
+#if CONFIG_EL_DEBUG == 0
+    if (!static_resource->is_ready.load()) return;
+#endif
+
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
