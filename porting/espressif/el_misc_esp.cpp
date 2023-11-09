@@ -36,8 +36,6 @@
 #include "el_config_porting.h"
 #include "porting/el_misc.h"
 
-namespace edgelab {
-
 EL_ATTR_WEAK void el_sleep(uint32_t ms) { vTaskDelay(ms / portTICK_PERIOD_MS); }
 
 EL_ATTR_WEAK uint64_t el_get_time_ms(void) { return (uint64_t)esp_timer_get_time() / 1000; }
@@ -73,5 +71,3 @@ EL_ATTR_WEAK void el_status_led(bool on) {
     gpio_set_direction(LED_0_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(LED_0_PIN, on ? 0 : 1);
 }
-
-}  // namespace edgelab

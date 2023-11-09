@@ -36,8 +36,6 @@ extern "C" {
 #include "el_config_porting.h"
 #include "porting/el_misc.h"
 
-namespace edgelab {
-
 EL_ATTR_WEAK void el_sleep(uint32_t ms) {
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
     vTaskDelay(ms / portTICK_PERIOD_MS);
@@ -114,8 +112,6 @@ EL_ATTR_WEAK void el_free(void* ptr) {
 EL_ATTR_WEAK void el_reset(void) { exit(0); }
 
 EL_ATTR_WEAK void el_status_led(bool on) { el_printf("TEST LED STAT: %s\n", on ? "on" : "off"); }
-
-}  // namespace edgelab
 
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
 

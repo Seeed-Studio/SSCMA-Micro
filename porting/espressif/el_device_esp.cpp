@@ -77,10 +77,10 @@ void DeviceEsp::init() {
     static DisplayEsp display{};
     this->_display = &display;
 
-    static SerialEsp transport{
+    static SerialEsp serial{
       usb_serial_jtag_driver_config_t{.tx_buffer_size = 8192, .rx_buffer_size = 8192}
     };
-    this->_transport = &transport;
+    this->_serial = &serial;
 
     static NetworkEsp network{};
     this->_network = &network;

@@ -5,12 +5,14 @@
 #include <cstring>
 #include <string>
 
+#include "core/utils/el_hash.h"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
 
 namespace sscma::callback {
 
+using namespace edgelab;
 using namespace sscma::utility;
 
 void set_action(const std::vector<std::string>& argv) {
@@ -58,7 +60,9 @@ void set_action(const std::vector<std::string>& argv) {
         if (static_resource->is_ready.load()) [[likely]] {
             char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             std::strncpy(
-              action, argv[1].c_str(), argv[1].length() < CONFIG_SSCMA_CMD_MAX_LENGTH ? argv[1].length() : CONFIG_SSCMA_CMD_MAX_LENGTH - 1);
+              action,
+              argv[1].c_str(),
+              argv[1].length() < CONFIG_SSCMA_CMD_MAX_LENGTH ? argv[1].length() : CONFIG_SSCMA_CMD_MAX_LENGTH - 1);
             ret =
               static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         }

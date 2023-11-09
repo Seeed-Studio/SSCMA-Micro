@@ -86,7 +86,7 @@ static inline constexpr el_storage_kv_t<ValueType> el_make_storage_kv(const char
 
 using namespace edgelab::utility;
 
-static inline uint32_t djb2_hash(const uint8_t* bytes) {
+static constexpr inline uint32_t djb2_hash(const uint8_t* bytes) {
     uint32_t hash = 0x1505;
     uint8_t  byte{};
     while ((byte = *bytes++)) hash = ((hash << 5) + hash) + byte;

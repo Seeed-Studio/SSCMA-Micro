@@ -6,6 +6,8 @@
 #include "sscma/callback/info.hpp"
 #include "sscma/callback/invoke.hpp"
 #include "sscma/callback/model.hpp"
+#include "sscma/callback/mqtt.hpp"
+#include "sscma/callback/network.hpp"
 #include "sscma/callback/sample.hpp"
 #include "sscma/callback/sensor.hpp"
 #include "sscma/static_resource.hpp"
@@ -17,8 +19,10 @@ using namespace sscma::types;
 using namespace sscma::callback;
 
 void run() {
+    // init static_resource
     static_resource->init();
 
+    // register commands
     static_resource->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
         print_help(static_resource->instance->get_registered_cmds());
         return EL_OK;
@@ -213,33 +217,119 @@ void run() {
           return EL_OK;
       });
 
-    // init commands
-    {
+    static_resource->instance->register_cmd(
+      "WIFI", "Set and connect to a Wi-Fi", "\"NAME\",SECURITY,\"PASSWORD\"", [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv)](const std::atomic<bool>&) { set_wireless_network(argv); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFI?", "Get current Wi-Fi status and config", "", [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_wireless_network(cmd); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "MQTTSERVER",
+      "Set and connect to a MQTT server",
+      "\"CLIENT_ID\",\"ADDRESS\",\"USERNAME\",\"PASSWORD\",USE_SSL",
+      [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_server(argv); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "MQTTSERVER?", "Get current MQTT server status and config", "", [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_mqtt_server(cmd); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "MQTTPUBSUB",
+      "Set the MQTT publish and subscribe topic",
+      "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
+      [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_pubsub(argv); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "MQTTPUBSUB?", "Get current MQTT publish and subscribe topic", "", [](std::vector<std::string> argv) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_mqtt_pubsub(cmd); });
+          return EL_OK;
+      });
+
+    // init commands (TODO: call init functions directly)
+    {  // set model
         if (static_resource->current_model_id) [[likely]]
             static_resource->instance->exec(
               concat_strings("AT+MODEL=", std::to_string(static_resource->current_model_id)));
-
+    }
+    {  // set sensor
         if (static_resource->current_sensor_id) [[likely]]
             static_resource->instance->exec(
               concat_strings("AT+SENSOR=", std::to_string(static_resource->current_sensor_id), ",1"));
-
+    }
+    {  // set action
         if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
             char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
             static_resource->instance->exec(concat_strings("AT+ACTION=", quoted(action)));
         }
-
-        static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+    }
+    {  // connect to wireless network
+        auto config = wireless_network_config_t{};
+        auto kv     = el_make_storage_kv_from_type(config);
+        if (static_resource->storage->contains(kv.key)) [[likely]] {
+            *static_resource->storage >> kv;
+            static_resource->instance->exec(concat_strings(
+              "AT+WIFI=", quoted(config.name), std::to_string(config.security_type), quoted(config.passwd)));
+        }
+    }
+    {  // connect to MQTT server
+        auto config = mqtt_server_config_t{};
+        auto kv     = el_make_storage_kv_from_type(config);
+        if (static_resource->storage->contains(kv.key)) [[likely]] {
+            *static_resource->storage >> kv;
+            static_resource->instance->exec(concat_strings("AT+MQTTSERVER=",
+                                                           quoted(config.client_id),
+                                                           quoted(config.address),
+                                                           quoted(config.username),
+                                                           quoted(config.password),
+                                                           std::to_string(config.use_ssl ? 1 : 0)));
+        }
+    }
+    {  // set MQTT publish, subcribe topic
+        auto config = mqtt_pubsub_config_t{};
+        auto kv     = el_make_storage_kv_from_type(config);
+        if (static_resource->storage->contains(kv.key)) [[likely]] {
+            *static_resource->storage >> kv;
+            static_resource->instance->exec(concat_strings("AT+MQTTPUBSUB=",
+                                                           quoted(config.pub_topic),
+                                                           std::to_string(config.pub_qos),
+                                                           quoted(config.sub_topic),
+                                                           std::to_string(config.sub_qos)));
+        }
     }
 
+    // mark the system status as ready
+    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+
     // enter service loop
-    char* buf = new char[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-    for (;;) {
+    {
+        char* buf = new char[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+    Loop:
         static_resource->transport->get_line(buf, CONFIG_SSCMA_CMD_MAX_LENGTH);
         if (std::strlen(buf) > 1) [[likely]]
             static_resource->instance->exec(buf);
+        goto Loop;
     }
-    delete[] buf;
 }
 
 }  // namespace sscma::main_task

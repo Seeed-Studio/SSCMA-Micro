@@ -37,7 +37,6 @@
 #endif
 
 #ifdef __cplusplus
-namespace edgelab {
 extern "C" {
 #endif
 
@@ -64,7 +63,6 @@ void el_reset(void);
 void el_status_led(bool on);
 
 #ifdef __cplusplus
-}
 }
 #endif
 
