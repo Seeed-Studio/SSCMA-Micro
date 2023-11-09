@@ -30,9 +30,10 @@
 #include "el_config_internal.h"
 #include "el_debug.h"
 #include "el_types.h"
+#include "el_version.h"
 #include "porting/el_misc.h"
 
-#define EL_VERSION                 __TIMESTAMP__
+#define EL_VERSION                 __EL_VERSION__
 #define EL_VERSION_LENTH_MAX       32
 
 #define EL_CONCAT(a, b)            a##b
