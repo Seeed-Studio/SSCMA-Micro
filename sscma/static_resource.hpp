@@ -135,8 +135,8 @@ class StaticResource final {
 
         boot_count                 = 0;
         current_model_id           = 1;
-        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
         current_sensor_id          = 1;
+        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
         current_mqtt_pubsub_config = get_default_mqtt_pubsub_config(device);
 
         current_task_id = 0;
@@ -185,10 +185,8 @@ class StaticResource final {
         if (storage->get(kv) &&
             std::string(EL_VERSION) != kv.value)  // if no version stored or version mismatch, init storage
             *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
-                     << el_make_storage_kv_from_type(current_algorithm_type)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
-                     << el_make_storage_kv_from_type(wireless_network_config_t{})
-                     << el_make_storage_kv_from_type(mqtt_server_config_t{})
+                     << el_make_storage_kv_from_type(current_algorithm_type)
                      << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         else  // if version match, load other configs from storage
