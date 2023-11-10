@@ -22,6 +22,7 @@ namespace sscma::utility {
 
 using namespace edgelab;
 using namespace edgelab::utility;
+
 using namespace sscma::types;
 using namespace sscma::traits;
 
