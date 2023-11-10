@@ -14,6 +14,7 @@
 #include "core/el_types.h"
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
+#include "porting/el_device.h"
 #include "sscma/definations.hpp"
 #include "sscma/traits.hpp"
 
@@ -214,7 +215,8 @@ decltype(auto) algorithm_info_2_json_str(const el_algorithm_info_t* info) {
                           "}");
 }
 
-template <typename AlgorithmConfigType> constexpr decltype(auto) algorithm_config_2_json_str(const AlgorithmConfigType& config) {
+template <typename AlgorithmConfigType>
+constexpr decltype(auto) algorithm_config_2_json_str(const AlgorithmConfigType& config) {
     bool        comma{false};
     std::string ss{concat_strings("{\"type\": ",
                                   std::to_string(config.info.type),
@@ -331,6 +333,17 @@ bool is_bssid(const std::string& str) {
         }
     }
     return true;
+}
+
+decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
+    auto default_config = mqtt_pubsub_config_t{};
+    std::snprintf(
+      default_config.pub_topic, sizeof(default_config.pub_topic) - 1, "sscma/pub_%ld", device->get_device_id());
+    default_config.pub_qos = 0;
+    std::snprintf(
+      default_config.sub_topic, sizeof(default_config.sub_topic) - 1, "sscma/sub_%ld", device->get_device_id());
+    default_config.sub_qos = 0;
+    return default_config;
 }
 
 }  // namespace sscma::utility

@@ -123,20 +123,7 @@ class StaticResource final {
         current_model_id           = 1;
         current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
         current_sensor_id          = 1;
-        current_mqtt_pubsub_config = [this]() {
-            auto default_config = mqtt_pubsub_config_t{};
-            std::snprintf(default_config.pub_topic,
-                          sizeof(default_config.pub_topic) - 1,
-                          "sscma/pub_%ld",
-                          this->device->get_device_id());
-            default_config.pub_qos = 0;
-            std::snprintf(default_config.sub_topic,
-                          sizeof(default_config.sub_topic) - 1,
-                          "sscma/sub_%ld",
-                          this->device->get_device_id());
-            default_config.sub_qos = 0;
-            return default_config;
-        }();
+        current_mqtt_pubsub_config = get_default_mqtt_pubsub_config(device);
 
         current_task_id = 0;
         is_ready        = false;
@@ -176,15 +163,14 @@ class StaticResource final {
         models->init();
         storage->init();
 
-        if (!storage->contains(SSCMA_STORAGE_KEY_VERSION) || [this]() -> bool {
-                char version[EL_VERSION_LENTH_MAX]{};
-                *this->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
-                return std::string(EL_VERSION) != version;
-            }())
-            *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, EL_VERSION)
-                     << el_make_storage_kv("current_model_id", current_model_id)
+        char version[EL_VERSION_LENTH_MAX]{};
+        auto kv = el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
+        if (storage->get(kv) && std::string(EL_VERSION) != kv.value)
+            *storage << kv << el_make_storage_kv("current_model_id", current_model_id)
                      << el_make_storage_kv("current_algorithm_type", current_algorithm_type)
                      << el_make_storage_kv("current_sensor_id", current_sensor_id)
+                     << el_make_storage_kv_from_type(wireless_network_config_t{})
+                     << el_make_storage_kv_from_type(mqtt_server_config_t{})
                      << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
                      << el_make_storage_kv("boot_count", boot_count);
         else
