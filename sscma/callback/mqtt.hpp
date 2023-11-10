@@ -96,6 +96,7 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv) {
     config.sub_qos = std::atoi(argv[4].c_str());
 
     static_resource->current_mqtt_pubsub_config = config;
+    static_resource->transport->set_config(config);
 
     if (static_resource->is_ready.load()) [[likely]] {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;

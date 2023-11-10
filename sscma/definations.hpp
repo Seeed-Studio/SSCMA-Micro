@@ -3,28 +3,31 @@
 #include "core/el_config_internal.h"
 
 #ifndef CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE
-    #define CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE (20480)
+    #define CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE 20480U
 #endif
 
 #ifndef CONFIG_SSCMA_REPL_EXECUTOR_PRIO
-    #define CONFIG_SSCMA_REPL_EXECUTOR_PRIO (5)
+    #define CONFIG_SSCMA_REPL_EXECUTOR_PRIO 5
 #endif
 
 #ifndef CONFIG_SSCMA_REPL_HISTORY_MAX
-    #define CONFIG_SSCMA_REPL_HISTORY_MAX (8)
+    #define CONFIG_SSCMA_REPL_HISTORY_MAX 8
 #endif
 
 #ifndef CONFIG_SSCMA_TENSOR_ARENA_SIZE
-    #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1024 * 1024)
+    #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1024U * 1024U)
 #endif
 
 #ifndef CONFIG_SSCMA_CMD_MAX_LENGTH
-    #define CONFIG_SSCMA_CMD_MAX_LENGTH (4096)
+    #define CONFIG_SSCMA_CMD_MAX_LENGTH 4096
 #endif
 
-#define SSCMA_STORAGE_KEY_VERSION            "sscma#core#version"
+#define SSCMA_STORAGE_KEY_VERSION            "sscma#version"
 #define SSCMA_STORAGE_KEY_ACTION             "sscma#action"
 #define SSCMA_STORAGE_KEY_INFO               "sscma#info"
+#define SSCMA_STORAGE_KEY_BOOT_COUNT         "sscma#boot_count"
+#define SSCMA_STORAGE_KEY_CONF_MODEL_ID      "sscma#conf#model_id"
+#define SSCMA_STORAGE_KEY_CONF_SENSOR_ID     "sscma#conf#sensor_id"
 
 #define SSCMA_WIRELESS_NETWORK_NAME_LEN      32
 #define SSCMA_WIRELESS_NETWORK_PASSWD_LEN    64

@@ -10,6 +10,8 @@
 #include "core/data/el_data_storage.hpp"
 #include "core/el_common.h"
 #include "core/engine/el_engine_tflite.h"
+#include "core/synchronize/el_guard.hpp"
+#include "core/synchronize/el_mutex.hpp"
 #include "core/utils/el_hash.h"
 #include "porting/el_device.h"
 #include "sscma/interpreter/condition.hpp"
@@ -31,12 +33,20 @@ namespace types {
 
 class MuxTransport final {
    public:
-    MuxTransport()  = default;
-    ~MuxTransport() = default;
+    MuxTransport() = default;
 
-    void init(Serial* serial, Network* network, mqtt_pubsub_config_t* mqtt_pubsub_config) {
-        _serial             = serial;
-        _network            = network;
+    ~MuxTransport() {
+        _serial  = nullptr;
+        _network = nullptr;
+    }
+
+    void init(Serial* serial, Network* network) {
+        _serial  = serial;
+        _network = network;
+    }
+
+    void set_config(mqtt_pubsub_config_t mqtt_pubsub_config) {
+        const Guard guard(_config_lock);
         _mqtt_pubsub_config = mqtt_pubsub_config;
     }
 
@@ -45,36 +55,41 @@ class MuxTransport final {
     }
 
     inline el_err_code_t send_bytes(const char* buffer, size_t size) {
-        auto serial_ret  = _serial->send_bytes(buffer, size);
+        const Guard guard(_config_lock);
+        // send buffer to serial
+        auto serial_ret = _serial->send_bytes(buffer, size);
+        // send buffer to MQTT (the connection status is checked inside the publish function)
         auto network_ret = _network->publish(
-          _mqtt_pubsub_config->pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config->pub_qos));
+          _mqtt_pubsub_config.pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config.pub_qos));
 
         return ((serial_ret ^ EL_OK) | (network_ret ^ EL_OK)) ? EL_EIO : EL_OK;  // require both ok
     }
 
    private:
-    Serial*               _serial;
-    Network*              _network;
-    mqtt_pubsub_config_t* _mqtt_pubsub_config;
+    Serial*  _serial;
+    Network* _network;
+
+    Mutex                _config_lock;
+    mqtt_pubsub_config_t _mqtt_pubsub_config;
 };
 
 }  // namespace types
 
 class StaticResource final {
    public:
-    // library features
+    // SSCMA library feature handlers
     Server*    instance;
     Executor*  executor;
     Condition* action;
 
-    // internal status
-    int32_t boot_count;
-
+    // internal configs that stored in flash
+    int32_t              boot_count;
     uint8_t              current_model_id;
-    el_algorithm_type_t  current_algorithm_type;
     uint8_t              current_sensor_id;
+    el_algorithm_type_t  current_algorithm_type;
     mqtt_pubsub_config_t current_mqtt_pubsub_config;
 
+    // internal states
     std::atomic<size_t> current_task_id;
     std::atomic<bool>   is_ready;
     bool                is_sample;
@@ -93,15 +108,15 @@ class StaticResource final {
     // destructor
     ~StaticResource() = default;
 
-    // initializer
-    static StaticResource* get_static_resource() {
+    // static constructor (on stack)
+    static inline StaticResource* get_static_resource() {
         static StaticResource static_resource{};
         return &static_resource;
     }
 
     void init() {
         device = Device::get_device();
-        device->init();  // TODO: do init in its constructor
+        device->init();  // Important: init device first before using it (serial, network, etc.)
 
         serial  = device->get_serial();
         network = device->get_network();
@@ -118,8 +133,7 @@ class StaticResource final {
         static auto v_action{Condition()};
         action = &v_action;
 
-        boot_count = 0;
-
+        boot_count                 = 0;
         current_model_id           = 1;
         current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
         current_sensor_id          = 1;
@@ -156,7 +170,10 @@ class StaticResource final {
     inline void init_hardware() {
         serial->init();
         network->init();
-        transport->init(serial, network, &current_mqtt_pubsub_config);
+
+        // init virtual transport
+        transport->init(serial, network);
+        transport->set_config(current_mqtt_pubsub_config);
     }
 
     inline void init_backend() {
@@ -165,26 +182,29 @@ class StaticResource final {
 
         char version[EL_VERSION_LENTH_MAX]{};
         auto kv = el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
-        if (storage->get(kv) && std::string(EL_VERSION) != kv.value)
-            *storage << kv << el_make_storage_kv("current_model_id", current_model_id)
-                     << el_make_storage_kv("current_algorithm_type", current_algorithm_type)
-                     << el_make_storage_kv("current_sensor_id", current_sensor_id)
+        if (storage->get(kv) &&
+            std::string(EL_VERSION) != kv.value)  // if no version stored or version mismatch, init storage
+            *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
+                     << el_make_storage_kv_from_type(current_algorithm_type)
+                     << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
                      << el_make_storage_kv_from_type(wireless_network_config_t{})
                      << el_make_storage_kv_from_type(mqtt_server_config_t{})
                      << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
-                     << el_make_storage_kv("boot_count", boot_count);
-        else
-            *storage >> el_make_storage_kv("current_model_id", current_model_id) >>
-              el_make_storage_kv("current_algorithm_type", current_algorithm_type) >>
-              el_make_storage_kv("current_sensor_id", current_sensor_id) >>
+                     << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
+        else  // if version match, load other configs from storage
+            *storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id) >>
+              el_make_storage_kv_from_type(current_algorithm_type) >>
+              el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id) >>
               el_make_storage_kv_from_type(current_mqtt_pubsub_config) >> el_make_storage_kv("boot_count", boot_count);
 
-        *storage << el_make_storage_kv("boot_count", ++boot_count);
+        // increase boot count
+        *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, ++boot_count);
     }
 
     inline void init_frontend() {
-        instance->init([this](el_err_code_t ret, std::string msg) {
-            if (ret != EL_OK) [[unlikely]] {
+        // init AT server
+        instance->init([this](el_err_code_t ret, std::string msg) {  // server print callback function
+            if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs
                 msg.erase(std::remove_if(msg.begin(), msg.end(), [](char c) { return std::iscntrl(c); }), msg.end());
                 const auto& ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",
                                               std::to_string(ret),
