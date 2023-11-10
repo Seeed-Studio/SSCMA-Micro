@@ -286,49 +286,35 @@ void run() {
     {
         auto config = wireless_network_config_t{};
         auto kv     = el_make_storage_kv_from_type(config);
-        if (!static_resource->storage->contains(kv.key)) [[unlikely]]
+        if (!static_resource->storage->get(kv)) [[unlikely]]
             goto Finish;
-        {
-            *static_resource->storage >> kv;
-            std::vector<std::string> argv{
-              "set_wireless_network", quoted(config.name), std::to_string(config.security_type), quoted(config.passwd)};
-            set_wireless_network(argv);
-        }
+        set_wireless_network(std::vector<std::string>{
+          "set_wireless_network", config.name, std::to_string(config.security_type), config.passwd});
         if (static_resource->network->status() != NETWORK_JOINED) goto Finish;
         {
             auto config = mqtt_server_config_t{};
             auto kv     = el_make_storage_kv_from_type(config);
-            if (static_resource->storage->contains(kv.key)) [[unlikely]]
+            if (!static_resource->storage->get(kv)) [[unlikely]]
                 goto Finish;
-            {
-                *static_resource->storage >> kv;
-                std::vector<std::string> argv{"set_mqtt_server",
-                                              quoted(config.client_id),
-                                              quoted(config.address),
-                                              quoted(config.username),
-                                              quoted(config.password),
-                                              std::to_string(config.use_ssl ? 1 : 0)};
-                set_mqtt_server(argv);
-            }
+            set_mqtt_server(std::vector<std::string>{"set_mqtt_server",
+                                                     config.client_id,
+                                                     config.address,
+                                                     config.username,
+                                                     config.password,
+                                                     std::to_string(config.use_ssl ? 1 : 0)});
             if (static_resource->network->status() != NETWORK_CONNECTED) goto Finish;
             {
                 auto config = mqtt_pubsub_config_t{};
                 auto kv     = el_make_storage_kv_from_type(config);
-                if (static_resource->storage->contains(kv.key)) [[unlikely]]
+                if (!static_resource->storage->get(kv)) [[unlikely]]
                     goto Finish;
-                {
-                    *static_resource->storage >> kv;
-                    *static_resource->storage >> kv;
-                    std::vector<std::string> argv{"set_mqtt_pubsub",
-                                                  quoted(config.pub_topic),
-                                                  std::to_string(config.pub_qos),
-                                                  quoted(config.sub_topic),
-                                                  std::to_string(config.sub_qos)};
-                    set_mqtt_pubsub(argv);
-                }
+                set_mqtt_pubsub(std::vector<std::string>{"set_mqtt_pubsub",
+                                                         config.pub_topic,
+                                                         std::to_string(config.pub_qos),
+                                                         config.sub_topic,
+                                                         std::to_string(config.sub_qos)});
             }
         }
-
     Finish:;
     }
 

@@ -23,11 +23,12 @@ void set_mqtt_server(const std::vector<std::string>& argv) {
     auto config    = mqtt_server_config_t{};
     int  retry_cnt = SSCMA_MQTT_CONN_RETRY;
     bool connected = static_resource->network->status() == NETWORK_CONNECTED;
-    auto ret       = (argv[1].size() && argv[2].size()) ? EL_OK : EL_EINVAL;
-    if (ret != EL_OK) [[unlikely]]
-        goto Reply;
+    auto ret       = EL_OK;
 
-    std::strncpy(config.client_id, argv[1].c_str(), sizeof(config.client_id) - 1);
+    if (argv[1].empty())
+        std::snprintf(config.client_id, sizeof(config.client_id) - 1, "%ld", static_resource->device->get_device_id());
+    else
+        std::strncpy(config.client_id, argv[1].c_str(), sizeof(config.client_id) - 1);
     std::strncpy(config.address, argv[2].c_str(), sizeof(config.address) - 1);
     std::strncpy(config.username, argv[3].c_str(), sizeof(config.username) - 1);
     std::strncpy(config.password, argv[4].c_str(), sizeof(config.password) - 1);
@@ -39,7 +40,7 @@ void set_mqtt_server(const std::vector<std::string>& argv) {
             goto Reply;
     }
 
-    if (!argv[1].c_str() || !argv[2].c_str())  // TODO: driver add disconnect support
+    if (argv[2].empty())  // TODO: driver add disconnect support
         goto Reply;
 
     while (--retry_cnt && static_resource->network->status() != NETWORK_CONNECTED) {
@@ -87,9 +88,7 @@ void get_mqtt_server(const std::string& cmd) {
 void set_mqtt_pubsub(const std::vector<std::string>& argv) {
     // "CMD","PUB_TOPIC","PUB_QOS","SUB_TOPIC","SUB_QOS"
     auto config = mqtt_pubsub_config_t{};
-    auto ret    = (argv[1].size() && argv[3].size()) ? EL_OK : EL_EINVAL;
-    if (ret != EL_OK) [[unlikely]]
-        goto Reply;
+    auto ret    = EL_OK;
 
     std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
     config.pub_qos = std::atoi(argv[2].c_str());

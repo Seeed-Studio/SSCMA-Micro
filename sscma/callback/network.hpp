@@ -45,11 +45,7 @@ void set_wireless_network(const std::vector<std::string>& argv) {
             goto Reply;
     }
 
-    if (!argv[1].c_str()) {
-        ret = static_resource->network->quit();
-        el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-        goto Reply;
-    }
+    if (argv[1].empty()) goto Reply;
 
     retry_cnt = SSCMA_WIRELESS_NETWORK_CONN_RETRY;
     while (--retry_cnt && static_resource->network->status() != NETWORK_JOINED) {
