@@ -45,9 +45,19 @@ class MuxTransport final {
         _network = network;
     }
 
-    void set_config(mqtt_pubsub_config_t mqtt_pubsub_config) {
+    void set_mqtt_config(mqtt_pubsub_config_t mqtt_pubsub_config) {
         const Guard guard(_config_lock);
         _mqtt_pubsub_config = mqtt_pubsub_config;
+    }
+
+    void emit_mqtt_discover() {
+        const Guard guard(_config_lock);
+        const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(_mqtt_pubsub_config), "\n")};
+        char        discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
+        std::snprintf(
+          discover_topic, sizeof(discover_topic) - 1, SSCMA_MQTT_DISCOVER_TOPIC, SSCMA_AT_API_MAJOR_VERSION);
+
+        _network->publish(discover_topic, ss.c_str(), ss.size(), MQTT_QOS_0);
     }
 
     inline size_t get_line(char* buffer, size_t size, const char delim = 0x0d) {
@@ -56,6 +66,11 @@ class MuxTransport final {
 
     inline el_err_code_t send_bytes(const char* buffer, size_t size) {
         const Guard guard(_config_lock);
+        return m_send_bytes(buffer, size);
+    }
+
+   protected:
+    inline el_err_code_t m_send_bytes(const char* buffer, size_t size) {
         // send buffer to serial
         auto serial_ret = _serial->send_bytes(buffer, size);
         // send buffer to MQTT (the connection status is checked inside the publish function)
@@ -173,7 +188,7 @@ class StaticResource final {
 
         // init virtual transport
         transport->init(serial, network);
-        transport->set_config(current_mqtt_pubsub_config);
+        transport->set_mqtt_config(current_mqtt_pubsub_config);
     }
 
     inline void init_backend() {
