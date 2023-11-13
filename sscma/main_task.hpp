@@ -304,17 +304,17 @@ void run() {
         if (static_resource->network->status() == NETWORK_CONNECTED) {
             auto config = mqtt_pubsub_config_t{};
             auto kv     = el_make_storage_kv_from_type(config);
-            if (static_resource->storage->get(kv)) [[likely]]
-                set_mqtt_pubsub(std::vector<std::string>{"set_mqtt_pubsub",
-                                                         config.pub_topic,
-                                                         std::to_string(config.pub_qos),
-                                                         config.sub_topic,
-                                                         std::to_string(config.sub_qos)});
+            static_resource->storage->get(kv);  // if no config on flash, use default
+            set_mqtt_pubsub(std::vector<std::string>{"set_mqtt_pubsub",
+                                                     config.pub_topic,
+                                                     std::to_string(config.pub_qos),
+                                                     config.sub_topic,
+                                                     std::to_string(config.sub_qos)});
         }
     }
 
     // mark the system status as ready
-    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+    static_resource->is_ready.store(true);
 
     // enter service loop
     {

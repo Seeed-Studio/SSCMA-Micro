@@ -267,7 +267,7 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
     return ss;
 }
 
-decltype(auto) wireless_network_config_2_json_str(wireless_network_config_t config) {
+decltype(auto) wireless_network_config_2_json_str(const wireless_network_config_t& config) {
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),
                                   ", \"name\": ",
@@ -280,7 +280,7 @@ decltype(auto) wireless_network_config_2_json_str(wireless_network_config_t conf
     return ss;
 }
 
-decltype(auto) mqtt_server_config_2_json_str(mqtt_server_config_t config) {
+decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config) {
     std::string ss{concat_strings("{\"client_id\": ",
                                   quoted(config.client_id),
                                   ", \"address\": ",
@@ -295,7 +295,7 @@ decltype(auto) mqtt_server_config_2_json_str(mqtt_server_config_t config) {
     return ss;
 }
 
-decltype(auto) mqtt_pubsub_config_2_json_str(mqtt_pubsub_config_t config) {
+decltype(auto) mqtt_pubsub_config_2_json_str(const mqtt_pubsub_config_t& config) {
     std::string ss{concat_strings("{\"pub_topic\": ",
                                   quoted(config.pub_topic),
                                   ", \"pub_qos\": ",

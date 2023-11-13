@@ -115,6 +115,11 @@ Reply:
                                   mqtt_pubsub_config_2_json_str(config),
                                   "}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
+
+    // also send message to discover topic (TODO: should be moved to transport, mutex needed)
+    char discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
+    std::snprintf(discover_topic, sizeof(discover_topic) - 1, SSCMA_MQTT_DISCOVER_TOPIC, SSCMA_AT_API_MAJOR_VERSION);
+    static_resource->network->publish(discover_topic, ss.c_str(), ss.size(), MQTT_QOS_0);
 }
 
 void get_mqtt_pubsub(const std::string& cmd) {
