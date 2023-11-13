@@ -22,6 +22,10 @@
     #define CONFIG_SSCMA_CMD_MAX_LENGTH 4096
 #endif
 
+#define SSCMA_AT_API_MAJOR_VERSION           "v0"
+
+#define SSCMA_EXECUTOR_WORKER_NAME_PREFIX    "sscma#executor"
+
 #define SSCMA_STORAGE_KEY_VERSION            "sscma#version"
 #define SSCMA_STORAGE_KEY_ACTION             "sscma#action"
 #define SSCMA_STORAGE_KEY_INFO               "sscma#info"
@@ -42,3 +46,5 @@
 #define SSCMA_MQTT_PASSWORD_LEN              64
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
 #define SSCMA_MQTT_TOPIC_LEN                 64
+#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%ld/tx"
+#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%ld/rx"

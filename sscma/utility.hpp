@@ -39,9 +39,9 @@ template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T 
 inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
 template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
-    std::size_t length{(lengthof(args) + ...)};
+    std::size_t length{(lengthof(args) + ...)};  // try calculate total length at compile time
     std::string result;
-    result.reserve(length + 1);
+    result.reserve(length + 1);  // preallocate memory, avoid repeatly allocate memory while appendings
     (result.append(std::forward<Args>(args)), ...);
     return result;
 }
@@ -65,8 +65,8 @@ void draw_results_on_image(const std::forward_list<el_point_t>& results, el_img_
 void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t* img) {
     uint8_t i = 0;
     for (const auto& box : results) {
-        int16_t y = box.y - (box.h >> 1);
-        int16_t x = box.x - (box.w >> 1);
+        int16_t y = box.y - (box.h >> 1);  // center y
+        int16_t x = box.x - (box.w >> 1);  // center x
         el_draw_rect(img, x, y, box.w, box.h, color_literal(++i), 4);
     }
 }
@@ -161,14 +161,24 @@ template <typename T> constexpr decltype(auto) results_2_json_str(const std::for
     return ss;
 }
 
-// TODO: support reallocate memory when image size (width or height) changes
 inline decltype(auto) img_2_json_str(const el_img_t* img) {
-    if (!img || !img->data) [[unlikely]]
+    if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
-    static std::size_t size        = img->width * img->height * 3;
-    static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
-    static char*       buffer      = new char[buffer_size]{};
+    static std::size_t size        = 0;
+    static std::size_t buffer_size = 0;
+    static char*       buffer      = nullptr;
+
+    // only reallcate memory when buffer size is not enough
+    if (img->size > size) [[unlikely]] {
+        size        = img->size;
+        buffer_size = (((size + 2u) / 3u) << 2u) + 1u;  // base64 encoded size, +1 for terminating null character
+
+        if (buffer) [[likely]]
+            delete[] buffer;
+        buffer = new char[buffer_size]{};
+    }
+
     std::memset(buffer, 0, buffer_size);
     el_base64_encode(img->data, img->size, buffer);
 
@@ -177,31 +187,30 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
 
 // TODO: avoid repeatly allocate/release memory in for loop
 inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img) {
-    if (!img || !img->data) [[unlikely]]
+    if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
-    static std::size_t size      = img->width * img->height * 3;
-    static uint8_t*    jpeg_data = new uint8_t[size]{};
-    if (img->width * img->height * 3 != size) [[unlikely]] {
-        size = img->width * img->height * 3;
-        delete[] jpeg_data;
+    static std::size_t size      = 0;
+    static uint8_t*    jpeg_data = nullptr;
+    std::size_t        jpeg_size = img->size >> 2u;  // assuing jpeg size is 1/4 of raw image size
+    // only reallcate memory when buffer size is not enough (TODO: reallocate logging for profiling)
+    if (jpeg_size > size) [[unlikely]] {
+        size = jpeg_size;
+        if (jpeg_data) [[likely]]
+            delete[] jpeg_data;
         jpeg_data = new uint8_t[size]{};
     }
+
+    std::memset(jpeg_data, 0, size);
     auto jpeg_img = el_img_t{.data   = jpeg_data,
                              .size   = size,
                              .width  = img->width,
                              .height = img->height,
                              .format = EL_PIXEL_FORMAT_JPEG,
                              .rotate = img->rotate};
-    std::memset(jpeg_data, 0, size);
-    if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
-        // allocate static buffer using maxium size
-        static std::size_t buffer_size = ((size + 2) / 3) * 4 + 1;
-        static char*       buffer      = new char[buffer_size]{};
-        std::memset(buffer, 0, buffer_size);
-        el_base64_encode(jpeg_img.data, jpeg_img.size, buffer);
-        return concat_strings("\"image\": \"", buffer, "\"");
-    }
+
+    if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]]
+        return img_2_json_str(&jpeg_img);
 
     return std::string("\"image\": \"\"");
 }
@@ -306,18 +315,18 @@ inline decltype(auto) tokenize_function_2_argv(const std::string& input) {
     std::size_t size  = input.size();
     char        c     = {};
 
-    while (index < size) {
-        c = input.at(index);
-        if (std::isalnum(c) || c == '_') [[likely]] {
-            size_t prev = index;
-            while (++index < size) {
+    while (index < size) {                             // tokenize input string
+        c = input.at(index);                           // update current character
+        if (std::isalnum(c) || c == '_') [[likely]] {  // if current character is alphanumeric or underscore
+            size_t prev = index;                       // mark the start of the token
+            while (++index < size) {                   // find the end of the token
                 c = input.at(index);
                 if (!(std::isalnum(c) || c == '_')) [[unlikely]]
-                    break;
+                    break;  // if current character is not alphanumeric or underscore, break e.g. '(', ')', ',', ' ' ...
             }
-            argv.push_back(input.substr(prev, index - prev));
+            argv.push_back(input.substr(prev, index - prev));  // push the token into argv
         } else
-            ++index;
+            ++index;  // if current character is not alphanumeric or underscore, skip it
     }
     argv.shrink_to_fit();
 
@@ -325,25 +334,40 @@ inline decltype(auto) tokenize_function_2_argv(const std::string& input) {
 }
 
 bool is_bssid(const std::string& str) {
-    if (str.length() != 17) return false;
+    if (str.length() != 17) return false;  // BSSID length is 17, e.g. 00:11:22:33:44:55
+
     for (std::size_t i = 0; i < str.length(); ++i) {
         if (i % 3 == 2) {
-            if (str[i] != ':' && str[i] != '-') return false;
+            if (str[i] != ':' && str[i] != '-') return false;  // BSSID delimiter is ':' or '-'
         } else {
-            if (!std::isxdigit(str[i])) return false;
+            if (!std::isxdigit(str[i])) return false;  // BSSID is hex string
         }
     }
+
     return true;
 }
 
 decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
     auto default_config = mqtt_pubsub_config_t{};
-    std::snprintf(
-      default_config.pub_topic, sizeof(default_config.pub_topic) - 1, "sscma/pub_%ld", device->get_device_id());
+
+    std::snprintf(default_config.pub_topic,
+                  sizeof(default_config.pub_topic) - 1,
+                  SSCMA_MQTT_PUB_FMT,
+                  SSCMA_AT_API_MAJOR_VERSION,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
     default_config.pub_qos = 0;
-    std::snprintf(
-      default_config.sub_topic, sizeof(default_config.sub_topic) - 1, "sscma/sub_%ld", device->get_device_id());
+
+    std::snprintf(default_config.sub_topic,
+                  sizeof(default_config.sub_topic) - 1,
+                  SSCMA_MQTT_SUB_FMT,
+                  SSCMA_AT_API_MAJOR_VERSION,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
     default_config.sub_qos = 0;
+
     return default_config;
 }
 
