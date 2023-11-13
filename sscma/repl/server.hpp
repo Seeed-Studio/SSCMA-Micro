@@ -130,13 +130,13 @@ class Server {
     Server(Server const&)            = delete;
     Server& operator=(Server const&) = delete;
 
-    template <typename Callable> void init(Callable&& echo_cb) {
+    void init(repl_echo_cb_t echo_cb) {
         {
             const Guard<Mutex> guard(_cmd_list_lock);
-            if (!_echo_cb) [[unlikely]]
+            if (!echo_cb) [[unlikely]]
                 _echo_cb = [](el_err_code_t, std::string msg) { el_printf("%s\n", msg.c_str()); };
             else
-                _echo_cb = std::forward<Callable>(echo_cb);
+                _echo_cb = std::move(echo_cb);
         }
 
         m_echo_cb(EL_OK, "Welcome to EegeLab REPL.\n", "Type 'AT+HELP?' for command list.\n", "> ");
