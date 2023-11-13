@@ -14,7 +14,7 @@ using namespace sscma::utility;
 
 static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     const auto& config_topic = static_resource->current_mqtt_pubsub_config.sub_topic;
-    if (tlen != std::strlen(config_topic) || std::strncmp(top, config_topic, tlen) || mlen <= 1) return;
+    if (tlen ^  std::strlen(config_topic) || std::strncmp(top, config_topic, tlen) || mlen <= 1) return;
     static_resource->instance->exec(std::move(std::string(msg, mlen)));
 }
 
