@@ -96,6 +96,7 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv) {
     config.sub_qos = std::atoi(argv[4].c_str());
 
     static_resource->current_mqtt_pubsub_config = config;
+    static_resource->transport->set_config(config);
 
     if (static_resource->is_ready.load()) [[likely]] {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
@@ -114,6 +115,11 @@ Reply:
                                   mqtt_pubsub_config_2_json_str(config),
                                   "}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
+
+    // also send message to discover topic (TODO: should be moved to transport, mutex needed)
+    char discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
+    std::snprintf(discover_topic, sizeof(discover_topic) - 1, SSCMA_MQTT_DISCOVER_TOPIC, SSCMA_AT_API_MAJOR_VERSION);
+    static_resource->network->publish(discover_topic, ss.c_str(), ss.size(), MQTT_QOS_0);
 }
 
 void get_mqtt_pubsub(const std::string& cmd) {

@@ -20,6 +20,7 @@ using namespace sscma::callback;
 
 void run() {
     // init static_resource
+    // Important: init device first before using it (serial, network, etc.)
     static_resource->init();
 
     // register commands
@@ -59,7 +60,6 @@ void run() {
             static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
             break_task(cmd);
         });
-
         return EL_OK;
     });
 
@@ -265,7 +265,7 @@ void run() {
           return EL_OK;
       });
 
-    // init commands
+    // run init tasks
     // set model
     if (static_resource->current_model_id) [[likely]]
         set_model("set_model", static_resource->current_model_id);
@@ -278,48 +278,43 @@ void run() {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
         *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-        std::vector<std::string> argv{"set_action", action};
-        set_action(argv);
+        set_action(std::vector<std::string>{"set_action", action});
     }
 
     // connect to wireless network and setup MQTT
     {
         auto config = wireless_network_config_t{};
         auto kv     = el_make_storage_kv_from_type(config);
-        if (!static_resource->storage->get(kv)) [[unlikely]]
-            goto Finish;
-        set_wireless_network(std::vector<std::string>{
-          "set_wireless_network", config.name, std::to_string(config.security_type), config.passwd});
-        if (static_resource->network->status() != NETWORK_JOINED) goto Finish;
-        {
+        if (static_resource->storage->get(kv)) [[likely]]
+            set_wireless_network(std::vector<std::string>{
+              "set_wireless_network", config.name, std::to_string(config.security_type), config.passwd});
+
+        if (static_resource->network->status() == NETWORK_JOINED) {
             auto config = mqtt_server_config_t{};
             auto kv     = el_make_storage_kv_from_type(config);
-            if (!static_resource->storage->get(kv)) [[unlikely]]
-                goto Finish;
-            set_mqtt_server(std::vector<std::string>{"set_mqtt_server",
-                                                     config.client_id,
-                                                     config.address,
-                                                     config.username,
-                                                     config.password,
-                                                     std::to_string(config.use_ssl ? 1 : 0)});
-            if (static_resource->network->status() != NETWORK_CONNECTED) goto Finish;
-            {
-                auto config = mqtt_pubsub_config_t{};
-                auto kv     = el_make_storage_kv_from_type(config);
-                if (!static_resource->storage->get(kv)) [[unlikely]]
-                    goto Finish;
-                set_mqtt_pubsub(std::vector<std::string>{"set_mqtt_pubsub",
-                                                         config.pub_topic,
-                                                         std::to_string(config.pub_qos),
-                                                         config.sub_topic,
-                                                         std::to_string(config.sub_qos)});
-            }
+            if (static_resource->storage->get(kv)) [[likely]]
+                set_mqtt_server(std::vector<std::string>{"set_mqtt_server",
+                                                         config.client_id,
+                                                         config.address,
+                                                         config.username,
+                                                         config.password,
+                                                         std::to_string(config.use_ssl ? 1 : 0)});
         }
-    Finish:;
+
+        if (static_resource->network->status() == NETWORK_CONNECTED) {
+            auto config = mqtt_pubsub_config_t{};
+            auto kv     = el_make_storage_kv_from_type(config);
+            static_resource->storage->get(kv);  // if no config on flash, use default
+            set_mqtt_pubsub(std::vector<std::string>{"set_mqtt_pubsub",
+                                                     config.pub_topic,
+                                                     std::to_string(config.pub_qos),
+                                                     config.sub_topic,
+                                                     std::to_string(config.sub_qos)});
+        }
     }
 
     // mark the system status as ready
-    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+    static_resource->is_ready.store(true);
 
     // enter service loop
     {

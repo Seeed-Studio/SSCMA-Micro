@@ -26,6 +26,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <forward_list>
 #include <functional>
 #include <stack>
@@ -43,7 +44,7 @@ namespace sscma {
 
 namespace repl {
 
-class Server;
+class Server;  // pre-defined for friend class
 
 }
 
@@ -132,9 +133,10 @@ class Server {
     template <typename Callable> void init(Callable&& echo_cb) {
         {
             const Guard<Mutex> guard(_cmd_list_lock);
-            _echo_cb = std::forward<Callable>(echo_cb);
             if (!_echo_cb) [[unlikely]]
                 _echo_cb = [](el_err_code_t, std::string msg) { el_printf("%s\n", msg.c_str()); };
+            else
+                _echo_cb = std::forward<Callable>(echo_cb);
         }
 
         m_echo_cb(EL_OK, "Welcome to EegeLab REPL.\n", "Type 'AT+HELP?' for command list.\n", "> ");
@@ -154,10 +156,8 @@ class Server {
 
     bool has_cmd(const std::string& cmd) {
         const Guard<Mutex> guard(_cmd_list_lock);
-
-        auto it = std::find_if(
+        auto               it = std::find_if(
           _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(cmd) == 0; });
-
         return it != _cmd_list.end();
     }
 
@@ -169,10 +169,10 @@ class Server {
 
         auto it = std::find_if(
           _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(cmd.cmd) == 0; });
-        if (it != _cmd_list.end()) [[unlikely]] {
-            const Guard<Mutex> guard(_exec_lock);
-            *it = std::forward<Command>(cmd);  // overloaded construct (copy or move)
-        } else
+        if (it != _cmd_list.end()) [[unlikely]] {                 // if cmd already registered, replace it
+            const Guard<Mutex> guard(_exec_lock);                 // lock to avoid concurrency modification of cmd list
+            *it = std::forward<Command>(cmd);                     // overloaded construct (copy or move)
+        } else                                                    // else register an new cmd
             _cmd_list.emplace_front(std::forward<Command>(cmd));  // inplace construct (copy or move)
 
         return EL_OK;
@@ -184,6 +184,7 @@ class Server {
         return register_cmd(std::move(cmd_t));
     }
 
+    // unregister multiple commands
     template <typename... Args> void unregister_cmd(Args&&... args) {
         const Guard<Mutex> guard(_cmd_list_lock);
         ((m_unregister_cmd(std::forward<Args>(args))), ...);
@@ -199,7 +200,7 @@ class Server {
 
         _echo_cb(EL_OK, "Command list:\n");
         for (const auto& cmd : _cmd_list) {
-            if (cmd.args.size())
+            if (cmd.args.size())  // if cmd has args
                 m_echo_cb(EL_OK, "  AT+", cmd.cmd, "=<", cmd.args, ">\n");
             else
                 m_echo_cb(EL_OK, "  AT+", cmd.cmd, "\n");
@@ -225,33 +226,33 @@ class Server {
 
     void loop(char c) {
         if (_is_ctrl) {
-            _ctrl_line.push_back(c);
-            if (std::isalpha(c) || (c == '~')) {
-                if (_ctrl_line.compare("[A") == 0) {
+            _ctrl_line.push_back(c);                  // append current char to ctrl line
+            if (std::isalpha(c) || (c == '~')) {      // if current char is a letter or '~'
+                if (_ctrl_line.compare("[A") == 0) {  // if press up arrow
                     _history.prev(_line);
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r> ", _line, "\033[K");
-                } else if (_ctrl_line.compare("[B") == 0) {
+                } else if (_ctrl_line.compare("[B") == 0) {  // if press down arrow
                     _history.next(_line);
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r> ", _line, "\033[K");
-                } else if (_ctrl_line.compare("[C") == 0) {
+                } else if (_ctrl_line.compare("[C") == 0) {  // if press right arrow
                     if (_line_index < static_cast<int>(_line.size()) - 1) {
                         ++_line_index;
                         m_echo_cb(EL_OK, "\033", _ctrl_line);
                     }
-                } else if (_ctrl_line.compare("[D") == 0) {
+                } else if (_ctrl_line.compare("[D") == 0) {  // if press left arrow
                     if (_line_index >= 0) {
                         --_line_index;
                         m_echo_cb(EL_OK, "\033", _ctrl_line);
                     }
-                } else if (_ctrl_line.compare("[H") == 0) {
+                } else if (_ctrl_line.compare("[H") == 0) {  // if press home
                     _line_index = 0;
                     m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 3), "G");
-                } else if (_ctrl_line.compare("[F") == 0) {
+                } else if (_ctrl_line.compare("[F") == 0) {  // if press end
                     _line_index = _line.size() - 1;
                     m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
-                } else if (_ctrl_line.compare("[3~") == 0) {
+                } else if (_ctrl_line.compare("[3~") == 0) {  // if press delete
                     if (_line_index < static_cast<int>(_line.size()) - 1) {
                         if (!_line.empty() && _line_index >= 0) {
                             _line.erase(_line_index + 1, 1);
@@ -260,7 +261,7 @@ class Server {
                         }
                     }
                 } else
-                    m_echo_cb(EL_OK, "\033", _ctrl_line);
+                    m_echo_cb(EL_OK, "\033", _ctrl_line);  // echo ctrl line
 
                 _ctrl_line.clear();
                 _is_ctrl = false;
@@ -270,8 +271,8 @@ class Server {
         }
 
         switch (c) {
-        case '\n':
-        case '\r':
+        case '\n':  // newline
+        case '\r':  // enter
             _echo_cb(EL_OK, "\r\n");
             if (!_line.empty()) {
                 if (m_exec_cmd(_line) == EL_OK) [[likely]] {
@@ -284,8 +285,8 @@ class Server {
             _echo_cb(EL_OK, "\r> ");
             break;
 
-        case '\b':
-        case 0x7F:
+        case '\b':  // backspace
+        case 0x7F:  // DEL
             if (!_line.empty() && _line_index >= 0) {
                 _line.erase(_line_index, 1);
                 --_line_index;
@@ -293,16 +294,16 @@ class Server {
             }
             break;
 
-        case 0x1B:
+        case 0x1B:  // ESC
             _is_ctrl = true;
             break;
 
         default:
-            if (std::isprint(c)) {
-                _line.insert(++_line_index, 1, c);
-                if (_line_index == static_cast<int>(_line.size()) - 1)
-                    m_echo_cb(EL_OK, std::to_string(c));
-                else
+            if (std::isprint(c)) {                                      // if current char is printable
+                _line.insert(++_line_index, 1, c);                      // insert the char to line
+                if (_line_index == static_cast<int>(_line.size()) - 1)  // if current char is the last char of line
+                    m_echo_cb(EL_OK, std::to_string(c));                // echo the char
+                else                                                    // else move cursor on the line
                     m_echo_cb(EL_OK, "\r> ", _line, "\033[", std::to_string(_line_index + 4), "G");
             }
         }
@@ -319,6 +320,7 @@ class Server {
         std::string   cmd_name;
         std::string   cmd_args;
 
+        // find first '=' in AT command (<cmd_name>=<cmd_args>)
         size_t pos = cmd.find_first_of("=");
         if (pos != std::string::npos) {
             cmd_name = cmd.substr(0, pos);
@@ -328,17 +330,21 @@ class Server {
 
         std::transform(cmd_name.begin(), cmd_name.end(), cmd_name.begin(), ::toupper);
 
+        // check if cmd_name is valid (starts with "AT+")
         if (cmd_name.rfind("AT+", 0) != 0) {
             m_echo_cb(EL_EINVAL, "Unknown command: ", cmd, "\n");
             return EL_EINVAL;
         }
-        cmd_name = cmd_name.substr(3, cmd_name.size());
+        cmd_name = cmd_name.substr(3, cmd_name.size());  // remove "AT+" command prefix
 
-        _cmd_list_lock.lock();
-        size_t cmd_body_pos    = cmd_name.rfind("@");
+        // find command tag (everything after last '@'), then remove the tag to get the real command name
+        size_t cmd_body_pos    = cmd_name.rfind('@');
         cmd_body_pos           = cmd_body_pos != std::string::npos ? cmd_body_pos + 1 : 0;
         std::string target_cmd = cmd_name.substr(cmd_body_pos, cmd_name.size());
-        auto        it         = std::find_if(
+
+        // find command in cmd list
+        _cmd_list_lock.lock();
+        auto it = std::find_if(
           _cmd_list.begin(), _cmd_list.end(), [&](const repl_cmd_t& c) { return c.cmd.compare(target_cmd) == 0; });
         if (it == _cmd_list.end()) [[unlikely]] {
             m_echo_cb(EL_EINVAL, "Unknown command: ", cmd, "\n");
@@ -353,34 +359,34 @@ class Server {
         if (!it->cmd_cb) [[unlikely]]
             return ret;
 
-        // tokenize
+        // tokenize callback args in callback function exisits
         std::vector<std::string> argv;
         argv.push_back(cmd_name);
         std::stack<char> stk;
         size_t           index = 0;
         size_t           size  = cmd_args.size();
-        while (index < size && argv.size() < it->_argc + 1u) {
+        while (index < size && argv.size() < it->_argc + 1u) {  // while not reach end of cmd_args and not enough args
             char c = cmd_args.at(index);
-            if (c == '\'' || c == '"') [[unlikely]] {
-                stk.push(c);
+            if (c == '\'' || c == '"') [[unlikely]] {  // if current char is a quote
+                stk.push(c);                           // push the quote to stack
                 std::string arg;
-                while (++index < size && stk.size()) {
-                    c = cmd_args.at(index);
-                    if (c == stk.top())
+                while (++index < size && stk.size()) {  // while not reach end of cmd_args and stack is not empty
+                    c = cmd_args.at(index);             // get next char
+                    if (c == stk.top())                 // if the char matches the top of stack, pop the stack
                         stk.pop();
-                    else if (c != '\\') [[likely]]
+                    else if (c != '\\') [[likely]]  // if the char is not a backslash, append it to arg
                         arg += c;
-                    else if (++index < size) [[likely]]
+                    else if (++index < size) [[likely]]  // if the char is a backslash, get next char, append it to arg
                         arg += cmd_args.at(index);
                 }
                 argv.push_back(std::move(arg));
-            } else if (c == '-' || std::isdigit(c)) {
+            } else if (c == '-' || std::isdigit(c)) {  //if current char is a digit or a minus sign
                 size_t prev = index;
-                while (++index < size)
-                    if (!std::isdigit(cmd_args.at(index))) break;
-                argv.push_back(cmd_args.substr(prev, index - prev));
+                while (++index < size)                                // while not reach end of cmd_args
+                    if (!std::isdigit(cmd_args.at(index))) break;     // if current char is not a digit, break
+                argv.push_back(cmd_args.substr(prev, index - prev));  // append the number string to argv
             } else
-                ++index;
+                ++index;  // if current char is not a quote or a digit, skip it
         }
         argv.shrink_to_fit();
 
@@ -389,7 +395,7 @@ class Server {
             return ret;
         }
 
-        ret = it->cmd_cb(std::move(argv));
+        ret = it->cmd_cb(std::move(argv));  // execute callback function
         if (ret != EL_OK) [[unlikely]]
             m_echo_cb(EL_EINVAL, "Command ", cmd_name, " failed.\n");
 

@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef _EDGELAB_H_
-#define _EDGELAB_H_
+#ifndef _EL_API_H_
+#define _EL_API_H_
 
 #include "core/algorithm/el_algorithm_delegate.h"
 #include "core/data/el_data_models.h"

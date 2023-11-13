@@ -15,22 +15,26 @@
 namespace sscma::repl {
 
 using namespace edgelab;
+
 using namespace sscma::types;
 
+// TODO: memory order should be optimized for different architecures
 class Executor {
    public:
     Executor()
         : _task_queue_lock(),
           _task_stop_requested(false),
           _worker_thread_stop_requested(false),
-          _worker_name("sscma#executor#"),
+          _worker_name(SSCMA_EXECUTOR_WORKER_NAME_PREFIX),
           _worker_handler() {
         static uint8_t     worker_id    = 0u;
         static const char* hex_literals = "0123456789ABCDEF";
 
+        // prepare worker name (FreeRTOS task required), reserve 2 bytes for uint8_t hex string
         _worker_name.reserve(_worker_name.length() + (sizeof(uint8_t) << 1) + 1);
         EL_ASSERT(_worker_name.size() < configMAX_TASK_NAME_LEN);
 
+        // convert worker id to hex string
         _worker_name += hex_literals[worker_id >> 4];
         _worker_name += hex_literals[worker_id & 0x0f];
 
@@ -40,7 +44,7 @@ class Executor {
                                                 this,
                                                 CONFIG_SSCMA_REPL_EXECUTOR_PRIO,
                                                 &_worker_handler);
-        EL_ASSERT(ret == pdPASS);
+        EL_ASSERT(ret == pdPASS);  // TODO: handle error
     }
 
     ~Executor() {
@@ -50,6 +54,7 @@ class Executor {
         vTaskDelete(_worker_handler);
     }
 
+    // the Callable must be a function object or a lambda, the prototype is repl_task_t
     template <typename Callable> inline void add_task(Callable&& task) {
         const Guard<Mutex> guard(_task_queue_lock);
         _task_queue.push(std::forward<Callable>(task));
