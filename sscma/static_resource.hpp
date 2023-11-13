@@ -50,6 +50,11 @@ class MuxTransport final {
         _mqtt_pubsub_config = mqtt_pubsub_config;
     }
 
+    mqtt_pubsub_config_t get_mqtt_config() {
+        const Guard guard(_config_lock);
+        return _mqtt_pubsub_config;
+    }
+
     void emit_mqtt_discover() {
         const Guard guard(_config_lock);
         const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(_mqtt_pubsub_config), "\n")};
