@@ -13,8 +13,8 @@ using namespace sscma::types;
 using namespace sscma::utility;
 
 static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
-    const auto& config_topic = static_resource->current_mqtt_pubsub_config.sub_topic;
-    if (tlen ^ std::strlen(config_topic) || std::strncmp(top, config_topic, tlen) || mlen <= 1) return;
+    auto config = static_resource->transport->get_mqtt_config();
+    if (tlen ^ std::strlen(config.sub_topic) || std::strncmp(top, config.sub_topic, tlen) || mlen <= 1) return;
     static_resource->instance->exec(std::move(std::string(msg, mlen)));
 }
 
@@ -102,6 +102,8 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv) {
     auto ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
     if (ret != EL_OK) [[unlikely]]
         goto Reply;
+
+    static_resource->network->unsubscribe(static_resource->current_mqtt_pubsub_config.sub_topic);
 
     static_resource->current_mqtt_pubsub_config = config;
     static_resource->transport->set_mqtt_config(config);
