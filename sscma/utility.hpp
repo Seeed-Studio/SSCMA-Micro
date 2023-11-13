@@ -89,7 +89,7 @@ inline decltype(auto) quoted(const std::string& str, const char delim = '"') {
     return ss;
 }
 
-decltype(auto) model_info_2_json_str(el_model_info_t model_info) {
+decltype(auto) model_info_2_json_str(const el_model_info_t& model_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(model_info.id),
                           ", \"type\": ",
@@ -101,7 +101,7 @@ decltype(auto) model_info_2_json_str(el_model_info_t model_info) {
                           "}");
 }
 
-decltype(auto) sensor_info_2_json_str(el_sensor_info_t sensor_info) {
+decltype(auto) sensor_info_2_json_str(const el_sensor_info_t& sensor_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(sensor_info.id),
                           ", \"type\": ",

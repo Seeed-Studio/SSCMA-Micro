@@ -106,6 +106,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _ret = _model_info.id != 0 ? EL_OK : EL_EINVAL;
         if (_ret != EL_OK) [[unlikely]]
             return false;
+        _ret = static_resource->engine ? EL_OK : EL_EPERM;
+        if (_ret != EL_OK) [[unlikely]]
+            return false;
         return true;
     }
 
