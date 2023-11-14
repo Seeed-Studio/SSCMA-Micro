@@ -27,17 +27,20 @@ void get_available_sensors(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
+void set_sensor(
+  const std::string& cmd, uint8_t sensor_id, bool enable, bool has_reply = true, bool write_to_flash = true) {
     auto sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
+    // a valid sensor id should always > 0
     auto ret = sensor_info.id ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto SensorReply;
 
-    // camera
+    // if the sensor type is camera
     if (sensor_info.type == EL_SENSOR_TYPE_CAM) {
         auto* camera = static_resource->device->get_camera();
 
+        // set the sensor state to locked and deinit if the sensor is present
         static_resource->device->set_sensor_state(sensor_id, EL_SENSOR_STA_LOCKED);
         if (static_cast<bool>(*camera)) {
             ret = camera->deinit();
@@ -45,31 +48,39 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable) {
                 goto SensorError;
         }
 
-        if (enable) [[likely]] {
+        // if enable is true, init the camera
+        if (enable) {
             ret = camera->init(240, 240);  // TODO: custom resolution
             if (ret != EL_OK) [[unlikely]]
                 goto SensorError;
         }
+
+        // set the sensor state to available
         static_resource->device->set_sensor_state(sensor_id, EL_SENSOR_STA_AVAIL);
+        // update sensor info
         sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
+        // if sensor id changed, update current sensor id
         if (static_resource->current_sensor_id != sensor_id) {
             static_resource->current_sensor_id = sensor_id;
-            if (static_resource->is_ready.load()) [[likely]]
-                *static_resource->storage
-                  << el_make_storage_kv("current_sensor_id", static_resource->current_sensor_id);
+            // if write_to_flash is true, store the current sensor id to flash
+            if (write_to_flash)
+                ret = static_resource->storage->emplace(
+                        el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, static_resource->current_sensor_id))
+                        ? EL_OK
+                        : EL_EIO;
         }
     } else
         ret = EL_ENOTSUP;
+
+    // jump since everything is ok (or not supported)
     goto SensorReply;
 
 SensorError:
     static_resource->current_sensor_id = 0;
 
 SensorReply:
-#if CONFIG_EL_DEBUG == 0
-    if (!static_resource->is_ready.load()) return;
-#endif
+    if (!has_reply) return;
 
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,

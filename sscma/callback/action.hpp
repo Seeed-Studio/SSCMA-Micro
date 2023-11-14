@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -13,40 +12,46 @@
 namespace sscma::callback {
 
 using namespace edgelab;
+
 using namespace sscma::utility;
 
-void set_action(const std::vector<std::string>& argv) {
+void set_action(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
+    // get last condition expr string hash
     auto hash = static_resource->action->get_condition_hash();
-    auto ret  = static_resource->action->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
+    // set current condition expr string
+    auto ret = static_resource->action->set_condition(argv[1]) ? EL_OK : EL_EINVAL;
     if (ret != EL_OK) [[unlikely]]
         goto ActionReply;
 
+    // update exception callback (cmd changes)
+    static_resource->action->set_exception_cb([cmd = argv[0],
+                                               exp = quoted(argv[1]),
+                                               ec  = std::to_string(EL_ELOG),
+                                               crc = std::to_string(static_resource->action->get_condition_hash())]() {
+        const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
+                                        cmd,
+                                        "\", \"code\": ",
+                                        ec,
+                                        ", \"data\": {\"crc16_maxim\": ",
+                                        crc,
+                                        ", \"action\": ",
+                                        exp,
+                                        "}}\n");
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    });
+
+    // compare hash to check if condition expr string changed
     if (hash != static_resource->action->get_condition_hash()) [[likely]] {
-        hash = static_resource->action->get_condition_hash();
-        static_resource->action->set_exception_cb(
-          [cmd = argv[0],
-           exp = quoted(argv[1]),
-           ec  = std::to_string(EL_ELOG),
-           crc = std::to_string(static_resource->action->get_condition_hash())]() {
-              const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
-                                              cmd,
-                                              "\", \"code\": ",
-                                              ec,
-                                              ", \"data\": {\"crc16_maxim\": ",
-                                              crc,
-                                              ", \"action\": ",
-                                              exp,
-                                              "}}\n");
-              static_resource->transport->send_bytes(ss.c_str(), ss.size());
-          });
-        auto mutable_map = static_resource->action->get_mutable_map();
+        hash             = static_resource->action->get_condition_hash();  // update last hash
+        auto mutable_map = static_resource->action->get_mutable_map();     // get mutable map
         for (auto& kv : mutable_map) {
             auto argv = tokenize_function_2_argv(kv.first);
-            if (!argv.size()) [[unlikely]]
+            if (!argv.size()) [[unlikely]]  // if argv is empty, skip
                 continue;
 
+            // LED action
             if (argv[0] == "led") {
-                if (argv.size() == 2) {
+                if (argv.size() == 2) [[likely]] {  // LED action with 1 argument
                     bool enable = std::atoi(argv[1].c_str());
                     kv.second   = [enable]() -> int {
                         el_status_led(enable);
@@ -55,9 +60,10 @@ void set_action(const std::vector<std::string>& argv) {
                 }
             }
         }
-        static_resource->action->set_mutable_map(mutable_map);
+        static_resource->action->set_mutable_map(mutable_map);  // update mutable map
 
-        if (static_resource->is_ready.load()) [[likely]] {
+        // if condition expr string changes and write_to_flash is true, store the action to flash
+        if (write_to_flash) {
             char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             std::strncpy(
               action,
@@ -69,9 +75,7 @@ void set_action(const std::vector<std::string>& argv) {
     }
 
 ActionReply:
-#if CONFIG_EL_DEBUG == 0
-    if (!static_resource->is_ready.load()) return;
-#endif
+    if (!has_reply) return;
 
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],
@@ -82,7 +86,6 @@ ActionReply:
                                   ", \"action\": ",
                                   quoted(argv[1]),
                                   "}}\n")};
-
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -91,8 +94,9 @@ void get_action(const std::string& cmd) {
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 
+    // if action is set and a action is stored in flash, get the action from flash
     if (static_resource->action->has_condition() && static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) {
-        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EINVAL;
+        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
@@ -105,7 +109,6 @@ void get_action(const std::string& cmd) {
                                   ", \"action\": ",
                                   quoted(action),
                                   "}}\n")};
-
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
