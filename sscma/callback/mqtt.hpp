@@ -120,7 +120,7 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
             goto Reply;
     }
 
-    // if the MQTT server is connected, disconnect it
+    // // if the MQTT server is connected, disconnect it
     // while (--conn_retry && static_resource->network->status() == NETWORK_CONNECTED) {
     //     // TODO: driver add disconnect API
     //     ret = static_resource->network->disconnect();
@@ -130,11 +130,13 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
     //     }
     //     while (--poll_retry && static_resource->network->status() == NETWORK_CONNECTED)
     //         el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
+    //     if (poll_retry <= 0) [[unlikely]] {
+    //         ret = EL_ETIMOUT;
+    //         goto Reply;
+    //     }
     //     break;
     // }
-
-    // check if the MQTT server is disconnected again, if not, return IO error
-    // ret = static_resource->network->status() == NETWORK_JOINED ? EL_OK : EL_EIO;
+    // ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
     // if (ret != EL_OK) [[unlikely]]
     //     goto Reply;
 
@@ -157,8 +159,15 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
         // wait for the MQTT server to be connected
         while (--poll_retry && static_resource->network->status() != NETWORK_CONNECTED)
             el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
-        break;
+        if (poll_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto Reply;
+        }
+        break;  // break if the MQTT server is connected
     }
+    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
 
     // chain setup MQTT server publish and subscribe topic (skip checking if the MQTT server is connected)
     {
