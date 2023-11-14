@@ -30,15 +30,10 @@
 void wifi_event_handler(void* arg, esp_event_base_t base, int32_t id, void* data) 
 {
     edgelab::NetworkEsp *net = (edgelab::NetworkEsp *)arg;
-    switch (id) {
-        case WIFI_EVENT_STA_DISCONNECTED:
-            net->set_status(NETWORK_IDLE);
-            break;
-        case WIFI_EVENT_STA_CONNECTED:
-            net->set_status(NETWORK_JOINED);
-            break;
-        default:
-            break;
+    if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        net->set_status(NETWORK_JOINED);
+    } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
+        net->set_status(NETWORK_IDLE);
     }
 }
 
@@ -121,6 +116,7 @@ el_err_code_t NetworkEsp::join(const char* ssid, const char *pwd) {
     }
 
     esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, (void *)this);
+    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, (void *)this);
 
     if (esp_wifi_connect() != ESP_OK) {
         // printf("connect failed!\r\n");
