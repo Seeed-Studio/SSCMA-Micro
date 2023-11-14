@@ -20,8 +20,40 @@ using namespace sscma::callback;
 
 void run() {
     // init static_resource
-    // Important: init device first before using it (serial, network, etc.)
-    static_resource->init();
+    static_resource->init([]() {
+#if CONFIG_EL_DEBUG > 1
+        bool has_reply = true;
+#else
+        bool has_reply = false;
+#endif
+        bool write_to_flash = static_resource->is_ready.load();
+        // set model
+        if (static_resource->current_model_id) [[likely]]
+            set_model("INIT@MODEL", static_resource->current_model_id, has_reply, write_to_flash);
+
+        // set sensor
+        if (static_resource->current_sensor_id) [[likely]]
+            set_sensor("INIT@SENSOR", static_resource->current_sensor_id, true, has_reply, write_to_flash);
+
+        // set action
+        if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
+            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+            *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
+            set_action(std::vector<std::string>{"INIT@ACTION", action}, has_reply, write_to_flash);
+        }
+
+        // connect to wireless network and setup MQTT (chain setup)
+        {
+            auto config = wireless_network_config_t{};
+            auto kv     = el_make_storage_kv_from_type(config);
+            if (static_resource->storage->get(kv)) [[likely]]
+                set_wireless_network(
+                  std::vector<std::string>{
+                    "INIT@WIFI", config.name, std::to_string(config.security_type), config.passwd},
+                  has_reply,
+                  write_to_flash);
+        }
+    });
 
     // register commands
     static_resource->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
@@ -264,37 +296,6 @@ void run() {
             [cmd = std::move(argv[0])](const std::atomic<bool>&) { get_mqtt_pubsub(cmd); });
           return EL_OK;
       });
-
-    // run init tasks
-    // set model
-    if (static_resource->current_model_id) [[likely]]
-        set_model("INIT@MODEL", static_resource->current_model_id);
-
-    // set sensor
-    if (static_resource->current_sensor_id) [[likely]]
-        set_sensor("INIT@SENSOR", static_resource->current_sensor_id, true);
-
-    // set action
-    if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
-        char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-        *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-        set_action(std::vector<std::string>{"INIT@ACTION", action});
-    }
-
-    // connect to wireless network and setup MQTT (chain setup)
-    {
-        auto config = wireless_network_config_t{};
-        auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->get(kv)) [[likely]]
-            set_wireless_network(
-              std::vector<std::string>{"INIT@WIFI", config.name, std::to_string(config.security_type), config.passwd},
-#if CONFIG_EL_DEBUG > 1
-              true
-#else
-              false
-#endif
-            );
-    }
 
     // mark the system status as ready
     static_resource->is_ready.store(true);

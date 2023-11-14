@@ -13,7 +13,7 @@ namespace sscma::callback {
 using namespace sscma::types;
 using namespace sscma::utility;
 
-void set_wireless_network(const std::vector<std::string>& argv, bool has_reply = true) {
+void set_wireless_network(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
     // crate config from argv
     auto config      = wireless_network_config_t{};
     config.name_type = is_bssid(argv[1]) ? wireless_network_name_type_e::BSSID : wireless_network_name_type_e::SSID;
@@ -26,7 +26,7 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
     auto ret        = EL_OK;
 
     // store the config to flash if not invoked in init time
-    if (static_resource->is_ready.load()) [[likely]] {
+    if (write_to_flash) {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
         if (ret != EL_OK) [[unlikely]]
             goto Reply;
@@ -111,11 +111,11 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
                                                      config.password,
                                                      std::to_string(config.use_ssl ? 1 : 0)},
 #if CONFIG_EL_DEBUG > 1
-                            true
+                            true,
 #else
-                            false
+                            false,
 #endif
-            );
+                            false);
     }
 
 Reply:

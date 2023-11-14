@@ -3,6 +3,8 @@
 #include <atomic>
 #include <cstdbool>
 #include <cstdint>
+#include <cstring>
+#include <functional>
 #include <string>
 
 #include "core/algorithm/el_algorithm_delegate.h"
@@ -134,7 +136,7 @@ class StaticResource final {
         return &static_resource;
     }
 
-    void init() {
+    void init(std::function<void(void)> post_init) {
         device = Device::get_device();
         device->init();  // Important: init device first before using it (serial, network, etc.)
 
@@ -176,6 +178,7 @@ class StaticResource final {
         algorithm_delegate = AlgorithmDelegate::get_delegate();
 
         inter_init();
+        if (post_init) post_init();
     }
 
    protected:
@@ -190,10 +193,8 @@ class StaticResource final {
     inline void init_hardware() {
         serial->init();
         network->init();
-
         // init virtual transport
         transport->init(serial, network);
-        transport->set_mqtt_config(current_mqtt_pubsub_config);
     }
 
     inline void init_backend() {
@@ -222,6 +223,8 @@ class StaticResource final {
     }
 
     inline void init_frontend() {
+        // set transport MQTT publish/subscribe config
+        transport->set_mqtt_config(current_mqtt_pubsub_config);
         // init AT server
         instance->init([this](el_err_code_t ret, std::string msg) {  // server print callback function
             if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs

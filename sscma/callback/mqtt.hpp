@@ -18,24 +18,7 @@ static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     static_resource->instance->exec(std::move(std::string(msg, mlen)));
 }
 
-void get_mqtt_server(const std::string& cmd) {
-    bool connected = static_resource->network->status() == NETWORK_CONNECTED;
-    auto config    = mqtt_server_config_t{};
-    auto ret       = static_resource->storage->get(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
-
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"connected\": ",
-                                  std::to_string(connected ? 1 : 0),
-                                  ", \"config\": ",
-                                  mqtt_server_config_2_json_str(config),
-                                  "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
-}
-
-void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true) {
+void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
     // crate config from argv
     auto config = mqtt_pubsub_config_t{};
     std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
@@ -46,7 +29,7 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true
     auto ret = EL_OK;
 
     // store the config to flash if not invoked in init time
-    if (static_resource->is_ready.load()) [[likely]] {
+    if (write_to_flash) {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
         if (ret != EL_OK) [[unlikely]]
             goto Reply;
@@ -92,7 +75,7 @@ void get_mqtt_pubsub(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true) {
+void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
     // crate config from argv
     auto config = mqtt_server_config_t{};
     if (argv[1].empty())  // if the client id is empty, generate one
@@ -114,7 +97,7 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
     auto ret        = EL_OK;
 
     // store the config to flash if not invoked in init time
-    if (static_resource->is_ready.load()) [[likely]] {
+    if (write_to_flash) [[likely]] {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
         if (ret != EL_OK) [[unlikely]]
             goto Reply;
@@ -178,11 +161,11 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
                                                  config.sub_topic,
                                                  std::to_string(config.sub_qos)},
 #if CONFIG_EL_DEBUG > 1
-                        true
+                        true,
 #else
-                        false
+                        false,
 #endif
-        );
+                        false);
     }
 
 Reply:
@@ -191,6 +174,23 @@ Reply:
     auto        connected = static_resource->network->status() == NETWORK_CONNECTED;
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   argv[0],
+                                  "\", \"code\": ",
+                                  std::to_string(ret),
+                                  ", \"data\": {\"connected\": ",
+                                  std::to_string(connected ? 1 : 0),
+                                  ", \"config\": ",
+                                  mqtt_server_config_2_json_str(config),
+                                  "}}\n")};
+    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+}
+
+void get_mqtt_server(const std::string& cmd) {
+    bool connected = static_resource->network->status() == NETWORK_CONNECTED;
+    auto config    = mqtt_server_config_t{};
+    auto ret       = static_resource->storage->get(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
+
+    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                  cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),
                                   ", \"data\": {\"connected\": ",

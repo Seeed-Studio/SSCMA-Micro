@@ -11,6 +11,7 @@
 namespace sscma::callback {
 
 using namespace edgelab;
+
 using namespace sscma::utility;
 
 void print_help(const std::forward_list<repl_cmd_t>& cmd_list) {
