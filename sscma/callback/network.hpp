@@ -35,8 +35,8 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
     // check if the network is idle (or ready to connect)
     while (--conn_retry && static_resource->network->status() != NETWORK_IDLE) {
         // check if the network is connected
-        while (static_resource->network->status() == NETWORK_JOINED ||
-               static_resource->network->status() == NETWORK_CONNECTED) {
+        while (--conn_retry && (static_resource->network->status() == NETWORK_JOINED ||
+                                static_resource->network->status() == NETWORK_CONNECTED)) {
             // disconnect the network if joined or connected (an unsubscribe all API is needed)
             ret = static_resource->network->quit();
             if (ret != EL_OK) [[unlikely]] {
@@ -48,6 +48,10 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
             while (--poll_retry && (static_resource->network->status() == NETWORK_JOINED ||
                                     static_resource->network->status() == NETWORK_CONNECTED))
                 el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
+            if (poll_retry <= 0) [[unlikely]] {
+                ret = EL_ETIMOUT;
+                goto Reply;
+            }
             break;  // break if the network is disconnected
         }
 
@@ -57,6 +61,9 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
             el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
         }
     }
+    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
 
     // check if the network is idle again, if not, return IO error
     ret = static_resource->network->status() == NETWORK_IDLE ? EL_OK : EL_EIO;
@@ -82,8 +89,15 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
         // wait for the network to be joined
         while (--poll_retry && static_resource->network->status() != NETWORK_JOINED)
             el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-        break;
+        if (poll_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto Reply;
+        }
+        break;  // break if the network is joined
     }
+    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
 
     // chain setup MQTT server (skip checking if the network is joined)
     {
