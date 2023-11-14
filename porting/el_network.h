@@ -30,7 +30,6 @@
 
 #include "core/utils/el_ringbuffer.hpp"
 
-typedef void (*topic_cb_t)(char* top, int tlen, char* msg, int mlen);
 typedef enum {
     NETWORK_LOST = 0,
     NETWORK_IDLE,
@@ -44,6 +43,9 @@ typedef enum {
     MQTT_QOS_2
 } mqtt_qos_t;
 
+typedef void (*status_cb_t)(el_net_sta_t sta);
+typedef void (*topic_cb_t)(char* top, int tlen, char* msg, int mlen);
+
 namespace edgelab {
 
 // WIFI-STA for MQTT
@@ -52,7 +54,10 @@ public:
     Network() : _is_present(false), network_status(NETWORK_LOST) {}
     virtual ~Network() = default;
 
-    virtual void init() = 0;
+    virtual void init(status_cb_t cb) = 0;
+    void init() { 
+        this->init(nullptr); 
+    };
     virtual void deinit() = 0;
     virtual el_net_sta_t status() = 0;
 
@@ -62,6 +67,7 @@ public:
 
     /* MQTT client */
     virtual el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) = 0;
+    virtual el_err_code_t disconnect() = 0;
     virtual el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) = 0;
     virtual el_err_code_t unsubscribe(const char* topic) = 0;
     virtual el_err_code_t publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) = 0;
@@ -72,6 +78,9 @@ public:
     // virtual el_err_code_t post(const char* url, const char* payload);
 
     operator bool() const { return _is_present; }
+
+    status_cb_t status_cb = nullptr;
+    topic_cb_t topic_cb = nullptr;
 
 protected:
     bool _is_present;
