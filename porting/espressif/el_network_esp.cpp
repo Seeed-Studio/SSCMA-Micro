@@ -27,74 +27,45 @@
 
 #include "core/el_debug.h"
 
-#define ESP_MAXIMUM_RETRY  10
-
-#define ESP_WIFI_CONNECTED (1 << 0)
-#define ESP_WIFI_FAILED    (1 << 1)
-
-static int32_t retry_cnt;
-static SemaphoreHandle_t el_sem_got_ip;
-
-static bool mqtt_connected = false;
-
-static void handler_wifi_disconnect(void* arg, esp_event_base_t base, int32_t id, void* data)
+void wifi_event_handler(void* arg, esp_event_base_t base, int32_t id, void* data) 
 {
-    // printf("ESP_WIFI_DISCONNECTED\r\n");
-    retry_cnt++;
-    if (retry_cnt > ESP_MAXIMUM_RETRY) {
-        if (el_sem_got_ip) {
-            xSemaphoreGive(el_sem_got_ip);
-        }
-        return;
-    }
-    esp_err_t err = esp_wifi_connect();
-    if (err == ESP_ERR_WIFI_NOT_STARTED) {
-        return;
-    }
-}
-static void handler_wifi_connect(void* arg, esp_event_base_t base, int32_t id, void* data)
-{
-    // printf("ESP_WIFI_CONNECTED\r\n");
-}
-static void handler_sta_got_ip(void* arg, esp_event_base_t base, int32_t id, void* data)
-{
-    // printf("ESP_STA_GOT_IP\r\n");
-    retry_cnt = 0;
-    // ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
-    if (el_sem_got_ip) {
-        xSemaphoreGive(el_sem_got_ip);
+    edgelab::NetworkEsp *net = (edgelab::NetworkEsp *)arg;
+    switch (id) {
+        case WIFI_EVENT_STA_DISCONNECTED:
+            net->set_status(NETWORK_IDLE);
+            break;
+        case WIFI_EVENT_STA_CONNECTED:
+            net->set_status(NETWORK_JOINED);
+            break;
+        default:
+            break;
     }
 }
 
-static void handler_mqtt_data(void* arg, esp_event_base_t base, int32_t id, void* data) {
+static void mqtt_event_handler(void* arg, esp_event_base_t base, int32_t id, void* data)
+{
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)data;
-    esp_mqtt_client_handle_t client = event->client;
-    topic_cb_t cb = (topic_cb_t)arg;
-    // printf("MQTT_EVENT_DATA\r\n");
-    if (cb) cb(event->topic, event->topic_len, event->data, event->data_len);
-}
-
-static void handler_mqtt_connect(void* arg, esp_event_base_t base, int32_t id, void* data) {
-    esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)data;
-    esp_mqtt_client_handle_t client = event->client;
-    el_net_sta_t *ns = (el_net_sta_t *)arg;
-    *ns = NETWORK_CONNECTED;
-    mqtt_connected = true;
-    // printf("MQTT_EVENT_CONNECTED\r\n");
-}
-
-static void handler_mqtt_disconnect(void* arg, esp_event_base_t base, int32_t id, void* data) {
-    esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)data;
-    esp_mqtt_client_handle_t client = event->client;
-    el_net_sta_t *ns = (el_net_sta_t *)arg;
-    *ns = NETWORK_JOINED;
-    mqtt_connected = false;
-    // printf("MQTT_EVENT_DISCONNECTED\r\n");
+    edgelab::NetworkEsp *net = (edgelab::NetworkEsp *)arg;
+    switch ((esp_mqtt_event_id_t)id) {
+        case MQTT_EVENT_CONNECTED:
+            net->set_status(NETWORK_CONNECTED);
+            break;
+        case MQTT_EVENT_DISCONNECTED:
+            net->set_status(NETWORK_JOINED);
+            break;
+        case MQTT_EVENT_DATA:
+            if (net->topic_cb) {
+                net->topic_cb(event->topic, event->topic_len, event->data, event->data_len);
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 namespace edgelab {
 
-void NetworkEsp::init() {
+void NetworkEsp::init(status_cb_t cb) {
     /* Initialize NVS for config */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -118,11 +89,11 @@ void NetworkEsp::init() {
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_start();
 
-    network_status = NETWORK_IDLE;
+    this->set_status(NETWORK_IDLE);
     return;
 }
 void NetworkEsp::deinit() {
-    network_status = NETWORK_LOST;
+    this->set_status(NETWORK_LOST);
     return;
 }
 
@@ -149,41 +120,23 @@ el_err_code_t NetworkEsp::join(const char* ssid, const char *pwd) {
         return EL_FAILED;
     }
 
-    /* Create semaphore and register event handler */
-    el_sem_got_ip = xSemaphoreCreateBinary();
-    if (el_sem_got_ip == NULL) {
-        return EL_FAILED;
-    }
-    retry_cnt = 0;
-    esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &handler_wifi_disconnect, NULL);
-    esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &handler_wifi_connect, esp_netif);
-    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &handler_sta_got_ip, NULL);
+    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, (void *)this);
 
     if (esp_wifi_connect() != ESP_OK) {
         // printf("connect failed!\r\n");
         return EL_FAILED;
     }
-
-    EL_LOGI("WAITING FOR IP...\r\n");
-    xSemaphoreTake(el_sem_got_ip, portMAX_DELAY);
-    if (retry_cnt > ESP_MAXIMUM_RETRY) {
-        // printf("connect failed!\r\n");
-        return EL_ETIMOUT;
-    }
-
-    network_status = NETWORK_JOINED;
     return EL_OK;
 }
 
 el_err_code_t NetworkEsp::quit() {
     esp_wifi_disconnect();
-    network_status = NETWORK_IDLE;
     return EL_OK;
 }
 
 
 el_net_sta_t NetworkEsp::status() {
-    return network_status;
+    return this->network_status;
 }
 
 /**
@@ -207,18 +160,24 @@ el_err_code_t NetworkEsp::connect(const char* server, const char *user, const ch
         sprintf(url, "mqtt://%s", server);
     }
 
+    if (cb) this->topic_cb = cb;
+
     esp_mqtt_client_config_t mqtt_cfg = {.broker = {.address = {.uri = url}}};
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
-    esp_mqtt_client_register_event(mqtt_client, MQTT_EVENT_DATA, handler_mqtt_data, (void *)cb);
-    esp_mqtt_client_register_event(mqtt_client, MQTT_EVENT_CONNECTED, handler_mqtt_connect, (void *)&network_status);
-    esp_mqtt_client_register_event(mqtt_client, MQTT_EVENT_DISCONNECTED, handler_mqtt_disconnect, (void *)&network_status);
+    esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, 
+                                    mqtt_event_handler, (void *)this);
     esp_mqtt_client_start(mqtt_client);
     return EL_OK;
 }
 
+el_err_code_t NetworkEsp::disconnect() {
+    esp_mqtt_client_stop(mqtt_client);
+    return EL_OK;
+}
+
 el_err_code_t NetworkEsp::subscribe(const char* topic, mqtt_qos_t qos) {
-    if (!mqtt_connected) {
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
     int msg_id = esp_mqtt_client_subscribe(mqtt_client, topic, qos);
@@ -231,7 +190,7 @@ el_err_code_t NetworkEsp::subscribe(const char* topic, mqtt_qos_t qos) {
 }
 
 el_err_code_t NetworkEsp::unsubscribe(const char* topic) {
-    if (!mqtt_connected) {
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
     int msg_id = esp_mqtt_client_unsubscribe(mqtt_client, topic);
@@ -242,7 +201,7 @@ el_err_code_t NetworkEsp::unsubscribe(const char* topic) {
 }
 
 el_err_code_t NetworkEsp::publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) {
-    if (!mqtt_connected) {
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
 
