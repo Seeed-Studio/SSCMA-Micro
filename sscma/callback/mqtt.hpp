@@ -136,7 +136,7 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
     //     }
     //     break;
     // }
-    // ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    // ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
     // if (ret != EL_OK) [[unlikely]]
     //     goto Reply;
 
@@ -165,7 +165,7 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
         }
         break;  // break if the MQTT server is connected
     }
-    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
     if (ret != EL_OK) [[unlikely]]
         goto Reply;
 

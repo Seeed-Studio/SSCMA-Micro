@@ -61,7 +61,7 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
             el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
         }
     }
-    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
     if (ret != EL_OK) [[unlikely]]
         goto Reply;
 
@@ -95,7 +95,7 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
         }
         break;  // break if the network is joined
     }
-    ret = conn_retry >= 0 ? EL_OK : EL_ETIMOUT;
+    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
     if (ret != EL_OK) [[unlikely]]
         goto Reply;
 
