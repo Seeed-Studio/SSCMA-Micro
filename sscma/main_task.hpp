@@ -268,38 +268,32 @@ void run() {
     // run init tasks
     // set model
     if (static_resource->current_model_id) [[likely]]
-        set_model("set_model", static_resource->current_model_id);
+        set_model("INIT@MODEL", static_resource->current_model_id);
 
     // set sensor
     if (static_resource->current_sensor_id) [[likely]]
-        set_sensor("set_sensor", static_resource->current_sensor_id, true);
+        set_sensor("INIT@SENSOR", static_resource->current_sensor_id, true);
 
     // set action
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
         *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-        set_action(std::vector<std::string>{"set_action", action});
+        set_action(std::vector<std::string>{"INIT@ACTION", action});
     }
 
-    // connect to wireless network and setup MQTT
+    // connect to wireless network and setup MQTT (chain setup)
     {
         auto config = wireless_network_config_t{};
         auto kv     = el_make_storage_kv_from_type(config);
         if (static_resource->storage->get(kv)) [[likely]]
-            set_wireless_network(std::vector<std::string>{
-              "set_wireless_network", config.name, std::to_string(config.security_type), config.passwd});
-
-        if (static_resource->network->status() == NETWORK_JOINED) {
-            auto config = mqtt_server_config_t{};
-            auto kv     = el_make_storage_kv_from_type(config);
-            if (static_resource->storage->get(kv)) [[likely]]
-                set_mqtt_server(std::vector<std::string>{"set_mqtt_server",
-                                                         config.client_id,
-                                                         config.address,
-                                                         config.username,
-                                                         config.password,
-                                                         std::to_string(config.use_ssl ? 1 : 0)});
-        }
+            set_wireless_network(
+              std::vector<std::string>{"INIT@WIFI", config.name, std::to_string(config.security_type), config.passwd},
+#if CONFIG_EL_DEBUG > 1
+              true
+#else
+              false
+#endif
+            );
     }
 
     // mark the system status as ready

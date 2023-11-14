@@ -36,9 +36,11 @@
 #define SSCMA_WIRELESS_NETWORK_NAME_LEN      32
 #define SSCMA_WIRELESS_NETWORK_PASSWD_LEN    64
 #define SSCMA_WIRELESS_NETWORK_CONN_RETRY    5
+#define SSCMA_WIRELESS_NETWORK_POLL_RERTY    5
 #define SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS 100
 
 #define SSCMA_MQTT_CONN_RETRY                5
+#define SSCMA_MQTT_POLL_RETRY                5
 #define SSCMA_MQTT_CONN_DELAY_MS             100
 #define SSCMA_MQTT_CLIENT_ID_LEN             32
 #define SSCMA_MQTT_ADDRESS_LEN               128
@@ -47,5 +49,6 @@
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
 #define SSCMA_MQTT_TOPIC_LEN                 64
 #define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
+#define SSCMA_MQTT_DEVICE_ID_FMT             "sscma_%s_%s_%ld"
 #define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%ld/tx"
 #define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%ld/rx"
