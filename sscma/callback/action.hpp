@@ -112,4 +112,17 @@ void get_action(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
+void init_action_hook(std::string cmd) {
+#if CONFIG_EL_DEBUG > 1
+    bool has_reply = true;
+#else
+    bool has_reply = false;
+#endif
+    if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
+        char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+        *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
+        set_action(std::vector<std::string>{cmd + "@ACTION", action}, has_reply, false);
+    }
+}
+
 }  // namespace sscma::callback

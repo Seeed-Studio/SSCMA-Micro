@@ -117,6 +117,10 @@ class StaticResource final {
     bool                is_sample;
     bool                is_invoke;
 
+    // external states
+    std::atomic<bool> enable_network_supervisor;
+    el_net_sta_t      target_network_status;
+
     // external resources (hardware related)
     Device*            device;
     Serial*            serial;

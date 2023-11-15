@@ -15,7 +15,7 @@ using namespace sscma::utility;
 static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     auto config = static_resource->transport->get_mqtt_config();
     if (tlen ^ std::strlen(config.sub_topic) || std::strncmp(top, config.sub_topic, tlen) || mlen <= 1) return;
-    static_resource->instance->exec(std::move(std::string(msg, mlen)));
+    static_resource->instance->exec(std::string(msg, mlen));
 }
 
 void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
@@ -75,6 +75,23 @@ void get_mqtt_pubsub(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
+void init_mqtt_pubsub_hook(std::string cmd) {
+#if CONFIG_EL_DEBUG > 1
+    bool has_reply = true;
+#else
+    bool has_reply = false;
+#endif
+    auto config = static_resource->current_mqtt_pubsub_config;
+    set_mqtt_pubsub(std::vector<std::string>{cmd + "@MQTTPUBSUB",
+                                             config.pub_topic,
+                                             std::to_string(config.pub_qos),
+                                             config.sub_topic,
+                                             std::to_string(config.sub_qos)},
+                    has_reply,
+
+                    false);
+}
+
 void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
     // crate config from argv
     auto config = mqtt_server_config_t{};
@@ -103,25 +120,24 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
             goto Reply;
     }
 
-    // // if the MQTT server is connected, disconnect it
-    // while (--conn_retry && static_resource->network->status() == NETWORK_CONNECTED) {
-    //     // TODO: driver add disconnect API
-    //     ret = static_resource->network->disconnect();
-    //     if (ret != EL_OK) [[unlikely]] {
-    //         el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
-    //         continue;
-    //     }
-    //     while (--poll_retry && static_resource->network->status() == NETWORK_CONNECTED)
-    //         el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
-    //     if (poll_retry <= 0) [[unlikely]] {
-    //         ret = EL_ETIMOUT;
-    //         goto Reply;
-    //     }
-    //     break;
-    // }
-    // ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
-    // if (ret != EL_OK) [[unlikely]]
-    //     goto Reply;
+    // if the MQTT server is connected, disconnect it
+    while (--conn_retry && static_resource->network->status() == NETWORK_CONNECTED) {
+        ret = static_resource->network->disconnect();
+        if (ret != EL_OK) [[unlikely]] {
+            el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
+            continue;
+        }
+        while (--poll_retry && static_resource->network->status() == NETWORK_CONNECTED)
+            el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
+        if (poll_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto Reply;
+        }
+        break;
+    }
+    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
 
     // just return if the server address is empty (a disable API is needed)
     if (argv[2].empty()) goto Reply;
@@ -153,20 +169,7 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool has_reply = true
         goto Reply;
 
     // chain setup MQTT server publish and subscribe topic (skip checking if the MQTT server is connected)
-    {
-        auto config = static_resource->current_mqtt_pubsub_config;
-        set_mqtt_pubsub(std::vector<std::string>{argv[0] + "@MQTTPUBSUB",
-                                                 config.pub_topic,
-                                                 std::to_string(config.pub_qos),
-                                                 config.sub_topic,
-                                                 std::to_string(config.sub_qos)},
-#if CONFIG_EL_DEBUG > 1
-                        true,
-#else
-                        false,
-#endif
-                        false);
-    }
+    init_mqtt_pubsub_hook(argv[0]);
 
 Reply:
     if (!has_reply) return;
@@ -199,6 +202,25 @@ void get_mqtt_server(const std::string& cmd) {
                                   mqtt_server_config_2_json_str(config),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
+}
+
+void init_mqtt_server_hook(std::string cmd) {
+#if CONFIG_EL_DEBUG > 1
+    bool has_reply = true;
+#else
+    bool has_reply = false;
+#endif
+    auto config = mqtt_server_config_t{};
+    auto kv     = el_make_storage_kv_from_type(config);
+    if (static_resource->storage->get(kv)) [[likely]]
+        set_mqtt_server(std::vector<std::string>{cmd + "@MQTTSERVER",
+                                                 config.client_id,
+                                                 config.address,
+                                                 config.username,
+                                                 config.password,
+                                                 std::to_string(config.use_ssl ? 1 : 0)},
+                        has_reply,
+                        false);
 }
 
 }  // namespace sscma::callback

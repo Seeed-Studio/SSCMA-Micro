@@ -105,4 +105,14 @@ void get_sensor_info(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
+void init_sensor_hook(std::string cmd) {
+#if CONFIG_EL_DEBUG > 1
+    bool has_reply = true;
+#else
+    bool has_reply = false;
+#endif
+    if (static_resource->current_sensor_id) [[likely]]
+        set_sensor(cmd + "@SENSOR", static_resource->current_sensor_id, true, has_reply, false);
+}
+
 }  // namespace sscma::callback

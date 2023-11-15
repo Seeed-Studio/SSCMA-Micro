@@ -21,38 +21,12 @@ using namespace sscma::callback;
 void run() {
     // init static_resource
     static_resource->init([]() {
-#if CONFIG_EL_DEBUG > 1
-        bool has_reply = true;
-#else
-        bool has_reply = false;
-#endif
-        bool write_to_flash = static_resource->is_ready.load();
-        // set model
-        if (static_resource->current_model_id) [[likely]]
-            set_model("INIT@MODEL", static_resource->current_model_id, has_reply, write_to_flash);
+        std::string caller{"INIT"};
 
-        // set sensor
-        if (static_resource->current_sensor_id) [[likely]]
-            set_sensor("INIT@SENSOR", static_resource->current_sensor_id, true, has_reply, write_to_flash);
-
-        // set action
-        if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
-            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-            *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-            set_action(std::vector<std::string>{"INIT@ACTION", action}, has_reply, write_to_flash);
-        }
-
-        // connect to wireless network and setup MQTT (chain setup)
-        {
-            auto config = wireless_network_config_t{};
-            auto kv     = el_make_storage_kv_from_type(config);
-            if (static_resource->storage->get(kv)) [[likely]]
-                set_wireless_network(
-                  std::vector<std::string>{
-                    "INIT@WIFI", config.name, std::to_string(config.security_type), config.passwd},
-                  has_reply,
-                  write_to_flash);
-        }
+        init_model_hook(caller);
+        init_sensor_hook(caller);
+        init_action_hook(caller);
+        init_wireless_network_hook(caller);
     });
 
     // register commands

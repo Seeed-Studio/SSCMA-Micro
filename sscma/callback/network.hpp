@@ -34,9 +34,15 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
 
     // check if the network is idle (or ready to connect)
     while (--conn_retry && static_resource->network->status() != NETWORK_IDLE) {
+        // init again if lost
+        if (static_resource->network->status() == NETWORK_LOST) [[unlikely]] {
+            static_resource->network->init();
+            el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
+        }
+
         // check if the network is connected
-        while (--conn_retry && (static_resource->network->status() == NETWORK_JOINED ||
-                                static_resource->network->status() == NETWORK_CONNECTED)) {
+        if (static_resource->network->status() == NETWORK_JOINED ||
+            static_resource->network->status() == NETWORK_CONNECTED) {
             // disconnect the network if joined or connected (an unsubscribe all API is needed)
             ret = static_resource->network->quit();
             if (ret != EL_OK) [[unlikely]] {
@@ -54,12 +60,6 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
             }
             break;  // break if the network is disconnected
         }
-
-        // init again if lost
-        if (static_resource->network->status() == NETWORK_LOST) [[unlikely]] {
-            static_resource->network->init();
-            el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-        }
     }
     ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
     if (ret != EL_OK) [[unlikely]]
@@ -70,9 +70,11 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
     if (ret != EL_OK) [[unlikely]]
         goto Reply;
 
-    // just return if the network name is empty (a disable API is needed)
-    if (argv[1].empty()) [[unlikely]]
+    // just deinit and return if the network name is empty
+    if (argv[1].empty()) [[unlikely]] {
+        static_resource->network->deinit();
         goto Reply;
+    }
 
     // reset retry counter
     conn_retry = SSCMA_WIRELESS_NETWORK_CONN_RETRY;
@@ -100,23 +102,7 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
         goto Reply;
 
     // chain setup MQTT server (skip checking if the network is joined)
-    {
-        auto config = mqtt_server_config_t{};
-        auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->get(kv)) [[likely]]
-            set_mqtt_server(std::vector<std::string>{argv[0] + "@MQTTSERVER",
-                                                     config.client_id,
-                                                     config.address,
-                                                     config.username,
-                                                     config.password,
-                                                     std::to_string(config.use_ssl ? 1 : 0)},
-#if CONFIG_EL_DEBUG > 1
-                            true,
-#else
-                            false,
-#endif
-                            false);
-    }
+    init_mqtt_server_hook(argv[0]);
 
 Reply:
     if (!has_reply) return;
@@ -151,6 +137,21 @@ void get_wireless_network(const std::string& cmd) {
                                   wireless_network_config_2_json_str(config),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
+}
+
+void init_wireless_network_hook(std::string cmd) {
+#if CONFIG_EL_DEBUG > 1
+    bool has_reply = true;
+#else
+    bool has_reply = false;
+#endif
+    auto config = wireless_network_config_t{};
+    auto kv     = el_make_storage_kv_from_type(config);
+    if (static_resource->storage->get(kv)) [[likely]]
+        set_wireless_network(
+          std::vector<std::string>{cmd + "@WIFI", config.name, std::to_string(config.security_type), config.passwd},
+          has_reply,
+          false);
 }
 
 }  // namespace sscma::callback
