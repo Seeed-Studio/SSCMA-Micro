@@ -75,6 +75,8 @@ typedef enum {
     AT_STATE_ERROR,
 } at_sta_t;
 
+using namespace edgelab;
+
 typedef struct esp_at {
     char tbuf[AT_TX_MAX_LEN];
     // char rbuf[AT_RX_MAX_LEN];

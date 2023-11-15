@@ -59,7 +59,15 @@ public:
         this->init(nullptr); 
     };
     virtual void deinit() = 0;
-    virtual el_net_sta_t status() = 0;
+    el_net_sta_t status() {
+        return this->network_status;
+    };
+    void set_status(el_net_sta_t status) { 
+        this->network_status = status; 
+        if (this->status_cb) {
+            this->status_cb(this->network_status);
+        }
+    }
 
     /* WIFI station */
     virtual el_err_code_t join(const char* ssid, const char *pwd) = 0;

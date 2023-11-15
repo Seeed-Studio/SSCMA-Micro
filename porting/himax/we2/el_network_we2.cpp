@@ -46,7 +46,7 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
             // EL_LOGD("AT TIMEOUT\n");
             return EL_ETIMOUT;
         }
-        edgelab::el_sleep(10);
+        el_sleep(10);
         t += 10;
     }
 
@@ -57,7 +57,7 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     return EL_OK;
 }
 
-static void newline_parse() {
+static void newline_parse(topic_cb_t cb) {
     char     str[512] = {0};
     uint32_t len      = at_rbuf->extract('\n', str, sizeof(str));
 
@@ -134,26 +134,27 @@ static void newline_parse() {
             }
             msg_pos += str_len + 1;
 
-            at.cb(topic_pos, topic_len, msg_pos, msg_len);
+            if (cb) cb(topic_pos, topic_len, msg_pos, msg_len);
             return;
         }
     }
 }
 
 static void at_recv_parser(void* arg) {
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     while (1) {
         if (ulTaskNotifyTake(pdFALSE, portMAX_DELAY) > 0) {
-            newline_parse();
+            newline_parse(net->topic_cb);
         }
     }
 }
 
 static void network_event_handler(void* arg) {
-    uint32_t      event  = 0;
-    el_net_sta_t* status = (el_net_sta_t*)arg;
+    uint32_t value  = 0;
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     while (1) {
-        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &event, portMAX_DELAY) == pdPASS) {
-            *status = el_net_sta_t(event);
+        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &value, portMAX_DELAY) == pdPASS) {
+            net->set_status((el_net_sta_t)value);
         }
     }
 }
@@ -175,8 +176,8 @@ static void dma_rx_cb(void* arg) {
 
 namespace edgelab {
 
-void NetworkWE2::init() {
-    el_err_code_t err;
+void NetworkWE2::init(status_cb_t cb) {
+    el_err_code_t err = EL_OK;
     _at      = &at;
     at.state = AT_STATE_LOST;
     if (at_rbuf == NULL) {
@@ -203,12 +204,12 @@ void NetworkWE2::init() {
     }
 
     // Parse data and trigger events
-    if (xTaskCreate(at_recv_parser, "at_recv_parser", 1024, NULL, 1, &at_rx_parser) != pdPASS) {
+    if (xTaskCreate(at_recv_parser, "at_recv_parser", 1024, this, 1, &at_rx_parser) != pdPASS) {
         EL_LOGD("at_recv_parser create error\n");
         return;
     }
     // Handle network status change events
-    if (xTaskCreate(network_event_handler, "network_event_handler", 64, &network_status, 1, &status_handler) !=
+    if (xTaskCreate(network_event_handler, "network_event_handler", 64, this, 1, &status_handler) !=
         pdPASS) {
         EL_LOGD("network_event_handler create error\n");
         return;
@@ -241,20 +242,21 @@ void NetworkWE2::init() {
         EL_LOGD("AT CWMODE ERROR : %d\n", err);
         return;
     }
-    network_status = NETWORK_IDLE;
+    
+    if (cb) this->status_cb = cb;
+    this->set_status(NETWORK_IDLE);
 }
 
 void NetworkWE2::deinit() {
     at.port->uart_close();
     at.state = AT_STATE_LOST;
+    this->set_status(NETWORK_LOST);
 }
 
-el_net_sta_t NetworkWE2::status() { return network_status; }
-
 el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
-    el_err_code_t err;
+    el_err_code_t err = EL_OK;
     // EL_LOGD("join %s %s\n", ssid, pwd);
-    if (network_status == NETWORK_JOINED || network_status == NETWORK_CONNECTED) {
+    if (this->network_status == NETWORK_JOINED || this->network_status == NETWORK_CONNECTED) {
         return EL_OK;
     } else if (network_status == NETWORK_LOST) {
         return EL_EPERM;
@@ -269,8 +271,8 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
 }
 
 el_err_code_t NetworkWE2::quit() {
-    el_err_code_t err;
-    if (network_status == NETWORK_IDLE || network_status == NETWORK_LOST) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status == NETWORK_IDLE || this->network_status == NETWORK_LOST) {
         return EL_OK;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWQAP AT_STR_CRLF);
@@ -283,10 +285,10 @@ el_err_code_t NetworkWE2::quit() {
 }
 
 el_err_code_t NetworkWE2::connect(const char* server, const char* user, const char* pass, topic_cb_t cb) {
-    el_err_code_t err;
-    if (network_status == NETWORK_CONNECTED) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status == NETWORK_CONNECTED) {
         return EL_OK;
-    } else if (network_status != NETWORK_JOINED) {
+    } else if (this->network_status != NETWORK_JOINED) {
         return EL_EPERM;
     }
 
@@ -294,6 +296,7 @@ el_err_code_t NetworkWE2::connect(const char* server, const char* user, const ch
         return EL_EINVAL;
     }
     at.cb = cb;
+    this->topic_cb = cb;
 
     sprintf(at.tbuf,
             AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,1,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
@@ -317,9 +320,24 @@ el_err_code_t NetworkWE2::connect(const char* server, const char* user, const ch
     return EL_OK;
 }
 
+el_err_code_t NetworkWE2::disconnect() {
+    el_err_code_t err = EL_OK;
+    if (this->network_status != NETWORK_CONNECTED) {
+        return EL_EPERM;
+    }
+
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCLEAN "=0" AT_STR_CRLF);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MQTTCLEAN ERROR : %d\n", err);
+        return err;
+    }
+    return EL_OK;
+}
+
 el_err_code_t NetworkWE2::subscribe(const char* topic, mqtt_qos_t qos) {
-    el_err_code_t err;
-    if (network_status != NETWORK_CONNECTED) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
 
@@ -333,8 +351,8 @@ el_err_code_t NetworkWE2::subscribe(const char* topic, mqtt_qos_t qos) {
 }
 
 el_err_code_t NetworkWE2::unsubscribe(const char* topic) {
-    el_err_code_t err;
-    if (network_status != NETWORK_CONNECTED) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
 
@@ -348,8 +366,8 @@ el_err_code_t NetworkWE2::unsubscribe(const char* topic) {
 }
 
 el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) {
-    el_err_code_t err;
-    if (network_status != NETWORK_CONNECTED) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status != NETWORK_CONNECTED) {
         return EL_EPERM;
     }
 

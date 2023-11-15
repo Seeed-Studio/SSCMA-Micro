@@ -37,19 +37,17 @@ public:
     NetworkWE2()  = default;
     ~NetworkWE2() = default;
 
-    void init() override;
+    void init(status_cb_t cb) override;
     void deinit() override;
-    el_net_sta_t status() override;
 
     el_err_code_t join(const char* ssid, const char *pwd) override;
     el_err_code_t quit() override;
 
     el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) override;
+    el_err_code_t disconnect() override;
     el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) override;
     el_err_code_t unsubscribe(const char* topic) override;
     el_err_code_t publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) override;
-
-    operator bool() const { return _is_present; }
 
 private:
     esp_at_t* _at;

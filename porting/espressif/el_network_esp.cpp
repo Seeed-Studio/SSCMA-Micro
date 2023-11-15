@@ -130,11 +130,6 @@ el_err_code_t NetworkEsp::quit() {
     return EL_OK;
 }
 
-
-el_net_sta_t NetworkEsp::status() {
-    return this->network_status;
-}
-
 /**
  * Connects to a server using MQTT protocol and starts the MQTT client.
  *
