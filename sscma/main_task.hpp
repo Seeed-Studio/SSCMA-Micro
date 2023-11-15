@@ -22,7 +22,6 @@ void run() {
     // init static_resource
     static_resource->init([]() {
         std::string caller{"INIT"};
-
         init_model_hook(caller);
         init_sensor_hook(caller);
         init_action_hook(caller);
@@ -224,7 +223,10 @@ void run() {
       });
 
     static_resource->instance->register_cmd(
-      "WIFI", "Set and connect to a Wi-Fi", "\"NAME\",SECURITY,\"PASSWORD\"", [](std::vector<std::string> argv) {
+      "WIFI",
+      "Set and connect to a Wi-Fi",
+      "\"NAME\",SECURITY,\"PASSWORD\",STORE_ONLY",
+      [](std::vector<std::string> argv) {
           static_resource->executor->add_task(
             [argv = std::move(argv)](const std::atomic<bool>&) { set_wireless_network(argv); });
           return EL_OK;
@@ -240,7 +242,7 @@ void run() {
     static_resource->instance->register_cmd(
       "MQTTSERVER",
       "Set and connect to a MQTT server",
-      "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL",
+      "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL,STORE_ONLY",
       [](std::vector<std::string> argv) {
           static_resource->executor->add_task(
             [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_server(argv); });
@@ -257,7 +259,7 @@ void run() {
     static_resource->instance->register_cmd(
       "MQTTPUBSUB",
       "Set the MQTT publish and subscribe topic",
-      "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
+      "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS,STORE_ONLY",
       [](std::vector<std::string> argv) {
           static_resource->executor->add_task(
             [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_pubsub(argv); });

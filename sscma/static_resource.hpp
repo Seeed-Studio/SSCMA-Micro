@@ -170,6 +170,9 @@ class StaticResource final {
         is_sample       = false;
         is_invoke       = false;
 
+        enable_network_supervisor = false;
+        target_network_status     = network->status();
+
         static auto v_models{Models()};
         models = &v_models;
 
