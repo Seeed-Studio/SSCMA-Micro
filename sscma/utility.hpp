@@ -267,7 +267,8 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
     return ss;
 }
 
-decltype(auto) wireless_network_config_2_json_str(const wireless_network_config_t& config) {
+decltype(auto) wireless_network_config_2_json_str(const wireless_network_config_t& config, bool secure = true) {
+    const auto& pwd = secure ? std::string(std::strlen(config.passwd), '*') : std::string(config.passwd);
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),
                                   ", \"name\": ",
@@ -275,12 +276,13 @@ decltype(auto) wireless_network_config_2_json_str(const wireless_network_config_
                                   ", \"security\": ",
                                   std::to_string(config.security_type),
                                   ", \"password\": ",
-                                  quoted(config.passwd),
+                                  quoted(pwd),
                                   "}")};
     return ss;
 }
 
-decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config) {
+decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config, bool secure = true) {
+    const auto& pwd = secure ? std::string(std::strlen(config.password), '*') : std::string(config.password);
     std::string ss{concat_strings("{\"client_id\": ",
                                   quoted(config.client_id),
                                   ", \"address\": ",
@@ -288,7 +290,7 @@ decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config)
                                   ", \"username\": ",
                                   quoted(config.username),
                                   ", \"password\": ",
-                                  quoted(config.password),
+                                  quoted(pwd),
                                   ", \"use_ssl\": ",
                                   std::to_string(config.use_ssl ? 1 : 0),
                                   "}")};
