@@ -4,7 +4,6 @@
 #include <functional>
 #include <string>
 
-#include "mqtt.hpp"
 #include "shared/network_utility.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
@@ -15,10 +14,9 @@ namespace sscma::callback {
 using namespace sscma::types;
 using namespace sscma::utility;
 
-void set_wireless_network(
-  const std::vector<std::string>&  argv,
-  bool                             called_by_event = false,
-  std::function<void(std::string)> on_joined_hook  = [](std::string caller) { init_mqtt_server_hook(caller); }) {
+void set_wireless_network(const std::vector<std::string>&  argv,
+                          bool                             called_by_event = false,
+                          std::function<void(std::string)> on_joined_hook  = nullptr) {
     // disable network supervisor
     static_resource->enable_network_supervisor.store(false);
 
@@ -182,13 +180,6 @@ void get_wireless_network(const std::string& cmd) {
                                   wireless_network_config_2_json_str(config),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
-}
-
-void init_wireless_network_hook(std::string cmd) {
-    auto config = wireless_network_config_t{};
-    auto kv     = el_make_storage_kv_from_type(config);
-    if (static_resource->storage->get(kv)) [[likely]]
-        set_wireless_network({cmd + "@WIFI", config.name, std::to_string(config.security_type), config.passwd}, true);
 }
 
 }  // namespace sscma::callback

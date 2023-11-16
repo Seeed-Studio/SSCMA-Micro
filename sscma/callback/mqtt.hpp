@@ -20,12 +20,9 @@ static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     static_resource->instance->exec(std::string(msg, mlen));
 }
 
-void set_mqtt_pubsub(
-  const std::vector<std::string>&  argv,
-  bool                             called_by_event        = false,
-  std::function<void(std::string)> on_pubsub_success_hook = [](std::string) {
-      static_resource->transport->emit_mqtt_discover();
-  }) {
+void set_mqtt_pubsub(const std::vector<std::string>&  argv,
+                     bool                             called_by_event        = false,
+                     std::function<void(std::string)> on_pubsub_success_hook = nullptr) {
     // disable network supervisor
     static_resource->enable_network_supervisor.store(false);
 
@@ -101,20 +98,9 @@ void get_mqtt_pubsub(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void init_mqtt_pubsub_hook(std::string cmd) {
-    auto config = static_resource->current_mqtt_pubsub_config;
-    set_mqtt_pubsub({cmd + "@MQTTPUBSUB",
-                     config.pub_topic,
-                     std::to_string(config.pub_qos),
-                     config.sub_topic,
-                     std::to_string(config.sub_qos)},
-                    true);
-}
-
-void set_mqtt_server(
-  const std::vector<std::string>&  argv,
-  bool                             called_by_event   = false,
-  std::function<void(std::string)> on_connected_hook = [](std::string caller) { init_mqtt_pubsub_hook(caller); }) {
+void set_mqtt_server(const std::vector<std::string>&  argv,
+                     bool                             called_by_event   = false,
+                     std::function<void(std::string)> on_connected_hook = nullptr) {
     // disable network supervisor
     static_resource->enable_network_supervisor.store(false);
 
@@ -272,19 +258,6 @@ void get_mqtt_server(const std::string& cmd) {
                                   mqtt_server_config_2_json_str(config),
                                   "}}\n")};
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
-}
-
-void init_mqtt_server_hook(std::string cmd) {
-    auto config = mqtt_server_config_t{};
-    auto kv     = el_make_storage_kv_from_type(config);
-    if (static_resource->storage->get(kv)) [[likely]]
-        set_mqtt_server({cmd + "@MQTTSERVER",
-                         config.client_id,
-                         config.address,
-                         config.username,
-                         config.password,
-                         std::to_string(config.use_ssl ? 1 : 0)},
-                        true);
 }
 
 }  // namespace sscma::callback

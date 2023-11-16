@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "core/el_types.h"
 #include "porting/el_misc.h"
 #include "porting/el_network.h"
 #include "sscma/static_resource.hpp"

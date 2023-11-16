@@ -91,9 +91,4 @@ void get_model_info(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void init_model_hook(std::string cmd) {
-    if (static_resource->current_model_id) [[likely]]
-        set_model(cmd + "@MODEL", static_resource->current_model_id, true);
-}
-
 }  // namespace sscma::callback

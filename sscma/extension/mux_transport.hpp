@@ -31,9 +31,13 @@ class MuxTransport final : public Transport {
     ~MuxTransport() { deinit(); }
 
     el_err_code_t init() override {
+        EL_ASSERT(this->_is_present != true);
+
         auto device = Device::get_device();
-        _serial = device->get_serial();
-        _network = device->get_network();
+        _serial     = device->get_serial();
+        _network    = device->get_network();
+
+        this->_is_present = true;
 
         return (_serial && _network) ? EL_OK : EL_EIO;
     }
@@ -41,6 +45,8 @@ class MuxTransport final : public Transport {
     el_err_code_t deinit() override {
         _serial  = nullptr;
         _network = nullptr;
+
+        this->_is_present = false;
 
         return EL_OK;
     }

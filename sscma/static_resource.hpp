@@ -78,7 +78,8 @@ class StaticResource final {
 
     void init(std::function<void(void)> post_init) {
         device = Device::get_device();
-        device->init();  // Important: init device first before using it (serial, network, etc.)
+        // Important: init device first before using it (serial, network, etc.)
+        device->init();
 
         serial    = device->get_serial();
         network   = device->get_network();
@@ -93,20 +94,6 @@ class StaticResource final {
         static auto v_action{Condition()};
         action = &v_action;
 
-        boot_count                 = 0;
-        current_model_id           = 1;
-        current_sensor_id          = 1;
-        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
-        current_mqtt_pubsub_config = get_default_mqtt_pubsub_config(device);
-
-        current_task_id = 0;
-        is_ready        = false;
-        is_sample       = false;
-        is_invoke       = false;
-
-        enable_network_supervisor = false;
-        target_network_status     = network->status();
-
         static auto v_models{Models()};
         models = &v_models;
 
@@ -119,6 +106,7 @@ class StaticResource final {
         algorithm_delegate = AlgorithmDelegate::get_delegate();
 
         inter_init();
+
         if (post_init) post_init();
     }
 
@@ -126,6 +114,20 @@ class StaticResource final {
     StaticResource() = default;
 
     inline void inter_init() {
+        boot_count                 = 0;
+        current_model_id           = 1;
+        current_sensor_id          = 1;
+        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
+        current_mqtt_pubsub_config = get_default_mqtt_pubsub_config(device);
+
+        current_task_id = 0;
+        is_ready        = false;
+        is_sample       = false;
+        is_invoke       = false;
+
+        enable_network_supervisor = false;
+        target_network_status     = NETWORK_LOST;
+
         init_hardware();
         init_backend();
         init_frontend();
@@ -133,7 +135,11 @@ class StaticResource final {
 
     inline void init_hardware() {
         serial->init();
+
         network->init();
+        // Important: remember to update target_network_status after network initialized
+        target_network_status = network->status();
+
         transport->init();
     }
 

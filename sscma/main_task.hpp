@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hooks.hpp"
 #include "sscma/callback/action.hpp"
 #include "sscma/callback/algorithm.hpp"
 #include "sscma/callback/common.hpp"
@@ -17,6 +18,7 @@ namespace sscma::main_task {
 
 using namespace sscma::types;
 using namespace sscma::callback;
+using namespace sscma::hooks;
 
 void run() {
     // init static_resource
@@ -224,8 +226,9 @@ void run() {
 
     static_resource->instance->register_cmd(
       "WIFI", "Set and connect to a Wi-Fi", "\"NAME\",SECURITY,\"PASSWORD\"", [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_wireless_network(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              set_wireless_network(argv, false, init_mqtt_server_hook);
+          });
           return EL_OK;
       });
 
@@ -241,8 +244,9 @@ void run() {
       "Set and connect to a MQTT server",
       "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL",
       [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_server(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              set_mqtt_server(argv, false, init_mqtt_pubsub_hook);
+          });
           return EL_OK;
       });
 
@@ -258,8 +262,9 @@ void run() {
       "Set the MQTT publish and subscribe topic",
       "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
       [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_pubsub(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              set_mqtt_pubsub(argv, false, [](std::string) { static_resource->transport->emit_mqtt_discover(); });
+          });
           return EL_OK;
       });
 
