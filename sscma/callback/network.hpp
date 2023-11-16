@@ -5,7 +5,7 @@
 #include <string>
 
 #include "mqtt.hpp"
-#include "shared/network_helper.hpp"
+#include "shared/network_utility.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
@@ -13,7 +13,6 @@
 namespace sscma::callback {
 
 using namespace sscma::types;
-using namespace sscma::helper;
 using namespace sscma::utility;
 
 void set_wireless_network(
@@ -51,14 +50,16 @@ void set_wireless_network(
     // ensure the network is idle
     goto EnsureIdle;
 EnsureIdleAgain:
-    sta = static_resource->network->status();  // update status
-    if (--conn_retry < 0 || !try_ensure_network_status_changed(
-                              sta_old, SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY))
-      [[unlikely]] {
-        ret = EL_ETIMOUT;
-        goto SyncAndReply;
+    sta = try_ensure_network_status_changed(
+      sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto EnsureIdleAgain;
     }
-    sta_old = sta;  // update old status
+    sta_old = sta;  // update status
 EnsureIdle:
     switch (sta) {
     case NETWORK_IDLE:
@@ -84,17 +85,19 @@ EnsureIdle:
         goto EnsureIdleAgain;
 
     default:
-        ret = EL_ENOTSUP;
+        ret = EL_ELOG;
         goto SyncAndReply;
     }
 
     // just deinit and return if the network name is empty
     if (argv[1].empty()) [[unlikely]] {
         static_resource->network->deinit();  // Question: is deinit synchronous?
-        if (!try_ensure_network_status_changed(
-              sta_old, SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY)) [[unlikely]] {
+        sta = try_ensure_network_status_changed(
+          sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+        if (sta == sta_old) [[unlikely]]
             ret = EL_ETIMOUT;
-        }
+        else if (sta != NETWORK_LOST) [[unlikely]]
+            ret = EL_EIO;
         goto SyncAndReply;
     }
 
@@ -102,19 +105,18 @@ EnsureIdle:
     conn_retry = SSCMA_WIRELESS_NETWORK_CONN_RETRY;  // reset retry counter
     goto TryJoin;
 TryJoinAgain:
-    sta = static_resource->network->status();  // update status
-    if (--conn_retry < 0 || !try_ensure_network_status_changed(
-                              sta_old, SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY))
-      [[unlikely]] {
-        ret = EL_ETIMOUT;
-        goto SyncAndReply;
+    sta = try_ensure_network_status_changed(
+      sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto TryJoinAgain;
     }
-    sta_old = sta;  // update old status
+    sta_old = sta;  // update status
 TryJoin:
     switch (sta) {
-    case NETWORK_JOINED:
-        break;
-
     case NETWORK_IDLE:
         // try to join to the network
         ret = static_resource->network->join(config.name, config.passwd);
@@ -122,13 +124,17 @@ TryJoin:
             goto SyncAndReply;
         goto TryJoinAgain;
 
+    case NETWORK_JOINED:
+        break;
+
     case NETWORK_LOST:
     case NETWORK_CONNECTED:
         ret = EL_EIO;
         goto SyncAndReply;
 
     default:
-        goto TryJoinAgain;
+        ret = EL_ELOG;
+        goto SyncAndReply;
     }
 
     // sync status before hook functions
@@ -143,7 +149,6 @@ TryJoin:
 SyncAndReply:
     // sync status
     static_resource->target_network_status = sta;
-
 Reply:
     // enable network supervisor
     static_resource->enable_network_supervisor.store(true);
@@ -183,8 +188,7 @@ void init_wireless_network_hook(std::string cmd) {
     auto config = wireless_network_config_t{};
     auto kv     = el_make_storage_kv_from_type(config);
     if (static_resource->storage->get(kv)) [[likely]]
-        set_wireless_network({cmd + "@WIFI", config.name, std::to_string(config.security_type), config.passwd, "0"},
-                             true);
+        set_wireless_network({cmd + "@WIFI", config.name, std::to_string(config.security_type), config.passwd}, true);
 }
 
 }  // namespace sscma::callback

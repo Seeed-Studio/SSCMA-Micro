@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 
+#include "shared/network_utility.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
@@ -19,7 +20,15 @@ static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     static_resource->instance->exec(std::string(msg, mlen));
 }
 
-void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
+void set_mqtt_pubsub(
+  const std::vector<std::string>&  argv,
+  bool                             called_by_event        = false,
+  std::function<void(std::string)> on_pubsub_success_hook = [](std::string) {
+      static_resource->transport->emit_mqtt_discover();
+  }) {
+    // disable network supervisor
+    static_resource->enable_network_supervisor.store(false);
+
     // crate config from argv
     auto config = mqtt_pubsub_config_t{};
     std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
@@ -28,16 +37,26 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true
     config.sub_qos = std::atoi(argv[4].c_str());
 
     auto ret = EL_OK;
+    auto sta = static_resource->network->status();
 
     // store the config to flash if not invoked in init time
-    if (write_to_flash) {
+    if (!called_by_event) {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
-        if (ret != EL_OK) [[unlikely]]
-            goto Reply;
+        const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                      argv[0],
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": ",
+                                      mqtt_pubsub_config_2_json_str(config),
+                                      "}\n")};
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
-    // if only store the config to flash, skip the following steps
-    if (std::atoi(argv[5].c_str())) goto Reply;
+    // ensure the network is connected
+    if (sta != NETWORK_CONNECTED) [[unlikely]] {
+        ret = EL_EPERM;
+        goto Reply;
+    }
 
     // unsubscribe old topic if exist (a unsubscribe all API is needed)
     if (std::strlen(static_resource->current_mqtt_pubsub_config.sub_topic))
@@ -45,17 +64,20 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv, bool has_reply = true
 
     // update current config
     static_resource->current_mqtt_pubsub_config = config;
+
     // subscribe new topic
     ret = static_resource->network->subscribe(config.sub_topic, static_cast<mqtt_qos_t>(config.sub_qos));
     // set MQTT config for transport
     static_resource->transport->set_mqtt_config(config);
-    // publish the pubsub config to MQTT discover topic
-    static_resource->transport->emit_mqtt_discover();
+
+    // call hook function
+    if (on_pubsub_success_hook) on_pubsub_success_hook(argv[0]);
 
 Reply:
-    if (!has_reply) return;
+    // enable network supervisor
+    static_resource->enable_network_supervisor.store(true);
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -80,26 +102,18 @@ void get_mqtt_pubsub(const std::string& cmd) {
 }
 
 void init_mqtt_pubsub_hook(std::string cmd) {
-#if CONFIG_EL_DEBUG > 1
-    bool has_reply = true;
-#else
-    bool has_reply = false;
-#endif
     auto config = static_resource->current_mqtt_pubsub_config;
     set_mqtt_pubsub({cmd + "@MQTTPUBSUB",
                      config.pub_topic,
                      std::to_string(config.pub_qos),
                      config.sub_topic,
-                     std::to_string(config.sub_qos),
-                     "0"},
-                    has_reply,
-                    false);
+                     std::to_string(config.sub_qos)},
+                    true);
 }
 
 void set_mqtt_server(
   const std::vector<std::string>&  argv,
-  bool                             has_reply         = true,
-  bool                             write_to_flash    = true,
+  bool                             called_by_event   = false,
   std::function<void(std::string)> on_connected_hook = [](std::string caller) { init_mqtt_pubsub_hook(caller); }) {
     // disable network supervisor
     static_resource->enable_network_supervisor.store(false);
@@ -123,80 +137,94 @@ void set_mqtt_server(
     int  conn_retry = SSCMA_MQTT_CONN_RETRY;
     auto ret        = EL_OK;
     auto sta        = static_resource->network->status();
+    auto sta_old    = sta;
 
     // store the config to flash if not invoked in init time
-    if (write_to_flash) {
+    if (!called_by_event) {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
-        if (ret != EL_OK) [[unlikely]]
-            goto Reply;
+        const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                      argv[0],
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": {",
+                                      mqtt_server_config_2_json_str(config, false),
+                                      "}}\n")};
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
-    // if only store the config to flash, skip the following steps
-    if (std::atoi(argv[6].c_str())) goto Reply;
-
-// ensure the network is joined
+    // ensure the network is joined
+    goto EnsureJoined;
+EnsureJoinedAgain:
+    sta = try_ensure_network_status_changed(sta_old, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto EnsureJoinedAgain;
+    }
+    sta_old = sta;  // update status
 EnsureJoined:
-    sta = static_resource->network->status();  // update status
-    if (--conn_retry < 0) [[unlikely]] {
-        ret = EL_ETIMOUT;
-        goto SyncAndReply;
-    }
     switch (sta) {
+    case NETWORK_JOINED:
+        break;
+
+    case NETWORK_CONNECTED:
+        // try to disconnect
+        ret = static_resource->network->disconnect();
+        if (ret != EL_OK) [[unlikely]]
+            goto SyncAndReply;
+        goto EnsureJoinedAgain;
+
+    // never try to recover from NETWORK_LOST or NETWORK_IDLE
     case NETWORK_LOST:
     case NETWORK_IDLE:
         ret = EL_EPERM;
         goto SyncAndReply;
 
-    case NETWORK_CONNECTED:
-        // try to disconnect
-        ret = static_resource->network->disconnect();
-        // if disconnected, wait for a while and check again
-        if (ret == EL_OK) [[likely]]
-            el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
-        goto EnsureJoined;
-
-    case NETWORK_JOINED:
-        break;
-
     default:
-        goto EnsureJoined;
+        ret = EL_ELOG;
+        goto SyncAndReply;
     }
 
     // just return if the server address is empty (a disable API is needed)
-    if (argv[2].empty()) [[unlikely]] {
-        sta = static_resource->network->status();
+    if (argv[2].empty()) [[unlikely]]
         goto SyncAndReply;
-    }
 
-    // reset retry counter
-    conn_retry = SSCMA_MQTT_CONN_RETRY;
-// try serveral times to connect to MQTT server
-TryConnect:
-    sta = static_resource->network->status();  // update status
-    if (--conn_retry < 0) [[unlikely]] {
-        ret = EL_ETIMOUT;
-        goto SyncAndReply;
+    // try serveral times to connect to MQTT server
+    conn_retry = SSCMA_MQTT_CONN_RETRY;  // reset retry counter
+    goto TryConnect;
+TryConnectAgain:
+    sta = try_ensure_network_status_changed(sta_old, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto TryConnectAgain;
     }
+    sta_old = sta;  // update status
+TryConnect:
     switch (sta) {
+    case NETWORK_JOINED:
+        // try to connect
+        ret = static_resource->network->connect(
+          config.address, config.username, config.password, sscma::callback::mqtt_recv_cb);
+        if (ret != EL_OK) [[unlikely]]
+            goto SyncAndReply;
+        goto TryConnectAgain;
+
+    case NETWORK_CONNECTED:
+        break;
+
     case NETWORK_LOST:
     case NETWORK_IDLE:
         ret = EL_EIO;
         goto SyncAndReply;
 
-    case NETWORK_JOINED:
-        // try to connect
-        ret = static_resource->network->connect(
-          config.address, config.username, config.password, sscma::callback::mqtt_recv_cb);
-        // if disconnected, wait for a while and check again
-        if (ret == EL_OK) [[likely]]
-            el_sleep(SSCMA_MQTT_CONN_DELAY_MS);
-        goto TryConnect;
-
-    case NETWORK_CONNECTED:
-        break;
-
     default:
-        goto TryConnect;
+        ret = EL_ELOG;
+        goto SyncAndReply;
     }
 
     // sync status before hook functions
@@ -216,10 +244,8 @@ Reply:
     // enable network supervisor
     static_resource->enable_network_supervisor.store(true);
 
-    if (!has_reply) return;
-
     bool        connected = static_resource->network->status() == NETWORK_CONNECTED;
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -249,11 +275,6 @@ void get_mqtt_server(const std::string& cmd) {
 }
 
 void init_mqtt_server_hook(std::string cmd) {
-#if CONFIG_EL_DEBUG > 1
-    bool has_reply = true;
-#else
-    bool has_reply = false;
-#endif
     auto config = mqtt_server_config_t{};
     auto kv     = el_make_storage_kv_from_type(config);
     if (static_resource->storage->get(kv)) [[likely]]
@@ -262,10 +283,8 @@ void init_mqtt_server_hook(std::string cmd) {
                          config.address,
                          config.username,
                          config.password,
-                         std::to_string(config.use_ssl ? 1 : 0),
-                         "0"},
-                        has_reply,
-                        false);
+                         std::to_string(config.use_ssl ? 1 : 0)},
+                        true);
 }
 
 }  // namespace sscma::callback
