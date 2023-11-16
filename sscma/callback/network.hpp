@@ -39,9 +39,9 @@ void set_wireless_network(const std::vector<std::string>&  argv,
                                       argv[0],
                                       "\", \"code\": ",
                                       std::to_string(ret),
-                                      ", \"data\": {",
+                                      ", \"data\": ",
                                       wireless_network_config_2_json_str(config, false),
-                                      "}}\n")};
+                                      "}\n")};
         static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
@@ -136,7 +136,7 @@ TryJoin:
     }
 
     // sync status before hook functions
-    static_resource->target_network_status = sta;
+    if (!called_by_event) static_resource->target_network_status = sta;
 
     // call hook function
     if (on_joined_hook) on_joined_hook(argv[0]);
@@ -146,7 +146,8 @@ TryJoin:
 
 SyncAndReply:
     // sync status
-    static_resource->target_network_status = sta;
+    if (!called_by_event) static_resource->target_network_status = sta;
+
 Reply:
     // enable network supervisor
     static_resource->enable_network_supervisor.store(true);

@@ -132,9 +132,9 @@ void set_mqtt_server(const std::vector<std::string>&  argv,
                                       argv[0],
                                       "\", \"code\": ",
                                       std::to_string(ret),
-                                      ", \"data\": {",
+                                      ", \"data\": ",
                                       mqtt_server_config_2_json_str(config, false),
-                                      "}}\n")};
+                                      "}\n")};
         static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
@@ -214,7 +214,7 @@ TryConnect:
     }
 
     // sync status before hook functions
-    static_resource->target_network_status = sta;
+    if (!called_by_event) static_resource->target_network_status = sta;
 
     // call hook function
     if (on_connected_hook) on_connected_hook(argv[0]);
@@ -224,7 +224,7 @@ TryConnect:
 
 SyncAndReply:
     // sync status
-    static_resource->target_network_status = sta;
+    if (!called_by_event) static_resource->target_network_status = sta;
 
 Reply:
     // enable network supervisor
