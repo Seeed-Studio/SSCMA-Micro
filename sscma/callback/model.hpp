@@ -25,7 +25,7 @@ void get_available_models(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_model(const std::string& cmd, uint8_t model_id, bool has_reply = true, bool write_to_flash = true) {
+void set_model(const std::string& cmd, uint8_t model_id, bool called_by_event = false) {
     const auto& model_info = static_resource->models->get_model_info(model_id);
 
     // a valid model id should always > 0
@@ -50,8 +50,7 @@ void set_model(const std::string& cmd, uint8_t model_id, bool has_reply = true, 
     // if model id changed, update current model id
     if (static_resource->current_model_id != model_id) {
         static_resource->current_model_id = model_id;
-        // if write_to_flash is true, store the current model id to flash
-        if (write_to_flash)
+        if (!called_by_event)
             ret = static_resource->storage->emplace(
                     el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, static_resource->current_model_id))
                     ? EL_OK
@@ -65,9 +64,9 @@ ModelError:
     static_resource->current_model_id = 0;
 
 ModelReply:
-    if (!has_reply) return;
-
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": ",
+                                  std::to_string(called_by_event ? 1 : 0),
+                                  ", \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -93,13 +92,8 @@ void get_model_info(const std::string& cmd) {
 }
 
 void init_model_hook(std::string cmd) {
-#if CONFIG_EL_DEBUG > 1
-    bool has_reply = true;
-#else
-    bool has_reply = false;
-#endif
     if (static_resource->current_model_id) [[likely]]
-        set_model(cmd + "@MODEL", static_resource->current_model_id, has_reply, false);
+        set_model(cmd + "@MODEL", static_resource->current_model_id, true);
 }
 
 }  // namespace sscma::callback

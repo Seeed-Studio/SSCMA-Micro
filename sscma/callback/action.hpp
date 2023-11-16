@@ -15,7 +15,7 @@ using namespace edgelab;
 
 using namespace sscma::utility;
 
-void set_action(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
+void set_action(const std::vector<std::string>& argv, bool called_by_event = false) {
     // get last condition expr string hash
     auto hash = static_resource->action->get_condition_hash();
     // set current condition expr string
@@ -62,8 +62,7 @@ void set_action(const std::vector<std::string>& argv, bool has_reply = true, boo
         }
         static_resource->action->set_mutable_map(mutable_map);  // update mutable map
 
-        // if condition expr string changes and write_to_flash is true, store the action to flash
-        if (write_to_flash) {
+        if (!called_by_event) {
             char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
             std::strncpy(
               action,
@@ -75,9 +74,9 @@ void set_action(const std::vector<std::string>& argv, bool has_reply = true, boo
     }
 
 ActionReply:
-    if (!has_reply) return;
-
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": ",
+                                  std::to_string(called_by_event ? 1 : 0),
+                                  ", \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
@@ -113,15 +112,10 @@ void get_action(const std::string& cmd) {
 }
 
 void init_action_hook(std::string cmd) {
-#if CONFIG_EL_DEBUG > 1
-    bool has_reply = true;
-#else
-    bool has_reply = false;
-#endif
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
         *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-        set_action(std::vector<std::string>{cmd + "@ACTION", action}, has_reply, false);
+        set_action(std::vector<std::string>{cmd + "@ACTION", action}, true);
     }
 }
 
