@@ -83,7 +83,11 @@ void network_supervisor_hook() {
 
         auto target_status  = static_resource->target_network_status;
         auto current_status = static_resource->network->status();
-        if (target_status == current_status) return;
+
+        if (target_status == NETWORK_LOST || target_status == NETWORK_IDLE || target_status == current_status) {
+            static_resource->enable_network_supervisor.store(true);
+            return;
+        }
 
         EL_LOGI("network_supervisor: Unexpected network status, trying to recover...");
 
