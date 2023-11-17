@@ -27,7 +27,7 @@ void run() {
         init_model_hook(caller);
         init_sensor_hook(caller);
         init_action_hook(caller);
-        init_wireless_network_hook(caller);
+        init_network_supervisor_task_hook();
     });
 
     // register commands

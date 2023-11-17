@@ -10,7 +10,9 @@
 #include "callback/network.hpp"
 #include "callback/sensor.hpp"
 #include "core/data/el_data_storage.hpp"
+#include "core/el_config_internal.h"
 #include "core/el_types.h"
+#include "definations.hpp"
 
 namespace sscma::hooks {
 
@@ -71,24 +73,49 @@ void init_wireless_network_hook(std::string cmd) {
                              init_mqtt_server_hook);
 }
 
-void on_network_status_change_hook(el_net_sta_t current_status) {
+void network_supervisor_hook() {
     if (!static_resource->enable_network_supervisor.load()) return;
 
-    auto target_network_status = static_resource->target_network_status;
-    if (target_network_status == current_status) return;
+    EL_LOGI("Networking supervisor is checking connection status...");
 
-    std::string caller{"SUPERVISOR"};
+    static_resource->executor->add_task([](const std::atomic<bool>&) {
+        auto target_status = static_resource->target_network_status;
+        if (target_status == NETWORK_LOST || target_status == NETWORK_IDLE) return;
 
-    using namespace sscma::callback;
-    switch (current_status) {
-    case NETWORK_LOST:
-    case NETWORK_IDLE:
-        return init_wireless_network_hook(caller);
-    case NETWORK_JOINED:
-        return init_mqtt_server_hook(caller);
-    case NETWORK_CONNECTED:
-        return init_mqtt_pubsub_hook(caller);
-    }
+        auto current_status = static_resource->network->status();
+        if (target_status == current_status) return;
+
+        std::string caller{"SUPERVISOR"};
+        switch (current_status) {
+        case NETWORK_LOST:
+        case NETWORK_IDLE:
+            return init_wireless_network_hook(caller);
+        case NETWORK_JOINED:
+            return init_mqtt_server_hook(caller);
+        case NETWORK_CONNECTED:
+            return init_mqtt_pubsub_hook(caller);
+        }
+    });
+}
+
+void init_network_supervisor_hook(void*) {
+Loop:
+    EL_LOGI("Checking if networking supervisor is enabled...");
+
+    network_supervisor_hook();
+    el_sleep(SSCMA_NETWORK_SUPERVISOR_POLL_DELAY);
+
+    goto Loop;
+}
+
+void init_network_supervisor_task_hook() {
+    static_resource->enable_network_supervisor.store(true);
+    xTaskCreate(init_network_supervisor_hook,
+                SSCMA_NETWORK_SUPERVISOR_NAME,
+                SSCMA_NETWORK_SUPERVISOR_STACK_SIZE,
+                nullptr,
+                SSCMA_NETWORK_SUPERVISOR_PRIO,
+                nullptr);
 }
 
 }  // namespace sscma::hooks

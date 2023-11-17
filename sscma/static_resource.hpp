@@ -125,9 +125,6 @@ class StaticResource final {
         is_sample       = false;
         is_invoke       = false;
 
-        enable_network_supervisor = false;
-        target_network_status     = NETWORK_LOST;
-
         init_hardware();
         init_backend();
         init_frontend();
@@ -135,11 +132,7 @@ class StaticResource final {
 
     inline void init_hardware() {
         serial->init();
-
         network->init();
-        // Important: remember to update target_network_status after network initialized
-        target_network_status = network->status();
-
         transport->init();
     }
 
@@ -166,11 +159,30 @@ class StaticResource final {
 
         // increment boot count
         *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, ++boot_count);
+
+        // network supervisor
+        enable_network_supervisor = false;
+        target_network_status     = [this]() {
+            auto target_status = this->network->status();
+            {
+                auto config = wireless_network_config_t{};
+                if (this->storage->get(el_make_storage_kv_from_type(config))) {
+                    if (std::strlen(config.name)) target_status = NETWORK_JOINED;
+                } else
+                    return target_status;
+            }
+            {
+                auto config = mqtt_server_config_t{};
+                if (this->storage->get(el_make_storage_kv_from_type(config))) {
+                    if (std::strlen(config.address)) target_status = NETWORK_CONNECTED;
+                } else
+                    return target_status;
+            }
+            return target_status;
+        }();
     }
 
     inline void init_frontend() {
-        // set transport MQTT publish/subscribe config
-        transport->set_mqtt_config(current_mqtt_pubsub_config);
         // init AT server
         instance->init([this](el_err_code_t ret, std::string msg) {  // server print callback function
             if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs

@@ -90,9 +90,7 @@ class MuxTransport final : public Transport {
     MuxTransport() = default;
 
     inline el_err_code_t m_send_bytes(const char* buffer, size_t size) {
-        // send buffer to serial
         auto serial_ret = _serial->send_bytes(buffer, size);
-        // send buffer to MQTT (the connection status is checked inside the publish function)
         auto network_ret = _network->publish(
           _mqtt_pubsub_config.pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config.pub_qos));
 
