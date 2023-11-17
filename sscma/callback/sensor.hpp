@@ -27,8 +27,7 @@ void get_available_sensors(const std::string& cmd) {
     static_resource->transport->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_sensor(
-  const std::string& cmd, uint8_t sensor_id, bool enable, bool has_reply = true, bool write_to_flash = true) {
+void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, bool called_by_event = false) {
     auto sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
     // a valid sensor id should always > 0
@@ -63,8 +62,7 @@ void set_sensor(
         // if sensor id changed, update current sensor id
         if (static_resource->current_sensor_id != sensor_id) {
             static_resource->current_sensor_id = sensor_id;
-            // if write_to_flash is true, store the current sensor id to flash
-            if (write_to_flash)
+            if (!called_by_event)
                 ret = static_resource->storage->emplace(
                         el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, static_resource->current_sensor_id))
                         ? EL_OK
@@ -80,9 +78,9 @@ SensorError:
     static_resource->current_sensor_id = 0;
 
 SensorReply:
-    if (!has_reply) return;
-
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const auto& ss{concat_strings("\r{\"type\": ",
+                                  std::to_string(called_by_event ? 1 : 0),
+                                  ", \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(ret),

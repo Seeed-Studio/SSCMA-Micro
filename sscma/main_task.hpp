@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hooks.hpp"
 #include "sscma/callback/action.hpp"
 #include "sscma/callback/algorithm.hpp"
 #include "sscma/callback/common.hpp"
@@ -17,42 +18,16 @@ namespace sscma::main_task {
 
 using namespace sscma::types;
 using namespace sscma::callback;
+using namespace sscma::hooks;
 
 void run() {
     // init static_resource
     static_resource->init([]() {
-#if CONFIG_EL_DEBUG > 1
-        bool has_reply = true;
-#else
-        bool has_reply = false;
-#endif
-        bool write_to_flash = static_resource->is_ready.load();
-        // set model
-        if (static_resource->current_model_id) [[likely]]
-            set_model("INIT@MODEL", static_resource->current_model_id, has_reply, write_to_flash);
-
-        // set sensor
-        if (static_resource->current_sensor_id) [[likely]]
-            set_sensor("INIT@SENSOR", static_resource->current_sensor_id, true, has_reply, write_to_flash);
-
-        // set action
-        if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
-            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-            *static_resource->storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action);
-            set_action(std::vector<std::string>{"INIT@ACTION", action}, has_reply, write_to_flash);
-        }
-
-        // connect to wireless network and setup MQTT (chain setup)
-        {
-            auto config = wireless_network_config_t{};
-            auto kv     = el_make_storage_kv_from_type(config);
-            if (static_resource->storage->get(kv)) [[likely]]
-                set_wireless_network(
-                  std::vector<std::string>{
-                    "INIT@WIFI", config.name, std::to_string(config.security_type), config.passwd},
-                  has_reply,
-                  write_to_flash);
-        }
+        std::string caller{"INIT"};
+        init_model_hook(caller);
+        init_sensor_hook(caller);
+        init_action_hook(caller);
+        init_network_supervisor_task_hook();
     });
 
     // register commands
@@ -251,8 +226,11 @@ void run() {
 
     static_resource->instance->register_cmd(
       "WIFI", "Set and connect to a Wi-Fi", "\"NAME\",SECURITY,\"PASSWORD\"", [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_wireless_network(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
+              set_wireless_network(argv, false, init_mqtt_server_hook);
+              static_resource->enable_network_supervisor.store(true);
+          });
           return EL_OK;
       });
 
@@ -268,8 +246,11 @@ void run() {
       "Set and connect to a MQTT server",
       "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL",
       [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_server(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
+              set_mqtt_server(argv, false, init_mqtt_pubsub_hook);
+              static_resource->enable_network_supervisor.store(true);
+          });
           return EL_OK;
       });
 
@@ -285,8 +266,11 @@ void run() {
       "Set the MQTT publish and subscribe topic",
       "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
       [](std::vector<std::string> argv) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv)](const std::atomic<bool>&) { set_mqtt_pubsub(argv); });
+          static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
+              set_mqtt_pubsub(argv, false, [](std::string) { static_resource->transport->emit_mqtt_discover(); });
+              static_resource->enable_network_supervisor.store(true);
+          });
           return EL_OK;
       });
 

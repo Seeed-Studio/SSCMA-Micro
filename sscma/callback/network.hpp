@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstring>
+#include <functional>
 #include <string>
 
-#include "mqtt.hpp"
+#include "shared/network_utility.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/utility.hpp"
@@ -13,7 +14,9 @@ namespace sscma::callback {
 using namespace sscma::types;
 using namespace sscma::utility;
 
-void set_wireless_network(const std::vector<std::string>& argv, bool has_reply = true, bool write_to_flash = true) {
+void set_wireless_network(const std::vector<std::string>&  argv,
+                          bool                             called_by_event = false,
+                          std::function<void(std::string)> on_joined_hook  = nullptr) {
     // crate config from argv
     auto config      = wireless_network_config_t{};
     config.name_type = is_bssid(argv[1]) ? wireless_network_name_type_e::BSSID : wireless_network_name_type_e::SSID;
@@ -22,108 +25,129 @@ void set_wireless_network(const std::vector<std::string>& argv, bool has_reply =
     std::strncpy(config.passwd, argv[3].c_str(), sizeof(config.passwd) - 1);
 
     int  conn_retry = SSCMA_WIRELESS_NETWORK_CONN_RETRY;
-    int  poll_retry = SSCMA_WIRELESS_NETWORK_POLL_RERTY;
     auto ret        = EL_OK;
+    auto sta        = static_resource->network->status();
+    auto sta_old    = sta;
 
-    // store the config to flash if not invoked in init time
-    if (write_to_flash) {
+    // if called by event, just store the config to flash and give a direct reply
+    if (!called_by_event) {
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
+        const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                      argv[0],
+                                      "\", \"code\": ",
+                                      std::to_string(ret),
+                                      ", \"data\": ",
+                                      wireless_network_config_2_json_str(config, false),
+                                      "}\n")};
+        static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    }
+
+    // ensure the network is idle
+    goto EnsureIdle;
+EnsureIdleAgain:
+    sta = try_ensure_network_status_changed(
+      sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto EnsureIdleAgain;
+    }
+    sta_old = sta;  // update status
+EnsureIdle:
+    switch (sta) {
+    case NETWORK_IDLE:
+        break;
+
+    case NETWORK_CONNECTED:
+        // disconnect if connected (an unsubscribe all API is needed)
+        ret = static_resource->network->disconnect();
         if (ret != EL_OK) [[unlikely]]
-            goto Reply;
-    }
+            goto SyncAndReply;
+        goto EnsureIdleAgain;
 
-    // check if the network is idle (or ready to connect)
-    while (--conn_retry && static_resource->network->status() != NETWORK_IDLE) {
-        // check if the network is connected
-        while (--conn_retry && (static_resource->network->status() == NETWORK_JOINED ||
-                                static_resource->network->status() == NETWORK_CONNECTED)) {
-            // disconnect the network if joined or connected (an unsubscribe all API is needed)
-            ret = static_resource->network->quit();
-            if (ret != EL_OK) [[unlikely]] {
-                // if failed to disconnect, wait for a while and retry
-                el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-                continue;
-            }
-            // wait for the network to be disconnected
-            while (--poll_retry && (static_resource->network->status() == NETWORK_JOINED ||
-                                    static_resource->network->status() == NETWORK_CONNECTED))
-                el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-            if (poll_retry <= 0) [[unlikely]] {
-                ret = EL_ETIMOUT;
-                goto Reply;
-            }
-            break;  // break if the network is disconnected
-        }
+    case NETWORK_JOINED:
+        // quit if joined
+        ret = static_resource->network->quit();
+        if (ret != EL_OK) [[unlikely]]
+            goto SyncAndReply;
+        goto EnsureIdleAgain;
 
+    case NETWORK_LOST:
         // init again if lost
-        if (static_resource->network->status() == NETWORK_LOST) [[unlikely]] {
-            static_resource->network->init();
-            el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-        }
+        static_resource->network->init();  // Question: is init synchronous?
+        goto EnsureIdleAgain;
+
+    default:
+        ret = EL_ELOG;
+        goto SyncAndReply;
     }
-    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
-    if (ret != EL_OK) [[unlikely]]
-        goto Reply;
 
-    // check if the network is idle again, if not, return IO error
-    ret = static_resource->network->status() == NETWORK_IDLE ? EL_OK : EL_EIO;
-    if (ret != EL_OK) [[unlikely]]
-        goto Reply;
+    // just deinit and return if the network name is empty
+    if (argv[1].empty()) [[unlikely]] {
+        static_resource->network->deinit();  // Question: is deinit synchronous?
+        sta = try_ensure_network_status_changed(
+          sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+        if (sta == sta_old) [[unlikely]]
+            ret = EL_ETIMOUT;
+        else if (sta != NETWORK_LOST) [[unlikely]]
+            ret = EL_EIO;
+        goto SyncAndReply;
+    }
 
-    // just return if the network name is empty (a disable API is needed)
-    if (argv[1].empty()) [[unlikely]]
-        goto Reply;
-
-    // reset retry counter
-    conn_retry = SSCMA_WIRELESS_NETWORK_CONN_RETRY;
-    poll_retry = SSCMA_WIRELESS_NETWORK_POLL_RERTY;
-    // while retrying and the network is not joined
-    while (--conn_retry && static_resource->network->status() != NETWORK_JOINED) {
+    // try serveral times to join the network
+    conn_retry = SSCMA_WIRELESS_NETWORK_CONN_RETRY;  // reset retry counter
+    goto TryJoin;
+TryJoinAgain:
+    sta = try_ensure_network_status_changed(
+      sta_old, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
+    if (sta == sta_old) [[unlikely]] {
+        if (--conn_retry <= 0) [[unlikely]] {
+            ret = EL_ETIMOUT;
+            goto SyncAndReply;
+        }
+        goto TryJoinAgain;
+    }
+    sta_old = sta;  // update status
+TryJoin:
+    switch (sta) {
+    case NETWORK_IDLE:
         // try to join to the network
         ret = static_resource->network->join(config.name, config.passwd);
-        if (ret != EL_OK) [[unlikely]] {
-            // if failed to join, wait for a while and retry
-            el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-            continue;
-        }
-        // wait for the network to be joined
-        while (--poll_retry && static_resource->network->status() != NETWORK_JOINED)
-            el_sleep(SSCMA_WIRELESS_NETWORK_CONN_DELAY_MS);
-        if (poll_retry <= 0) [[unlikely]] {
-            ret = EL_ETIMOUT;
-            goto Reply;
-        }
-        break;  // break if the network is joined
-    }
-    ret = conn_retry > 0 ? EL_OK : EL_ETIMOUT;
-    if (ret != EL_OK) [[unlikely]]
-        goto Reply;
+        if (ret != EL_OK) [[unlikely]]
+            goto SyncAndReply;
+        goto TryJoinAgain;
 
-    // chain setup MQTT server (skip checking if the network is joined)
-    {
-        auto config = mqtt_server_config_t{};
-        auto kv     = el_make_storage_kv_from_type(config);
-        if (static_resource->storage->get(kv)) [[likely]]
-            set_mqtt_server(std::vector<std::string>{argv[0] + "@MQTTSERVER",
-                                                     config.client_id,
-                                                     config.address,
-                                                     config.username,
-                                                     config.password,
-                                                     std::to_string(config.use_ssl ? 1 : 0)},
-#if CONFIG_EL_DEBUG > 1
-                            true,
-#else
-                            false,
-#endif
-                            false);
+    case NETWORK_JOINED:
+        break;
+
+    case NETWORK_LOST:
+    case NETWORK_CONNECTED:
+        ret = EL_EIO;
+        goto SyncAndReply;
+
+    default:
+        ret = EL_ELOG;
+        goto SyncAndReply;
     }
+
+    // sync status before hook functions
+    if (!called_by_event) static_resource->target_network_status = sta;  // NETWORK_JOINED
+
+    // call hook function
+    if (on_joined_hook) on_joined_hook(argv[0]);
+
+    // never sync status after hook functions
+    goto Reply;
+
+SyncAndReply:
+    // sync status
+    if (!called_by_event) static_resource->target_network_status = sta;
 
 Reply:
-    if (!has_reply) return;
-
-    auto joined =
-      static_resource->network->status() == NETWORK_JOINED || static_resource->network->status() == NETWORK_CONNECTED;
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    bool        joined = sta == NETWORK_JOINED || sta == NETWORK_CONNECTED;
+    const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
                                   std::to_string(ret),
