@@ -76,31 +76,38 @@ void init_wireless_network_hook(std::string cmd) {
 void network_supervisor_hook() {
     if (!static_resource->enable_network_supervisor.load()) return;
 
-    EL_LOGI("Networking supervisor is checking connection status...");
+    EL_LOGI("network_supervisor: Checking network status...");
 
     static_resource->executor->add_task([](const std::atomic<bool>&) {
-        auto target_status = static_resource->target_network_status;
-        if (target_status == NETWORK_LOST || target_status == NETWORK_IDLE) return;
+        static_resource->enable_network_supervisor.store(false);
 
+        auto target_status  = static_resource->target_network_status;
         auto current_status = static_resource->network->status();
         if (target_status == current_status) return;
+
+        EL_LOGI("network_supervisor: Unexpected network status, trying to recover...");
 
         std::string caller{"SUPERVISOR"};
         switch (current_status) {
         case NETWORK_LOST:
         case NETWORK_IDLE:
-            return init_wireless_network_hook(caller);
+            init_wireless_network_hook(caller);
+            break;
         case NETWORK_JOINED:
-            return init_mqtt_server_hook(caller);
+            init_mqtt_server_hook(caller);
+            break;
         case NETWORK_CONNECTED:
-            return init_mqtt_pubsub_hook(caller);
+        default:
+            break;
         }
+
+        static_resource->enable_network_supervisor.store(true);
     });
 }
 
 void init_network_supervisor_hook(void*) {
 Loop:
-    EL_LOGI("Checking if networking supervisor is enabled...");
+    EL_LOGI("network_supervisor: Calling network supervisor hook...");
 
     network_supervisor_hook();
     el_sleep(SSCMA_NETWORK_SUPERVISOR_POLL_DELAY);

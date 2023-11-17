@@ -23,9 +23,6 @@ static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
 void set_mqtt_pubsub(const std::vector<std::string>&  argv,
                      bool                             called_by_event        = false,
                      std::function<void(std::string)> on_pubsub_success_hook = nullptr) {
-    // disable network supervisor
-    static_resource->enable_network_supervisor.store(false);
-
     // crate config from argv
     auto config = mqtt_pubsub_config_t{};
     std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
@@ -61,7 +58,6 @@ void set_mqtt_pubsub(const std::vector<std::string>&  argv,
 
     // update current config
     static_resource->current_mqtt_pubsub_config = config;
-
     // subscribe new topic
     ret = static_resource->network->subscribe(config.sub_topic, static_cast<mqtt_qos_t>(config.sub_qos));
     // set MQTT config for transport
@@ -71,9 +67,6 @@ void set_mqtt_pubsub(const std::vector<std::string>&  argv,
     if (on_pubsub_success_hook) on_pubsub_success_hook(argv[0]);
 
 Reply:
-    // enable network supervisor
-    static_resource->enable_network_supervisor.store(true);
-
     const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],
                                   "\", \"code\": ",
@@ -101,9 +94,6 @@ void get_mqtt_pubsub(const std::string& cmd) {
 void set_mqtt_server(const std::vector<std::string>&  argv,
                      bool                             called_by_event   = false,
                      std::function<void(std::string)> on_connected_hook = nullptr) {
-    // disable network supervisor
-    static_resource->enable_network_supervisor.store(false);
-
     // crate config from argv
     auto config = mqtt_server_config_t{};
     if (argv[1].empty())  // if the client id is empty, generate one
@@ -227,9 +217,6 @@ SyncAndReply:
     if (!called_by_event) static_resource->target_network_status = sta;
 
 Reply:
-    // enable network supervisor
-    static_resource->enable_network_supervisor.store(true);
-
     bool        connected = static_resource->network->status() == NETWORK_CONNECTED;
     const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],

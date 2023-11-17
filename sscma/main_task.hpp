@@ -227,7 +227,9 @@ void run() {
     static_resource->instance->register_cmd(
       "WIFI", "Set and connect to a Wi-Fi", "\"NAME\",SECURITY,\"PASSWORD\"", [](std::vector<std::string> argv) {
           static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
               set_wireless_network(argv, false, init_mqtt_server_hook);
+              static_resource->enable_network_supervisor.store(true);
           });
           return EL_OK;
       });
@@ -245,7 +247,9 @@ void run() {
       "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL",
       [](std::vector<std::string> argv) {
           static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
               set_mqtt_server(argv, false, init_mqtt_pubsub_hook);
+              static_resource->enable_network_supervisor.store(true);
           });
           return EL_OK;
       });
@@ -263,7 +267,9 @@ void run() {
       "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
       [](std::vector<std::string> argv) {
           static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
+              static_resource->enable_network_supervisor.store(false);
               set_mqtt_pubsub(argv, false, [](std::string) { static_resource->transport->emit_mqtt_discover(); });
+              static_resource->enable_network_supervisor.store(true);
           });
           return EL_OK;
       });

@@ -17,9 +17,6 @@ using namespace sscma::utility;
 void set_wireless_network(const std::vector<std::string>&  argv,
                           bool                             called_by_event = false,
                           std::function<void(std::string)> on_joined_hook  = nullptr) {
-    // disable network supervisor
-    static_resource->enable_network_supervisor.store(false);
-
     // crate config from argv
     auto config      = wireless_network_config_t{};
     config.name_type = is_bssid(argv[1]) ? wireless_network_name_type_e::BSSID : wireless_network_name_type_e::SSID;
@@ -136,7 +133,7 @@ TryJoin:
     }
 
     // sync status before hook functions
-    if (!called_by_event) static_resource->target_network_status = sta;
+    if (!called_by_event) static_resource->target_network_status = sta;  // NETWORK_JOINED
 
     // call hook function
     if (on_joined_hook) on_joined_hook(argv[0]);
@@ -149,9 +146,6 @@ SyncAndReply:
     if (!called_by_event) static_resource->target_network_status = sta;
 
 Reply:
-    // enable network supervisor
-    static_resource->enable_network_supervisor.store(true);
-
     bool        joined = sta == NETWORK_JOINED || sta == NETWORK_CONNECTED;
     const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                   argv[0],
