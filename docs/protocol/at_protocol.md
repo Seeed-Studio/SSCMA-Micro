@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.11.01
+# AT Protocol Specification v2023.11.17
 
 
 ## Transmission Layer
@@ -446,6 +446,74 @@ Response:
 
 Note: `crc16_maxim` is calculated on action string.
 
+#### Get WiFi status
+
+Request: `AT+WIFI?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "WIFI?",
+  "code": 0,
+  "data": {
+    "joined": 1,
+    "config": {
+      "name_type": 0,
+      "name": "example_ssid",
+      "security": 0,
+      "password": "*************"
+    }
+  }
+}\n
+```
+
+#### Get MQTT server status
+
+Request: `AT+MQTTSERVER?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTSERVER?",
+  "code": 0,
+  "data": {
+    "connected": 1,
+    "config": {
+      "client_id": "example_device_id",
+      "address": "example.local:1234",
+      "username": "example_user",
+      "password": "****************",
+      "use_ssl": 0
+    }
+  }
+}\n
+```
+
+#### Get MQTT publish/subscribe topic
+
+Request: `AT+MQTTPUBSUB?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTPUBSUB?",
+  "code": 0,
+  "data": {
+    "pub_topic": "sscma/test_pub",
+    "pub_qos": 0,
+    "sub_topic": "sscma/test_sub",
+    "sub_qos": 0
+  }
+}\n
+```
+
+
 ### Execute operation
 
 #### Load a model by model ID
@@ -687,6 +755,252 @@ Note:
     - Binary operator.
     - Compare operator.
     - Logic operator.
+
+#### Connect to a WiFi AP
+
+Pattern: `AT+WIFI=<"NAME",SECURITY,"PASSWORD">\r`
+
+Request: `AT+WIFI="example_ssid",0,"example_password"\r`
+
+Response:
+
+A synchronous **Operation response** will be sent after the configuration is stored in flash.
+
+```json
+\r{
+  "type": 0,
+  "name": "WIFI",
+  "code": 0,
+  "data": {
+    "name_type": 0,
+    "name": "example_ssid",
+    "security": 0,
+    "password": "example_password"
+  }
+}\n
+```
+
+The next **Event response** will be sent after the configuration is applied.
+
+```json
+\r{
+  "type": 1,
+  "name": "WIFI",
+  "code": 0,
+  "data": {
+    "joined": 1,
+    "config": {
+      "name_type": 0,
+      "name": "example_ssid",
+      "security": 0,
+      "password": "*************"
+    }
+  }
+}\n
+```
+
+**Before** we have recieved the **Event response** corresponding to our request, we may recieve other **Event responses** that related to the request, which is emmitted by the chained setup operations if we have set them (e.g. a MQTT server with a publish or subscribe topic).
+
+```json
+\r{
+  "type": 1,
+  "name": "WIFI@MQTTSERVER@MQTTPUBSUB",
+  "code": 0,
+  "data": {
+    "pub_topic": "sscma/test_pub",
+    "pub_qos": 0,
+    "sub_topic": "sscma/test_sub",
+    "sub_qos": 0
+  }
+}\n
+
+\r{
+  "type": 1,
+  "name": "WIFI@MQTTSERVER",
+  "code": 0,
+  "data": {
+    "connected": 1,
+    "config": {
+      "client_id": "example_device_id",
+      "address": "example.local:1234",
+      "username": "example_user",
+      "password": "****************",
+      "use_ssl": 0
+    }
+  }
+}\n
+```
+
+This means that if we had set a MQTT server with a publish or subscribe topic before, when we changing the WiFi configuration, the MQTT server will be reconnected automatically.
+
+Also the chained setup operations have the ability to inherit the caller's name tag, we can easily identify the source of the events.
+
+Security Table (Experimental):
+
+| Security    | Value |
+|-------------|-------|
+| `AUTO`      | `0`   |
+| `NONE`      | `1`   |
+| `WEP`       | `2`   |
+| `WPA1_WPA2` | `3`   |
+| `WPA2_WPA3` | `4`   |
+| `WPA3`      | `5`   |
+
+Currently not supported EAP security, the security configuration will be ignored if the security is not in the table.
+
+Note:
+
+1. If the WiFi signal is not in a connectable range when calling this API, the **Event response** will be marked as fail or timeout, but the configuration will still be stored in flash. Once the WiFi signal is in a connectable range, the device will try to connect to the AP automatically and run all chained setup operations if no error occured.
+1. If you want to disconnect current WiFi or disable the WiFi, just call this API with a empty `NAME` string.
+1. If the WiFi is successfully connected in the setup period or after called this API, when the WiFi signal is lost, the device will try to reconnect to the AP automatically with a **Event response** tagged with a name `SUPERVISOR` (e.g. `SUPERVISOR@WIFI`), the chained setup operations will follow this syntax too.
+1. You don't need to explicitly unsubscribe the MQTT topics or disconnecting the MQTT server before calling this API, we will do it automatically.
+1. Any **Event response** will not contain the sensitive information, e.g. password string, it will be replaced by a `*` string with the same length.
+1. The default timeout of the WiFi connect operation is `1.5s * retry_times`, the default retry times is `5` and will be decremnted by `1` while trying to change the network status. The network supervisor will poll the WiFi status every `10s` by default and try to reconnect if the WiFi status is not as expected.
+1. The `name_type` is determined automatically, `0` means a SSID string, `1` means a BSSID string. The name or password format, security type are verified by the driver, the network supervisor functionality is also based on the driver.
+
+#### Connect to a MQTT server
+
+Pattern: `AT+MQTTSERVER=<"CLIENT_ID","ADDRESS:PORT","USERNAME","PASSWORD",USE_SSL>\r`
+
+Request: `AT+MQTTSERVER="example_device_id","example.local:1234","example_user","example_password",0\r`
+
+Response:
+
+A synchronous **Operation response** will be sent after the configuration is stored in flash.
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTSERVER",
+  "code": 0,
+  "data": {
+    "client_id": "example_device_id",
+    "address": "example.local:1234",
+    "username": "example_user",
+    "password": "example_password",
+    "use_ssl": 0
+  }
+}\n
+```
+
+The next **Event response** will be sent after the configuration is applied.
+
+```json
+\r{
+  "type": 1,
+  "name": "MQTTSERVER",
+  "code": 0,
+  "data": {
+    "connected": 1,
+    "config": {
+      "client_id": "example_device_id",
+      "address": "example.local:1234",
+      "username": "example_user",
+      "password": "****************",
+      "use_ssl": 0
+    }
+  }
+}\n
+```
+
+**Before** we have recieved the **Event response** corresponding to our request, we may recieve other **Event responses** that related to the request, which is emmitted by the chained setup operations if we have set them (e.g. a publish or subscribe topic).
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTPUBSUB?",
+  "code": 0,
+  "data": {
+    "pub_topic": "sscma/test_pub",
+    "pub_qos": 0,
+    "sub_topic": "sscma/test_sub",
+    "sub_qos": 0
+  }
+}\n
+```
+
+This means that if we had set a publish or subscribe topic before, when we changing the MQTT server configuration, the publish or subscribe topic will be reconfigured automatically.
+
+Also the chained setup operations have the ability to inherit the caller's name tag, we can easily identify the source of the events.
+
+Note:
+
+1. If the MQTT server is not online when calling this API, the **Event response** will be marked as fail or timeout, but the configuration will still be stored in flash. Once the MQTT server is in online, the device will try to connect to the server automatically and run all chained setup operations if no error occured.
+1. If you want to disconnect current MQTT server or disable the MQTT, just call this API with a empty `ADDRESS:PORT` string.
+1. If the MQTT server is successfully connected in the setup period or after called this API, when the MQTT server is offline, the device will try to reconnect to the server automatically with a **Event response** tagged with a name `SUPERVISOR` (e.g. `SUPERVISOR@MQTTSERVER`), the chained setup operations will follow this syntax too.
+1. You don't need to explicitly unsubscribe the MQTT topics or disconnecting the MQTT server before calling this API, we will do it automatically.
+1. Any **Event response** will not contain the sensitive information, e.g. password string, it will be replaced by a `*` string with the same length.
+1. The default timeout of the MQTT connect operation is `1.5s * retry_times`, the default retry times is `5` and will be decremnted by `1` while trying to change the network status. The network supervisor will poll the MQTT status every `10s` by default and try to reconnect if the MQTT status is not as expected.
+1. If no port is specified int the `ADDRESS:PORT` string, the default port `1883` will be used. The `USE_SSL` is a boolean value, `0` means disable SSL, `1` means enable SSL. The username or password format, address are verified by the driver, the network supervisor functionality is also based on the driver.
+1. The `client_id` is generated automatically if `CLIENT_ID` is a empty string, the default pattern is `"sscma_%s_%s_%ld"` the first `%s` is `VENDOR_PREFIX`, the second `%s` is `VENDOR_CHIP_NAME`, the `%ld` is a unique device ID.
+1. The SSL functionality is in development currently.
+
+#### Public/Subscribe MQTT topics
+
+Pattern: `AT+MQTTPUBSUB=<"PUB_TOPIC",PUB_QOS,"SUB_TOPIC",SUB_QOS>\r`
+
+Request: `AT+MQTTPUBSUB="sscma/test_pub",0,"sscma/test_sub",0\r`
+
+Response:
+
+A synchronous **Operation response** will be sent after the configuration is stored in flash.
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTPUBSUB",
+  "code": 0,
+  "data": {
+    "pub_topic": "sscma/test_pub",
+    "pub_qos": 0,
+    "sub_topic": "sscma/test_sub",
+    "sub_qos": 0
+  }
+}\n
+```
+
+The next **Event response** will be sent after the configuration is applied.
+
+```json
+\r{
+  "type": 0,
+  "name": "MQTTPUBSUB?",
+  "code": 0,
+  "data": {
+    "pub_topic": "sscma/test_pub",
+    "pub_qos": 0,
+    "sub_topic": "sscma/test_sub",
+    "sub_qos": 0
+  }
+}\n
+```
+
+**Before** we have recieved the **Event response** corresponding to our request, we may recieve an **Unnamed response** on the topic `sscma/v0/discover` by default if the device is connected to the MQTT server and the topic is subscribed successfully, which ensures that you're able to discover the device in the network.
+
+```json
+\r{
+  "pub_topic": "sscma/test_pub",
+  "pub_qos": 0,
+  "sub_topic": "sscma/test_sub",
+  "sub_qos": 0
+}\n
+```
+
+Note:
+
+1. If the device is not connected to the MQTT server when calling this API, the **Event response** will be marked as fail or timeout, but the configuration will still be stored in flash. Once the device is connected to the MQTT server, the device will try to subscribe the topic automatically and run all chained setup operations if no error occured.
+1. If you want to use default generated publish or subscribe topic, just call this API with a empty `PUB_TOPIC` or `SUB_TOPIC` string, unsubscribe or unpublic a topic is not supported currently. The publish or subscribe topic format is verified by the driver, the network supervisor functionality is also based on the driver.
+1. When network status changes, the device will try to subscribe the topic automatically by the chained setup operations once the connection to the MQTT server is established.
+1. The default timeout of the MQTT subscribe operation is `50ms * poll_times`, the default poll times is `30` and will be decremnted by `1` while trying to subscribe the topic. The network supervisor will not monitor the public or subscribe status, which means the device may lost connection to the MQTT server if the topic is not subscribed successfully (a hardware reset may needed).
+1. The default `pub_topic` is generated in the pattern `"sscma/%s/%s_%s_%ld/tx"`, the first `%s` is `SSCMA_AT_API_MAJOR_VERSION` (`v0` currently), the second `%s` is `VENDOR_PREFIX`, the third `%s` is `VENDOR_CHIP_NAME`, the `%ld` is a unique device ID. The deault `sub_topic` is generated in the same pattern but with `rx` instead of `tx`.
+1. Once the device is connected to the MQTT server, the device will try to send a 'hello' message to the discovery topic `sscma/v0/discover` by default, the `v0` is the `SSCMA_AT_API_MAJOR_VERSION`.
+1. You're able to run AT commands on the subscribed topic of the device, the device will reply with the result on the publish topic and serial port (if connected).
+
+
+#### Set SSL certificate (Draft)
+
+Comming soon...
+
 
 ### Config operation
 

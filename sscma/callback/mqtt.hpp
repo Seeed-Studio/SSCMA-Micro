@@ -3,6 +3,7 @@
 #include <cstring>
 #include <functional>
 #include <string>
+#include <unordered_set>
 
 #include "shared/network_utility.hpp"
 #include "sscma/definations.hpp"
@@ -21,21 +22,29 @@ static void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
 }
 
 void set_mqtt_pubsub(const std::vector<std::string>&  argv,
-                     bool                             called_by_event        = false,
-                     std::function<void(std::string)> on_pubsub_success_hook = nullptr) {
+                     bool                             called_by_event = false,
+                     std::function<void(std::string)> on_success_hook = nullptr) {
     // crate config from argv
-    auto config = mqtt_pubsub_config_t{};
+    auto config = get_default_mqtt_pubsub_config(static_resource->device);
     std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
     config.pub_qos = std::atoi(argv[2].c_str());
     std::strncpy(config.sub_topic, argv[3].c_str(), sizeof(config.sub_topic) - 1);
     config.sub_qos = std::atoi(argv[4].c_str());
 
-    auto ret = EL_OK;
-    auto sta = static_resource->network->status();
+    int  poll_retry = SSCMA_MQTT_POLL_RETRY;
+    auto ret        = EL_OK;
+    auto sta        = static_resource->network->status();
+
+    // static set to store sub topics
+    static auto sub_topics_set = new std::unordered_set<std::string>{};
 
     // store the config to flash if not invoked in init time
     if (!called_by_event) {
+        // update current config
+        static_resource->current_mqtt_pubsub_config = config;
+
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_EIO;
+
         const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                       argv[0],
                                       "\", \"code\": ",
@@ -46,25 +55,39 @@ void set_mqtt_pubsub(const std::vector<std::string>&  argv,
         static_resource->transport->send_bytes(ss.c_str(), ss.size());
     }
 
+    // set MQTT config for transport (stateless)
+    static_resource->transport->set_mqtt_config(config);
+
     // ensure the network is connected
     if (sta != NETWORK_CONNECTED) [[unlikely]] {
         ret = EL_EPERM;
         goto Reply;
     }
 
-    // unsubscribe old topic if exist (a unsubscribe all API is needed)
-    if (std::strlen(static_resource->current_mqtt_pubsub_config.sub_topic))
-        static_resource->network->unsubscribe(static_resource->current_mqtt_pubsub_config.sub_topic);
+    // TODO: we can skip unsubscribe and subscribe if the subscribe topic and QoS is not changed
 
-    // update current config
-    static_resource->current_mqtt_pubsub_config = config;
-    // subscribe new topic
+    // unsubscribe old topic if exist (a unsubscribe all API is needed)
+    if (sub_topics_set->size()) {
+        for (const auto& sub_topic : *sub_topics_set) static_resource->network->unsubscribe(sub_topic.c_str());
+        sub_topics_set->clear();  // clear old topics, we're not care about if unsubscribe success
+    }
+
+// subscribe new topic
+TrySubscribe:
     ret = static_resource->network->subscribe(config.sub_topic, static_cast<mqtt_qos_t>(config.sub_qos));
-    // set MQTT config for transport
-    static_resource->transport->set_mqtt_config(config);
+    if (ret != EL_OK) [[unlikely]] {
+        el_sleep(SSCMA_MQTT_POLL_DELAY_MS);
+        if (--poll_retry >= 0)
+            goto TrySubscribe;
+        else
+            goto Reply;
+    }
+
+    // add new topic to set
+    sub_topics_set->emplace(config.sub_topic);
 
     // call hook function
-    if (on_pubsub_success_hook) on_pubsub_success_hook(argv[0]);
+    if (on_success_hook) on_success_hook(argv[0]);
 
 Reply:
     const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
