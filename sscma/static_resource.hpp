@@ -141,7 +141,6 @@ class StaticResource final {
         storage->init();
 
         char version[EL_VERSION_LENTH_MAX]{};
-        std::strncpy(version, EL_VERSION, sizeof(version));
         auto kv = el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
         // if version match, load other configs from storage
         if (storage->get(kv) && std::strcmp(kv.value, EL_VERSION) == 0) [[likely]]
@@ -150,12 +149,14 @@ class StaticResource final {
               el_make_storage_kv_from_type(current_algorithm_type) >>
               el_make_storage_kv_from_type(current_mqtt_pubsub_config) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
-        else  // else init flash storage
+        else {  // else init flash storage
+            std::strncpy(version, EL_VERSION, sizeof(version));
             *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
                      << el_make_storage_kv_from_type(current_algorithm_type)
                      << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
+        }
 
         // increment boot count
         *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, ++boot_count);
