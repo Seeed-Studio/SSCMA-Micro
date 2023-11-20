@@ -11,8 +11,8 @@
 
 #define AT_LONG_TIME_MS    5000
 #define AT_SHORT_TIME_MS   1500
-#define AT_TX_MAX_LEN      1024  // 默认固件的AT指令长度阈值为256
-#define AT_RX_MAX_LEN      4096  // 可能连续收到多条消息
+#define AT_TX_MAX_LEN      8192  // 默认固件的AT指令长度阈值为256
+#define AT_RX_MAX_LEN      8192  // 可能连续收到多条消息
 
 #define AT_STR_HEADER      "AT+"
 
@@ -36,6 +36,8 @@
 #define AT_STR_RESP_READY  "ready"
 #define AT_STR_RESP_WIFI_H "WIFI "
 #define AT_STR_RESP_MQTT_H "+MQTT"
+
+#define AT_STR_RESP_PUBRAW ">+MQTTPUB:"
 
 typedef enum {
     AT_CMD_NONE = 0,

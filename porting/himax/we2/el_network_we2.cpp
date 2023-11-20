@@ -73,13 +73,16 @@ static void newline_parse(topic_cb_t cb) {
         return;
     }
 
-    // status change or data receive
+    // reset response
     if (len < 6) return;
     if (strncmp(str, AT_STR_RESP_READY, strlen(AT_STR_RESP_READY)) == 0) {
         EL_LOGD("READY\n");
         at.state = AT_STATE_READY;
         return;
-    } else if (strncmp(str, AT_STR_RESP_WIFI_H, strlen(AT_STR_RESP_WIFI_H)) == 0) {
+    } 
+
+    // wifi response
+    if (strncmp(str, AT_STR_RESP_WIFI_H, strlen(AT_STR_RESP_WIFI_H)) == 0) {
         if (str[strlen(AT_STR_RESP_WIFI_H)] == 'C') {
             EL_LOGD("WIFI CONNECTED\n");
             xTaskNotify(status_handler, NETWORK_JOINED, eSetValueWithOverwrite);
@@ -89,7 +92,10 @@ static void newline_parse(topic_cb_t cb) {
             xTaskNotify(status_handler, NETWORK_IDLE, eSetValueWithOverwrite);
             return;
         }
-    } else if (strncmp(str, AT_STR_RESP_MQTT_H, strlen(AT_STR_RESP_MQTT_H)) == 0) {
+    } 
+    
+    // mqtt response
+    if (strncmp(str, AT_STR_RESP_MQTT_H, strlen(AT_STR_RESP_MQTT_H)) == 0) {
         if (str[strlen(AT_STR_RESP_MQTT_H)] == 'C') {
             EL_LOGD("MQTT CONNECTED\n");
             xTaskNotify(status_handler, NETWORK_CONNECTED, eSetValueWithOverwrite);
@@ -137,6 +143,11 @@ static void newline_parse(topic_cb_t cb) {
             if (cb) cb(topic_pos, topic_len, msg_pos, msg_len);
             return;
         }
+    }
+    if (strncmp(str, AT_STR_RESP_PUBRAW, strlen(AT_STR_RESP_PUBRAW)) == 0) {
+        at.state = (str[strlen(AT_STR_RESP_PUBRAW)] == 'O') ? 
+                    AT_STATE_OK : AT_STATE_ERROR;
+        return;
     }
 }
 
@@ -198,7 +209,7 @@ void NetworkWE2::init(status_cb_t cb) {
             EL_LOGD("uart init error\n");
             return;
         }
-        at.port->uart_open(UART_BAUDRATE_115200);
+        at.port->uart_open(UART_BAUDRATE_921600);
         memset((void*)at.tbuf, 0, sizeof(at.tbuf));
         at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
     }
@@ -371,22 +382,27 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         return EL_EPERM;
     }
 
-    if (len < 256 - 22 - strlen(topic)) {
+    if (len + strlen(topic) < 200) {
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, dat, qos);
-        err = at_send(&at, AT_LONG_TIME_MS);
+        err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
             return err;
         }
-    } else if (len < sizeof(at.tbuf) - 27 - strlen(topic)) {
+    } 
+    else if (len + 1 < sizeof(at.tbuf)) {
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
-        err = at_send(&at, AT_LONG_TIME_MS);
+        err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
-            EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
+            EL_LOGW("AT MQTTPUB ERROR : %d\n", err);
             return err;
         }
-        snprintf(at.tbuf, len, "%s", dat);
-        at.port->uart_write(at.tbuf, strlen(at.tbuf));
+        snprintf(at.tbuf, len + 1, "%s", dat);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGW("AT MQTTPUB RAW ERROR : %d\n", err);
+            return err;
+        }
     } else {
         EL_LOGD("AT MQTTPUB ERROR : DATA TOO LONG\n");
         return EL_ENOMEM;
