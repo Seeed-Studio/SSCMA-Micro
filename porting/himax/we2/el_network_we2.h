@@ -43,6 +43,7 @@ public:
     el_err_code_t join(const char* ssid, const char *pwd) override;
     el_err_code_t quit() override;
 
+    el_err_code_t connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb);
     el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) override;
     el_err_code_t disconnect() override;
     el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) override;

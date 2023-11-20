@@ -23,6 +23,7 @@
 #define AT_STR_CWJAP       "CWJAP"
 #define AT_STR_CWSTATE     "CWSTATE"
 #define AT_STR_CWQAP       "CWQAP"
+#define AT_STR_CIPSTA      "CIPSTA"
 
 #define AT_STR_MQTTUSERCFG "MQTTUSERCFG"
 #define AT_STR_MQTTCONN    "MQTTCONN"
@@ -36,6 +37,7 @@
 #define AT_STR_RESP_READY  "ready"
 #define AT_STR_RESP_WIFI_H "WIFI "
 #define AT_STR_RESP_MQTT_H "+MQTT"
+#define AT_STR_RESP_IP_H   "+CIPSTA:"
 
 #define AT_STR_RESP_PUBRAW ">+MQTTPUB:"
 

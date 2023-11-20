@@ -29,11 +29,12 @@
 
 #include "core/el_debug.h"
 
-lwRingBuffer*       at_rbuf   = NULL;
-static uint8_t      dma_rx[4] = {0};
-static esp_at_t     at;
-static TaskHandle_t at_rx_parser   = NULL;
-static TaskHandle_t status_handler = NULL;
+lwRingBuffer*         at_rbuf   = NULL;
+static uint8_t        dma_rx[4] = {0};
+static esp_at_t       at = {0};
+static ipv4_address_t ip = {0};
+static TaskHandle_t   at_rx_parser   = NULL;
+static TaskHandle_t   status_handler = NULL;
 
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     uint32_t t = 0;
@@ -83,7 +84,7 @@ static void newline_parse(topic_cb_t cb) {
 
     // wifi response
     if (strncmp(str, AT_STR_RESP_WIFI_H, strlen(AT_STR_RESP_WIFI_H)) == 0) {
-        if (str[strlen(AT_STR_RESP_WIFI_H)] == 'C') {
+        if (str[strlen(AT_STR_RESP_WIFI_H)] == 'G') {
             EL_LOGD("WIFI CONNECTED\n");
             xTaskNotify(status_handler, NETWORK_JOINED, eSetValueWithOverwrite);
             return;
@@ -149,6 +150,25 @@ static void newline_parse(topic_cb_t cb) {
                     AT_STATE_OK : AT_STATE_ERROR;
         return;
     }
+
+    // ip addr response
+    if (strncmp(str, AT_STR_RESP_IP_H, strlen(AT_STR_RESP_IP_H)) == 0) {
+        uint32_t ofs = strlen(AT_STR_RESP_IP_H);
+        if (strncmp(str + ofs, "ip:", 3) == 0) {
+            ofs += 3;
+            memcpy(ip.ip, str + ofs, len - ofs);
+            return;
+        } else if (strncmp(str + ofs, "gateway:", 8) == 0) {
+            ofs += 8;
+            memcpy(ip.gateway, str + ofs, len - ofs);
+            return;
+        } else if (strncmp(str + ofs, "netmask:", 8) == 0) {
+            ofs += 8;
+            memcpy(ip.netmask, str + ofs, len - ofs);
+            at.state = AT_STATE_OK;
+            return;
+        }
+    }
 }
 
 static void at_recv_parser(void* arg) {
@@ -164,8 +184,17 @@ static void network_event_handler(void* arg) {
     uint32_t value  = 0;
     edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     while (1) {
-        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &value, portMAX_DELAY) == pdPASS) {
-            net->set_status((el_net_sta_t)value);
+        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &value, portMAX_DELAY) != pdPASS) {
+            continue;
+        }
+        net->set_status((el_net_sta_t)value);
+        if ((el_net_sta_t)value == NETWORK_JOINED) {
+            sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
+            if (at_send(&at, AT_SHORT_TIME_MS) != EL_OK) {
+                EL_LOGD("AT CIPSTA ERROR\n");
+                continue;
+            }
+            net->_ip = ip;
         }
     }
 }
@@ -292,6 +321,43 @@ el_err_code_t NetworkWE2::quit() {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
+    return EL_OK;
+}
+
+el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_t cb) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status == NETWORK_CONNECTED) {
+        return EL_OK;
+    } else if (this->network_status != NETWORK_JOINED) {
+        return EL_EPERM;
+    }
+
+    if (cb == NULL) {
+        return EL_EINVAL;
+    }
+    at.cb = cb;
+    this->topic_cb = cb;
+
+    sprintf(at.tbuf,
+            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,1,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
+            mqtt_cfg.client_id,
+            mqtt_cfg.username,
+            mqtt_cfg.password);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MQTTUSERCFG ERROR : %d\n", err);
+        return err;
+    }
+
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",%d,1" AT_STR_CRLF, 
+            mqtt_cfg.address,
+            mqtt_cfg.port);
+    err = at_send(&at, AT_LONG_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MQTTCONN ERROR : %d\n", err);
+        return err;
+    }
+
     return EL_OK;
 }
 
