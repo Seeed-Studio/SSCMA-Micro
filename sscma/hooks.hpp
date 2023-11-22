@@ -76,8 +76,6 @@ void init_wireless_network_hook(std::string cmd) {
 void network_supervisor_hook() {
     if (!static_resource->enable_network_supervisor.load()) return;
 
-    EL_LOGI("network_supervisor: Checking network status...");
-
     static_resource->executor->add_task([](const std::atomic<bool>&) {
         static_resource->enable_network_supervisor.store(false);
 
@@ -88,8 +86,6 @@ void network_supervisor_hook() {
             static_resource->enable_network_supervisor.store(true);
             return;
         }
-
-        EL_LOGI("network_supervisor: Unexpected network status, trying to recover...");
 
         std::string caller{"SUPERVISOR"};
         switch (current_status) {
@@ -111,11 +107,8 @@ void network_supervisor_hook() {
 
 void init_network_supervisor_hook(void*) {
 Loop:
-    EL_LOGI("network_supervisor: Calling network supervisor hook...");
-
     network_supervisor_hook();
     el_sleep(SSCMA_NETWORK_SUPERVISOR_POLL_DELAY);
-
     goto Loop;
 }
 
