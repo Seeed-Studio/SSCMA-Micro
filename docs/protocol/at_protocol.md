@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.11.17
+# AT Protocol Specification v2023.11.22
 
 
 ## Transmission Layer
@@ -175,8 +175,6 @@ Response:
   }
 }\n
 ```
-
-Note: `"model": {..., "type": <AlgorithmType:Unsigned>,  ...}`.
 
 #### Get version deatils
 
@@ -604,9 +602,9 @@ Events:
 
 #### Invoke for N times
 
-Pattern: `AT+INVOKE=<N_TIMES,RESULT_ONLY>\r`
+Pattern: `AT+INVOKE=<N_TIMES,DIFFERED,RESULT_ONLY>\r`
 
-Request: `AT+INVOKE=1,1\r`
+Request: `AT+INVOKE=1,0,1\r`
 
 Response:
 
@@ -672,6 +670,8 @@ Note:
 
 1. `"model": {..., "type": <AlgorithmType:Unsigned>,  ...}`.
 1. `"input_from": <SensorType:Unsigned>`.
+1. `DIFFERED` means the event reply will only be sent if the last result is different from the previous result (compared by geometry and score).
+1. `RESULT_ONLY` means the event reply will only contain the result data, otherwise the event reply will contain the image data.
 
 #### Store info string to device flash
 
