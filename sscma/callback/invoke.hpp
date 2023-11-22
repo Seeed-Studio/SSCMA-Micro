@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "core/algorithm/el_algorithm_delegate.h"
+#include "shared/results_utility.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/traits.hpp"
@@ -20,9 +22,12 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
    public:
     std::shared_ptr<Invoke> getptr() { return shared_from_this(); }
 
-    [[nodiscard]] static std::shared_ptr<Invoke> create(std::string cmd, std::size_t n_times, bool results_only) {
+    [[nodiscard]] static std::shared_ptr<Invoke> create(std::string cmd,
+                                                        std::size_t n_times,
+                                                        bool        differed,
+                                                        bool        results_only) {
         return std::shared_ptr<Invoke>{
-          new Invoke{std::move(cmd), n_times, results_only}
+          new Invoke{std::move(cmd), n_times, differed, results_only}
         };
     }
 
@@ -34,9 +39,10 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     inline void run() { prepare(); }
 
    protected:
-    Invoke(std::string cmd, std::size_t n_times, bool results_only)
+    Invoke(std::string cmd, std::size_t n_times, bool differed, bool results_only)
         : _cmd{cmd},
           _n_times{n_times},
+          _differed{differed},
           _results_only{results_only},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
           _times{0},
@@ -152,35 +158,47 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     inline void event_loop() {
         switch (_algorithm_info.type) {
         case EL_ALGO_TYPE_FOMO: {
-            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
+            using AlgorithmType = AlgorithmFOMO;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            if (is_everything_ok()) [[likely]]
-                event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
             return;
         }
         case EL_ALGO_TYPE_PFLD: {
-            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
+            using AlgorithmType = AlgorithmPFLD;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            if (is_everything_ok()) [[likely]]
-                event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
             return;
         }
         case EL_ALGO_TYPE_YOLO: {
-            auto algorithm{std::make_shared<AlgorithmYOLO>(static_resource->engine)};
+            using AlgorithmType = AlgorithmYOLO;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            if (is_everything_ok()) [[likely]]
-                event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
             return;
         }
         case EL_ALGO_TYPE_IMCLS: {
-            auto algorithm{std::make_shared<AlgorithmFOMO>(static_resource->engine)};
+            using AlgorithmType = AlgorithmIMCLS;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
-            if (is_everything_ok()) [[likely]]
-                event_loop_cam(algorithm);
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
             return;
         }
         default:
@@ -289,7 +307,8 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 _config_cmds.emplace_front("TIOU?");
     }
 
-    template <typename AlgorithmType> void event_loop_cam(std::shared_ptr<AlgorithmType> algorithm) {
+    template <typename AlgorithmType, typename ResultType = typename AlgorithmType::OutputType>
+    void event_loop_cam(std::shared_ptr<AlgorithmType> algorithm, ResultsFilter<ResultType> results_filter) {
         if (_times++ == _n_times) [[unlikely]]
             return;
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
@@ -324,26 +343,29 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         }
         static_resource->action->evalute();
 
-        if (_results_only)
-            event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
-        else {
+        if (!_differed || results_filter.compare_and_update(algorithm->get_results())) {
+            if (_results_only)
+                event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
+            else {
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
-            event_reply(
-              concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_json_str(&processed_frame)));
+                event_reply(concat_strings(
+                  ", ", algorithm_results_2_json_str(algorithm), ", ", img_2_json_str(&processed_frame)));
 #else
-            event_reply(
-              concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_jpeg_json_str(&frame)));
+                event_reply(
+                  concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_jpeg_json_str(&frame)));
 #endif
+            }
         }
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
         static_resource->executor->add_task(
-          [_this = std::move(getptr()), _algorithm = std::move(algorithm)](const std::atomic<bool>& stop_token) {
+          [_this = std::move(getptr()), _algorithm = std::move(algorithm), _results_filter = std::move(results_filter)](
+            const std::atomic<bool>& stop_token) {
               if (stop_token.load(std::memory_order_seq_cst)) [[unlikely]]
                   return;
-              _this->event_loop_cam(_algorithm);
+              _this->event_loop_cam(_algorithm, std::move(_results_filter));
           });
         return;
 
@@ -411,6 +433,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
    private:
     std::string _cmd;
     std::size_t _n_times;
+    bool        _differed;
     bool        _results_only;
 
     std::size_t         _task_id;

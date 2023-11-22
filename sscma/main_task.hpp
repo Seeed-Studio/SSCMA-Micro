@@ -180,12 +180,16 @@ void run() {
     });
 
     static_resource->instance->register_cmd(
-      "INVOKE", "Invoke for N times (-1 for infinity loop)", "N_TIMES,RESULT_ONLY", [](std::vector<std::string> argv) {
+      "INVOKE",
+      "Invoke for N times (-1 for infinity loop)",
+      "N_TIMES,DIFFERED,RESULT_ONLY",
+      [](std::vector<std::string> argv) {
           static_resource->executor->add_task([cmd         = std::move(argv[0]),
                                                n_times     = std::atoi(argv[1].c_str()),
-                                               result_only = std::atoi(argv[2].c_str())](const std::atomic<bool>&) {
+                                               differed    = std::atoi(argv[2].c_str()),
+                                               result_only = std::atoi(argv[3].c_str())](const std::atomic<bool>&) {
               static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
-              Invoke::create(cmd, n_times, result_only != 0)->run();
+              Invoke::create(cmd, n_times, differed != 0, result_only != 0)->run();
           });
           return EL_OK;
       });
