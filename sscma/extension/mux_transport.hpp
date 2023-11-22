@@ -90,11 +90,14 @@ class MuxTransport final : public Transport {
     MuxTransport() = default;
 
     inline el_err_code_t m_send_bytes(const char* buffer, size_t size) {
-        auto serial_ret = _serial->send_bytes(buffer, size);
-        auto network_ret = _network->publish(
-          _mqtt_pubsub_config.pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config.pub_qos));
-
-        return ((serial_ret ^ EL_OK) | (network_ret ^ EL_OK)) ? EL_EIO : EL_OK;  // require both ok
+        auto serial_ret  = EL_ETIMOUT;
+        auto network_ret = EL_ETIMOUT;
+        if (_serial && *_serial) serial_ret = _serial->send_bytes(buffer, size);
+        if (_network && _network->status() == NETWORK_CONNECTED)
+            network_ret = _network->publish(
+              _mqtt_pubsub_config.pub_topic, buffer, size, static_cast<mqtt_qos_t>(_mqtt_pubsub_config.pub_qos));
+        // return EL_OK if both serial and network are ok
+        return (serial_ret == EL_OK) & (network_ret == EL_OK) ? EL_OK : EL_EIO;
     }
 
    private:
