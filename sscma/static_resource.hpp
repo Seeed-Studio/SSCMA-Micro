@@ -164,18 +164,16 @@ class StaticResource final {
         // network supervisor
         enable_network_supervisor = false;
         target_network_status     = [this]() {
-            auto target_status = this->network->status();
-            {
-                auto config = wireless_network_config_t{};
-                if (this->storage->get(el_make_storage_kv_from_type(config))) {
-                    if (std::strlen(config.name)) target_status = NETWORK_JOINED;
-                } else
-                    return target_status;
-            }
-            {
-                auto config = mqtt_server_config_t{};
-                if (this->storage->get(el_make_storage_kv_from_type(config))) {
-                    if (std::strlen(config.address)) target_status = NETWORK_CONNECTED;
+            auto target_status  = this->network->status();
+            auto network_config = wireless_network_config_t{};
+            if (this->storage->get(el_make_storage_kv_from_type(network_config))) {
+                if (std::strlen(network_config.name)) {
+                    target_status    = NETWORK_JOINED;
+                    auto mqtt_config = mqtt_server_config_t{};
+                    if (this->storage->get(el_make_storage_kv_from_type(mqtt_config))) {
+                        if (std::strlen(mqtt_config.address)) target_status = NETWORK_CONNECTED;
+                    } else
+                        return target_status;
                 } else
                     return target_status;
             }
