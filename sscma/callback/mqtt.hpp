@@ -26,9 +26,9 @@ void set_mqtt_pubsub(const std::vector<std::string>&  argv,
                      std::function<void(std::string)> on_success_hook = nullptr) {
     // crate config from argv
     auto config = get_default_mqtt_pubsub_config(static_resource->device);
-    std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
+    if (argv[1].size()) std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
     config.pub_qos = std::atoi(argv[2].c_str());
-    std::strncpy(config.sub_topic, argv[3].c_str(), sizeof(config.sub_topic) - 1);
+    if (argv[3].size()) std::strncpy(config.sub_topic, argv[3].c_str(), sizeof(config.sub_topic) - 1);
     config.sub_qos = std::atoi(argv[4].c_str());
 
     int  poll_retry = SSCMA_MQTT_POLL_RETRY;
