@@ -45,6 +45,13 @@ typedef enum {
     MQTT_QOS_2
 } mqtt_qos_t;
 
+typedef struct mdns_record {
+    char* host_name;
+    char* serv_name;
+    uint16_t port;
+    bool is_enabled;
+} mdns_record_t;
+
 typedef void (*status_cb_t)(el_net_sta_t sta);
 typedef void (*topic_cb_t)(char* top, int tlen, char* msg, int mlen);
 
@@ -106,6 +113,7 @@ public:
 protected:
     bool _is_present;
     el_net_sta_t network_status;
+    mdns_record_t mdns;
 };
 
 }  // namespace edgelab

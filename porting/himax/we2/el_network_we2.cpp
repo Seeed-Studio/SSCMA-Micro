@@ -222,6 +222,16 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
+
+    if (this->mdns.is_enabled) {
+        sprintf(at.tbuf, AT_STR_HEADER "MDNS=1,\"%s\",\"%s\",%d" AT_STR_CRLF,
+                this->mdns.host_name, this->mdns.serv_name, this->mdns.port);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGD("AT MDNS ERROR : %d\n", err);
+            return err;
+        }
+    }
     return EL_OK;
 }
 
