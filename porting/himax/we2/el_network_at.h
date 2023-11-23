@@ -104,4 +104,19 @@ typedef struct esp_at {
     topic_cb_t cb;
 } esp_at_t;
 
+typedef void (*resp_action_t)(const char* resp, void* arg);
+typedef struct resp_trigger {
+    const char*   str;
+    resp_action_t act;
+} resp_trigger_t;
+
+void resp_action_ok(const char* resp, void* arg);
+void resp_action_error(const char* resp, void* arg);
+void resp_action_ready(const char* resp, void* arg);
+void resp_action_wifi(const char* resp, void* arg);
+void resp_action_mqtt(const char* resp, void* arg);
+void resp_action_ip(const char* resp, void* arg);
+void resp_action_ntp(const char* resp, void* arg);
+void resp_action_pubraw(const char* resp, void* arg);
+
 #endif
