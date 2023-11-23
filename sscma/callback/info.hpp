@@ -14,7 +14,7 @@ using namespace edgelab;
 using namespace sscma::utility;
 
 void set_info(const std::vector<std::string>& argv) {
-    char info[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+    char info[SSCMA_CMD_MAX_LENGTH]{};
 
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
     auto ret = static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EIO;
@@ -31,7 +31,7 @@ void set_info(const std::vector<std::string>& argv) {
 }
 
 void get_info(const std::string& cmd) {
-    char info[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+    char info[SSCMA_CMD_MAX_LENGTH]{};
     auto ret = EL_OK;
 
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_INFO))

@@ -118,7 +118,7 @@ using namespace sscma::types;
 
 class Server {
    public:
-    Server() : _cmd_list_lock(), _exec_lock(), _is_ctrl(false), _line_index(-1) {
+    Server() : _history(SSCMA_REPL_HISTORY_MAX), _cmd_list_lock(), _exec_lock(), _is_ctrl(false), _line_index(-1) {
         register_cmd("HELP?", "List available commands", "", [this](std::vector<std::string>) -> el_err_code_t {
             this->print_help();
             return EL_OK;

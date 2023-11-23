@@ -41,21 +41,22 @@ class StaticResource final {
     Condition* action;
 
     // internal configs that stored in flash
-    int32_t              boot_count;
-    uint8_t              current_model_id;
-    uint8_t              current_sensor_id;
-    el_algorithm_type_t  current_algorithm_type;
-    mqtt_pubsub_config_t current_mqtt_pubsub_config;
+    int32_t             boot_count;
+    uint8_t             current_model_id;
+    uint8_t             current_sensor_id;
+    el_algorithm_type_t current_algorithm_type;
 
     // internal states
-    std::atomic<size_t> current_task_id;
-    std::atomic<bool>   is_ready;
-    bool                is_sample;
-    bool                is_invoke;
+    std::atomic<std::size_t> current_task_id;
+    std::atomic<bool>        is_ready;
+    bool                     is_sample;
+    bool                     is_invoke;
 
     // external states
-    std::atomic<bool> enable_network_supervisor;
-    el_net_sta_t      target_network_status;
+    Mutex       network_config_sync_lock;
+    std::size_t wireless_network_config_revision;
+    std::size_t mqtt_server_config_revision;
+    std::size_t mqtt_pubsub_config_revision;
 
     // external resources (hardware related)
     Device*            device;
@@ -88,7 +89,7 @@ class StaticResource final {
         static auto v_instance{Server()};
         instance = &v_instance;
 
-        static auto v_executor{Executor()};
+        static auto v_executor{Executor(SSCMA_REPL_EXECUTOR_STACK_SIZE, SSCMA_REPL_EXECUTOR_PRIO)};
         executor = &v_executor;
 
         static auto v_action{Condition()};
@@ -114,16 +115,19 @@ class StaticResource final {
     StaticResource() = default;
 
     inline void inter_init() {
-        boot_count                 = 0;
-        current_model_id           = 1;
-        current_sensor_id          = 1;
-        current_algorithm_type     = EL_ALGO_TYPE_UNDEFINED;
-        current_mqtt_pubsub_config = get_default_mqtt_pubsub_config(device);
+        boot_count             = 0;
+        current_model_id       = 1;
+        current_sensor_id      = 1;
+        current_algorithm_type = EL_ALGO_TYPE_UNDEFINED;
 
         current_task_id = 0;
         is_ready        = false;
         is_sample       = false;
         is_invoke       = false;
+
+        wireless_network_config_revision = 0;
+        mqtt_server_config_revision      = 0;
+        mqtt_pubsub_config_revision      = 0;
 
         init_hardware();
         init_backend();
@@ -132,7 +136,6 @@ class StaticResource final {
 
     inline void init_hardware() {
         serial->init();
-        network->init();
         transport->init();
     }
 
@@ -147,38 +150,17 @@ class StaticResource final {
             *storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id) >>
               el_make_storage_kv_from_type(current_algorithm_type) >>
-              el_make_storage_kv_from_type(current_mqtt_pubsub_config) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         else {  // else init flash storage
             std::strncpy(version, EL_VERSION, sizeof(version));
             *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
                      << el_make_storage_kv_from_type(current_algorithm_type)
-                     << el_make_storage_kv_from_type(current_mqtt_pubsub_config)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         }
 
         // increment boot count
         *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, ++boot_count);
-
-        // network supervisor
-        enable_network_supervisor = false;
-        target_network_status     = [this]() {
-            auto target_status  = this->network->status();
-            auto network_config = wireless_network_config_t{};
-            if (this->storage->get(el_make_storage_kv_from_type(network_config))) {
-                if (std::strlen(network_config.name)) {
-                    target_status    = NETWORK_JOINED;
-                    auto mqtt_config = mqtt_server_config_t{};
-                    if (this->storage->get(el_make_storage_kv_from_type(mqtt_config))) {
-                        if (std::strlen(mqtt_config.address)) target_status = NETWORK_CONNECTED;
-                    } else
-                        return target_status;
-                } else
-                    return target_status;
-            }
-            return target_status;
-        }();
     }
 
     inline void init_frontend() {

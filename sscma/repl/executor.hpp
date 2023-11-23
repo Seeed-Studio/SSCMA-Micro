@@ -21,7 +21,7 @@ using namespace sscma::types;
 // TODO: memory order should be optimized for different architecures
 class Executor {
    public:
-    Executor()
+    Executor(std::size_t stack_size, std::size_t priority)
         : _task_queue_lock(),
           _task_stop_requested(false),
           _worker_thread_stop_requested(false),
@@ -38,12 +38,8 @@ class Executor {
         _worker_name += hex_literals[worker_id >> 4];
         _worker_name += hex_literals[worker_id & 0x0f];
 
-        [[maybe_unused]] auto ret = xTaskCreate(&Executor::c_run,
-                                                _worker_name.c_str(),
-                                                CONFIG_SSCMA_REPL_EXECUTOR_STACK_SIZE,
-                                                this,
-                                                CONFIG_SSCMA_REPL_EXECUTOR_PRIO,
-                                                &_worker_handler);
+        [[maybe_unused]] auto ret =
+          xTaskCreate(&Executor::c_run, _worker_name.c_str(), stack_size, this, priority, &_worker_handler);
         EL_ASSERT(ret == pdPASS);  // TODO: handle error
     }
 

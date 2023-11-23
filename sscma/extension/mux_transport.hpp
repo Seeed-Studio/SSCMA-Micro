@@ -51,12 +51,12 @@ class MuxTransport final : public Transport {
         return EL_OK;
     }
 
-    void set_mqtt_config(mqtt_pubsub_config_t mqtt_pubsub_config) {
+    void set_mqtt_pubsub_config(mqtt_pubsub_config_t mqtt_pubsub_config) {
         const Guard guard(_config_lock);
         _mqtt_pubsub_config = mqtt_pubsub_config;
     }
 
-    mqtt_pubsub_config_t get_mqtt_config() {
+    mqtt_pubsub_config_t get_mqtt_pubsub_config() {
         const Guard guard(_config_lock);
         return _mqtt_pubsub_config;
     }
@@ -87,7 +87,7 @@ class MuxTransport final : public Transport {
     }
 
    protected:
-    MuxTransport() = default;
+    MuxTransport() : _serial(nullptr), _network(nullptr) {}
 
     inline el_err_code_t m_send_bytes(const char* buffer, size_t size) {
         auto serial_ret  = EL_ETIMOUT;
