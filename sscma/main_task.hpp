@@ -244,7 +244,7 @@ void run() {
     static_resource->instance->register_cmd(
       "MQTTSERVER",
       "Set and connect to a MQTT server",
-      "\"CLIENT_ID\",\"ADDRESS:PORT\",\"USERNAME\",\"PASSWORD\",USE_SSL",
+      "\"CLIENT_ID\",\"ADDRESS\",PORT,\"USERNAME\",\"PASSWORD\",USE_SSL",
       [](std::vector<std::string> argv) {
           static_resource->executor->add_task([argv = std::move(argv)](const std::atomic<bool>&) {
               static_resource->enable_network_supervisor.store(false);

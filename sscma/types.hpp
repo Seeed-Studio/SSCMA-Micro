@@ -37,6 +37,14 @@ typedef struct ipv4_address_t {
     char netmask[SSCMA_IPV4_ADDRESS_LEN];
 } ipv4_address_t;
 
+typedef enum mqtt_secu_type_e : uint8_t {
+    TCP_NO_CERT = 1,
+    TLS_NO_CERT,
+    TLS_SERVER_CERT,
+    TLS_CLIENT_CERT,
+    TLS_BOTH_CERT
+} mqtt_secu_type_e;
+
 typedef struct mqtt_server_ssl_config_t {
     char  alpn[SSCMA_MQTT_SSL_ALPN_LEN];
     char* certification_authority;

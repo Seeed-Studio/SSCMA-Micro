@@ -50,6 +50,8 @@ public:
     el_err_code_t unsubscribe(const char* topic) override;
     el_err_code_t publish(const char* topic, const char* dat, uint32_t len, mqtt_qos_t qos) override;
 
+    bool _time_synced;
+
 private:
     esp_at_t* _at;
 };

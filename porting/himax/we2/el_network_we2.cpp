@@ -38,7 +38,7 @@ static TaskHandle_t   status_handler = NULL;
 
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     uint32_t t = 0;
-    // EL_LOGI("%s\n", at->tbuf);
+    EL_LOGD("%s\n", at->tbuf);
     at->state = AT_STATE_PROCESS;
     at->port->uart_write(at->tbuf, strlen(at->tbuf));
 
@@ -58,18 +58,19 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     return EL_OK;
 }
 
-static void newline_parse(topic_cb_t cb) {
-    char     str[512] = {0};
-    uint32_t len      = at_rbuf->extract('\n', str, sizeof(str));
+static void newline_parse(void* arg) {
+    char str[512] = {0};
+    uint32_t len = at_rbuf->extract('\n', str, sizeof(str));
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
 
     // command response : OK or ERROR
     if (len < 3) return;
     if (strncmp(str, AT_STR_RESP_OK, strlen(AT_STR_RESP_OK)) == 0) {
-        // EL_LOGD("OK\n");
+        EL_LOGD("OK\n");
         at.state = AT_STATE_OK;
         return;
     } else if (strncmp(str, AT_STR_RESP_ERROR, strlen(AT_STR_RESP_ERROR)) == 0) {
-        // EL_LOGD("ERROR\n");
+        EL_LOGD("ERROR\n");
         at.state = AT_STATE_ERROR;
         return;
     }
@@ -141,7 +142,7 @@ static void newline_parse(topic_cb_t cb) {
             }
             msg_pos += str_len + 1;
 
-            if (cb) cb(topic_pos, topic_len, msg_pos, msg_len);
+            if (net->topic_cb) net->topic_cb(topic_pos, topic_len, msg_pos, msg_len);
             return;
         }
     }
@@ -165,17 +166,26 @@ static void newline_parse(topic_cb_t cb) {
         } else if (strncmp(str + ofs, "netmask:", 8) == 0) {
             ofs += 8;
             memcpy(ip.netmask, str + ofs, len - ofs);
+            EL_LOGI("IP GOT\n");
             at.state = AT_STATE_OK;
+            net->_ip = ip;
             return;
         }
+    }
+
+    // time update response
+    if (strstr(str, AT_STR_RESP_NTP) != NULL) {
+    // if (strncmp(str, AT_STR_RESP_NTP, strlen(AT_STR_RESP_NTP)) == 0) {
+        EL_LOGI("NTP TIME UPDATED!\n");
+        net->_time_synced = true;
+        return;
     }
 }
 
 static void at_recv_parser(void* arg) {
-    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     while (1) {
         if (ulTaskNotifyTake(pdFALSE, portMAX_DELAY) > 0) {
-            newline_parse(net->topic_cb);
+            newline_parse(arg);
         }
     }
 }
@@ -188,13 +198,11 @@ static void network_event_handler(void* arg) {
             continue;
         }
         net->set_status((el_net_sta_t)value);
-        if ((el_net_sta_t)value == NETWORK_JOINED) {
+        if (net->status() == NETWORK_JOINED) {
             sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
-            if (at_send(&at, AT_SHORT_TIME_MS) != EL_OK) {
-                EL_LOGD("AT CIPSTA ERROR\n");
-                continue;
-            }
-            net->_ip = ip;
+            at.port->uart_write(at.tbuf, strlen(at.tbuf));
+            el_sleep(100);
+            // at_send(&at, AT_LONG_TIME_MS);
         }
     }
 }
@@ -284,6 +292,8 @@ void NetworkWE2::init(status_cb_t cb) {
     }
     
     if (cb) this->status_cb = cb;
+    EL_LOGI("network init ok\n");
+    this->_time_synced = false;
     this->set_status(NETWORK_IDLE);
 }
 
@@ -338,23 +348,51 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
     at.cb = cb;
     this->topic_cb = cb;
 
+    if (mqtt_cfg.use_ssl) {
+        if (!this->_time_synced) {
+            sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPCFG "=1,%d,\"%s\",\"%s\"" AT_STR_CRLF,
+                    UTC_TIME_ZONE_CN, SNTP_SERVER_CN2, SNTP_SERVER_US);
+            EL_LOGI("AT CIPSNTPCFG : %s\n", at.tbuf);
+            at.port->uart_write(at.tbuf, strlen(at.tbuf));
+            uint32_t t = 0;
+            while (!this->_time_synced) {
+                if (t >= AT_LONG_TIME_MS * 12) {
+                    EL_LOGI("AT CIPSNTPCFG TIMEOUT\n");
+                    return EL_ETIMOUT;
+                }
+                el_sleep(100);
+                t += 100;
+            }
+        }
+        sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPTIME AT_STR_CRLF);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGI("AT CIPSNTPTIME ERROR : %d\n", err);
+            return err;
+        }
+    }
+
     sprintf(at.tbuf,
-            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,1,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
+            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,%d,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
+            mqtt_cfg.use_ssl ? 4 : 1,
             mqtt_cfg.client_id,
             mqtt_cfg.username,
             mqtt_cfg.password);
+    EL_LOGI("AT MQTTUSERCFG : %s\n", at.tbuf);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
-        EL_LOGD("AT MQTTUSERCFG ERROR : %d\n", err);
+        EL_LOGI("AT MQTTUSERCFG ERROR : %d\n", err);
+        this->disconnect();
         return err;
     }
 
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",%d,1" AT_STR_CRLF, 
             mqtt_cfg.address,
             mqtt_cfg.port);
-    err = at_send(&at, AT_LONG_TIME_MS);
+    err = at_send(&at, AT_LONG_TIME_MS * 12);
     if (err != EL_OK) {
-        EL_LOGD("AT MQTTCONN ERROR : %d\n", err);
+        EL_LOGI("AT MQTTCONN ERROR : %d\n", err);
+        this->disconnect();
         return err;
     }
 

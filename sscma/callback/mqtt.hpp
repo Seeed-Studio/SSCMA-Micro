@@ -129,9 +129,10 @@ void set_mqtt_server(const std::vector<std::string>&  argv,
     else
         std::strncpy(config.client_id, argv[1].c_str(), sizeof(config.client_id) - 1);
     std::strncpy(config.address, argv[2].c_str(), sizeof(config.address) - 1);
-    std::strncpy(config.username, argv[3].c_str(), sizeof(config.username) - 1);
-    std::strncpy(config.password, argv[4].c_str(), sizeof(config.password) - 1);
-    config.use_ssl = std::atoi(argv[5].c_str()) != 0;  // TODO: driver add SSL config support
+    config.port = std::atoi(argv[3].c_str());
+    std::strncpy(config.username, argv[4].c_str(), sizeof(config.username) - 1);
+    std::strncpy(config.password, argv[5].c_str(), sizeof(config.password) - 1);
+    config.use_ssl = std::atoi(argv[6].c_str()) != 0;  // TODO: driver add SSL config support
 
     int  conn_retry = SSCMA_MQTT_CONN_RETRY;
     auto ret        = EL_OK;
@@ -207,8 +208,7 @@ TryConnect:
     switch (sta) {
     case NETWORK_JOINED:
         // try to connect
-        ret = static_resource->network->connect(
-          config.address, config.username, config.password, sscma::callback::mqtt_recv_cb);
+        ret = static_resource->network->connect(config, sscma::callback::mqtt_recv_cb);
         if (ret != EL_OK) [[unlikely]]
             goto SyncAndReply;
         goto TryConnectAgain;

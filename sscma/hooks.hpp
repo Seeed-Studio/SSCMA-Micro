@@ -57,6 +57,7 @@ void init_mqtt_server_hook(std::string cmd) {
         set_mqtt_server({cmd + "@MQTTSERVER",
                          config.client_id,
                          config.address,
+                         std::to_string(config.port),
                          config.username,
                          config.password,
                          std::to_string(config.use_ssl ? 1 : 0)},
@@ -89,7 +90,8 @@ void network_supervisor_hook() {
             return;
         }
 
-        EL_LOGI("network_supervisor: Unexpected network status, trying to recover...");
+        EL_LOGI("network_supervisor: Expected status is %d but current status is %d, trying to recover...",
+                target_status, current_status);
 
         std::string caller{"SUPERVISOR"};
         switch (current_status) {
