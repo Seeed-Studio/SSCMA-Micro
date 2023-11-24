@@ -28,9 +28,9 @@
 
 extern "C" {
 #include <WE2_core.h>
+#include <hx_drv_gpio.h>
 #include <hx_drv_iic.h>
 #include <hx_drv_scu.h>
-#include <hx_drv_gpio.h>
 }
 
 #include "core/utils/el_ringbuffer.hpp"
@@ -52,9 +52,13 @@ extern "C" {
 #define MAX_PAYLOAD_LEN                 (HEADER_LEN + MAX_PL_LEN + CHECKSUM_LEN + ALIGNED_LEN)
 
 #define FEATURE_TRANSPORT               0x10
+#define FEATURE_TRANSPORT_CMD_STATUS    0x00
 #define FEATURE_TRANSPORT_CMD_READ      0x01
 #define FEATURE_TRANSPORT_CMD_WRITE     0x02
 #define FEATURE_TRANSPORT_CMD_AVAILABLE 0x03
+#define FEATURE_TRANSPORT_CMD_START     0x04
+#define FEATURE_TRANSPORT_CMD_STOP      0x05
+#define FEATURE_TRANSPORT_CMD_RESET     0x06
 
 namespace edgelab {
 
@@ -75,8 +79,10 @@ class WireWE2 final : public Wire {
 
     size_t available() override;
 
+   public:
     void wire_read_enable(size_t size);
     void wire_write_enable(size_t size);
+    void set_present(bool is_present);
 
    public:
     lwRingBuffer*    rx_ring_buffer;
@@ -85,6 +91,7 @@ class WireWE2 final : public Wire {
     uint8_t          tx_buffer[MAX_PAYLOAD_LEN];
     USE_DW_IIC_SLV_E index;
     HX_DRV_DEV_IIC*  i2c;
+    bool             _is_init;
 };
 
 }  // namespace edgelab

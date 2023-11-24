@@ -94,7 +94,7 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
 
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
-    el_printf("write addr: %x, size: %x\n", addr, size);
+
     hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
     hx_lib_spi_eeprom_word_write(USE_DW_SPI_MST_Q, addr, (uint32_t*)buf, size);
     hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
@@ -109,7 +109,7 @@ static int _el_flash_db_erase(long offset, size_t size) {
 
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
-    el_printf("erase addr: %x, size: %x\n", addr, size);
+
     hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
     hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, addr, FLASH_SECTOR);
     hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
