@@ -23,12 +23,15 @@ using namespace sscma::hooks;
 void run() {
     // init static_resource
     static_resource->init([]() {
+        EL_LOGI("[SSCMA] running post init...");
         std::string caller{"INIT"};
         init_model_hook(caller);
         init_sensor_hook(caller);
         init_action_hook(caller);
         init_network_supervisor_task_hook();
     });
+
+    EL_LOGI("[SSCMA] registering AT commands...");
 
     // register commands
     static_resource->instance->register_cmd("HELP?", "List available commands", "", [](std::vector<std::string> argv) {
@@ -278,6 +281,8 @@ void run() {
 
     // mark the system status as ready
     static_resource->is_ready.store(true);
+
+    EL_LOGI("[SSCMA] AT server is ready to use :)");
 
     // enter service loop
     {

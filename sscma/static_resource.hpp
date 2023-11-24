@@ -14,7 +14,6 @@
 #include "core/engine/el_engine_tflite.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
-#include "core/utils/el_hash.h"
 #include "extension/mux_transport.hpp"
 #include "porting/el_device.h"
 #include "sscma/interpreter/condition.hpp"
@@ -51,12 +50,6 @@ class StaticResource final {
     std::atomic<bool>        is_ready;
     bool                     is_sample;
     bool                     is_invoke;
-
-    // external states
-    Mutex       network_config_sync_lock;
-    std::size_t wireless_network_config_revision;
-    std::size_t mqtt_server_config_revision;
-    std::size_t mqtt_pubsub_config_revision;
 
     // external resources (hardware related)
     Device*            device;
@@ -115,6 +108,7 @@ class StaticResource final {
     StaticResource() = default;
 
     inline void inter_init() {
+        EL_LOGI("[SSCMA] internal initializing begin...");
         boot_count             = 0;
         current_model_id       = 1;
         current_sensor_id      = 1;
@@ -125,21 +119,19 @@ class StaticResource final {
         is_sample       = false;
         is_invoke       = false;
 
-        wireless_network_config_revision = 0;
-        mqtt_server_config_revision      = 0;
-        mqtt_pubsub_config_revision      = 0;
-
         init_hardware();
         init_backend();
         init_frontend();
     }
 
     inline void init_hardware() {
+        EL_LOGI("[SSCMA] initializing basic IO devices...");
         serial->init();
         transport->init();
     }
 
     inline void init_backend() {
+        EL_LOGI("[SSCMA] loading resources from flash...");
         models->init();
         storage->init();
 
@@ -164,6 +156,7 @@ class StaticResource final {
     }
 
     inline void init_frontend() {
+        EL_LOGI("[SSCMA] initializing AT server...");
         // init AT server
         instance->init([this](el_err_code_t ret, std::string msg) {  // server print callback function
             if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs

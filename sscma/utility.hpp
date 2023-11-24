@@ -13,6 +13,7 @@
 #include "core/el_types.h"
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
+#include "porting/el_device.h"
 #include "sscma/definations.hpp"
 #include "sscma/traits.hpp"
 
@@ -345,6 +346,43 @@ bool is_bssid(const std::string& str) {
     }
 
     return true;
+}
+
+decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
+    auto default_config = mqtt_pubsub_config_t{};
+
+    std::snprintf(default_config.pub_topic,
+                  sizeof(default_config.pub_topic) - 1,
+                  SSCMA_MQTT_PUB_FMT,
+                  SSCMA_AT_API_MAJOR_VERSION,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
+    default_config.pub_qos = 0;
+
+    std::snprintf(default_config.sub_topic,
+                  sizeof(default_config.sub_topic) - 1,
+                  SSCMA_MQTT_SUB_FMT,
+                  SSCMA_AT_API_MAJOR_VERSION,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
+    default_config.sub_qos = 0;
+
+    return default_config;
+}
+
+decltype(auto) get_default_mqtt_server_config(const Device* device) {
+    auto default_config = mqtt_server_config_t{};
+
+    std::snprintf(default_config.client_id,
+                  sizeof(default_config.client_id) - 1,
+                  SSCMA_MQTT_DEVICE_ID_FMT,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
+
+    return default_config;
 }
 
 }  // namespace sscma::utility

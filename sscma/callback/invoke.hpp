@@ -238,6 +238,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                           std::to_string(algorithm->get_score_threshold()),
                                                           "}\n")};
                             static_resource->transport->send_bytes(ss.c_str(), ss.size());
+                            // caller, buffer, cahr* id
                         });
                       return EL_OK;
                   }) == EL_OK) [[likely]]

@@ -8,13 +8,11 @@
 #include "callback/mqtt.hpp"
 #include "callback/network.hpp"
 #include "callback/sensor.hpp"
+#include "callback/shared/network_supervisor.hpp"
 #include "core/data/el_data_storage.hpp"
-#include "core/el_config_internal.h"
-#include "core/el_types.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "definations.hpp"
-#include "extension/network_supervisor.hpp"
 #include "static_resource.hpp"
 
 namespace sscma::hooks {
@@ -40,10 +38,10 @@ void init_action_hook(std::string cmd) {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[SSCMA_CMD_MAX_LENGTH]{};
         static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action));
-        set_action(std::vector<std::string>{cmd + "@ACTION", action}, true);
+        set_action({cmd + "@ACTION", action}, true);
     }
 }
 
-void init_network_supervisor_task_hook() { static auto network_supervisor{NetworkSupervisor()}; }
+void init_network_supervisor_task_hook() { NetworkSupervisor::get_network_supervisor()->start(); }
 
 }  // namespace sscma::hooks

@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <string>
 
+#include "core/el_debug.h"
 #include "core/el_types.h"
+#include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "porting/el_device.h"
-#include "porting/el_misc.h"
 #include "porting/el_network.h"
 #include "porting/el_serial.h"
 #include "porting/el_transport.h"
