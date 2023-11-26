@@ -174,6 +174,7 @@ class NetworkSupervisor {
         if (ret == EL_OK) [[likely]]
             _sub_topics_set.emplace(config.sub_topic);
         _transport->set_mqtt_pubsub_config(config);
+        _transport->emit_mqtt_discover();  // emit mqtt discover
 
         const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"SUPERVISOR@MQTTPUBSUB\", \"code\": ",
                                       std::to_string(ret),
@@ -185,26 +186,21 @@ class NetworkSupervisor {
         return ret == EL_OK;
     }
 
-    el_err_code_t disconnect_mqtt_server() {
+    void disconnect_mqtt_server() {
+        remove_mqtt_pubsub_topics();
+
         auto ret = _network->disconnect();
         if (ret == EL_OK) [[likely]]
             ensure_network_status_changed(NETWORK_CONNECTED, SSCMA_MQTT_POLL_DELAY_MS);
-        return ret;
     }
 
-    el_err_code_t disconnect_wireless_network() {
+    void disconnect_wireless_network() {
         auto ret = _network->quit();
         if (ret == EL_OK) [[likely]]
             ensure_network_status_changed(NETWORK_JOINED, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
-        return ret;
     }
 
     void deinit_network() {
-        {  // synchronize pubsub config
-            const Guard guard(_network_config_sync_lock);
-            _wireless_network_config_updated = true;
-        }
-
         _network->deinit();
         ensure_network_status_changed(NETWORK_IDLE, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
     }
@@ -228,12 +224,10 @@ class NetworkSupervisor {
 
         switch (current_status) {
         case NETWORK_CONNECTED:
-            if (mqtt_pubsub_config_changed) try_sync_mqtt_pubsub_topics();
-
-            if (mqtt_server_config_changed | wireless_network_config_changed) {
-                remove_mqtt_pubsub_topics();
+            if (mqtt_pubsub_config_changed) [[unlikely]]
+                try_sync_mqtt_pubsub_topics();
+            if (mqtt_server_config_changed | wireless_network_config_changed) [[unlikely]]
                 disconnect_mqtt_server();
-            }
 
             [[fallthrough]];
 
@@ -244,9 +238,8 @@ class NetworkSupervisor {
             [[fallthrough]];
 
         case NETWORK_IDLE:
-            if (target_status > NETWORK_LOST) return;
-
-            deinit_network();
+            if (target_status <= NETWORK_LOST) [[unlikely]]
+                deinit_network();
 
             [[fallthrough]];
 
@@ -351,7 +344,7 @@ class NetworkSupervisor {
 
         case NETWORK_CONNECTED:
         default:
-            _transport->emit_mqtt_discover();  // emit mqtt discover
+            return;
         }
     }
 
