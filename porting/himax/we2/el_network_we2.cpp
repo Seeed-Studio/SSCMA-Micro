@@ -29,15 +29,26 @@
 
 #include "core/el_debug.h"
 
-lwRingBuffer*       at_rbuf   = NULL;
-static uint8_t      dma_rx[4] = {0};
-static esp_at_t     at;
-static TaskHandle_t at_rx_parser   = NULL;
-static TaskHandle_t status_handler = NULL;
+lwRingBuffer*         at_rbuf   = NULL;
+static uint8_t        dma_rx[4] = {0};
+static esp_at_t       at = {0};
+static TaskHandle_t   at_rx_parser   = NULL;
+static TaskHandle_t   status_handler = NULL;
+
+static resp_trigger_t resp_flow[] = {
+    {AT_STR_RESP_OK,     resp_action_ok},
+    {AT_STR_RESP_ERROR,  resp_action_error},
+    {AT_STR_RESP_READY,  resp_action_ready},
+    {AT_STR_RESP_WIFI_H, resp_action_wifi},
+    {AT_STR_RESP_MQTT_H, resp_action_mqtt},
+    {AT_STR_RESP_IP_H,   resp_action_ip},
+    {AT_STR_RESP_NTP,    resp_action_ntp},
+    {AT_STR_RESP_PUBRAW, resp_action_pubraw}
+};
 
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     uint32_t t = 0;
-    // EL_LOGI("%s\n", at->tbuf);
+    EL_LOGD("%s\n", at->tbuf);
     at->state = AT_STATE_PROCESS;
     at->port->uart_write(at->tbuf, strlen(at->tbuf));
 
@@ -57,103 +68,41 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     return EL_OK;
 }
 
-static void newline_parse(topic_cb_t cb) {
-    char     str[512] = {0};
-    uint32_t len      = at_rbuf->extract('\n', str, sizeof(str));
-
-    // command response : OK or ERROR
-    if (len < 3) return;
-    if (strncmp(str, AT_STR_RESP_OK, strlen(AT_STR_RESP_OK)) == 0) {
-        // EL_LOGD("OK\n");
-        at.state = AT_STATE_OK;
-        return;
-    } else if (strncmp(str, AT_STR_RESP_ERROR, strlen(AT_STR_RESP_ERROR)) == 0) {
-        // EL_LOGD("ERROR\n");
-        at.state = AT_STATE_ERROR;
-        return;
-    }
-
-    // status change or data receive
-    if (len < 6) return;
-    if (strncmp(str, AT_STR_RESP_READY, strlen(AT_STR_RESP_READY)) == 0) {
-        EL_LOGD("READY\n");
-        at.state = AT_STATE_READY;
-        return;
-    } else if (strncmp(str, AT_STR_RESP_WIFI_H, strlen(AT_STR_RESP_WIFI_H)) == 0) {
-        if (str[strlen(AT_STR_RESP_WIFI_H)] == 'C') {
-            EL_LOGD("WIFI CONNECTED\n");
-            xTaskNotify(status_handler, NETWORK_JOINED, eSetValueWithOverwrite);
-            return;
-        } else if (str[strlen(AT_STR_RESP_WIFI_H)] == 'D') {
-            EL_LOGD("WIFI DISCONNECTED\n");
-            xTaskNotify(status_handler, NETWORK_IDLE, eSetValueWithOverwrite);
-            return;
-        }
-    } else if (strncmp(str, AT_STR_RESP_MQTT_H, strlen(AT_STR_RESP_MQTT_H)) == 0) {
-        if (str[strlen(AT_STR_RESP_MQTT_H)] == 'C') {
-            EL_LOGD("MQTT CONNECTED\n");
-            xTaskNotify(status_handler, NETWORK_CONNECTED, eSetValueWithOverwrite);
-            return;
-        } else if (str[strlen(AT_STR_RESP_MQTT_H)] == 'D') {
-            EL_LOGD("MQTT DISCONNECTED\n");
-            xTaskNotify(status_handler, NETWORK_IDLE, eSetValueWithOverwrite);
-            return;
-        } else if (str[strlen(AT_STR_RESP_MQTT_H)] == 'S') {  // subscribe received
-            EL_LOGD("MQTT SUBRECV\n");
-            // EL_LOGD("%s\n", str);
-            // EXAMPLE: +MQTTSUBRECV:0,"topic",4,test
-            int topic_len = 0, msg_len = 0, str_len = 0;
-
-            char* topic_pos = strchr(str, '"');
-            if (topic_pos == NULL) {
-                EL_LOGD("MQTT SUBRECV TOPIC ERROR\n");
-                return;
-            }
-            topic_pos++;  // Skip start character
-            while (topic_pos[str_len] != '"') {
-                str_len++;
-            }
-            topic_len = str_len;
-
-            str_len       = 0;
-            char* msg_pos = topic_pos + topic_len + 1;
-            if (msg_pos[0] != ',') {
-                EL_LOGD("MQTT SUBRECV MSG ERROR\n");
-                return;
-            }
-            msg_pos++;  // Skip start character
-            while (msg_pos[str_len] != ',') {
-                str_len++;
-            }
-            for (int i = 0; i < str_len; i++) {
-                if (msg_pos[i] < '0' || msg_pos[i] > '9') {
-                    EL_LOGD("MQTT SUBRECV MSG ERROR\n");
-                    return;
-                }
-                msg_len = msg_len * 10 + (msg_pos[i] - '0');
-            }
-            msg_pos += str_len + 1;
-
-            if (cb) cb(topic_pos, topic_len, msg_pos, msg_len);
-            return;
-        }
-    }
-}
-
 static void at_recv_parser(void* arg) {
-    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
+    char str[512] = {0};
+    uint32_t len = 0, i = 0;
+    uint32_t num = sizeof(resp_flow) / sizeof(resp_flow[0]);
     while (1) {
         if (ulTaskNotifyTake(pdFALSE, portMAX_DELAY) > 0) {
-            newline_parse(net->topic_cb);
+            len = at_rbuf->extract('\n', str, sizeof(str));
+            str[len] = '\0';
+            for (i = 0; i < num; i++) {
+                if (strncmp(str, resp_flow[i].str, strlen(resp_flow[i].str)) == 0) {
+                    resp_flow[i].act(str, arg);
+                    break;
+                }
+            }
+            if (i == num && len > 2) {
+                EL_LOGD("unknown response: %s\n", str);
+            }
+            memset(str, 0, len);
         }
     }
 }
 
-static void network_event_handler(void* arg) {
+static void network_status_handler(void* arg) {
     uint32_t value  = 0;
     edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     while (1) {
         if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &value, portMAX_DELAY) == pdPASS) {
+            // switch (value)
+            // {
+            // case NETWORK_JOINED: 
+            //     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
+            //     // at_send(&at, AT_SHORT_TIME_MS);
+            // default:
+            //     break;
+            // }
             net->set_status((el_net_sta_t)value);
         }
     }
@@ -198,7 +147,7 @@ void NetworkWE2::init(status_cb_t cb) {
             EL_LOGD("uart init error\n");
             return;
         }
-        at.port->uart_open(UART_BAUDRATE_115200);
+        at.port->uart_open(UART_BAUDRATE_921600);
         memset((void*)at.tbuf, 0, sizeof(at.tbuf));
         at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
     }
@@ -209,9 +158,9 @@ void NetworkWE2::init(status_cb_t cb) {
         return;
     }
     // Handle network status change events
-    if (xTaskCreate(network_event_handler, "network_event_handler", 64, this, 1, &status_handler) !=
+    if (xTaskCreate(network_status_handler, "network_status_handler", 64, this, 1, &status_handler) !=
         pdPASS) {
-        EL_LOGD("network_event_handler create error\n");
+        EL_LOGD("network_status_handler create error\n");
         return;
     }
     at.state = AT_STATE_IDLE;
@@ -244,11 +193,17 @@ void NetworkWE2::init(status_cb_t cb) {
     }
     
     if (cb) this->status_cb = cb;
+    EL_LOGI("network init ok\n");
+    this->_time_synced = false;
     this->set_status(NETWORK_IDLE);
 }
 
 void NetworkWE2::deinit() {
     at.port->uart_close();
+    delete at_rbuf;
+    at.port = NULL;
+    vTaskDelete(at_rx_parser);
+    vTaskDelete(status_handler);
     at.state = AT_STATE_LOST;
     this->set_status(NETWORK_LOST);
 }
@@ -267,6 +222,16 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
+
+    if (this->mdns.is_enabled) {
+        sprintf(at.tbuf, AT_STR_HEADER "MDNS=1,\"%s\",\"%s\",%d" AT_STR_CRLF,
+                this->mdns.host_name, this->mdns.serv_name, this->mdns.port);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGD("AT MDNS ERROR : %d\n", err);
+            return err;
+        }
+    }
     return EL_OK;
 }
 
@@ -281,6 +246,72 @@ el_err_code_t NetworkWE2::quit() {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
+    return EL_OK;
+}
+
+el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_t cb) {
+    el_err_code_t err = EL_OK;
+    if (this->network_status == NETWORK_CONNECTED) {
+        return EL_OK;
+    } else if (this->network_status != NETWORK_JOINED) {
+        return EL_EPERM;
+    }
+
+    if (cb == NULL) {
+        return EL_EINVAL;
+    }
+    at.cb = cb;
+    this->topic_cb = cb;
+
+    if (mqtt_cfg.use_ssl) {
+        if (!this->_time_synced) {
+            sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPCFG "=1,%d,\"%s\",\"%s\"" AT_STR_CRLF,
+                    UTC_TIME_ZONE_CN, SNTP_SERVER_CN2, SNTP_SERVER_US);
+            EL_LOGI("AT CIPSNTPCFG : %s\n", at.tbuf);
+            at.port->uart_write(at.tbuf, strlen(at.tbuf));
+            uint32_t t = 0;
+            while (!this->_time_synced) {
+                if (t >= AT_LONG_TIME_MS * 12) {
+                    EL_LOGI("AT CIPSNTPCFG TIMEOUT\n");
+                    return EL_ETIMOUT;
+                }
+                el_sleep(100);
+                t += 100;
+            }
+        }
+        sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPTIME AT_STR_CRLF);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGI("AT CIPSNTPTIME ERROR : %d\n", err);
+            return err;
+        }
+    }
+
+    sprintf(at.tbuf,
+            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,%d,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
+            mqtt_cfg.use_ssl ? 4 : 1,
+            mqtt_cfg.client_id,
+            mqtt_cfg.username,
+            mqtt_cfg.password);
+    EL_LOGI("AT MQTTUSERCFG : %s\n", at.tbuf);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGI("AT MQTTUSERCFG ERROR : %d\n", err);
+        this->disconnect();
+        return err;
+    }
+
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",%d,1" AT_STR_CRLF, 
+            mqtt_cfg.address,
+            mqtt_cfg.port);
+    err = at_send(&at, AT_LONG_TIME_MS * 12);
+    if (err != EL_OK) {
+        EL_LOGI("AT MQTTCONN ERROR : %d\n", err);
+        this->disconnect();
+        return err;
+    }
+    this->set_status(NETWORK_CONNECTED);
+
     return EL_OK;
 }
 
@@ -371,22 +402,27 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         return EL_EPERM;
     }
 
-    if (len < 256 - 22 - strlen(topic)) {
+    if (len + strlen(topic) < 200) {
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, dat, qos);
-        err = at_send(&at, AT_LONG_TIME_MS);
+        err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
             return err;
         }
-    } else if (len < sizeof(at.tbuf) - 27 - strlen(topic)) {
+    } 
+    else if (len + 1 < sizeof(at.tbuf)) {
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
-        err = at_send(&at, AT_LONG_TIME_MS);
+        err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
-            EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
+            EL_LOGW("AT MQTTPUB ERROR : %d\n", err);
             return err;
         }
-        snprintf(at.tbuf, len, "%s", dat);
-        at.port->uart_write(at.tbuf, strlen(at.tbuf));
+        snprintf(at.tbuf, len + 1, "%s", dat);
+        err = at_send(&at, AT_SHORT_TIME_MS);
+        if (err != EL_OK) {
+            EL_LOGW("AT MQTTPUB RAW ERROR : %d\n", err);
+            return err;
+        }
     } else {
         EL_LOGD("AT MQTTPUB ERROR : DATA TOO LONG\n");
         return EL_ENOMEM;
@@ -396,3 +432,99 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
 }
 
 }  // namespace edgelab
+
+void resp_action_ok(const char* resp, void* arg) {
+    EL_LOGD("OK\n");
+    at.state = AT_STATE_OK;
+}
+void resp_action_error(const char* resp, void* arg) {
+    EL_LOGD("ERROR\n");
+    at.state = AT_STATE_ERROR;
+}
+void resp_action_ready(const char* resp, void* arg) {
+    EL_LOGD("READY\n");
+    at.state = AT_STATE_READY;
+}
+void resp_action_wifi(const char* resp, void* arg) {
+    if (resp[strlen(AT_STR_RESP_WIFI_H)] == 'G') {
+        EL_LOGD("WIFI CONNECTED\n");
+        xTaskNotify(status_handler, NETWORK_JOINED, eSetValueWithOverwrite);
+    } else if (resp[strlen(AT_STR_RESP_WIFI_H)] == 'D') {
+        EL_LOGD("WIFI DISCONNECTED\n");
+        xTaskNotify(status_handler, NETWORK_IDLE, eSetValueWithOverwrite);
+    }
+}
+void resp_action_mqtt(const char* resp, void* arg) {
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
+    if (resp[strlen(AT_STR_RESP_MQTT_H)] == 'C') {
+        EL_LOGD("MQTT CONNECTED\n");
+        xTaskNotify(status_handler, NETWORK_CONNECTED, eSetValueWithOverwrite);
+    } else if (resp[strlen(AT_STR_RESP_MQTT_H)] == 'D') {
+        EL_LOGD("MQTT DISCONNECTED\n");
+        xTaskNotify(status_handler, NETWORK_IDLE, eSetValueWithOverwrite);
+    } else if (resp[strlen(AT_STR_RESP_MQTT_H)] == 'S') {
+        EL_LOGD("MQTT SUBRECV\n");
+        int topic_len = 0, msg_len = 0, str_len = 0;
+
+        char* topic_pos = strchr(resp, '"');
+        if (topic_pos == NULL) {
+            EL_LOGD("MQTT SUBRECV TOPIC ERROR\n");
+            return;
+        }
+        topic_pos++;  // Skip start character
+        while (topic_pos[str_len] != '"') {
+            str_len++;
+        }
+        topic_len = str_len;
+
+        str_len = 0;
+        char* msg_pos = topic_pos + topic_len + 1;
+        if (msg_pos[0] != ',') {
+            EL_LOGD("MQTT SUBRECV MSG ERROR\n");
+            return;
+        }
+        msg_pos++;  // Skip start character
+        while (msg_pos[str_len] != ',') {
+            str_len++;
+        }
+        for (int i = 0; i < str_len; i++) {
+            if (msg_pos[i] < '0' || msg_pos[i] > '9') {
+                EL_LOGD("MQTT SUBRECV MSG ERROR\n");
+                return;
+            }
+            msg_len = msg_len * 10 + (msg_pos[i] - '0');
+        }
+        msg_pos += str_len + 1;
+
+        if (net->topic_cb) net->topic_cb(topic_pos, topic_len, msg_pos, msg_len);
+        return;
+    }
+}
+void resp_action_ip(const char* resp, void* arg) {
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
+    uint32_t ofs = strlen(AT_STR_RESP_IP_H);
+    if (strncmp(resp + ofs, "ip:", 3) == 0) {
+        ofs += 3;
+        memcpy(net->_ip.ip, resp + ofs, sizeof(resp) - ofs);
+        return;
+    } else if (strncmp(resp + ofs, "gateway:", 8) == 0) {
+        ofs += 8;
+        memcpy(net->_ip.gateway, resp + ofs, sizeof(resp) - ofs);
+        return;
+    } else if (strncmp(resp + ofs, "netmask:", 8) == 0) {
+        ofs += 8;
+        memcpy(net->_ip.netmask, resp + ofs, sizeof(resp) - ofs);
+        EL_LOGI("IP GOT\n");
+        return;
+    }
+}
+void resp_action_ntp(const char* resp, void* arg) {
+    edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
+    EL_LOGI("NTP TIME UPDATED!\n");
+    net->_time_synced = true;
+    return;
+}
+void resp_action_pubraw(const char* resp, void* arg) {
+    at.state = (resp[strlen(AT_STR_RESP_PUBRAW)] == 'O') ? 
+                AT_STATE_OK : AT_STATE_ERROR;
+}

@@ -34,6 +34,8 @@
 #define SSCMA_WIRELESS_NETWORK_POLL_RETRY    200
 #define SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS 50
 
+#define SSCMA_IPV4_ADDRESS_LEN               16
+
 #define SSCMA_MQTT_POLL_RETRY                200
 #define SSCMA_MQTT_POLL_DELAY_MS             50
 #define SSCMA_MQTT_CLIENT_ID_LEN             32

@@ -11,8 +11,14 @@
 
 #define AT_LONG_TIME_MS    5000
 #define AT_SHORT_TIME_MS   1500
-#define AT_TX_MAX_LEN      1024  // 默认固件的AT指令长度阈值为256
-#define AT_RX_MAX_LEN      4096  // 可能连续收到多条消息
+#define AT_TX_MAX_LEN      8192  // 默认固件的AT指令长度阈值为256
+#define AT_RX_MAX_LEN      8192  // 可能连续收到多条消息
+
+#define SNTP_SERVER_CN     "cn.ntp.org.cn"
+#define SNTP_SERVER_US     "us.pool.ntp.org"
+#define SNTP_SERVER_CN2    "ntp.sjtu.edu.cn"
+
+#define UTC_TIME_ZONE_CN   8
 
 #define AT_STR_HEADER      "AT+"
 
@@ -23,6 +29,7 @@
 #define AT_STR_CWJAP       "CWJAP"
 #define AT_STR_CWSTATE     "CWSTATE"
 #define AT_STR_CWQAP       "CWQAP"
+#define AT_STR_CIPSTA      "CIPSTA"
 
 #define AT_STR_MQTTUSERCFG "MQTTUSERCFG"
 #define AT_STR_MQTTCONN    "MQTTCONN"
@@ -31,12 +38,21 @@
 #define AT_STR_MQTTUNSUB   "MQTTUNSUB"
 #define AT_STR_MQTTCLEAN   "MQTTCLEAN"
 
+#define AT_STR_CIPSNTPCFG  "CIPSNTPCFG"
+#define AT_STR_CIPSNTPTIME "CIPSNTPTIME?"
+
 #define AT_STR_RESP_OK     "OK"
 #define AT_STR_RESP_ERROR  "ERROR"
 #define AT_STR_RESP_READY  "ready"
 #define AT_STR_RESP_WIFI_H "WIFI "
 #define AT_STR_RESP_MQTT_H "+MQTT"
+#define AT_STR_RESP_IP_H   "+CIPSTA:"
 
+#define AT_STR_RESP_NTP    "+TIME_UPDATED"
+
+#define AT_STR_RESP_PUBRAW ">+MQTTPUB:"
+
+// NOTE: Deprecated
 typedef enum {
     AT_CMD_NONE = 0,
     AT_CMD_ECHO,
@@ -87,5 +103,20 @@ typedef struct esp_at {
 
     topic_cb_t cb;
 } esp_at_t;
+
+typedef void (*resp_action_t)(const char* resp, void* arg);
+typedef struct resp_trigger {
+    const char*   str;
+    resp_action_t act;
+} resp_trigger_t;
+
+void resp_action_ok(const char* resp, void* arg);
+void resp_action_error(const char* resp, void* arg);
+void resp_action_ready(const char* resp, void* arg);
+void resp_action_wifi(const char* resp, void* arg);
+void resp_action_mqtt(const char* resp, void* arg);
+void resp_action_ip(const char* resp, void* arg);
+void resp_action_ntp(const char* resp, void* arg);
+void resp_action_pubraw(const char* resp, void* arg);
 
 #endif

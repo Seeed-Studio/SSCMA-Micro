@@ -29,6 +29,8 @@
 #include "core/el_types.h"
 
 #include "core/utils/el_ringbuffer.hpp"
+#include "sscma/definations.hpp"
+#include "sscma/types.hpp"
 
 typedef enum {
     NETWORK_LOST = 0,
@@ -43,15 +45,24 @@ typedef enum {
     MQTT_QOS_2
 } mqtt_qos_t;
 
+typedef struct mdns_record {
+    char* host_name;
+    char* serv_name;
+    uint16_t port;
+    bool is_enabled;
+} mdns_record_t;
+
 typedef void (*status_cb_t)(el_net_sta_t sta);
 typedef void (*topic_cb_t)(char* top, int tlen, char* msg, int mlen);
+
+using namespace sscma::types;
 
 namespace edgelab {
 
 // WIFI-STA for MQTT
 class Network {
 public:
-    Network() : _is_present(false), network_status(NETWORK_LOST) {}
+    Network() : _is_present(false), _ip({0}), network_status(NETWORK_LOST) {}
     virtual ~Network() = default;
 
     virtual void init(status_cb_t cb) = 0;
@@ -68,12 +79,20 @@ public:
             this->status_cb(this->network_status);
         }
     }
+    el_err_code_t get_ip(ipv4_address_t &ip) { 
+        if (this->network_status != NETWORK_CONNECTED) {
+            return EL_EPERM;
+        }
+        ip = this->_ip;
+        return EL_OK;
+    }
 
     /* WIFI station */
     virtual el_err_code_t join(const char* ssid, const char *pwd) = 0;
     virtual el_err_code_t quit() = 0;
 
     /* MQTT client */
+    virtual el_err_code_t connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) = 0;
     virtual el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) = 0;
     virtual el_err_code_t disconnect() = 0;
     virtual el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) = 0;
@@ -89,10 +108,12 @@ public:
 
     status_cb_t status_cb = nullptr;
     topic_cb_t topic_cb = nullptr;
+    ipv4_address_t _ip;
 
 protected:
     bool _is_present;
     el_net_sta_t network_status;
+    mdns_record_t mdns;
 };
 
 }  // namespace edgelab
