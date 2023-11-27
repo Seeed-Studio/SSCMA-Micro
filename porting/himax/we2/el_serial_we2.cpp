@@ -37,48 +37,15 @@ extern "C" {
 #include "core/el_types.h"
 #include "el_config_porting.h"
 
+#include "core/utils/el_ringbuffer.hpp"
+
 namespace edgelab {
-
-namespace container {
-
-class RingBuffer {
-   public:
-    RingBuffer(size_t size) : _s{size}, _p{0}, _c{0}, _l{0}, _b{new char[size]{}} {}
-
-    ~RingBuffer() {
-        if (_b) [[likely]]
-            delete[] _b;
-    }
-
-    inline void push(char ch) {
-        _b[_p++ % _s] = ch;
-        ++_l;
-    }
-
-    inline bool get(char& ch) {
-        if (_l) [[likely]] {
-            ch = _b[_c++ % _s];
-            --_l;
-            return true;
-        }
-        return false;
-    }
-
-   private:
-    const size_t    _s;
-    volatile size_t _p;
-    volatile size_t _c;
-    volatile size_t _l;
-    char*           _b;
-};
-
-}  // namespace container
 
 namespace porting {
 
-static container::RingBuffer* _serial_ring_buffer = nullptr;
-static char                   _serial_char_buffer[32]{};
-volatile static DEV_UART*     _serial_port_handler = nullptr;
+static lwRingBuffer*      _serial_ring_buffer = nullptr;
+static char               _serial_char_buffer[32]{};
+volatile static DEV_UART* _serial_port_handler = nullptr;
 
 void _serial_uart_dma_recv(void*) {
     _serial_ring_buffer->push(_serial_char_buffer[0]);
@@ -98,7 +65,7 @@ el_err_code_t SerialWE2::init() {
     this->console_uart->uart_open(UART_BAUDRATE_921600);
 
     if (!_serial_ring_buffer) [[likely]]
-        _serial_ring_buffer = new container::RingBuffer{8192};
+        _serial_ring_buffer = new lwRingBuffer{8192};
 
     EL_ASSERT(_serial_ring_buffer);
 
@@ -131,8 +98,7 @@ char SerialWE2::get_char() {
     EL_ASSERT(this->_is_present);
 
     char c{'\0'};
-    porting::_serial_ring_buffer->get(c);
-    return c;
+    return porting::_serial_ring_buffer->pop();;
 }
 
 size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
@@ -141,7 +107,7 @@ size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
     size_t pos{0};
     char   c{'\0'};
     while (pos < size - 1) {
-        if (!porting::_serial_ring_buffer->get(c)) continue;
+        c = porting::_serial_ring_buffer->pop();
 
         if (c == delim || c == 0x00) [[unlikely]] {
             buffer[pos++] = '\0';
