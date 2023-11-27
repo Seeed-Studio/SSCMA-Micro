@@ -26,19 +26,20 @@ using namespace sscma::extension;
 
 void init_model_hook(std::string cmd) {
     if (static_resource->current_model_id) [[likely]]
-        set_model(cmd + "@MODEL", static_resource->current_model_id, true);
+        set_model(cmd + "@MODEL", static_resource->current_model_id, static_cast<void*>(static_resource->serial), true);
 }
 
 void init_sensor_hook(std::string cmd) {
     if (static_resource->current_sensor_id) [[likely]]
-        set_sensor(cmd + "@SENSOR", static_resource->current_sensor_id, true, true);
+        set_sensor(
+          cmd + "@SENSOR", static_resource->current_sensor_id, true, static_cast<void*>(static_resource->serial), true);
 }
 
 void init_action_hook(std::string cmd) {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[SSCMA_CMD_MAX_LENGTH]{};
         static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action));
-        set_action({cmd + "@ACTION", action}, true);
+        set_action({cmd + "@ACTION", action}, static_cast<void*>(static_resource->serial), true);
     }
 }
 

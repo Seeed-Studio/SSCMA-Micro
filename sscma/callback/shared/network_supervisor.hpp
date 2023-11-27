@@ -28,7 +28,7 @@ namespace extension {
 void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
     auto config = static_resource->transport->get_mqtt_pubsub_config();
     if (tlen ^ std::strlen(config.sub_topic) || std::strncmp(top, config.sub_topic, tlen) || mlen <= 1) return;
-    static_resource->instance->exec(std::string(msg, mlen));
+    static_resource->instance->exec(std::string(msg, mlen), static_cast<void*>(static_resource->serial));
 }
 
 class NetworkSupervisor {

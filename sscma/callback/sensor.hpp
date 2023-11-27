@@ -11,7 +11,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-void get_available_sensors(const std::string& cmd) {
+void get_available_sensors(const std::string& cmd, void* caller) {
     const auto& registered_sensors = static_resource->device->get_all_sensor_info();
     const char* delim              = "";
 
@@ -24,10 +24,10 @@ void get_available_sensors(const std::string& cmd) {
     }
     ss += "]}\n";
 
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, bool called_by_event = false) {
+void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, void* caller, bool called_by_event = false) {
     auto sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
     // a valid sensor id should always > 0
@@ -87,10 +87,10 @@ SensorReply:
                                   ", \"data\": {\"sensor\": ",
                                   sensor_info_2_json_str(sensor_info),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_sensor_info(const std::string& cmd) {
+void get_sensor_info(const std::string& cmd, void* caller) {
     const auto& sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
 
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
@@ -100,7 +100,7 @@ void get_sensor_info(const std::string& cmd) {
                                   ", \"data\": ",
                                   sensor_info_2_json_str(sensor_info),
                                   "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

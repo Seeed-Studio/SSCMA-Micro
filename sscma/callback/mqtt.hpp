@@ -15,7 +15,7 @@ namespace sscma::callback {
 using namespace sscma::types;
 using namespace sscma::utility;
 
-void set_mqtt_pubsub(const std::vector<std::string>& argv) {
+void set_mqtt_pubsub(const std::vector<std::string>& argv, void* caller) {
     // crate config from argv
     auto config = get_default_mqtt_pubsub_config(static_resource->device);
     if (argv[1].size()) std::strncpy(config.pub_topic, argv[1].c_str(), sizeof(config.pub_topic) - 1);
@@ -33,10 +33,10 @@ void set_mqtt_pubsub(const std::vector<std::string>& argv) {
                                   ", \"data\": ",
                                   mqtt_pubsub_config_2_json_str(config),
                                   "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_mqtt_pubsub(const std::string& cmd) {
+void get_mqtt_pubsub(const std::string& cmd, void* caller) {
     bool    updated  = NetworkSupervisor::get_network_supervisor()->is_mqtt_pubsub_config_updated();
     uint8_t sta_code = updated ? 2 : 1;
     auto    config   = get_default_mqtt_pubsub_config(static_resource->device);
@@ -49,10 +49,10 @@ void get_mqtt_pubsub(const std::string& cmd) {
                                   ", \"config\": ",
                                   mqtt_pubsub_config_2_json_str(config),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_mqtt_server(const std::vector<std::string>& argv, bool call_by_event = false) {
+void set_mqtt_server(const std::vector<std::string>& argv, void* caller) {
     // crate config from argv
     auto config = get_default_mqtt_server_config(static_resource->device);
     if (argv[1].size()) std::strncpy(config.client_id, argv[1].c_str(), sizeof(config.client_id) - 1);
@@ -72,10 +72,10 @@ void set_mqtt_server(const std::vector<std::string>& argv, bool call_by_event = 
                                   ", \"data\": ",
                                   mqtt_server_config_2_json_str(config, false),
                                   "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_mqtt_server(const std::string& cmd) {
+void get_mqtt_server(const std::string& cmd, void* caller) {
     bool    connected = static_resource->network->status() == NETWORK_CONNECTED;
     bool    updated   = NetworkSupervisor::get_network_supervisor()->is_mqtt_server_config_updated();
     uint8_t sta_code  = connected ? (updated ? 2 : 1) : 0;
@@ -93,7 +93,7 @@ void get_mqtt_server(const std::string& cmd) {
                                   ", \"config\": ",
                                   mqtt_server_config_2_json_str(config),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

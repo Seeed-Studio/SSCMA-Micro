@@ -158,7 +158,7 @@ class StaticResource final {
     inline void init_frontend() {
         EL_LOGI("[SSCMA] initializing AT server...");
         // init AT server
-        instance->init([this](el_err_code_t ret, std::string msg) {  // server print callback function
+        instance->init([this](void* caller, el_err_code_t ret, std::string msg) {  // server print callback function
             if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs
                 msg.erase(std::remove_if(msg.begin(), msg.end(), [](char c) { return std::iscntrl(c); }), msg.end());
                 const auto& ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",

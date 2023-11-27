@@ -15,7 +15,7 @@ using namespace edgelab;
 
 using namespace sscma::utility;
 
-void set_action(const std::vector<std::string>& argv, bool called_by_event = false) {
+void set_action(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     // get last condition expr string hash
     auto hash = static_resource->action->get_condition_hash();
     // set current condition expr string
@@ -27,7 +27,8 @@ void set_action(const std::vector<std::string>& argv, bool called_by_event = fal
     static_resource->action->set_exception_cb([cmd = argv[0],
                                                exp = quoted(argv[1]),
                                                ec  = std::to_string(EL_ELOG),
-                                               crc = std::to_string(static_resource->action->get_condition_hash())]() {
+                                               crc = std::to_string(static_resource->action->get_condition_hash()),
+                                               caller]() {
         const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
                                         cmd,
                                         "\", \"code\": ",
@@ -37,7 +38,7 @@ void set_action(const std::vector<std::string>& argv, bool called_by_event = fal
                                         ", \"action\": ",
                                         exp,
                                         "}}\n");
-        static_resource->transport->send_bytes(ss.c_str(), ss.size());
+        static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
     });
 
     // compare hash to check if condition expr string changed
@@ -84,10 +85,10 @@ ActionReply:
                                   ", \"action\": ",
                                   quoted(argv[1]),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_action(const std::string& cmd) {
+void get_action(const std::string& cmd, void* caller) {
     char     action[SSCMA_CMD_MAX_LENGTH]{};
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
@@ -107,7 +108,7 @@ void get_action(const std::string& cmd) {
                                   ", \"action\": ",
                                   quoted(action),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

@@ -11,7 +11,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-void get_available_algorithms(const std::string& cmd) {
+void get_available_algorithms(const std::string& cmd, void* caller) {
     const auto& registered_algorithms = static_resource->algorithm_delegate->get_all_algorithm_info();
     const char* delim                 = "";
 
@@ -23,13 +23,13 @@ void get_available_algorithms(const std::string& cmd) {
     }
     ss += "]}\n";
 
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void set_algorithm(const std::string&  cmd,
                    el_algorithm_type_t algorithm_type,
-                   bool                has_reply      = true,
-                   bool                write_to_flash = true) {
+                   void*               caller,
+                   bool                called_by_event = false) {
     const auto& algorithm_info = static_resource->algorithm_delegate->get_algorithm_info(algorithm_type);
     auto        ret            = algorithm_type == algorithm_info.type ? EL_OK : EL_EINVAL;
 
@@ -37,12 +37,9 @@ void set_algorithm(const std::string&  cmd,
     if (algorithm_info.type != static_resource->current_algorithm_type) [[likely]] {
         static_resource->current_algorithm_type = algorithm_info.type;
 
-        // if write_to_flash is true, store the current algorithm type to flash
-        if (write_to_flash)
+        if (!called_by_event)
             ret = static_resource->storage->emplace(el_make_storage_kv_from_type(algorithm_info.type)) ? EL_OK : EL_EIO;
     }
-
-    if (!has_reply) return;
 
     const std::string& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                          cmd,
@@ -51,10 +48,10 @@ void set_algorithm(const std::string&  cmd,
                                          ", \"data\": ",
                                          algorithm_info_2_json_str(&algorithm_info),
                                          "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_algorithm_info(const std::string& cmd) {
+void get_algorithm_info(const std::string& cmd, void* caller) {
     const auto& algorithm_info =
       static_resource->algorithm_delegate->get_algorithm_info(static_resource->current_algorithm_type);
 
@@ -65,7 +62,7 @@ void get_algorithm_info(const std::string& cmd) {
                                          ", \"data\": ",
                                          algorithm_info_2_json_str(&algorithm_info),
                                          "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

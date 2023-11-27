@@ -14,7 +14,7 @@ namespace sscma::callback {
 using namespace sscma::types;
 using namespace sscma::utility;
 
-void set_wireless_network(const std::vector<std::string>& argv) {
+void set_wireless_network(const std::vector<std::string>& argv, void* caller) {
     // crate config from argv
     auto config      = wireless_network_config_t{};
     config.name_type = is_bssid(argv[1]) ? wireless_network_name_type_e::BSSID : wireless_network_name_type_e::SSID;
@@ -32,10 +32,10 @@ void set_wireless_network(const std::vector<std::string>& argv) {
                                   ", \"data\": ",
                                   wireless_network_config_2_json_str(config, false),
                                   "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+   static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_wireless_network(const std::string& cmd) {
+void get_wireless_network(const std::string& cmd, void* caller) {
     auto    sta      = static_resource->network->status();
     bool    joined   = sta == NETWORK_JOINED || sta == NETWORK_CONNECTED;
     bool    updated  = NetworkSupervisor::get_network_supervisor()->is_wireless_network_config_updated();
@@ -54,7 +54,7 @@ void get_wireless_network(const std::string& cmd) {
                                   ", \"config\": ",
                                   wireless_network_config_2_json_str(config),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+   static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

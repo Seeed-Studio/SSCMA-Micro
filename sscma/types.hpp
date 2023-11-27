@@ -33,8 +33,8 @@ typedef struct wireless_network_config_t {
 
 typedef struct ipv4_address_t {
     char ip[SSCMA_IPV4_ADDRESS_LEN];
-    char gateway[SSCMA_IPV4_ADDRESS_LEN];
     char netmask[SSCMA_IPV4_ADDRESS_LEN];
+    char gateway[SSCMA_IPV4_ADDRESS_LEN];
 } ipv4_address_t;
 
 typedef enum mqtt_secu_type_e : uint8_t {
@@ -53,12 +53,12 @@ typedef struct mqtt_server_ssl_config_t {
 } mqtt_server_ssl_config_t;
 
 typedef struct mqtt_server_config_t {
-    char client_id[SSCMA_MQTT_CLIENT_ID_LEN];
-    char username[SSCMA_MQTT_USERNAME_LEN];
-    char password[SSCMA_MQTT_PASSWORD_LEN];
-    char address[SSCMA_MQTT_ADDRESS_LEN];
+    char     address[SSCMA_MQTT_ADDRESS_LEN];
     uint32_t port;
-    bool use_ssl;
+    char     client_id[SSCMA_MQTT_CLIENT_ID_LEN];
+    char     username[SSCMA_MQTT_USERNAME_LEN];
+    char     password[SSCMA_MQTT_PASSWORD_LEN];
+    bool     use_ssl;
 } mqtt_server_config_t;
 
 typedef struct mqtt_pubsub_config_t {
