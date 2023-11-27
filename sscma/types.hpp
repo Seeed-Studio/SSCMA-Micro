@@ -9,8 +9,8 @@ namespace sscma::types {
 
 typedef std::function<void(const std::atomic<bool>&)> repl_task_t;
 
-typedef std::function<void(void)>                     branch_cb_t;
-typedef std::function<int(void)>                      mutable_cb_t;
+typedef std::function<void(void*)>                    branch_cb_t;
+typedef std::function<int(void*)>                     mutable_cb_t;
 typedef std::unordered_map<std::string, mutable_cb_t> mutable_map_t;
 
 typedef enum wireless_network_name_type_e : uint8_t { SSID, BSSID } wireless_network_name_type_e;

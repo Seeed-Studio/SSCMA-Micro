@@ -347,7 +347,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             _action_hash = static_resource->action->get_condition_hash();
             action_injection(algorithm);
         }
-        static_resource->action->evalute();
+        static_resource->action->evalute(_caller);
 
         if (!_differed || results_filter.compare_and_update(algorithm->get_results())) {
             if (_results_only)
@@ -389,14 +389,14 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             if (argv[0] == "count") {
                 // count items by default
                 if (argv.size() == 1)
-                    kv.second = [_algorithm = algorithm.get()]() -> int {
+                    kv.second = [_algorithm = algorithm.get()](void*) -> int {
                         const auto& res = _algorithm->get_results();
                         return std::distance(res.begin(), res.end());
                     };
                 // count items filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
-                    kv.second      = [_algorithm = algorithm.get(), target]() -> int {
+                    kv.second      = [_algorithm = algorithm.get(), target](void*) -> int {
                         size_t      init = 0;
                         const auto& res  = _algorithm->get_results();
                         for (const auto& v : res)
@@ -410,7 +410,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             if (argv[0] == "max_score") {
                 // max score
                 if (argv.size() == 1)
-                    kv.second = [_algorithm = algorithm.get()]() -> int {
+                    kv.second = [_algorithm = algorithm.get()](void*) -> int {
                         uint8_t     init = 0;
                         const auto& res  = _algorithm->get_results();
                         for (const auto& v : res)
@@ -420,7 +420,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 // max score filtered by target id
                 if (argv.size() == 3 && argv[1] == "target") {
                     uint8_t target = std::atoi(argv[2].c_str());
-                    kv.second      = [_algorithm = algorithm.get(), target]() -> int {
+                    kv.second      = [_algorithm = algorithm.get(), target](void*) -> int {
                         uint8_t     init = 0;
                         const auto& res  = _algorithm->get_results();
                         for (const auto& v : res)
