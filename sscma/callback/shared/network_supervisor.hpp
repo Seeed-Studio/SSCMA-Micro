@@ -134,24 +134,21 @@ class NetworkSupervisor {
             _target_network_status = NETWORK_LOST;  // or NETWORK_IDLE
     }
 
-    el_net_sta_t ensure_network_status_changed(el_net_sta_t old_sta, uint32_t delay_ms) {
-        for (;;) {
+    void ensure_network_status_changed_from(el_net_sta_t old_sta, uint32_t delay_ms) {
+        auto sta = _network->status();
+        for (; sta == old_sta;) {
             el_sleep(delay_ms);
-            auto sta = _network->status();
-            if (sta != old_sta) [[likely]]
-                return sta;
+            sta = _network->status();
         }
-        return old_sta;
     }
 
-    el_net_sta_t try_ensure_network_status_changed(el_net_sta_t old_sta, uint32_t delay_ms, std::size_t n_times) {
-        for (std::size_t i = 0; i < n_times; ++i) {
+    bool try_ensure_network_status_changed_to(el_net_sta_t new_sta, uint32_t delay_ms, std::size_t n_times) {
+        auto sta = _network->status();
+        for (std::size_t i = 0; (i < n_times) & (sta != new_sta); ++i) {
             el_sleep(delay_ms);
-            auto sta = _network->status();
-            if (sta != old_sta) [[likely]]
-                return sta;
+            sta = _network->status();
         }
-        return old_sta;
+        return sta == new_sta;
     }
 
     void remove_mqtt_pubsub_topics() {
@@ -186,62 +183,59 @@ class NetworkSupervisor {
         return ret == EL_OK;
     }
 
-    void disconnect_mqtt_server() {
+    void disconnect_mqtt_server(el_net_sta_t old_sta) {
         remove_mqtt_pubsub_topics();
-
         auto ret = _network->disconnect();
         if (ret == EL_OK) [[likely]]
-            ensure_network_status_changed(NETWORK_CONNECTED, SSCMA_MQTT_POLL_DELAY_MS);
+            ensure_network_status_changed_from(old_sta, SSCMA_MQTT_POLL_DELAY_MS);
     }
 
-    void disconnect_wireless_network() {
+    void quit_wireless_network(el_net_sta_t old_sta) {
         auto ret = _network->quit();
         if (ret == EL_OK) [[likely]]
-            ensure_network_status_changed(NETWORK_JOINED, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
+            ensure_network_status_changed_from(old_sta, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
     }
 
-    void deinit_network() {
+    void deinit_network(el_net_sta_t old_sta) {
         _network->deinit();
-        ensure_network_status_changed(NETWORK_IDLE, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
+        ensure_network_status_changed_from(old_sta, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
     }
 
     void status_backward() {
-        auto current_status = _network->status();
-        auto target_status  = current_status;
-
         bool wireless_network_config_changed = false;
         bool mqtt_server_config_changed      = false;
         bool mqtt_pubsub_config_changed      = false;
-
         {
             const Guard guard(_network_config_sync_lock);
-            // sync local config status
-            target_status                   = _target_network_status;
             wireless_network_config_changed = !_wireless_network_config_updated;
             mqtt_server_config_changed      = !_mqtt_server_config_updated;
             mqtt_pubsub_config_changed      = !_mqtt_pubsub_config_updated;
         }
 
+    ResetNetworkStatus:
+        auto current_status = _network->status();
         switch (current_status) {
         case NETWORK_CONNECTED:
-            if (mqtt_pubsub_config_changed) [[unlikely]]
-                try_sync_mqtt_pubsub_topics();
-            if (mqtt_server_config_changed | wireless_network_config_changed) [[unlikely]]
-                disconnect_mqtt_server();
-
-            [[fallthrough]];
+            if (mqtt_pubsub_config_changed | mqtt_server_config_changed | wireless_network_config_changed)
+              [[unlikely]] {
+                disconnect_mqtt_server(current_status);
+                goto ResetNetworkStatus;
+            }
+            break;
 
         case NETWORK_JOINED:
-            if (wireless_network_config_changed) [[unlikely]]
-                disconnect_wireless_network();
-
-            [[fallthrough]];
+            if (wireless_network_config_changed) [[unlikely]] {
+                quit_wireless_network(current_status);
+                goto ResetNetworkStatus;
+            }
+            break;
 
         case NETWORK_IDLE:
-            if (target_status <= NETWORK_LOST) [[unlikely]]
-                deinit_network();
-
-            [[fallthrough]];
+            if (wireless_network_config_changed) [[unlikely]] {
+                deinit_network(current_status);
+                goto ResetNetworkStatus;
+            }
+            break;
 
         case NETWORK_LOST:
         default:
@@ -249,14 +243,15 @@ class NetworkSupervisor {
         }
     }
 
-    void init_network() {
+    bool init_network() {
         _network->init();
-        ensure_network_status_changed(NETWORK_LOST, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS);
+        return try_ensure_network_status_changed_to(
+          NETWORK_IDLE, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY);
     }
 
     bool try_join_wireless_network() {
         auto config = wireless_network_config_t{};
-        {  // synchronize wireless network config
+        {
             const Guard guard(_network_config_sync_lock);
             config                           = _wireless_network_config;
             _wireless_network_config_updated = true;
@@ -264,11 +259,10 @@ class NetworkSupervisor {
 
         auto ret = _network->join(config.name, config.passwd);
         if (ret == EL_OK) [[likely]]
-            ret =
-              try_ensure_network_status_changed(
-                NETWORK_IDLE, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY) == NETWORK_JOINED
-                ? EL_OK
-                : EL_ETIMOUT;
+            ret = try_ensure_network_status_changed_to(
+                    NETWORK_JOINED, SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS, SSCMA_WIRELESS_NETWORK_POLL_RETRY)
+                    ? EL_OK
+                    : EL_ETIMOUT;
 
         const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"SUPERVISOR@WIFI\", \"code\": ",
                                       std::to_string(ret),
@@ -290,10 +284,10 @@ class NetworkSupervisor {
 
         auto ret = _network->connect(config.address, config.username, config.password, mqtt_recv_cb);
         if (ret == EL_OK) [[likely]]
-            ret = try_ensure_network_status_changed(NETWORK_JOINED, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY) ==
-                      NETWORK_CONNECTED
-                    ? EL_OK
-                    : EL_ETIMOUT;
+            ret =
+              try_ensure_network_status_changed_to(NETWORK_CONNECTED, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY)
+                ? EL_OK
+                : EL_ETIMOUT;
 
         const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"SUPERVISOR@MQTTSERVER\", \"code\": ",
                                       std::to_string(ret),
@@ -308,7 +302,6 @@ class NetworkSupervisor {
     void status_forward() {
         auto current_status = _network->status();
         auto target_status  = current_status;
-
         {
             const Guard guard(_network_config_sync_lock);
             target_status = _target_network_status;
@@ -318,31 +311,31 @@ class NetworkSupervisor {
 
         switch (current_status) {
         case NETWORK_LOST:
-            if (target_status <= NETWORK_LOST) return;
-
-            init_network();
-
+            if (target_status <= NETWORK_LOST) [[unlikely]]
+                return;
+            if (!init_network()) [[unlikely]]
+                return;
             [[fallthrough]];
 
         case NETWORK_IDLE:
-            if (target_status <= NETWORK_IDLE) return;
-
+            if (target_status <= NETWORK_IDLE) [[unlikely]]
+                return;
             if (!try_join_wireless_network()) [[unlikely]]
                 return;
-
             [[fallthrough]];
 
         case NETWORK_JOINED:
-            if (target_status <= NETWORK_JOINED) return;
-
+            if (target_status <= NETWORK_JOINED) [[unlikely]]
+                return;
             if (!try_connect_mqtt_server()) [[unlikely]]
                 return;
-            if (!try_sync_mqtt_pubsub_topics()) [[unlikely]]
-                return;
-
             [[fallthrough]];
 
         case NETWORK_CONNECTED:
+            if (!try_sync_mqtt_pubsub_topics()) [[unlikely]]
+                return;
+            [[fallthrough]];
+
         default:
             return;
         }
