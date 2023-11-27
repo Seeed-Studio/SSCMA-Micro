@@ -10,7 +10,7 @@ namespace sscma::callback {
 
 using namespace sscma::utility;
 
-void get_available_models(const std::string& cmd) {
+void get_available_models(const std::string& cmd, void* caller) {
     const auto& models_info = static_resource->models->get_all_model_info();
     const char* delim       = "";
 
@@ -22,10 +22,10 @@ void get_available_models(const std::string& cmd) {
     }
     ss += "]}\n";
 
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_model(const std::string& cmd, uint8_t model_id, bool called_by_event = false) {
+void set_model(const std::string& cmd, uint8_t model_id, void* caller, bool called_by_event = false) {
     const auto& model_info = static_resource->models->get_model_info(model_id);
 
     // a valid model id should always > 0
@@ -73,10 +73,10 @@ ModelReply:
                                   ", \"data\": {\"model\": ",
                                   model_info_2_json_str(model_info),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_model_info(const std::string& cmd) {
+void get_model_info(const std::string& cmd, void* caller) {
     const auto& model_info = static_resource->models->get_model_info(static_resource->current_model_id);
 
     auto ret = model_info.id ? EL_OK : EL_EINVAL;
@@ -88,7 +88,7 @@ void get_model_info(const std::string& cmd) {
                                   ", \"data\": ",
                                   model_info_2_json_str(model_info),
                                   "}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

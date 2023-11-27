@@ -15,7 +15,7 @@ using namespace edgelab;
 
 using namespace sscma::utility;
 
-void set_action(const std::vector<std::string>& argv, bool called_by_event = false) {
+void set_action(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     // get last condition expr string hash
     auto hash = static_resource->action->get_condition_hash();
     // set current condition expr string
@@ -24,21 +24,22 @@ void set_action(const std::vector<std::string>& argv, bool called_by_event = fal
         goto ActionReply;
 
     // update exception callback (cmd changes)
-    static_resource->action->set_exception_cb([cmd = argv[0],
-                                               exp = quoted(argv[1]),
-                                               ec  = std::to_string(EL_ELOG),
-                                               crc = std::to_string(static_resource->action->get_condition_hash())]() {
-        const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
-                                        cmd,
-                                        "\", \"code\": ",
-                                        ec,
-                                        ", \"data\": {\"crc16_maxim\": ",
-                                        crc,
-                                        ", \"action\": ",
-                                        exp,
-                                        "}}\n");
-        static_resource->transport->send_bytes(ss.c_str(), ss.size());
-    });
+    static_resource->action->set_exception_cb(
+      [cmd = argv[0],
+       exp = quoted(argv[1]),
+       ec  = std::to_string(EL_ELOG),
+       crc = std::to_string(static_resource->action->get_condition_hash())](void* caller) {
+          const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
+                                          cmd,
+                                          "\", \"code\": ",
+                                          ec,
+                                          ", \"data\": {\"crc16_maxim\": ",
+                                          crc,
+                                          ", \"action\": ",
+                                          exp,
+                                          "}}\n");
+          static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
+      });
 
     // compare hash to check if condition expr string changed
     if (hash != static_resource->action->get_condition_hash()) [[likely]] {
@@ -53,7 +54,7 @@ void set_action(const std::vector<std::string>& argv, bool called_by_event = fal
             if (argv[0] == "led") {
                 if (argv.size() == 2) [[likely]] {  // LED action with 1 argument
                     bool enable = std::atoi(argv[1].c_str());
-                    kv.second   = [enable]() -> int {
+                    kv.second   = [enable](void*) -> int {
                         el_status_led(enable);
                         return 1;
                     };
@@ -63,11 +64,10 @@ void set_action(const std::vector<std::string>& argv, bool called_by_event = fal
         static_resource->action->set_mutable_map(mutable_map);  // update mutable map
 
         if (!called_by_event) {
-            char action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
-            std::strncpy(
-              action,
-              argv[1].c_str(),
-              argv[1].length() < CONFIG_SSCMA_CMD_MAX_LENGTH ? argv[1].length() : CONFIG_SSCMA_CMD_MAX_LENGTH - 1);
+            char action[SSCMA_CMD_MAX_LENGTH]{};
+            std::strncpy(action,
+                         argv[1].c_str(),
+                         argv[1].length() < SSCMA_CMD_MAX_LENGTH ? argv[1].length() : SSCMA_CMD_MAX_LENGTH - 1);
             ret =
               static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action)) ? EL_OK : EL_EIO;
         }
@@ -85,11 +85,11 @@ ActionReply:
                                   ", \"action\": ",
                                   quoted(argv[1]),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void get_action(const std::string& cmd) {
-    char     action[CONFIG_SSCMA_CMD_MAX_LENGTH]{};
+void get_action(const std::string& cmd, void* caller) {
+    char     action[SSCMA_CMD_MAX_LENGTH]{};
     uint16_t crc16_maxim = 0xffff;
     auto     ret         = EL_OK;
 
@@ -108,7 +108,7 @@ void get_action(const std::string& cmd) {
                                   ", \"action\": ",
                                   quoted(action),
                                   "}}\n")};
-    static_resource->transport->send_bytes(ss.c_str(), ss.size());
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 }  // namespace sscma::callback

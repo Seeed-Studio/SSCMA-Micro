@@ -16,9 +16,9 @@ class Sample final : public std::enable_shared_from_this<Sample> {
    public:
     std::shared_ptr<Sample> getptr() { return shared_from_this(); }
 
-    [[nodiscard]] static std::shared_ptr<Sample> create(std::string cmd, std::size_t n_times) {
+    [[nodiscard]] static std::shared_ptr<Sample> create(std::string cmd, std::size_t n_times, void* caller) {
         return std::shared_ptr<Sample>{
-          new Sample{std::move(cmd), n_times}
+          new Sample{std::move(cmd), n_times, caller}
         };
     }
 
@@ -27,9 +27,10 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     inline void run() { prepare(); }
 
    protected:
-    Sample(std::string cmd, std::size_t n_times)
+    Sample(std::string cmd, std::size_t n_times, void* caller)
         : _cmd{cmd},
           _n_times{n_times},
+          _caller{caller},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
           _times{0},
           _ret{EL_OK} {
@@ -72,7 +73,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                       ", \"data\": {\"sensor\": ",
                                       sensor_info_2_json_str(_sensor_info),
                                       "}}\n")};
-        static_resource->transport->send_bytes(ss.c_str(), ss.size());
+        static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_reply(std::string data) {
@@ -84,7 +85,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                       std::to_string(_times),
                                       data,
                                       "}}\n")};
-        static_resource->transport->send_bytes(ss.c_str(), ss.size());
+        static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_loop() {
@@ -142,6 +143,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
    private:
     std::string _cmd;
     std::size_t _n_times;
+    void*       _caller;
 
     std::size_t      _task_id;
     el_sensor_info_t _sensor_info;

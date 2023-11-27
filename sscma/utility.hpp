@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "core/algorithm/el_algorithm_delegate.h"
-#include "core/data/el_data_storage.hpp"
 #include "core/el_types.h"
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
@@ -371,6 +370,19 @@ decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
                   VENDOR_CHIP_NAME,
                   device->get_device_id());
     default_config.sub_qos = 0;
+
+    return default_config;
+}
+
+decltype(auto) get_default_mqtt_server_config(const Device* device) {
+    auto default_config = mqtt_server_config_t{};
+
+    std::snprintf(default_config.client_id,
+                  sizeof(default_config.client_id) - 1,
+                  SSCMA_MQTT_DEVICE_ID_FMT,
+                  VENDOR_PREFIX,
+                  VENDOR_CHIP_NAME,
+                  device->get_device_id());
 
     return default_config;
 }

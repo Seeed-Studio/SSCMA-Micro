@@ -81,22 +81,22 @@ class Condition {
         _exception_cb = cb;
     }
 
-    inline void evalute() {
+    inline void evalute(void* caller) {
         const Guard<Mutex> guard(_eval_lock);
 
         if (!_node) [[unlikely]]
             return;
 
-        auto result = _node->evaluate([this](NodeType, const std::string& name) {
+        auto result = _node->evaluate([this, caller](NodeType, const std::string& name) {
             auto it = this->_mutable_map.find(name);
             if (it != this->_mutable_map.end() && it->second) [[likely]]
-                return Result{.status = EvalStatus::OK, .value = it->second()};
+                return Result{.status = EvalStatus::OK, .value = it->second(caller)};
             return Result{.status = EvalStatus::EXCEPTION, .value = 0};
         });
 
         if (result.status != EvalStatus::OK) [[unlikely]] {
             if (_exception_cb) [[likely]]
-                _exception_cb();
+                _exception_cb(caller);
         }
     }
 

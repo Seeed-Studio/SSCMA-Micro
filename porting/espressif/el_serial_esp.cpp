@@ -40,8 +40,14 @@ SerialEsp::~SerialEsp() { deinit(); }
 
 el_err_code_t SerialEsp::init() {
     this->_is_present = usb_serial_jtag_driver_install(&_driver_config) == ESP_OK;
+    if (!this->_is_present) [[unlikely]]
+        return EL_EIO;
 
-    return this->_is_present ? EL_OK : EL_EIO;
+    this->_is_present = usb_serial_jtag_is_connected();
+    if (!this->_is_present) [[unlikely]]
+        return EL_EPERM;
+
+    return EL_OK;
 }
 
 el_err_code_t SerialEsp::deinit() {
@@ -51,7 +57,7 @@ el_err_code_t SerialEsp::deinit() {
 }
 
 char SerialEsp::echo(bool only_visible) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) return EL_EPERM;
 
     char c{get_char()};
     if (only_visible && !std::isprint(c)) return c;
@@ -60,7 +66,7 @@ char SerialEsp::echo(bool only_visible) {
 }
 
 char SerialEsp::get_char() {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) return EL_EPERM;
 
     char c{'\0'};
     while (!usb_serial_jtag_read_bytes(&c, 1, portMAX_DELAY))
@@ -69,7 +75,7 @@ char SerialEsp::get_char() {
 }
 
 size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) return EL_EPERM;
 
     size_t pos{0};
     char   c{'\0'};
@@ -87,7 +93,7 @@ size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
 }
 
 el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) return EL_EPERM;
 
     size_t read{0};
     size_t pos_of_bytes{0};
@@ -104,9 +110,9 @@ el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
 }
 
 el_err_code_t SerialEsp::send_bytes(const char* buffer, size_t size) {
-    EL_ASSERT(this->_is_present);
-
     const Guard<Mutex> guard(_send_lock);
+
+    if (!this->_is_present) return EL_EPERM;
 
     size_t sent{0};
     size_t pos_of_bytes{0};
