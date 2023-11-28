@@ -50,7 +50,7 @@
 
 #define AT_STR_RESP_NTP    "+TIME_UPDATED"
 
-#define AT_STR_RESP_PUBRAW ">+MQTTPUB:"
+#define AT_STR_RESP_PUBRAW "+MQTTPUB:"
 
 // NOTE: Deprecated
 typedef enum {

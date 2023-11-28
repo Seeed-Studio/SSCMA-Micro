@@ -70,20 +70,22 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
 
 static void at_recv_parser(void* arg) {
     char str[512] = {0};
+    char *ptr = NULL;
     uint32_t len = 0, i = 0;
     uint32_t num = sizeof(resp_flow) / sizeof(resp_flow[0]);
     while (1) {
         if (ulTaskNotifyTake(pdFALSE, portMAX_DELAY) > 0) {
             len = at_rbuf->extract('\n', str, sizeof(str));
             str[len] = '\0';
+            ptr = (str[0] == '>') ? str + 1 : str;
             for (i = 0; i < num; i++) {
-                if (strncmp(str, resp_flow[i].str, strlen(resp_flow[i].str)) == 0) {
-                    resp_flow[i].act(str, arg);
+                if (strncmp(ptr, resp_flow[i].str, strlen(resp_flow[i].str)) == 0) {
+                    resp_flow[i].act(ptr, arg);
                     break;
                 }
             }
             if (i == num && len > 2) {
-                EL_LOGD("unknown response: %s\n", str);
+                EL_LOGD("unknown response: %s\n", ptr);
             }
             memset(str, 0, len);
         }
