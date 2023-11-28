@@ -405,7 +405,17 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
     }
 
     if (len + strlen(topic) < 200) {
-        sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, dat, qos);
+        char special_chars[] = "\"\n\r";
+        char buf[230] = {0};
+        uint8_t j = 0;
+        for (uint8_t i = 0; i < len; i++) {
+            if (strchr(escape_list, dat[i]) != NULL) {
+                buf[j++] = '\\';
+            }
+            buf[j++] = dat[i];
+        }
+        buf[j] = '\0';
+        sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, buf, qos);
         err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
