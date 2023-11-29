@@ -6,10 +6,12 @@
     #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1024U * 1024U)
 #endif
 
-#define SSCMA_EXECUTOR_WORKER_NAME_PREFIX    "sscma#executor"
+#define SSCMA_EXECUTOR_WORKER_NAME_PREFIX "sscma#executor"
 
-#define SSCMA_REPL_EXECUTOR_STACK_SIZE       20480U
-#define SSCMA_REPL_EXECUTOR_PRIO             5
+#define SSCMA_REPL_EXECUTOR_STACK_SIZE    20480U
+#ifndef SSCMA_REPL_EXECUTOR_PRIO
+    #define SSCMA_REPL_EXECUTOR_PRIO 5
+#endif
 
 #define SSCMA_REPL_HISTORY_MAX               8
 
