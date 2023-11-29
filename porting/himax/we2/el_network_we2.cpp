@@ -40,10 +40,10 @@ static resp_trigger_t resp_flow[] = {
     {AT_STR_RESP_ERROR,  resp_action_error},
     {AT_STR_RESP_READY,  resp_action_ready},
     {AT_STR_RESP_WIFI_H, resp_action_wifi},
+    {AT_STR_RESP_PUBRAW, resp_action_pubraw},
     {AT_STR_RESP_MQTT_H, resp_action_mqtt},
     {AT_STR_RESP_IP_H,   resp_action_ip},
-    {AT_STR_RESP_NTP,    resp_action_ntp},
-    {AT_STR_RESP_PUBRAW, resp_action_pubraw}
+    {AT_STR_RESP_NTP,    resp_action_ntp}
 };
 
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
@@ -405,11 +405,11 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
     }
 
     if (len + strlen(topic) < 200) {
-        char special_chars[] = "\"\n\r";
+        char special_chars[] = "\\\"\,\n\r";
         char buf[230] = {0};
         uint8_t j = 0;
         for (uint8_t i = 0; i < len; i++) {
-            if (strchr(escape_list, dat[i]) != NULL) {
+            if (strchr(special_chars, dat[i]) != NULL) {
                 buf[j++] = '\\';
             }
             buf[j++] = dat[i];
@@ -526,13 +526,13 @@ void resp_action_ip(const char* resp, void* arg) {
     } else if (strncmp(resp + ofs, "netmask:", 8) == 0) {
         ofs += 8;
         memcpy(net->_ip.netmask, resp + ofs, sizeof(resp) - ofs);
-        EL_LOGI("IP GOT\n");
+        EL_LOGD("IP GOT\n");
         return;
     }
 }
 void resp_action_ntp(const char* resp, void* arg) {
     edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
-    EL_LOGI("NTP TIME UPDATED!\n");
+    EL_LOGD("NTP TIME UPDATED!\n");
     net->_time_synced = true;
     return;
 }
