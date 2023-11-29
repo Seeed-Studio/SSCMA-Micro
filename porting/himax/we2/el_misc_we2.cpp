@@ -82,14 +82,17 @@ EL_ATTR_WEAK void* el_malloc(size_t size) {
 }
 
 EL_ATTR_WEAK void* el_aligned_malloc_once(size_t align, size_t size) {
-    constexpr static const size_t elHeapSize = 900 * 1024;
+    constexpr static const size_t elHeapSize = 1424 * 1024;
     static uint8_t                elHeap[elHeapSize]{};
     static uint8_t*               cp      = elHeap;
     size_t                        pv      = reinterpret_cast<size_t>(cp);
     size_t                        of      = align - (pv % align);
     void*                         aligned = cp + of;
-    cp += size + of;
-    EL_ASSERT(static_cast<size_t>(cp - elHeap) < elHeapSize);
+    size_t                        rq      = size + of;
+    size_t                        rm      = elHeapSize - static_cast<size_t>(cp - elHeap);
+    if (rq > rm) [[unlikely]]
+        return nullptr;
+    cp += rq;
     return aligned;
 }
 
