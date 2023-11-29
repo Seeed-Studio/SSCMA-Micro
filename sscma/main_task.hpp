@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <forward_list>
+
 #include "hooks.hpp"
 #include "sscma/callback/action.hpp"
 #include "sscma/callback/algorithm.hpp"
@@ -20,8 +23,17 @@ using namespace sscma::types;
 using namespace sscma::callback;
 using namespace sscma::hooks;
 
+void init_static_resource();
+void register_commands();
+void wait_for_inputs();
+
 void run() {
-    // init static_resource
+    init_static_resource();
+    register_commands();
+    wait_for_inputs();
+}
+
+void init_static_resource() {
     static_resource->init([]() {
         EL_LOGI("[SSCMA] running post init...");
         std::string caller{"INIT"};
@@ -30,37 +42,44 @@ void run() {
         init_action_hook(caller);
         init_network_supervisor_task_hook();
     });
+}
 
+void register_commands() {
     EL_LOGI("[SSCMA] registering AT commands...");
 
-    // register commands
     static_resource->instance->register_cmd(
       "HELP?", "List available commands", "", [](std::vector<std::string> argv, void* caller) {
-          print_help(static_resource->instance->get_registered_cmds(), caller);
+          static_resource->executor->add_task([caller](const std::atomic<bool>&) {
+              print_help(static_resource->instance->get_registered_cmds(), caller);
+          });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "ID?", "Get device ID", "", [](std::vector<std::string> argv, void* caller) {
-          get_device_id(argv[0], caller);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_device_id(cmd, caller); });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "NAME?", "Get device name", "", [](std::vector<std::string> argv, void* caller) {
-          get_device_name(argv[0], caller);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_device_name(cmd, caller); });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "STAT?", "Get device status", "", [](std::vector<std::string> argv, void* caller) {
-          get_device_status(argv[0], caller);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_device_status(cmd, caller); });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "VER?", "Get version details", "", [](std::vector<std::string> argv, void* caller) {
-          get_version(argv[0], caller);
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_version(cmd, caller); });
           return EL_OK;
       });
 
@@ -305,21 +324,26 @@ void run() {
             [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_mqtt_pubsub(cmd, caller); });
           return EL_OK;
       });
+}
 
+void wait_for_inputs() {
     // mark the system status as ready
     static_resource->is_ready.store(true);
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 
-    // enter service loop
-    {
-        char* buf = new char[SSCMA_CMD_MAX_LENGTH]{};
-    Loop:
-        static_resource->transport->get_line(buf, SSCMA_CMD_MAX_LENGTH);
-        if (std::strlen(buf) > 1) [[likely]]
-            static_resource->instance->exec(buf, static_cast<void*>(static_resource->serial));
-        goto Loop;
-    }
+    auto  transports = std::forward_list<Transport*>{static_resource->serial, static_resource->mqtt};
+    char* buf        = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
+    std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
+Loop:
+    std::for_each(transports.begin(), transports.end(), [&buf](Transport* transport) {
+        if (*transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {
+            static_resource->instance->exec(buf, static_cast<void*>(transport));
+            std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
+        }
+    });
+    el_sleep(20);
+    goto Loop;
 }
 
 }  // namespace sscma::main_task

@@ -14,7 +14,7 @@
 #include "core/engine/el_engine_tflite.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
-#include "extension/mux_transport.hpp"
+#include "extension/mqtt_transport.hpp"
 #include "porting/el_device.h"
 #include "sscma/interpreter/condition.hpp"
 #include "sscma/repl/executor.hpp"
@@ -55,7 +55,7 @@ class StaticResource final {
     Device*            device;
     Serial*            serial;
     Network*           network;
-    MuxTransport*      transport;
+    MQTT*              mqtt;
     Models*            models;
     Storage*           storage;
     Engine*            engine;
@@ -75,9 +75,11 @@ class StaticResource final {
         // Important: init device first before using it (serial, network, etc.)
         device->init();
 
-        serial    = device->get_serial();
-        network   = device->get_network();
-        transport = MuxTransport::get_transport();
+        serial  = device->get_serial();
+        network = device->get_network();
+
+        static auto v_mqtt{MQTT(network)};
+        mqtt = &v_mqtt;
 
         static auto v_instance{Server()};
         instance = &v_instance;
@@ -127,7 +129,6 @@ class StaticResource final {
     inline void init_hardware() {
         EL_LOGI("[SSCMA] initializing basic IO devices...");
         serial->init();
-        transport->init();
     }
 
     inline void init_backend() {
@@ -159,14 +160,14 @@ class StaticResource final {
         EL_LOGI("[SSCMA] initializing AT server...");
         // init AT server
         instance->init([this](void* caller, el_err_code_t ret, std::string msg) {  // server print callback function
-            if (ret != EL_OK) [[unlikely]] {                         // only send error message when error occurs
+            if (ret != EL_OK) [[unlikely]] {  // only send error message when error occurs
                 msg.erase(std::remove_if(msg.begin(), msg.end(), [](char c) { return std::iscntrl(c); }), msg.end());
                 const auto& ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",
                                               std::to_string(ret),
                                               ", \"data\": ",
                                               quoted(msg),
                                               "}\n")};
-                this->transport->send_bytes(ss.c_str(), ss.size());
+                if (caller) static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
             }
         });
     }

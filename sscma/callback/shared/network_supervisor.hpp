@@ -15,7 +15,7 @@
 #include "porting/el_network.h"
 #include "porting/el_transport.h"
 #include "sscma/definations.hpp"
-#include "sscma/extension/mux_transport.hpp"
+#include "sscma/extension/mqtt_transport.hpp"
 #include "sscma/static_resource.hpp"
 
 namespace sscma {
@@ -26,18 +26,18 @@ using namespace edgelab::utility;
 namespace extension {
 
 void mqtt_recv_cb(char* top, int tlen, char* msg, int mlen) {
-    auto config = static_resource->transport->get_mqtt_pubsub_config();
+    auto config = static_resource->mqtt->get_mqtt_pubsub_config();
     if (tlen ^ std::strlen(config.sub_topic) || std::strncmp(top, config.sub_topic, tlen) || mlen <= 1) return;
-    static_resource->instance->exec(std::string(msg, mlen), static_cast<void*>(static_resource->serial));
+    if (!static_resource->mqtt->push_to_buffer(msg, mlen)) [[unlikely]]
+        EL_LOGI("MQTT buffer may corrupted");
 }
 
 class NetworkSupervisor {
    public:
     ~NetworkSupervisor() {
-        _device    = nullptr;
-        _network   = nullptr;
-        _transport = nullptr;
-        _storage   = nullptr;
+        _network = nullptr;
+        _mqtt    = nullptr;
+        _storage = nullptr;
     }
 
     [[nodiscard]] static NetworkSupervisor* get_network_supervisor() {
@@ -93,14 +93,13 @@ class NetworkSupervisor {
 
    protected:
     NetworkSupervisor()
-        : _device(static_resource->device),
-          _network(static_resource->device->get_network()),
-          _transport(static_resource->transport),
+        : _network(static_resource->network),
+          _mqtt(static_resource->mqtt),
           _storage(static_resource->storage),
           _network_config_sync_lock(),
           _wireless_network_config(),
-          _mqtt_server_config(get_default_mqtt_server_config(_device)),
-          _mqtt_pubsub_config(get_default_mqtt_pubsub_config(_device)),
+          _mqtt_server_config(get_default_mqtt_server_config(static_resource->device)),
+          _mqtt_pubsub_config(get_default_mqtt_pubsub_config(static_resource->device)),
           _wireless_network_config_updated(true),
           _mqtt_server_config_updated(true),
           _mqtt_pubsub_config_updated(true),
@@ -170,15 +169,16 @@ class NetworkSupervisor {
         auto ret = _network->subscribe(config.sub_topic, static_cast<mqtt_qos_t>(config.sub_qos));
         if (ret == EL_OK) [[likely]]
             _sub_topics_set.emplace(config.sub_topic);
-        _transport->set_mqtt_pubsub_config(config);
-        _transport->emit_mqtt_discover();  // emit mqtt discover
+        _mqtt->set_mqtt_pubsub_config(config);
+        _mqtt->emit_mqtt_discover();  // emit mqtt discover
 
         const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"SUPERVISOR@MQTTPUBSUB\", \"code\": ",
                                       std::to_string(ret),
                                       ", \"data\": ",
                                       mqtt_pubsub_config_2_json_str(config),
                                       "}\n")};
-        _transport->send_bytes(ss.c_str(), ss.size());
+        _mqtt->send_bytes(ss.c_str(), ss.size());
+        static_resource->serial->send_bytes(ss.c_str(), ss.size());
 
         return ret == EL_OK;
     }
@@ -269,7 +269,8 @@ class NetworkSupervisor {
                                       ", \"data\": ",
                                       wireless_network_config_2_json_str(config),
                                       "}\n")};
-        _transport->send_bytes(ss.c_str(), ss.size());
+        _mqtt->send_bytes(ss.c_str(), ss.size());
+        static_resource->serial->send_bytes(ss.c_str(), ss.size());
 
         return ret == EL_OK;
     }
@@ -282,7 +283,7 @@ class NetworkSupervisor {
             _mqtt_server_config_updated = true;
         }
 
-        auto ret = _network->connect(config.address, config.username, config.password, mqtt_recv_cb);
+        auto ret = _network->connect(config, mqtt_recv_cb);
         if (ret == EL_OK) [[likely]]
             ret =
               try_ensure_network_status_changed_to(NETWORK_CONNECTED, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY)
@@ -294,7 +295,8 @@ class NetworkSupervisor {
                                       ", \"data\": ",
                                       mqtt_server_config_2_json_str(config),
                                       "}\n")};
-        _transport->send_bytes(ss.c_str(), ss.size());
+        _mqtt->send_bytes(ss.c_str(), ss.size());
+        static_resource->serial->send_bytes(ss.c_str(), ss.size());
 
         return ret == EL_OK;
     }
@@ -342,10 +344,9 @@ class NetworkSupervisor {
     }
 
    private:
-    Device*       _device;
-    Network*      _network;
-    MuxTransport* _transport;
-    Storage*      _storage;
+    Network* _network;
+    MQTT*    _mqtt;
+    Storage* _storage;
 
     Mutex _network_config_sync_lock;
 
