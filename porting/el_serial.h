@@ -34,6 +34,9 @@ class Serial : public Transport {
    public:
     Serial()          = default;
     virtual ~Serial() = default;
+
+    virtual el_err_code_t init()   = 0;
+    virtual el_err_code_t deinit() = 0;
 };
 
 }  // namespace edgelab
