@@ -36,6 +36,7 @@
 #include <hx_drv_timer.h>
 #include <sensor_dp_lib.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

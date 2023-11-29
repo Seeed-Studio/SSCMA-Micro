@@ -86,12 +86,7 @@ using namespace sscma::types;
 
 class Server {
    public:
-    Server() : _history(SSCMA_REPL_HISTORY_MAX), _cmd_list_lock(), _exec_lock(), _is_ctrl(false), _line_index(-1) {
-        // register_cmd("HELP?", "List available commands", "", [this](std::vector<std::string>, void*) -> el_err_code_t {
-        //     this->print_help();
-        //     return EL_OK;
-        // });
-    }
+    Server() : _history(SSCMA_REPL_HISTORY_MAX), _cmd_list_lock(), _exec_lock(), _is_ctrl(false), _line_index(-1) {}
 
     ~Server() { deinit(); }
 
@@ -163,19 +158,6 @@ class Server {
         return _cmd_list;
     }
 
-    // void print_help() {
-    //     const Guard<Mutex> guard(_cmd_list_lock);
-
-    //     _echo_cb(EL_OK, "Command list:\n");
-    //     for (const auto& cmd : _cmd_list) {
-    //         if (cmd.args.size())  // if cmd has args
-    //             m_echo_cb(EL_OK, "  AT+", cmd.cmd, "=<", cmd.args, ">\n");
-    //         else
-    //             m_echo_cb(EL_OK, "  AT+", cmd.cmd, "\n");
-    //         m_echo_cb(EL_OK, "    ", cmd.desc, "\n");
-    //     }
-    // }
-
     // use exec_non_lock since no recursive mutex implemented
     el_err_code_t exec_non_lock(std::string line, void* caller) {
         auto it = std::remove_if(line.begin(), line.end(), [](char c) { return !std::isprint(c); });
@@ -188,94 +170,95 @@ class Server {
         return exec_non_lock(std::move(line), caller);
     }
 
-    // void loop(const std::string& line) {
-    //     std::for_each(line.begin(), line.end(), [this](char c) { this->loop(c); });
-    // }
+    void loop(const std::string& line, void* caller) {
+        std::for_each(line.begin(), line.end(), [this, caller](char c) { this->loop(c, caller); });
+    }
 
-    // void loop(char c) {
-    //     if (_is_ctrl) {
-    //         _ctrl_line.push_back(c);                  // append current char to ctrl line
-    //         if (std::isalpha(c) || (c == '~')) {      // if current char is a letter or '~'
-    //             if (_ctrl_line.compare("[A") == 0) {  // if press up arrow
-    //                 _history.prev(_line);
-    //                 _line_index = _line.size() - 1;
-    //                 m_echo_cb(EL_OK, "\r> ", _line, "\033[K");
-    //             } else if (_ctrl_line.compare("[B") == 0) {  // if press down arrow
-    //                 _history.next(_line);
-    //                 _line_index = _line.size() - 1;
-    //                 m_echo_cb(EL_OK, "\r> ", _line, "\033[K");
-    //             } else if (_ctrl_line.compare("[C") == 0) {  // if press right arrow
-    //                 if (_line_index < static_cast<int>(_line.size()) - 1) {
-    //                     ++_line_index;
-    //                     m_echo_cb(EL_OK, "\033", _ctrl_line);
-    //                 }
-    //             } else if (_ctrl_line.compare("[D") == 0) {  // if press left arrow
-    //                 if (_line_index >= 0) {
-    //                     --_line_index;
-    //                     m_echo_cb(EL_OK, "\033", _ctrl_line);
-    //                 }
-    //             } else if (_ctrl_line.compare("[H") == 0) {  // if press home
-    //                 _line_index = 0;
-    //                 m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 3), "G");
-    //             } else if (_ctrl_line.compare("[F") == 0) {  // if press end
-    //                 _line_index = _line.size() - 1;
-    //                 m_echo_cb(EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
-    //             } else if (_ctrl_line.compare("[3~") == 0) {  // if press delete
-    //                 if (_line_index < static_cast<int>(_line.size()) - 1) {
-    //                     if (!_line.empty() && _line_index >= 0) {
-    //                         _line.erase(_line_index + 1, 1);
-    //                         --_line_index;
-    //                         m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
-    //                     }
-    //                 }
-    //             } else
-    //                 m_echo_cb(EL_OK, "\033", _ctrl_line);  // echo ctrl line
+    void loop(char c, void* caller) {
+        if (_is_ctrl) {
+            _ctrl_line.push_back(c);                  // append current char to ctrl line
+            if (std::isalpha(c) || (c == '~')) {      // if current char is a letter or '~'
+                if (_ctrl_line.compare("[A") == 0) {  // if press up arrow
+                    _history.prev(_line);
+                    _line_index = _line.size() - 1;
+                    m_echo_cb(caller, EL_OK, "\r> ", _line, "\033[K");
+                } else if (_ctrl_line.compare("[B") == 0) {  // if press down arrow
+                    _history.next(_line);
+                    _line_index = _line.size() - 1;
+                    m_echo_cb(caller, EL_OK, "\r> ", _line, "\033[K");
+                } else if (_ctrl_line.compare("[C") == 0) {  // if press right arrow
+                    if (_line_index < static_cast<int>(_line.size()) - 1) {
+                        ++_line_index;
+                        m_echo_cb(caller, EL_OK, "\033", _ctrl_line);
+                    }
+                } else if (_ctrl_line.compare("[D") == 0) {  // if press left arrow
+                    if (_line_index >= 0) {
+                        --_line_index;
+                        m_echo_cb(caller, EL_OK, "\033", _ctrl_line);
+                    }
+                } else if (_ctrl_line.compare("[H") == 0) {  // if press home
+                    _line_index = 0;
+                    m_echo_cb(caller, EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 3), "G");
+                } else if (_ctrl_line.compare("[F") == 0) {  // if press end
+                    _line_index = _line.size() - 1;
+                    m_echo_cb(caller, EL_OK, "\r\033[K> ", _line, "\033[", std::to_string(_line_index + 4), "G");
+                } else if (_ctrl_line.compare("[3~") == 0) {  // if press delete
+                    if (_line_index < static_cast<int>(_line.size()) - 1) {
+                        if (!_line.empty() && _line_index >= 0) {
+                            _line.erase(_line_index + 1, 1);
+                            --_line_index;
+                            m_echo_cb(
+                              caller, EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
+                        }
+                    }
+                } else
+                    m_echo_cb(caller, EL_OK, "\033", _ctrl_line);  // echo ctrl line
 
-    //             _ctrl_line.clear();
-    //             _is_ctrl = false;
-    //         }
+                _ctrl_line.clear();
+                _is_ctrl = false;
+            }
 
-    //         return;
-    //     }
+            return;
+        }
 
-    //     switch (c) {
-    //     case '\n':  // newline
-    //     case '\r':  // enter
-    //         _echo_cb(EL_OK, "\r\n");
-    //         if (!_line.empty()) {
-    //             if (m_exec_cmd(_line) == EL_OK) [[likely]] {
-    //                 _history.add(_line);
-    //             }
-    //             _line.clear();
-    //             _line_index = -1;
-    //         }
-    //         _history.reset();
-    //         _echo_cb(EL_OK, "\r> ");
-    //         break;
+        switch (c) {
+        case '\n':  // newline
+        case '\r':  // enter
+            _echo_cb(caller, EL_OK, "\r\n");
+            if (!_line.empty()) {
+                if (m_exec_cmd(_line, caller) == EL_OK) [[likely]] {
+                    _history.add(_line);
+                }
+                _line.clear();
+                _line_index = -1;
+            }
+            _history.reset();
+            _echo_cb(caller, EL_OK, "\r> ");
+            break;
 
-    //     case '\b':  // backspace
-    //     case 0x7F:  // DEL
-    //         if (!_line.empty() && _line_index >= 0) {
-    //             _line.erase(_line_index, 1);
-    //             --_line_index;
-    //             m_echo_cb(EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
-    //         }
-    //         break;
+        case '\b':  // backspace
+        case 0x7F:  // DEL
+            if (!_line.empty() && _line_index >= 0) {
+                _line.erase(_line_index, 1);
+                --_line_index;
+                m_echo_cb(caller, EL_OK, "\r> ", _line, "\033[K\033[", std::to_string(_line_index + 4), "G");
+            }
+            break;
 
-    //     case 0x1B:  // ESC
-    //         _is_ctrl = true;
-    //         break;
+        case 0x1B:  // ESC
+            _is_ctrl = true;
+            break;
 
-    //     default:
-    //         if (std::isprint(c)) {                                      // if current char is printable
-    //             _line.insert(++_line_index, 1, c);                      // insert the char to line
-    //             if (_line_index == static_cast<int>(_line.size()) - 1)  // if current char is the last char of line
-    //                 m_echo_cb(EL_OK, std::to_string(c));                // echo the char
-    //             else                                                    // else move cursor on the line
-    //                 m_echo_cb(EL_OK, "\r> ", _line, "\033[", std::to_string(_line_index + 4), "G");
-    //         }
-    //     }
-    // }
+        default:
+            if (std::isprint(c)) {                                      // if current char is printable
+                _line.insert(++_line_index, 1, c);                      // insert the char to line
+                if (_line_index == static_cast<int>(_line.size()) - 1)  // if current char is the last char of line
+                    m_echo_cb(caller, EL_OK, std::to_string(c));        // echo the char
+                else                                                    // else move cursor on the line
+                    m_echo_cb(caller, EL_OK, "\r> ", _line, "\033[", std::to_string(_line_index + 4), "G");
+            }
+        }
+    }
 
    protected:
     void m_unregister_cmd(std::string cmd) {

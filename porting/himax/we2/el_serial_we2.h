@@ -36,7 +36,7 @@ namespace edgelab {
 
 class SerialWE2 final : public Serial {
    public:
-    SerialWE2() = default;
+    SerialWE2();
     ~SerialWE2();
 
     el_err_code_t init() override;
@@ -50,7 +50,7 @@ class SerialWE2 final : public Serial {
     el_err_code_t send_bytes(const char* buffer, size_t size) override;
 
    private:
-    DEV_UART* console_uart;
+    DEV_UART* _console_uart;
 };
 
 }  // namespace edgelab

@@ -36,9 +36,6 @@ class Transport {
     Transport() : _is_present(false) {}
     virtual ~Transport() = default;
 
-    virtual el_err_code_t init()   = 0;
-    virtual el_err_code_t deinit() = 0;
-
     virtual el_err_code_t read_bytes(char* buffer, size_t size)       = 0;
     virtual el_err_code_t send_bytes(const char* buffer, size_t size) = 0;
 
