@@ -5,43 +5,44 @@
 namespace edgelab {
 
 class lwRingBuffer {
-public:
+   public:
     lwRingBuffer(size_t len) : buf(new char[len]), len(len), head(0), tail(0) {}
-    ~lwRingBuffer() {
-        delete[] buf;
-    }
+    ~lwRingBuffer() { delete[] buf; }
     void push(char c) {
         if (isFull()) {
             head = (head + 1) % len;
         }
         buf[tail] = c;
-        tail = (tail + 1) % len;
+        tail      = (tail + 1) % len;
+    }
+    void push(const char* str, int slen) {
+        for (int i = 0; i < slen; i++) {
+            push(str[i]);
+        }
+    }
+    void pop(char* str, int slen) {
+        if (slen > size()) {
+            slen = size();
+        }
+        for (int i = 0; i < slen; i++) {
+            str[i] = pop();
+        }
     }
     char pop() {
         if (isEmpty()) {
             return 0;
         }
         char c = buf[head];
-        head = (head + 1) % len;
+        head   = (head + 1) % len;
         return c;
     }
-    bool isEmpty() {
-        return head == tail;
-    }
-    bool isFull() {
-        return (tail + 1) % len == head;
-    }
-    size_t size() {
-        return (tail - head + len) % len;
-    }
-    size_t capacity() {
-        return len;
-    }
-    void clear() {
-        head = tail;
-    }
+    bool   isEmpty() { return head == tail; }
+    bool   isFull() { return (tail + 1) % len == head; }
+    size_t size() { return (tail - head + len) % len; }
+    size_t capacity() { return len; }
+    void   clear() { head = tail; }
 
-    friend lwRingBuffer& operator>>(lwRingBuffer& input, char &c) {
+    friend lwRingBuffer& operator>>(lwRingBuffer& input, char& c) {
         c = input.pop();
         return input;
     }
@@ -49,10 +50,8 @@ public:
         output.push(c);
         return output;
     }
-    char operator[](int i) {
-        return buf[(head + i) % len];
-    }
-    int find(char c) {
+    char operator[](int i) { return buf[(head + i) % len]; }
+    int  find(char c) {
         for (int i = head; i != tail; i = (i + 1) % len) {
             if (buf[i] == c) {
                 return (i - head + len) % len;
@@ -87,11 +86,11 @@ public:
         return i + 1;
     }
 
-private:
-    char *buf;
+   private:
+    char*  buf;
     size_t len;
-    int head;
-    int tail;
+    int    head;
+    int    tail;
 };
 
-} // namespace edgelab
+}  // namespace edgelab
