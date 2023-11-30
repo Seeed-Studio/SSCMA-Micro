@@ -222,23 +222,7 @@ size_t WireWE2::get_line(char* buffer, size_t size, const char delim) {
         return EL_EIO;
     }
 
-    size_t pos{0};
-    char   c{'\0'};
-    while (pos < size - 1) {
-        if (this->available() == 0) {
-            el_sleep(5);
-            continue;
-        }
-        c = this->get_char();
-        if (c == delim || c == 0x00) [[unlikely]] {
-            buffer[pos++] = '\0';
-            return pos;
-        }
-        buffer[pos++] = c;
-    }
-    buffer[pos++] = '\0';
-
-    return pos;
+    return this->rx_ring_buffer->extract(delim, buffer, size);
 }
 
 size_t WireWE2::available() {

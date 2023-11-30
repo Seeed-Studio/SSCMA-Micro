@@ -35,6 +35,8 @@ class Wire : public Transport {
     Wire(uint8_t addr = 0x60) : addr{addr} {}
     virtual ~Wire()            = default;
     virtual size_t available() = 0;
+    virtual el_err_code_t init() = 0;
+    virtual el_err_code_t deinit() = 0;
 
    public:
     uint8_t addr;

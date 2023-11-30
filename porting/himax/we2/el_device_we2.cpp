@@ -35,7 +35,7 @@ extern "C" {
 #include <cstdint>
 
 #include "core/el_debug.h"
-#include "el_camera_hm0360.h"
+#include "el_camera_ov5647.h"
 #include "el_network_at.h"
 #include "el_network_we2.h"
 #include "el_serial_we2.h"
@@ -109,7 +109,7 @@ void DeviceWE2::init() {
 
     static uint8_t sensor_id = 0;
 
-    static CameraHM0360 camera{};
+    static CameraOV5647 camera{};
     this->_camera = &camera;
     this->_registered_sensors.emplace_front(el_sensor_info_t{
       .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});

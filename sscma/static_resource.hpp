@@ -55,6 +55,7 @@ class StaticResource final {
     Device*            device;
     Serial*            serial;
     Network*           network;
+    Wire*              wire;
     MQTT*              mqtt;
     Models*            models;
     Storage*           storage;
@@ -77,6 +78,9 @@ class StaticResource final {
 
         serial  = device->get_serial();
         network = device->get_network();
+        wire    = device->get_wire();
+
+        wire->init();
 
         static auto v_mqtt{MQTT(network)};
         mqtt = &v_mqtt;
