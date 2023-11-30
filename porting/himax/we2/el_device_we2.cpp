@@ -39,6 +39,7 @@ extern "C" {
 #include "el_network_at.h"
 #include "el_network_we2.h"
 #include "el_serial_we2.h"
+#include "el_wire_we2.h"
 
 #define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
 
@@ -118,6 +119,9 @@ void DeviceWE2::init() {
 
     static NetworkWE2 network{};
     this->_network = &network;
+
+    static WireWE2 wire{0x62};
+    this->_wire = &wire;
 }
 
 void DeviceWE2::reset() { __NVIC_SystemReset(); }
