@@ -68,19 +68,18 @@ class MQTT final : public Supervisable, public Transport {
         _interface->remove_pre_down_callback(this);
 
         this->_is_present = false;
-
-        _interface = nullptr;
-        _network   = nullptr;
+        _mqtt_handler_ptr = nullptr;
+        _interface        = nullptr;
+        _network          = nullptr;
 
         if (_buffer) [[likely]] {
             delete[] _buffer;
             _buffer = nullptr;
         }
-
-        _mqtt_handler_ptr = nullptr;
     }
 
     void poll_from_supervisor() override {
+        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor()");
         auto mqtt_server_config        = std::pair<mqtt_sta_e, mqtt_server_config_t>{};
         bool mqtt_server_config_synced = true;
         {
@@ -93,6 +92,10 @@ class MQTT final : public Supervisable, public Transport {
                 while (_mqtt_server_config_queue.size() > 1) _mqtt_server_config_queue.pop_front();
             }
         }
+
+        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - mqtt_server_config_synced: %d", mqtt_server_config_synced);
+        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - target_status: %d", mqtt_server_config.first);
+        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - mqtt address: %s", mqtt_server_config.second.address);
 
         if (mqtt_server_config_synced) [[likely]] {
             auto current_sta = sync_status_from_driver();
@@ -217,7 +220,6 @@ class MQTT final : public Supervisable, public Transport {
     static inline void mqtt_subscribe_callback(char* top, int tlen, char* msg, int mlen) {
         if (!_mqtt_handler_ptr) [[unlikely]]
             return;
-
         auto this_ptr = static_cast<MQTT*>(_mqtt_handler_ptr);
 
         if (tlen ^ std::strlen(this_ptr->_mqtt_pubsub_config.sub_topic) ||
@@ -225,7 +227,7 @@ class MQTT final : public Supervisable, public Transport {
             return;
 
         if (!this_ptr->push_to_buffer(msg, mlen)) [[unlikely]]
-            EL_LOGI("MQTT buffer may corrupted");
+            EL_LOGI("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer corrupted");
     }
 
     inline bool push_to_buffer(const char* bytes, std::size_t size) {
@@ -254,14 +256,18 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     void bring_up(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
+        EL_LOGI("[SSCMA] MQTT::bring_up() checking interface status");
         if (!_interface->is_interface_up()) [[unlikely]]
             return;
 
         auto current_sta = sync_status_from_driver();
 
+        EL_LOGI("[SSCMA] MQTT::bring_up() current status: %d, target status: %d", current_sta, config.first);
+
         if (current_sta == mqtt_sta_e::DISCONNECTED) {
-            if (current_sta > config.first) return;
+            if (current_sta >= config.first) return;
             // TODO: driver change topic callback API
+            EL_LOGI("[SSCMA] MQTT::bring_up() driver connect: %s:%d", config.second.address, config.second.port);
             auto ret = _network->connect(config.second, mqtt_subscribe_callback);  // driver connect
             if (ret != EL_OK) [[unlikely]]
                 return;
@@ -270,11 +276,13 @@ class MQTT final : public Supervisable, public Transport {
         }
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
+            EL_LOGI("[SSCMA] MQTT::bring_up() driver subscribe: %s", _mqtt_pubsub_config.sub_topic);
             auto ret = _network->subscribe(_mqtt_pubsub_config.sub_topic,
                                            static_cast<mqtt_qos_t>(_mqtt_pubsub_config.sub_qos));  // driver subscribe
             if (ret != EL_OK) [[unlikely]]
                 return;
             _sub_topics_set.emplace(_mqtt_pubsub_config.sub_topic);
+            EL_LOGI("[SSCMA] MQTT::bring_up() emit_mqtt_discover()");
             emit_mqtt_discover();
         }
     }
@@ -284,14 +292,18 @@ class MQTT final : public Supervisable, public Transport {
 
         auto current_sta = sync_status_from_driver();
 
+        EL_LOGI("[SSCMA] MQTT::set_down() current status: %d, target status: %d", current_sta, config.first);
+
         if (current_sta == mqtt_sta_e::CONNECTED) {
             if (current_sta < config.first) return;
 
+            EL_LOGI("[SSCMA] MQTT::set_down() driver unsubscribe topic count: %d", _sub_topics_set.size());
             if (_sub_topics_set.size()) [[likely]] {
                 for (const auto& sub_topic : _sub_topics_set) _network->unsubscribe(sub_topic.c_str());
                 _sub_topics_set.clear();  // clear old topics
             }
 
+            EL_LOGI("[SSCMA] MQTT::set_down() - driver disconnect()");
             auto ret = _network->disconnect();  // driver disconnect
             if (ret != EL_OK) [[unlikely]]
                 return;

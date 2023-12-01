@@ -42,6 +42,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
     ~WiFi() = default;
 
     void poll_from_supervisor() override {
+        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor()");
         auto wifi_config        = std::pair<wifi_sta_e, wifi_config_t>{};
         bool wifi_config_synced = true;
         {
@@ -53,6 +54,10 @@ class WiFi final : public Supervisable, public StatefulInterface {
                 while (_wifi_config_queue.size() > 1) _wifi_config_queue.pop_front();
             }
         }
+
+        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - wifi_config_synced: %d", wifi_config_synced);
+        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - target_status: %d", wifi_config.first);
+        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - wifi name: %s", wifi_config.second.name);
 
         if (wifi_config_synced) [[likely]] {
             auto current_sta = sync_status_from_driver();
@@ -102,15 +107,18 @@ class WiFi final : public Supervisable, public StatefulInterface {
     void bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
+        EL_LOGI("[SSCMA] WiFi::bring_up() - current_sta: %d, target_sta: %d", current_sta, config.first);
+
         if (current_sta == wifi_sta_e::UNINTIALIZED) {
-            if (current_sta > config.first) return;
+            if (current_sta >= config.first) return;
             _network->init();  // driver init
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS, SSCMA_WIFI_POLL_RETRY);
         }
 
         if (current_sta == wifi_sta_e::IDLE) {
-            if (current_sta > config.first) return;
+            if (current_sta >= config.first) return;
+            EL_LOGI("[SSCMA] WiFi::bring_up() - wifi name: %s", config.second.name);
             auto ret = _network->join(config.second.name, config.second.passwd);  // driver join
             if (ret != EL_OK) [[unlikely]]
                 return;
@@ -119,6 +127,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
         }
 
         if (current_sta >= wifi_sta_e::JOINED) {
+            EL_LOGI("[SSCMA] WiFi::bring_up() - invoke_post_up_callbacks()");
             this->invoke_post_up_callbacks();  // StatefulInterface::invoke_post_up_callbacks()
         }
     }
@@ -126,14 +135,18 @@ class WiFi final : public Supervisable, public StatefulInterface {
     void set_down(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
+        EL_LOGI("[SSCMA] WiFi::set_down() - current_sta: %d, target_sta: %d", current_sta, config.first);
+
         if (current_sta >= wifi_sta_e::BUSY) {
             if (current_sta < config.first) return;
+            EL_LOGI("[SSCMA] WiFi::set_down() - invoke_pre_down_callbacks()");
             this->invoke_pre_down_callbacks();  // StatefulInterface::invoke_pre_down_callbacks()
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
 
         if (current_sta == wifi_sta_e::JOINED) {
             if (current_sta < config.first) return;
+            EL_LOGI("[SSCMA] WiFi::set_down() - driver quit()");
             auto ret = _network->quit();  // driver quit
             if (ret != EL_OK) [[unlikely]]
                 return;
@@ -142,6 +155,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
         if (current_sta == wifi_sta_e::IDLE) {
             if (current_sta < config.first) return;
+            EL_LOGI("[SSCMA] WiFi::set_down() - driver deinit()");
             _network->deinit();  // driver deinit
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
