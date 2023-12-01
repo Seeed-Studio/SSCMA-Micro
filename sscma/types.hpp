@@ -13,37 +13,38 @@ typedef std::function<void(void*)>                    branch_cb_t;
 typedef std::function<int(void*)>                     mutable_cb_t;
 typedef std::unordered_map<std::string, mutable_cb_t> mutable_map_t;
 
-typedef enum wireless_network_name_type_e : uint8_t { SSID, BSSID } wireless_network_name_type_e;
+typedef struct ipv4_addr_t {
+    uint8_t addr[4];
+} ipv4_addr_t;
 
-typedef enum wireless_network_secu_type_e : uint8_t {
-    AUTO = 0,
-    NONE,
-    WEP,
-    WPA1_WPA2,
-    WPA2_WPA3,
-    WPA3
-} wireless_network_secu_type_e;
+typedef struct ipv6_addr_t {
+    uint16_t addr[8];
+} ipv6_addr_t;
 
-typedef struct wireless_network_config_t {
-    wireless_network_name_type_e name_type;
-    char                         name[SSCMA_WIRELESS_NETWORK_NAME_LEN];
-    wireless_network_secu_type_e security_type;
-    char                         passwd[SSCMA_WIRELESS_NETWORK_PASSWD_LEN];
-} wireless_network_config_t;
+typedef struct in4_info_t {
+    ipv4_addr_t ip;
+    ipv4_addr_t netmask;
+    ipv4_addr_t gateway;
+    ipv4_addr_t dns_server;
+} in4_info_t;
 
-typedef struct ipv4_address_t {
-    char ip[SSCMA_IPV4_ADDRESS_LEN];
-    char netmask[SSCMA_IPV4_ADDRESS_LEN];
-    char gateway[SSCMA_IPV4_ADDRESS_LEN];
-} ipv4_address_t;
+typedef struct in6_info_t {
+    ipv6_addr_t ip;
+    ipv6_addr_t netmask;
+    ipv6_addr_t gateway;
+    ipv6_addr_t dns_server;
+} in6_info_t;
 
-typedef enum mqtt_secu_type_e : uint8_t {
-    TCP_NO_CERT = 1,
-    TLS_NO_CERT,
-    TLS_SERVER_CERT,
-    TLS_CLIENT_CERT,
-    TLS_BOTH_CERT
-} mqtt_secu_type_e;
+typedef enum wifi_name_type_e : uint8_t { SSID, BSSID } wifi_name_type_e;
+
+typedef enum wifi_secu_type_e : uint8_t { AUTO = 0, NONE, WEP, WPA1_WPA2, WPA2_WPA3, WPA3 } wifi_secu_type_e;
+
+typedef struct wifi_config_t {
+    wifi_name_type_e name_type;
+    char             name[SSCMA_WIFI_NAME_LEN];
+    wifi_secu_type_e security_type;
+    char             passwd[SSCMA_WIFI_PASSWD_LEN];
+} wifi_config_t;
 
 typedef struct mqtt_server_ssl_config_t {
     char  alpn[SSCMA_MQTT_SSL_ALPN_LEN];

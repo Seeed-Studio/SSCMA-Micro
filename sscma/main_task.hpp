@@ -3,19 +3,19 @@
 #include <algorithm>
 #include <forward_list>
 
+#include "callback/action.hpp"
+#include "callback/algorithm.hpp"
+#include "callback/common.hpp"
+#include "callback/info.hpp"
+#include "callback/invoke.hpp"
+#include "callback/model.hpp"
+#include "callback/mqtt.hpp"
+#include "callback/sample.hpp"
+#include "callback/sensor.hpp"
+#include "callback/wifi.hpp"
 #include "hooks.hpp"
-#include "sscma/callback/action.hpp"
-#include "sscma/callback/algorithm.hpp"
-#include "sscma/callback/common.hpp"
-#include "sscma/callback/info.hpp"
-#include "sscma/callback/invoke.hpp"
-#include "sscma/callback/model.hpp"
-#include "sscma/callback/mqtt.hpp"
-#include "sscma/callback/network.hpp"
-#include "sscma/callback/sample.hpp"
-#include "sscma/callback/sensor.hpp"
-#include "sscma/static_resource.hpp"
-#include "sscma/types.hpp"
+#include "static_resource.hpp"
+#include "types.hpp"
 
 namespace sscma::main_task {
 
@@ -36,11 +36,15 @@ void run() {
 void init_static_resource() {
     static_resource->init([]() {
         EL_LOGI("[SSCMA] running post init...");
-        std::string caller{"INIT"};
-        init_model_hook(caller);
-        init_sensor_hook(caller);
-        init_action_hook(caller);
-        init_network_supervisor_task_hook();
+        static_resource->executor->add_task([](const std::atomic<bool>&) {
+            std::string caller{"INIT"};
+            init_algorithm_hook(caller);
+            init_model_hook(caller);
+            init_sensor_hook(caller);
+            init_action_hook(caller);
+            init_wifi_hook(caller);
+            init_mqtt_hook(caller);
+        });
     });
 }
 
@@ -277,14 +281,14 @@ void register_commands() {
       "\"NAME\",SECURITY,\"PASSWORD\"",
       [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wireless_network(argv, caller); });
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_network(argv, caller); });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "WIFI?", "Get current Wi-Fi status and config", "", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_wireless_network(cmd, caller); });
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_wifi_network(cmd, caller); });
           return EL_OK;
       });
 
@@ -306,16 +310,6 @@ void register_commands() {
       });
 
     static_resource->instance->register_cmd(
-      "MQTTPUBSUB",
-      "Set the MQTT publish and subscribe topic",
-      "\"PUB_TOPIC\",PUB_QOS,\"SUB_TOPIC\",SUB_QOS",
-      [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_mqtt_pubsub(argv, caller); });
-          return EL_OK;
-      });
-
-    static_resource->instance->register_cmd(
       "MQTTPUBSUB?",
       "Get current MQTT publish and subscribe topic",
       "",
@@ -328,7 +322,7 @@ void register_commands() {
 
 void wait_for_inputs() {
     // mark the system status as ready
-    static_resource->is_ready.store(true);
+    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 

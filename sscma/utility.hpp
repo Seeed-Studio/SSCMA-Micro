@@ -266,7 +266,7 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
     return ss;
 }
 
-decltype(auto) wireless_network_config_2_json_str(const wireless_network_config_t& config, bool secure = true) {
+decltype(auto) wifi_config_2_json_str(const wifi_config_t& config, bool secure = true) {
     const auto& pwd = secure ? std::string(std::strlen(config.passwd), '*') : std::string(config.passwd);
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),
@@ -385,6 +385,69 @@ decltype(auto) get_default_mqtt_server_config(const Device* device) {
                   device->get_device_id());
 
     return default_config;
+}
+
+decltype(auto) inline ipv4_addr_to_str(const ipv4_addr_t& addr) {
+    return concat_strings(std::to_string(addr.addr[0]),
+                          ".",
+                          std::to_string(addr.addr[1]),
+                          ".",
+                          std::to_string(addr.addr[2]),
+                          ".",
+                          std::to_string(addr.addr[3]));
+}
+
+template <typename T> decltype(auto) dec_2_hex(T dec) {
+    static_assert(std::is_unsigned<T>::value);
+    static const char* digits = "0123456789abcdef";
+    if (dec == 0U) return std::string{};
+    std::size_t len  = sizeof(T) << 1;
+    std::size_t bits = (len - 1) << 2;
+    std::string hex(len, '0');
+    for (std::size_t i = 0, j = bits; i < len; ++i, j -= 4) hex[i] = digits[(dec >> j) & 0x0f];
+    return hex;
+}
+
+decltype(auto) inline ipv6_addr_to_str(const ipv6_addr_t& addr) {
+    return concat_strings(dec_2_hex(addr.addr[0]),
+                          ":",
+                          dec_2_hex(addr.addr[1]),
+                          ":",
+                          dec_2_hex(addr.addr[2]),
+                          ":",
+                          dec_2_hex(addr.addr[3]),
+                          ":",
+                          dec_2_hex(addr.addr[4]),
+                          ":",
+                          dec_2_hex(addr.addr[5]),
+                          ":",
+                          dec_2_hex(addr.addr[6]),
+                          ":",
+                          dec_2_hex(addr.addr[7]));
+}
+
+decltype(auto) in4_info_2_json_str(const in4_info_t& config) {
+    return concat_strings("{\"ip\": \"",
+                          ipv4_addr_to_str(config.ip),
+                          "\", \"netmask\": \"",
+                          ipv4_addr_to_str(config.netmask),
+                          "\", \"gateway\": \"",
+                          ipv4_addr_to_str(config.gateway),
+                          "\", \"dns_server\": \"",
+                          ipv4_addr_to_str(config.dns_server),
+                          "\"}");
+}
+
+decltype(auto) in6_info_2_json_str(const in6_info_t& config) {
+    return concat_strings("{\"ip\": \"",
+                          ipv6_addr_to_str(config.ip),
+                          "\", \"netmask\": \"",
+                          ipv6_addr_to_str(config.netmask),
+                          "\", \"gateway\": \"",
+                          ipv6_addr_to_str(config.gateway),
+                          "\", \"dns_server\": \"",
+                          ipv6_addr_to_str(config.dns_server),
+                          "\"}");
 }
 
 }  // namespace sscma::utility

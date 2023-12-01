@@ -7,7 +7,7 @@
 #include <string>
 
 #include "core/algorithm/el_algorithm_delegate.h"
-#include "shared/results_utility.hpp"
+#include "extension/results_filter.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
 #include "sscma/traits.hpp"
@@ -15,6 +15,7 @@
 
 namespace sscma::callback {
 
+using namespace sscma::extension;
 using namespace sscma::traits;
 using namespace sscma::utility;
 
