@@ -14,30 +14,34 @@
 #include "core/engine/el_engine_tflite.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
-#include "extension/mqtt_transport.hpp"
+#include "interface/transport/mqtt.hpp"
+#include "interface/wifi.hpp"
+#include "interpreter/condition.hpp"
 #include "porting/el_device.h"
-#include "sscma/interpreter/condition.hpp"
-#include "sscma/repl/executor.hpp"
-#include "sscma/repl/server.hpp"
-#include "sscma/utility.hpp"
+#include "repl/executor.hpp"
+#include "repl/server.hpp"
+#include "repl/supervisor.hpp"
+#include "utility.hpp"
 
 namespace sscma {
 
 using namespace edgelab;
 using namespace edgelab::base;
 
-using namespace sscma::extension;
-using namespace sscma::repl;
-using namespace sscma::interpreter;
 using namespace sscma::types;
 using namespace sscma::utility;
+using namespace sscma::interface;
+using namespace sscma::transport;
+using namespace sscma::repl;
+using namespace sscma::interpreter;
 
 class StaticResource final {
    public:
     // SSCMA library feature handlers
-    Server*    instance;
-    Executor*  executor;
-    Condition* action;
+    Server*     instance;
+    Executor*   executor;
+    Supervisor* supervisor;
+    Condition*  action;
 
     // internal configs that stored in flash
     int32_t             boot_count;
@@ -54,8 +58,8 @@ class StaticResource final {
     // external resources (hardware related)
     Device*            device;
     Serial*            serial;
-    Network*           network;
     Wire*              wire;
+    WiFi*              wifi;
     MQTT*              mqtt;
     Models*            models;
     Storage*           storage;
@@ -76,13 +80,13 @@ class StaticResource final {
         // Important: init device first before using it (serial, network, etc.)
         device->init();
 
-        serial  = device->get_serial();
-        network = device->get_network();
-        wire    = device->get_wire();
+        serial = device->get_serial();
+        wire   = device->get_wire();
 
-        wire->init();
+        static auto v_wifi{WiFi()};
+        wifi = &v_wifi;
 
-        static auto v_mqtt{MQTT(network)};
+        static auto v_mqtt{MQTT(wifi)};
         mqtt = &v_mqtt;
 
         static auto v_instance{Server()};
@@ -90,6 +94,8 @@ class StaticResource final {
 
         static auto v_executor{Executor(SSCMA_REPL_EXECUTOR_STACK_SIZE, SSCMA_REPL_EXECUTOR_PRIO)};
         executor = &v_executor;
+
+        supervisor = Supervisor::get_supervisor();
 
         static auto v_action{Condition()};
         action = &v_action;
@@ -133,6 +139,7 @@ class StaticResource final {
     inline void init_hardware() {
         EL_LOGI("[SSCMA] initializing basic IO devices...");
         serial->init();
+        wire->init();
     }
 
     inline void init_backend() {
