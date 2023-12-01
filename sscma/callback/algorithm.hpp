@@ -41,7 +41,9 @@ void set_algorithm(const std::string&  cmd,
             ret = static_resource->storage->emplace(el_make_storage_kv_from_type(algorithm_info.type)) ? EL_OK : EL_EIO;
     }
 
-    const std::string& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+    const std::string& ss{concat_strings("\r{\"type\": ",
+                                         called_by_event ? "1" : "0",
+                                         ", \"name\": \"",
                                          cmd,
                                          "\", \"code\": ",
                                          std::to_string(ret),
