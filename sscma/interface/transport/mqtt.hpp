@@ -43,7 +43,7 @@ class MQTT final : public Supervisable, public Transport {
           _network(Device::get_device()->get_network()),
           _device_lock(),
           _size(SSCMA_CMD_MAX_LENGTH << 1),  // 2 times of the max length of command
-          _buffer(new char[_size]),
+          _buffer(new char[_size]{}),
           _head(0),
           _tail(0),
           _mqtt_server_config_lock(),
@@ -53,7 +53,6 @@ class MQTT final : public Supervisable, public Transport {
         EL_ASSERT(_interface);
         EL_ASSERT(_network);
         EL_ASSERT(_buffer);
-        std::memset(_buffer, 0, _size);
         _mqtt_handler_ptr   = this;
         _mqtt_pubsub_config = get_default_mqtt_pubsub_config(Device::get_device());
         _mqtt_server_config_queue.emplace_back(sync_status_from_driver(), mqtt_server_config_t{});
@@ -178,33 +177,26 @@ class MQTT final : public Supervisable, public Transport {
         if (!buffer | !size) [[unlikely]]
             return 0;
 
-        auto        head = _head;
-        auto        tail = _tail;
-        auto        prev = tail;
-        std::size_t len  = 0;
+        auto              head    = _head;
+        auto              tail    = _tail;
+        auto              prev    = tail;
+        std::size_t const len_max = size - 1;
+        std::size_t       len     = 0;
 
-        char c = _buffer[tail];
-        while (tail != head) {
+        for (char c = _buffer[tail]; tail != head; tail = (tail + 1) % _size, ++len) {
             if ((c == delim) | (c == '\0')) {
-                ++len;
                 tail = (tail + 1) % _size;
-                goto GetTheLine;
+                len += c != '\0';
+                break;
             }
-            ++len;
-            tail = (tail + 1) % _size;
-            c    = _buffer[tail];
         }
 
-        return 0;
+        if (len) {
+            for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
+            _tail = tail;
+        }
 
-    GetTheLine:
-        // here we're not care about the delim or terminator '\0'
-        // if len reach the size and the delim is not '\0', the buffer will not be null-terminated
-        size = len < size ? len : size;
-        for (std::size_t i = 0; i < size; ++i) buffer[i] = _buffer[(prev + i) % _size];
-        _tail = tail;
-
-        return size;
+        return len;
     }
 
     void emit_mqtt_discover() {
@@ -227,7 +219,7 @@ class MQTT final : public Supervisable, public Transport {
             return;
 
         if (!this_ptr->push_to_buffer(msg, mlen)) [[unlikely]]
-            EL_LOGI("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer corrupted");
+            EL_LOGI("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer may corrupted");
     }
 
     inline bool push_to_buffer(const char* bytes, std::size_t size) {
@@ -243,6 +235,7 @@ class MQTT final : public Supervisable, public Transport {
             if (head == tail) [[unlikely]]
                 return false;  // buffer corrupted
         }
+
         _head = head;
 
         return true;
