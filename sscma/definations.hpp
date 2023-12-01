@@ -13,11 +13,18 @@
     #define SSCMA_REPL_EXECUTOR_PRIO 5
 #endif
 
+#define SSCMA_REPL_SUPERVISOR_NAME       "sscma#supervisor"
+#define SSCMA_REPL_SUPERVISOR_STACK_SIZE 4096U
+#ifndef SSCMA_REPL_SUPERVISOR_PRIO
+    #define SSCMA_REPL_SUPERVISOR_PRIO 1
+#endif
+#define SSCMA_REPL_SUPERVISOR_POLL_DELAY     5000
+
 #define SSCMA_REPL_HISTORY_MAX               8
 
 #define SSCMA_AT_API_MAJOR_VERSION           "v0"
 
-#define SSCMA_CMD_MAX_LENGTH                 4096
+#define SSCMA_CMD_MAX_LENGTH                 4096U
 
 #define SSCMA_STORAGE_KEY_VERSION            "sscma#version"
 #define SSCMA_STORAGE_KEY_ACTION             "sscma#action"
@@ -26,18 +33,20 @@
 #define SSCMA_STORAGE_KEY_CONF_MODEL_ID      "sscma#conf#model_id"
 #define SSCMA_STORAGE_KEY_CONF_SENSOR_ID     "sscma#conf#sensor_id"
 
-#define SSCMA_NETWORK_SUPERVISOR_NAME        "sscma#network#supervisor"
-#define SSCMA_NETWORK_SUPERVISOR_STACK_SIZE  4096
-#define SSCMA_NETWORK_SUPERVISOR_PRIO        1
-#define SSCMA_NETWORK_SUPERVISOR_POLL_DELAY  5000
-
 #define SSCMA_WIRELESS_NETWORK_NAME_LEN      32
 #define SSCMA_WIRELESS_NETWORK_PASSWD_LEN    64
 #define SSCMA_WIRELESS_NETWORK_POLL_RETRY    200
 #define SSCMA_WIRELESS_NETWORK_POLL_DELAY_MS 50
 
+#define SSCMA_WIFI_NAME_LEN                  32
+#define SSCMA_WIFI_PASSWD_LEN                64
+#define SSCMA_WIFI_POLL_RETRY                200
+#define SSCMA_WIFI_POLL_DELAY_MS             50
+
 #define SSCMA_IPV4_ADDRESS_LEN               16
 
+#define SSCMA_MQTT_DEFAULT_PORT              1883
+#define SSCMA_MQTT_DEFAULT_SSL_PORT          8883
 #define SSCMA_MQTT_POLL_RETRY                200
 #define SSCMA_MQTT_POLL_DELAY_MS             50
 #define SSCMA_MQTT_CLIENT_ID_LEN             32
