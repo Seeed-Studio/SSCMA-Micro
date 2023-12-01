@@ -9,7 +9,7 @@
 #include "core/el_types.h"
 #include "sscma/utility.hpp"
 
-namespace sscma::utility {
+namespace sscma::extension {
 
 // categorize results by target class
 // the returned view is a list of pairs of target class and a list of pointers to results
