@@ -257,7 +257,10 @@ class MQTT final : public Supervisable, public Transport {
             current_sta = sync_status_from_driver();  // sync internal status
         }
 
-        if (current_sta == mqtt_sta_e::ACTIVE) return true;
+        if (current_sta == mqtt_sta_e::ACTIVE) {
+            emit_mqtt_discover();
+            return true;
+        }
 
         return false;
     }
