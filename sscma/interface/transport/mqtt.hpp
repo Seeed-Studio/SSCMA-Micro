@@ -2,15 +2,12 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
 #include <unordered_set>
 #include <utility>
 
 #include "core/el_debug.h"
 #include "core/el_types.h"
-#include "core/synchronize/el_guard.hpp"
-#include "core/synchronize/el_mutex.hpp"
 #include "porting/el_device.h"
 #include "porting/el_misc.h"
 #include "porting/el_transport.h"
@@ -30,7 +27,7 @@ using namespace sscma::utility;
 
 namespace types {
 
-typedef enum class mqtt_sta_e { UNKNOWN = 0, DISCONNECTED, CONNECTED, BUSY } mqtt_sta_e;
+typedef enum class mqtt_sta_e { UNKNOWN = 0, DISCONNECTED, CONNECTED, ACTIVE } mqtt_sta_e;
 
 }
 
@@ -46,8 +43,8 @@ class MQTT final : public Supervisable, public Transport {
           _buffer(new char[_size]{}),
           _head(0),
           _tail(0),
-          _mqtt_server_config_lock(),
-          _mqtt_server_config_queue(),
+          _mqtt_server_config(std::pair<mqtt_sta_e, mqtt_server_config_t>{
+            mqtt_sta_e::UNKNOWN, get_default_mqtt_server_config(Device::get_device())}),
           _mqtt_pubsub_config(),
           _sub_topics_set() {
         EL_ASSERT(_interface);
@@ -55,18 +52,20 @@ class MQTT final : public Supervisable, public Transport {
         EL_ASSERT(_buffer);
         _mqtt_handler_ptr   = this;
         _mqtt_pubsub_config = get_default_mqtt_pubsub_config(Device::get_device());
-        _mqtt_server_config_queue.emplace_back(sync_status_from_driver(), mqtt_server_config_t{});
-        this->_is_present = true;
+
         _interface->add_pre_down_callback(this, [](void* from) {
             auto mqtt = static_cast<MQTT*>(from);
             mqtt->set_down({mqtt_sta_e::DISCONNECTED, mqtt->get_last_mqtt_server_config()});
         });
+
+        this->_is_present = true;
     }
 
     ~MQTT() {
+        this->_is_present = false;
+
         _interface->remove_pre_down_callback(this);
 
-        this->_is_present = false;
         _mqtt_handler_ptr = nullptr;
         _interface        = nullptr;
         _network          = nullptr;
@@ -79,30 +78,15 @@ class MQTT final : public Supervisable, public Transport {
 
     void poll_from_supervisor() override {
         EL_LOGI("[SSCMA] MQTT::poll_from_supervisor()");
-        auto mqtt_server_config        = std::pair<mqtt_sta_e, mqtt_server_config_t>{};
-        bool mqtt_server_config_synced = true;
-        {
-            const Guard guard(_mqtt_server_config_lock);
-            mqtt_server_config = _mqtt_server_config_queue.front();
 
-            if (_mqtt_server_config_queue.size() > 1) [[unlikely]] {
-                mqtt_server_config        = _mqtt_server_config_queue.back();
-                mqtt_server_config_synced = false;
-                while (_mqtt_server_config_queue.size() > 1) _mqtt_server_config_queue.pop_front();
-            }
-        }
-
-        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - mqtt_server_config_synced: %d", mqtt_server_config_synced);
-        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - target_status: %d", mqtt_server_config.first);
-        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor() - mqtt address: %s", mqtt_server_config.second.address);
-
-        if (mqtt_server_config_synced) [[likely]] {
-            auto current_sta = sync_status_from_driver();
-            if (current_sta < mqtt_server_config.first) [[unlikely]]
-                bring_up(mqtt_server_config);
+        if (_mqtt_server_config.is_synchorized()) [[likely]] {
+            const auto& config      = _mqtt_server_config.load_last();
+            auto        current_sta = sync_status_from_driver();
+            if (current_sta < config.second.first) [[unlikely]]
+                bring_up(config.second);
         } else {
-            set_down(mqtt_server_config);
-            bring_up(mqtt_server_config);
+            auto config = _mqtt_server_config.load();
+            if (set_down(config.second) && bring_up(config.second)) _mqtt_server_config.synchorize(std::move(config));
         }
     }
 
@@ -114,24 +98,16 @@ class MQTT final : public Supervisable, public Transport {
             else
                 mqtt_server_config.port = SSCMA_MQTT_DEFAULT_PORT;
         }
-
-        const Guard guard(_mqtt_server_config_lock);
-        _mqtt_server_config_queue.emplace_back(
-          std::strlen(mqtt_server_config.address) ? mqtt_sta_e::CONNECTED : mqtt_sta_e::DISCONNECTED,
-          mqtt_server_config);
-
+        _mqtt_server_config.store(std::pair<mqtt_sta_e, mqtt_server_config_t>{
+          std::strlen(mqtt_server_config.address) ? mqtt_sta_e::ACTIVE : mqtt_sta_e::DISCONNECTED, mqtt_server_config});
         return true;
     }
 
-    mqtt_server_config_t get_last_mqtt_server_config() const {
-        const Guard guard(_mqtt_server_config_lock);
-        return _mqtt_server_config_queue.front().second;
-    }
+    mqtt_server_config_t get_mqtt_server_config() const { return _mqtt_server_config.load().second.second; }
 
-    bool is_mqtt_server_config_synchornized() const {
-        const Guard guard(_mqtt_server_config_lock);
-        return _mqtt_server_config_queue.size() <= 1;
-    }
+    mqtt_server_config_t get_last_mqtt_server_config() const { return _mqtt_server_config.load_last().second.second; }
+
+    bool is_mqtt_server_config_synchornized() const { return _mqtt_server_config.is_synchorized(); }
 
     bool is_mqtt_server_connected() const { return sync_status_from_driver() >= mqtt_sta_e::CONNECTED; }
 
@@ -183,7 +159,7 @@ class MQTT final : public Supervisable, public Transport {
         std::size_t const len_max = size - 1;
         std::size_t       len     = 0;
 
-        for (char c = _buffer[tail]; tail != head; tail = (tail + 1) % _size, ++len) {
+        for (char c = _buffer[tail]; (tail != head) & (len < len_max); tail = (tail + 1) % _size, ++len) {
             if ((c == delim) | (c == '\0')) {
                 tail = (tail + 1) % _size;
                 len += c != '\0';
@@ -226,82 +202,94 @@ class MQTT final : public Supervisable, public Transport {
         if (!bytes | !size) [[unlikely]]
             return true;
 
-        auto head = _head;
-        auto tail = _tail;
+        auto head      = _head;
+        auto tail      = _tail;
+        bool corrupted = false;
 
         for (std::size_t i = 0; i < size; ++i) {
             _buffer[head] = bytes[i];
             head          = (head + 1) % _size;
-            if (head == tail) [[unlikely]]
-                return false;  // buffer corrupted
+            corrupted |= head == tail;
         }
-
+        if (corrupted) [[unlikely]]
+            _tail = head;
         _head = head;
 
-        return true;
+        return !corrupted;
     }
 
     inline el_err_code_t m_send_bytes(const char* topic, uint8_t qos, const char* buffer, std::size_t size) {
         const Guard guard(_device_lock);
-        if (sync_status_from_driver() != mqtt_sta_e::CONNECTED) [[unlikely]]
+        if (this->_is_present == false) [[unlikely]]
             return EL_EPERM;
         return _network->publish(topic, buffer, size, static_cast<mqtt_qos_t>(qos));
     }
 
-    void bring_up(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
+    bool bring_up(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
         EL_LOGI("[SSCMA] MQTT::bring_up() checking interface status");
         if (!_interface->is_interface_up()) [[unlikely]]
-            return;
+            return false;
 
         auto current_sta = sync_status_from_driver();
 
         EL_LOGI("[SSCMA] MQTT::bring_up() current status: %d, target status: %d", current_sta, config.first);
 
         if (current_sta == mqtt_sta_e::DISCONNECTED) {
-            if (current_sta >= config.first) return;
-            // TODO: driver change topic callback API
+            if (current_sta >= config.first) return true;
             EL_LOGI("[SSCMA] MQTT::bring_up() driver connect: %s:%d", config.second.address, config.second.port);
+            // TODO: driver change topic callback API
             auto ret = _network->connect(config.second, mqtt_subscribe_callback);  // driver connect
             if (ret != EL_OK) [[unlikely]]
-                return;
+                return false;
+            this->_is_present = true;
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_MQTT_POLL_DELAY_MS, SSCMA_MQTT_POLL_RETRY);
         }
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
+            if (current_sta >= config.first) return true;
             EL_LOGI("[SSCMA] MQTT::bring_up() driver subscribe: %s", _mqtt_pubsub_config.sub_topic);
             auto ret = _network->subscribe(_mqtt_pubsub_config.sub_topic,
                                            static_cast<mqtt_qos_t>(_mqtt_pubsub_config.sub_qos));  // driver subscribe
             if (ret != EL_OK) [[unlikely]]
-                return;
+                return false;
             _sub_topics_set.emplace(_mqtt_pubsub_config.sub_topic);
-            EL_LOGI("[SSCMA] MQTT::bring_up() emit_mqtt_discover()");
-            emit_mqtt_discover();
+            current_sta = sync_status_from_driver();  // sync internal status
         }
+
+        if (current_sta == mqtt_sta_e::ACTIVE) return true;
+
+        return false;
     }
 
-    void set_down(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
+    bool set_down(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
         const Guard guard(_device_lock);
 
         auto current_sta = sync_status_from_driver();
 
         EL_LOGI("[SSCMA] MQTT::set_down() current status: %d, target status: %d", current_sta, config.first);
 
-        if (current_sta == mqtt_sta_e::CONNECTED) {
-            if (current_sta < config.first) return;
-
+        if (current_sta == mqtt_sta_e::ACTIVE) {
+            if (current_sta < config.first) return true;
             EL_LOGI("[SSCMA] MQTT::set_down() driver unsubscribe topic count: %d", _sub_topics_set.size());
-            if (_sub_topics_set.size()) [[likely]] {
-                for (const auto& sub_topic : _sub_topics_set) _network->unsubscribe(sub_topic.c_str());
-                _sub_topics_set.clear();  // clear old topics
-            }
+            for (const auto& sub_topic : _sub_topics_set) _network->unsubscribe(sub_topic.c_str());
+            _sub_topics_set.clear();                  // clear old topics
+            current_sta = sync_status_from_driver();  // sync internal status
+        }
 
+        if (current_sta == mqtt_sta_e::CONNECTED) {
+            if (current_sta < config.first) return true;
             EL_LOGI("[SSCMA] MQTT::set_down() - driver disconnect()");
             auto ret = _network->disconnect();  // driver disconnect
             if (ret != EL_OK) [[unlikely]]
-                return;
-            current_sta = ensure_status_changed_from(current_sta, SSCMA_MQTT_POLL_DELAY_MS);
+                return false;
+            this->_is_present = false;
+            current_sta       = ensure_status_changed_from(current_sta, SSCMA_MQTT_POLL_DELAY_MS);
         }
+
+        if (current_sta == mqtt_sta_e::DISCONNECTED) return true;
+
+        return false;
     }
 
     mqtt_sta_e try_ensure_wifi_status_changed_from(mqtt_sta_e old_sta, uint32_t delay_ms, std::size_t n_times) {
@@ -332,6 +320,7 @@ class MQTT final : public Supervisable, public Transport {
         case NETWORK_JOINED:
             return mqtt_sta_e::DISCONNECTED;
         case NETWORK_CONNECTED:
+            if (_sub_topics_set.size()) return mqtt_sta_e::ACTIVE;
             return mqtt_sta_e::CONNECTED;
         default:
             return mqtt_sta_e::UNKNOWN;
@@ -341,8 +330,7 @@ class MQTT final : public Supervisable, public Transport {
    private:
     StatefulInterface* _interface;
     Network*           _network;
-
-    Mutex _device_lock;
+    Mutex              _device_lock;
 
     static MQTT*         _mqtt_handler_ptr;
     const std::size_t    _size;
@@ -350,10 +338,9 @@ class MQTT final : public Supervisable, public Transport {
     volatile std::size_t _head;
     volatile std::size_t _tail;
 
-    Mutex                                                  _mqtt_server_config_lock;
-    std::list<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config_queue;
-    mqtt_pubsub_config_t                                   _mqtt_pubsub_config;
-    std::unordered_set<std::string>                        _sub_topics_set;
+    SynchronizableObject<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config;
+    mqtt_pubsub_config_t                                              _mqtt_pubsub_config;
+    std::unordered_set<std::string>                                   _sub_topics_set;
 };
 
 // Important: due to driver's API, the MQTT handler must be a singleton currently

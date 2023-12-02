@@ -25,14 +25,12 @@ typedef struct in4_info_t {
     ipv4_addr_t ip;
     ipv4_addr_t netmask;
     ipv4_addr_t gateway;
-    ipv4_addr_t dns_server;
 } in4_info_t;
 
 typedef struct in6_info_t {
     ipv6_addr_t ip;
-    ipv6_addr_t netmask;
+    ipv6_addr_t prefix;
     ipv6_addr_t gateway;
-    ipv6_addr_t dns_server;
 } in6_info_t;
 
 typedef enum wifi_name_type_e : uint8_t { SSID, BSSID } wifi_name_type_e;

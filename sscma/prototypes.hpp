@@ -80,6 +80,64 @@ class StatefulInterface : public Interface {
     std::list<std::pair<void*, hooked_cb_t>> _pre_down_callbacks;
 };
 
+template <typename T> class SynchronizableObject {
+   public:
+    SynchronizableObject(T&& init)
+        : _lock(), _prev(new std::pair<std::size_t, T>(0, std::forward<T>(init))), _next(nullptr) {}
+
+    ~SynchronizableObject() {
+        if (_prev) {
+            delete _prev;
+            _prev = nullptr;
+        }
+        if (_next) {
+            delete _next;
+            _next = nullptr;
+        }
+    }
+
+    inline bool is_synchorized() const {
+        const Guard guard(_lock);
+        if (_next) return _prev->first == _next->first;
+        return true;
+    }
+
+    void store(T&& next) {
+        const Guard guard(_lock);
+        if (_next) {
+            _next->first++;
+            _next->second = std::forward<T>(next);
+        } else
+            _next = new std::pair<std::size_t, T>(_prev->first + 1, std::forward<T>(next));
+    }
+
+    std::pair<std::size_t, T> load() const {
+        const Guard guard(_lock);
+        if (_next) return *_next;
+        return *_prev;
+    }
+
+    const std::pair<std::size_t, T>& load_last() const {
+        const Guard guard(_lock);
+        return *_prev;
+    }
+
+    void synchorize(std::pair<std::size_t, T>&& target) {
+        const Guard guard(_lock);
+        if (_prev->first ^ target.first) *_prev = std::forward<std::pair<std::size_t, T>>(target);
+
+        if (_next && _next->first == _prev->first) {
+            delete _next;
+            _next = nullptr;
+        }
+    }
+
+   private:
+    Mutex                      _lock;
+    std::pair<std::size_t, T>* _prev;
+    std::pair<std::size_t, T>* _next;
+};
+
 }  // namespace prototypes
 
 }  // namespace sscma
