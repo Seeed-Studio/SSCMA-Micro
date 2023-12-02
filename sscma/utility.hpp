@@ -433,20 +433,17 @@ decltype(auto) in4_info_2_json_str(const in4_info_t& config) {
                           ipv4_addr_to_str(config.netmask),
                           "\", \"gateway\": \"",
                           ipv4_addr_to_str(config.gateway),
-                          "\", \"dns_server\": \"",
-                          ipv4_addr_to_str(config.dns_server),
                           "\"}");
 }
 
 decltype(auto) in6_info_2_json_str(const in6_info_t& config) {
     return concat_strings("{\"ip\": \"",
                           ipv6_addr_to_str(config.ip),
-                          "\", \"netmask\": \"",
-                          ipv6_addr_to_str(config.netmask),
+                          "\", \"prefix\": \"",
+                          ipv6_addr_to_str(config.prefix),
                           "\", \"gateway\": \"",
                           ipv6_addr_to_str(config.gateway),
-                          "\", \"dns_server\": \"",
-                          ipv6_addr_to_str(config.dns_server),
+
                           "\"}");
 }
 
