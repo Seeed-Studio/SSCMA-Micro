@@ -94,7 +94,8 @@ void register_commands() {
 
     static_resource->instance->register_cmd(
       "BREAK", "Stop all running tasks", "", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->try_stop_task();
+          if (static_resource->is_ready.load()) [[likely]]
+              static_resource->executor->try_stop_task();
           static_resource->executor->add_task([cmd = std::move(argv[0]), caller](const std::atomic<bool>&) {
               static_resource->current_task_id.fetch_add(1);
               break_task(cmd, caller);
