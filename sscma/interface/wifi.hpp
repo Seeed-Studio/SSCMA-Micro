@@ -2,13 +2,10 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
 #include <utility>
 
 #include "core/el_types.h"
-#include "core/synchronize/el_guard.hpp"
-#include "core/synchronize/el_mutex.hpp"
 #include "porting/el_device.h"
 #include "porting/el_misc.h"
 #include "porting/el_network.h"
@@ -34,38 +31,25 @@ namespace interface {
 
 class WiFi final : public Supervisable, public StatefulInterface {
    public:
-    WiFi() : _network(Device::get_device()->get_network()), _wifi_config_lock(), _wifi_config_queue() {
+    WiFi()
+        : _network(Device::get_device()->get_network()),
+          _wifi_config(std::pair<wifi_sta_e, wifi_config_t>{wifi_sta_e::UNKNOWN, wifi_config_t{}}) {
         EL_ASSERT(_network);
-        _wifi_config_queue.emplace_back(sync_status_from_driver(), wifi_config_t{});
     }
 
     ~WiFi() = default;
 
     void poll_from_supervisor() override {
         EL_LOGI("[SSCMA] WiFi::poll_from_supervisor()");
-        auto wifi_config        = std::pair<wifi_sta_e, wifi_config_t>{};
-        bool wifi_config_synced = true;
-        {
-            const Guard guard(_wifi_config_lock);
-            wifi_config = _wifi_config_queue.front();
-            if (_wifi_config_queue.size() > 1) [[unlikely]] {
-                wifi_config        = _wifi_config_queue.back();
-                wifi_config_synced = false;
-                while (_wifi_config_queue.size() > 1) _wifi_config_queue.pop_front();
-            }
-        }
 
-        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - wifi_config_synced: %d", wifi_config_synced);
-        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - target_status: %d", wifi_config.first);
-        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor() - wifi name: %s", wifi_config.second.name);
-
-        if (wifi_config_synced) [[likely]] {
-            auto current_sta = sync_status_from_driver();
-            if (current_sta < wifi_config.first) [[unlikely]]
-                bring_up(wifi_config);
+        if (_wifi_config.is_synchorized()) [[likely]] {
+            const auto& config      = _wifi_config.load_last();
+            auto        current_sta = sync_status_from_driver();
+            if (current_sta < config.second.first) [[unlikely]]
+                bring_up(config.second);
         } else {
-            set_down(wifi_config);
-            bring_up(wifi_config);
+            auto config = _wifi_config.load();
+            if (set_down(config.second) && bring_up(config.second)) _wifi_config.synchorize(std::move(config));
         }
     }
 
@@ -74,26 +58,16 @@ class WiFi final : public Supervisable, public StatefulInterface {
     bool set_wifi_config(const wifi_config_t& wifi_config) {
         if (wifi_config.security_type > wifi_secu_type_e::NONE && std::strlen(wifi_config.passwd) < 8) [[unlikely]]
             return false;  // password too short
-        const Guard guard(_wifi_config_lock);
-        _wifi_config_queue.emplace_back(std::strlen(wifi_config.name) ? wifi_sta_e::JOINED : wifi_sta_e::UNINTIALIZED,
-                                        wifi_config);
+        _wifi_config.store(std::pair<wifi_sta_e, wifi_config_t>{
+          std::strlen(wifi_config.name) ? wifi_sta_e::JOINED : wifi_sta_e::UNINTIALIZED, wifi_config});
         return true;
     }
 
-    wifi_config_t get_wifi_config() const {
-        const Guard guard(_wifi_config_lock);
-        return _wifi_config_queue.front().second;
-    }
+    wifi_config_t get_wifi_config() const { return _wifi_config.load().second.second; }
 
-    wifi_config_t get_last_wifi_config() const {
-        const Guard guard(_wifi_config_lock);
-        return _wifi_config_queue.back().second;
-    }
+    wifi_config_t get_last_wifi_config() const { return _wifi_config.load_last().second.second; }
 
-    bool is_wifi_config_synchornized() const {
-        const Guard guard(_wifi_config_lock);
-        return _wifi_config_queue.size() <= 1;
-    }
+    bool is_wifi_config_synchornized() const { return _wifi_config.is_synchorized(); }
 
     bool is_wifi_joined() const { return sync_status_from_driver() >= wifi_sta_e::JOINED; }
 
@@ -104,61 +78,68 @@ class WiFi final : public Supervisable, public StatefulInterface {
     in6_info_t get_in6_info() const { return {}; }
 
    protected:
-    void bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
+    bool bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
         EL_LOGI("[SSCMA] WiFi::bring_up() - current_sta: %d, target_sta: %d", current_sta, config.first);
 
         if (current_sta == wifi_sta_e::UNINTIALIZED) {
-            if (current_sta >= config.first) return;
+            if (current_sta >= config.first) return true;
             _network->init();  // driver init
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS, SSCMA_WIFI_POLL_RETRY);
         }
 
         if (current_sta == wifi_sta_e::IDLE) {
-            if (current_sta >= config.first) return;
+            if (current_sta >= config.first) return true;
             EL_LOGI("[SSCMA] WiFi::bring_up() - wifi name: %s", config.second.name);
             auto ret = _network->join(config.second.name, config.second.passwd);  // driver join
             if (ret != EL_OK) [[unlikely]]
-                return;
+                return false;
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS, SSCMA_WIFI_POLL_RETRY);
         }
 
-        if (current_sta >= wifi_sta_e::JOINED) {
+        if (current_sta == wifi_sta_e::JOINED) {
             EL_LOGI("[SSCMA] WiFi::bring_up() - invoke_post_up_callbacks()");
-            this->invoke_post_up_callbacks();  // StatefulInterface::invoke_post_up_callbacks()
+            this->invoke_post_up_callbacks();
+            return true;
         }
+
+        return false;
     }
 
-    void set_down(const std::pair<wifi_sta_e, wifi_config_t>& config) {
+    bool set_down(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
         EL_LOGI("[SSCMA] WiFi::set_down() - current_sta: %d, target_sta: %d", current_sta, config.first);
 
-        if (current_sta >= wifi_sta_e::BUSY) {
-            if (current_sta < config.first) return;
+        if (current_sta == wifi_sta_e::BUSY) {
+            if (current_sta < config.first) return true;
             EL_LOGI("[SSCMA] WiFi::set_down() - invoke_pre_down_callbacks()");
-            this->invoke_pre_down_callbacks();  // StatefulInterface::invoke_pre_down_callbacks()
+            this->invoke_pre_down_callbacks();
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
 
         if (current_sta == wifi_sta_e::JOINED) {
-            if (current_sta < config.first) return;
+            if (current_sta < config.first) return true;
             EL_LOGI("[SSCMA] WiFi::set_down() - driver quit()");
             auto ret = _network->quit();  // driver quit
             if (ret != EL_OK) [[unlikely]]
-                return;
+                return false;
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
 
         if (current_sta == wifi_sta_e::IDLE) {
-            if (current_sta < config.first) return;
+            if (current_sta < config.first) return true;
             EL_LOGI("[SSCMA] WiFi::set_down() - driver deinit()");
             _network->deinit();  // driver deinit
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
+
+        if (current_sta == wifi_sta_e::UNINTIALIZED) return true;
+
+        return false;
     }
 
     wifi_sta_e try_ensure_wifi_status_changed_from(wifi_sta_e old_sta, uint32_t delay_ms, std::size_t n_times) {
@@ -198,8 +179,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
    private:
     Network* _network;
 
-    Mutex                                           _wifi_config_lock;
-    std::list<std::pair<wifi_sta_e, wifi_config_t>> _wifi_config_queue;
+    SynchorizableObject<std::pair<wifi_sta_e, wifi_config_t>> _wifi_config;
 };
 
 }  // namespace interface
