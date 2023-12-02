@@ -43,7 +43,7 @@ void get_wifi_network(const std::string& cmd, void* caller) {
     uint8_t sta_code = joined ? (updated ? 2 : 1) : 0;
     auto    in4      = static_resource->wifi->get_in4_info();
     auto    in6      = static_resource->wifi->get_in6_info();
-    auto    config   = static_resource->wifi->get_last_wifi_config();
+    auto    config   = static_resource->wifi->get_wifi_config();
     static_resource->storage->get(el_make_storage_kv_from_type(config));  // discard return error code
 
     // 0: idle

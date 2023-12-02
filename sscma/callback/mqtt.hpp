@@ -55,7 +55,7 @@ void get_mqtt_server(const std::string& cmd, void* caller) {
     bool    connected = static_resource->mqtt->is_mqtt_server_connected();
     bool    updated   = static_resource->mqtt->is_mqtt_server_config_synchornized();
     uint8_t sta_code  = connected ? (updated ? 2 : 1) : 0;
-    auto    config    = static_resource->mqtt->get_last_mqtt_server_config();
+    auto    config    = static_resource->mqtt->get_mqtt_server_config();
     static_resource->storage->get(el_make_storage_kv_from_type(config));  // discard return error code
 
     // 0: joined
