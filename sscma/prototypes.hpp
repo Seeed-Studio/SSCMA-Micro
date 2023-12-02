@@ -80,12 +80,12 @@ class StatefulInterface : public Interface {
     std::list<std::pair<void*, hooked_cb_t>> _pre_down_callbacks;
 };
 
-template <typename T> class SynchorizableObject {
+template <typename T> class SynchronizableObject {
    public:
-    SynchorizableObject(T&& init)
+    SynchronizableObject(T&& init)
         : _lock(), _prev(new std::pair<std::size_t, T>(0, std::forward<T>(init))), _next(nullptr) {}
 
-    ~SynchorizableObject() {
+    ~SynchronizableObject() {
         if (_prev) {
             delete _prev;
             _prev = nullptr;

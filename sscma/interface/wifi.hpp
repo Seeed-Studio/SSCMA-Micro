@@ -179,7 +179,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
    private:
     Network* _network;
 
-    SynchorizableObject<std::pair<wifi_sta_e, wifi_config_t>> _wifi_config;
+    SynchronizableObject<std::pair<wifi_sta_e, wifi_config_t>> _wifi_config;
 };
 
 }  // namespace interface

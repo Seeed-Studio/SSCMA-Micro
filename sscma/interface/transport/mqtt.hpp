@@ -338,9 +338,9 @@ class MQTT final : public Supervisable, public Transport {
     volatile std::size_t _head;
     volatile std::size_t _tail;
 
-    SynchorizableObject<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config;
-    mqtt_pubsub_config_t                                             _mqtt_pubsub_config;
-    std::unordered_set<std::string>                                  _sub_topics_set;
+    SynchronizableObject<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config;
+    mqtt_pubsub_config_t                                              _mqtt_pubsub_config;
+    std::unordered_set<std::string>                                   _sub_topics_set;
 };
 
 // Important: due to driver's API, the MQTT handler must be a singleton currently
