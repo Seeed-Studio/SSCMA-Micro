@@ -24,6 +24,8 @@
  */
 
 extern "C" {
+#include <hx_drv_gpio.h>
+#include <hx_drv_scu.h>
 #include <xprintf.h>
 }
 
@@ -114,7 +116,16 @@ EL_ATTR_WEAK void el_free(void* ptr) {
 
 EL_ATTR_WEAK void el_reset(void) { exit(0); }
 
-EL_ATTR_WEAK void el_status_led(bool on) { el_printf("TEST LED STAT: %s\n", on ? "on" : "off"); }
+EL_ATTR_WEAK void el_status_led(bool on) {
+    // maybe unsafe when build with -no-threadsafe-statics
+    __attribute__((used)) static auto call_once = []() {
+        hx_drv_scu_set_SEN_D2_pinmux(SCU_SEN_D2_PINMUX_GPIO20);
+        hx_drv_gpio_set_output(GPIO20, GPIO_OUT_LOW);
+        hx_drv_gpio_set_out_value(GPIO20, GPIO_OUT_LOW);
+        return 0;
+    }();
+    hx_drv_gpio_set_out_value(GPIO20, on ? GPIO_OUT_HIGH : GPIO_OUT_LOW);
+}
 
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
 

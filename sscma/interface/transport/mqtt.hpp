@@ -297,7 +297,7 @@ class MQTT final : public Supervisable, public Transport {
 
     mqtt_sta_e try_ensure_wifi_status_changed_from(mqtt_sta_e old_sta, uint32_t delay_ms, std::size_t n_times) {
         auto sta = sync_status_from_driver();
-        for (std::size_t i = 0; (i < n_times) & (sta != old_sta); ++i) {
+        for (std::size_t i = 0; (i < n_times) & (sta == old_sta); ++i) {
             el_sleep(delay_ms);
             sta = sync_status_from_driver();
         }
