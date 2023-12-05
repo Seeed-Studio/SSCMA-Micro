@@ -515,17 +515,21 @@ void resp_action_mqtt(const char* resp, void* arg) {
 void resp_action_ip(const char* resp, void* arg) {
     edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     uint32_t ofs = strlen(AT_STR_RESP_IP_H);
+    ipv4_addr_t ipv4 = {0};
     if (strncmp(resp + ofs, "ip:", 3) == 0) {
         ofs += 3;
-        memcpy(net->_ip.ip, resp + ofs, sizeof(resp) - ofs);
+        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
+        net->_ip.ip = ipv4;
         return;
     } else if (strncmp(resp + ofs, "gateway:", 8) == 0) {
         ofs += 8;
-        memcpy(net->_ip.gateway, resp + ofs, sizeof(resp) - ofs);
+        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
+        net->_ip.gateway = ipv4;
         return;
     } else if (strncmp(resp + ofs, "netmask:", 8) == 0) {
         ofs += 8;
-        memcpy(net->_ip.netmask, resp + ofs, sizeof(resp) - ofs);
+        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
+        net->_ip.netmask = ipv4;
         EL_LOGD("IP GOT\n");
         return;
     }

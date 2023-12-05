@@ -79,7 +79,7 @@ public:
             this->status_cb(this->network_status);
         }
     }
-    el_err_code_t get_ip(ipv4_address_t &ip) { 
+    el_err_code_t get_ip(in4_info_t &ip) { 
         if (this->network_status != NETWORK_CONNECTED) {
             return EL_EPERM;
         }
@@ -108,7 +108,7 @@ public:
 
     status_cb_t status_cb = nullptr;
     topic_cb_t topic_cb = nullptr;
-    ipv4_address_t _ip;
+    in4_info_t _ip;
 
 protected:
     bool _is_present;
