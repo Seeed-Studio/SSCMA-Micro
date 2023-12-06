@@ -332,7 +332,7 @@ void wait_for_inputs() {
     std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
 Loop:
     std::for_each(transports.begin(), transports.end(), [&buf](Transport* transport) {
-        if (*transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {
+        if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {
             static_resource->instance->exec(buf, static_cast<void*>(transport));
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
