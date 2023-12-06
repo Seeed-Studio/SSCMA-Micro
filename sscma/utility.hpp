@@ -443,7 +443,6 @@ decltype(auto) in6_info_2_json_str(const in6_info_t& config) {
                           ipv6_addr_to_str(config.prefix),
                           "\", \"gateway\": \"",
                           ipv6_addr_to_str(config.gateway),
-
                           "\"}");
 }
 
