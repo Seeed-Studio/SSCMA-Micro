@@ -77,7 +77,7 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     void poll_from_supervisor() override {
-        EL_LOGI("[SSCMA] MQTT::poll_from_supervisor()");
+        EL_LOGD("[SSCMA] MQTT::poll_from_supervisor()");
 
         if (_mqtt_server_config.is_synchorized()) [[likely]] {
             const auto& config      = _mqtt_server_config.load_last();
@@ -195,7 +195,7 @@ class MQTT final : public Supervisable, public Transport {
             return;
 
         if (!this_ptr->push_to_buffer(msg, mlen)) [[unlikely]]
-            EL_LOGI("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer may corrupted");
+            EL_LOGD("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer may corrupted");
     }
 
     inline bool push_to_buffer(const char* bytes, std::size_t size) {
@@ -226,17 +226,17 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     bool bring_up(const std::pair<mqtt_sta_e, mqtt_server_config_t>& config) {
-        EL_LOGI("[SSCMA] MQTT::bring_up() checking interface status");
+        EL_LOGD("[SSCMA] MQTT::bring_up() checking interface status");
         if (!_interface->is_interface_up()) [[unlikely]]
             return false;
 
         auto current_sta = sync_status_from_driver();
 
-        EL_LOGI("[SSCMA] MQTT::bring_up() current status: %d, target status: %d", current_sta, config.first);
+        EL_LOGD("[SSCMA] MQTT::bring_up() current status: %d, target status: %d", current_sta, config.first);
 
         if (current_sta == mqtt_sta_e::DISCONNECTED) {
             if (current_sta >= config.first) return true;
-            EL_LOGI("[SSCMA] MQTT::bring_up() driver connect: %s:%d", config.second.address, config.second.port);
+            EL_LOGD("[SSCMA] MQTT::bring_up() driver connect: %s:%d", config.second.address, config.second.port);
             // TODO: driver change topic callback API
             auto ret = _network->connect(config.second, mqtt_subscribe_callback);  // driver connect
             if (ret != EL_OK) [[unlikely]]
@@ -248,7 +248,7 @@ class MQTT final : public Supervisable, public Transport {
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
             if (current_sta >= config.first) return true;
-            EL_LOGI("[SSCMA] MQTT::bring_up() driver subscribe: %s", _mqtt_pubsub_config.sub_topic);
+            EL_LOGD("[SSCMA] MQTT::bring_up() driver subscribe: %s", _mqtt_pubsub_config.sub_topic);
             auto ret = _network->subscribe(_mqtt_pubsub_config.sub_topic,
                                            static_cast<mqtt_qos_t>(_mqtt_pubsub_config.sub_qos));  // driver subscribe
             if (ret != EL_OK) [[unlikely]]
@@ -270,11 +270,11 @@ class MQTT final : public Supervisable, public Transport {
 
         auto current_sta = sync_status_from_driver();
 
-        EL_LOGI("[SSCMA] MQTT::set_down() current status: %d, target status: %d", current_sta, config.first);
+        EL_LOGD("[SSCMA] MQTT::set_down() current status: %d, target status: %d", current_sta, config.first);
 
         if (current_sta == mqtt_sta_e::ACTIVE) {
             if (current_sta < config.first) return true;
-            EL_LOGI("[SSCMA] MQTT::set_down() driver unsubscribe topic count: %d", _sub_topics_set.size());
+            EL_LOGD("[SSCMA] MQTT::set_down() driver unsubscribe topic count: %d", _sub_topics_set.size());
             for (const auto& sub_topic : _sub_topics_set) _network->unsubscribe(sub_topic.c_str());
             _sub_topics_set.clear();                  // clear old topics
             current_sta = sync_status_from_driver();  // sync internal status
@@ -282,7 +282,7 @@ class MQTT final : public Supervisable, public Transport {
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
             if (current_sta < config.first) return true;
-            EL_LOGI("[SSCMA] MQTT::set_down() - driver disconnect()");
+            EL_LOGD("[SSCMA] MQTT::set_down() - driver disconnect()");
             auto ret = _network->disconnect();  // driver disconnect
             if (ret != EL_OK) [[unlikely]]
                 return false;

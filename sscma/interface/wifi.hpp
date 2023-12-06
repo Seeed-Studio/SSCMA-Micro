@@ -40,7 +40,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
     ~WiFi() = default;
 
     void poll_from_supervisor() override {
-        EL_LOGI("[SSCMA] WiFi::poll_from_supervisor()");
+        EL_LOGD("[SSCMA] WiFi::poll_from_supervisor()");
 
         if (_wifi_config.is_synchorized()) [[likely]] {
             const auto& config      = _wifi_config.load_last();
@@ -71,8 +71,11 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
     bool is_wifi_joined() const { return sync_status_from_driver() >= wifi_sta_e::JOINED; }
 
-    // TODO: add driver implementation
-    in4_info_t get_in4_info() const { return {}; }
+    in4_info_t get_in4_info() const {
+        auto in4_info = in4_info_t{};
+        _network->get_ip(in4_info);
+        return in4_info;
+    }
 
     // TODO: add driver implementation
     in6_info_t get_in6_info() const { return {}; }
@@ -81,7 +84,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
     bool bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
-        EL_LOGI("[SSCMA] WiFi::bring_up() - current_sta: %d, target_sta: %d", current_sta, config.first);
+        EL_LOGD("[SSCMA] WiFi::bring_up() - current_sta: %d, target_sta: %d", current_sta, config.first);
 
         if (current_sta == wifi_sta_e::UNINTIALIZED) {
             if (current_sta >= config.first) return true;
@@ -92,7 +95,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
         if (current_sta == wifi_sta_e::IDLE) {
             if (current_sta >= config.first) return true;
-            EL_LOGI("[SSCMA] WiFi::bring_up() - wifi name: %s", config.second.name);
+            EL_LOGD("[SSCMA] WiFi::bring_up() - wifi name: %s", config.second.name);
             auto ret = _network->join(config.second.name, config.second.passwd);  // driver join
             if (ret != EL_OK) [[unlikely]]
                 return false;
@@ -101,7 +104,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
         }
 
         if (current_sta == wifi_sta_e::JOINED) {
-            EL_LOGI("[SSCMA] WiFi::bring_up() - invoke_post_up_callbacks()");
+            EL_LOGD("[SSCMA] WiFi::bring_up() - invoke_post_up_callbacks()");
             this->invoke_post_up_callbacks();
             return true;
         }
@@ -112,18 +115,18 @@ class WiFi final : public Supervisable, public StatefulInterface {
     bool set_down(const std::pair<wifi_sta_e, wifi_config_t>& config) {
         auto current_sta = sync_status_from_driver();
 
-        EL_LOGI("[SSCMA] WiFi::set_down() - current_sta: %d, target_sta: %d", current_sta, config.first);
+        EL_LOGD("[SSCMA] WiFi::set_down() - current_sta: %d, target_sta: %d", current_sta, config.first);
 
         if (current_sta == wifi_sta_e::BUSY) {
             if (current_sta < config.first) return true;
-            EL_LOGI("[SSCMA] WiFi::set_down() - invoke_pre_down_callbacks()");
+            EL_LOGD("[SSCMA] WiFi::set_down() - invoke_pre_down_callbacks()");
             this->invoke_pre_down_callbacks();
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
 
         if (current_sta == wifi_sta_e::JOINED) {
             if (current_sta < config.first) return true;
-            EL_LOGI("[SSCMA] WiFi::set_down() - driver quit()");
+            EL_LOGD("[SSCMA] WiFi::set_down() - driver quit()");
             auto ret = _network->quit();  // driver quit
             if (ret != EL_OK) [[unlikely]]
                 return false;
@@ -132,7 +135,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
         if (current_sta == wifi_sta_e::IDLE) {
             if (current_sta < config.first) return true;
-            EL_LOGI("[SSCMA] WiFi::set_down() - driver deinit()");
+            EL_LOGD("[SSCMA] WiFi::set_down() - driver deinit()");
             _network->deinit();  // driver deinit
             current_sta = ensure_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS);
         }
