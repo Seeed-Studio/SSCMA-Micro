@@ -212,7 +212,8 @@ class MQTT final : public Supervisable, public Transport {
         auto        tail   = _tail;
         auto        remain = head < tail ? tail - head : _size - (head - tail);
 
-        for (; (len < size) & (len < remain); ++len) {
+        size = std::min(remain, size);
+        for (; len < size; ++len) {
             _buffer[head] = bytes[len];
             head          = (head + 1) % _size;
         }
