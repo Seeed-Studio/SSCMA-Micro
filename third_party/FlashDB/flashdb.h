@@ -34,6 +34,7 @@ extern "C" {
 fdb_err_t fdb_kvdb_init   (fdb_kvdb_t db, const char *name, const char *path, struct fdb_default_kv *default_kv,
         void *user_data);
 void      fdb_kvdb_control(fdb_kvdb_t db, int cmd, void *arg);
+fdb_err_t fdb_kvdb_check(fdb_kvdb_t db);
 fdb_err_t fdb_kvdb_deinit(fdb_kvdb_t db);
 fdb_err_t fdb_tsdb_init   (fdb_tsdb_t db, const char *name, const char *path, fdb_get_time get_time, size_t max_len,
         void *user_data);
@@ -57,9 +58,9 @@ void              fdb_kv_print        (fdb_kvdb_t db);
 fdb_kv_iterator_t fdb_kv_iterator_init(fdb_kvdb_t db, fdb_kv_iterator_t itr);
 bool              fdb_kv_iterate      (fdb_kvdb_t db, fdb_kv_iterator_t itr);
 bool              find_kv             (fdb_kvdb_t db, const char* key, fdb_kv_t kv);
-
 /* Time series log API like a TSDB */
 fdb_err_t  fdb_tsl_append      (fdb_tsdb_t db, fdb_blob_t blob);
+fdb_err_t  fdb_tsl_append_with_ts(fdb_tsdb_t db, fdb_blob_t blob, fdb_time_t timestamp);
 void       fdb_tsl_iter        (fdb_tsdb_t db, fdb_tsl_cb cb, void *cb_arg);
 void       fdb_tsl_iter_reverse(fdb_tsdb_t db, fdb_tsl_cb cb, void *cb_arg);
 void       fdb_tsl_iter_by_time(fdb_tsdb_t db, fdb_time_t from, fdb_time_t to, fdb_tsl_cb cb, void *cb_arg);

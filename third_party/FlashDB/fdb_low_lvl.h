@@ -36,7 +36,7 @@
  * Return the down number of aligned at specified width. RT_ALIGN_DOWN(13, 4)
  * would return 12.
  */
-#define FDB_ALIGN_DOWN(size, align)               ((size) & ~((align) - 1))
+#define FDB_ALIGN_DOWN(size, align)               (((size) / (align)) * (align))
 /* align down by write granularity */
 #define FDB_WG_ALIGN_DOWN(size)                   (FDB_ALIGN_DOWN(size, (FDB_WRITE_GRAN + 7)/8))
 
@@ -49,6 +49,9 @@
 #else
 #define FDB_DATA_UNUSED                      0x00000000
 #endif
+
+/* invalid address */
+#define FDB_FAILED_ADDR                      0xFFFFFFFF
 
 size_t _fdb_set_status(uint8_t status_table[], size_t status_num, size_t status_index);
 size_t _fdb_get_status(uint8_t status_table[], size_t status_num);
