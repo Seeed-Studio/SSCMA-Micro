@@ -34,8 +34,8 @@
 
 #include "el_camera_esp.h"
 #include "el_display_esp.h"
-#include "el_serial_esp.h"
 #include "el_network_esp.h"
+#include "el_serial_esp.h"
 
 namespace edgelab {
 
@@ -61,6 +61,8 @@ static inline uint32_t _device_id_from_efuse() {
 }
 
 }  // namespace porting
+
+DeviceEsp::DeviceEsp() { init(); }
 
 void DeviceEsp::init() {
     this->_device_name = "Seeed Studio XIAO (ESP32-S3)";
