@@ -35,64 +35,89 @@ extern "C" {
 
 #include "core/el_debug.h"
 #include "core/el_types.h"
+#include "core/utils/el_ringbuffer.hpp"
 #include "el_config_porting.h"
 
 namespace edgelab {
 
-SerialWE1::SerialWE1() {}
+namespace porting {
+
+static lwRingBuffer*      _serial_ring_buffer = nullptr;
+static char               _serial_char_buffer[32]{};
+volatile static DEV_UART* _serial_port_handler = nullptr;
+
+void _serial_uart_dma_recv(void*) {
+    _serial_ring_buffer->push(_serial_char_buffer[0]);
+    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
+}
+
+}  // namespace porting
+
+using namespace porting;
+
+SerialWE1::SerialWE1() : _console_uart(nullptr) {}
 
 SerialWE1::~SerialWE1() { deinit(); }
 
 el_err_code_t SerialWE1::init() {
-    this->console_uart = hx_drv_uart_get_dev((USE_SS_UART_E)CONSOLE_UART_ID);
-    this->_is_present  = this->console_uart != nullptr;
+    if (this->_is_present) [[unlikely]]
+        return EL_EPERM;
+
+    _console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)CONSOLE_UART_ID);
+    _console_uart->uart_open(UART_BAUDRATE_921600);
+
+    if (!_serial_ring_buffer) [[likely]]
+        _serial_ring_buffer = new lwRingBuffer{8192};
+
+    EL_ASSERT(_serial_ring_buffer);
+
+    _serial_port_handler = _console_uart;
+    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
+
+    this->_is_present = _console_uart != nullptr;
 
     return this->_is_present ? EL_OK : EL_EIO;
 }
 
 el_err_code_t SerialWE1::deinit() {
-    this->_is_present = (!hx_drv_uart_deinit((USE_SS_UART_E)CONSOLE_UART_ID) ? false : true);
+    if (!this->_is_present) [[unlikely]]
+        return EL_EPERM;
+
+    this->_is_present = !hx_drv_uart_deinit((USE_DW_UART_E)CONSOLE_UART_ID) ? false : true;
 
     return !this->_is_present ? EL_OK : EL_EIO;
 }
 
 char SerialWE1::echo(bool only_visible) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) [[unlikely]]
+        return '\0';
 
     char c{get_char()};
     if (only_visible && !isprint(c)) return c;
-    this->console_uart->uart_write(&c, sizeof(c));
+
+    _console_uart->uart_write(&c, sizeof(c));
+
     return c;
 }
 
 char SerialWE1::get_char() {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) [[unlikely]]
+        return '\0';
 
     char c{'\0'};
-    this->console_uart->uart_read(&c, 1);
-    return c;
+    return porting::_serial_ring_buffer->pop();
 }
 
 size_t SerialWE1::get_line(char* buffer, size_t size, const char delim) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) [[unlikely]]
+        return 0;
 
-    size_t pos{0};
-    char   c{'\0'};
-    while (pos < size - 1) {
-        if (!this->console_uart->uart_read_nonblock(&c, 1)) continue;
-
-        if (c == delim || c == 0x00) [[unlikely]] {
-            buffer[pos++] = '\0';
-            return pos;
-        }
-        buffer[pos++] = c;
-    }
-    buffer[pos++] = '\0';
-    return pos;
+    return porting::_serial_ring_buffer->extract(delim, buffer, size);
 }
 
 el_err_code_t SerialWE1::read_bytes(char* buffer, size_t size) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) [[unlikely]]
+        return EL_EPERM;
 
     size_t read{0};
     size_t pos_of_bytes{0};
@@ -100,7 +125,7 @@ el_err_code_t SerialWE1::read_bytes(char* buffer, size_t size) {
     while (size) {
         size_t bytes_to_read{size < 8 ? size : 8};
 
-        read += this->console_uart->uart_read_nonblock(buffer + pos_of_bytes, bytes_to_read);
+        read += _console_uart->uart_read(buffer + pos_of_bytes, bytes_to_read);
         pos_of_bytes += bytes_to_read;
         size -= bytes_to_read;
     }
@@ -109,7 +134,8 @@ el_err_code_t SerialWE1::read_bytes(char* buffer, size_t size) {
 }
 
 el_err_code_t SerialWE1::send_bytes(const char* buffer, size_t size) {
-    EL_ASSERT(this->_is_present);
+    if (!this->_is_present) [[unlikely]]
+        return EL_EPERM;
 
     size_t sent{0};
     size_t pos_of_bytes{0};
@@ -117,7 +143,7 @@ el_err_code_t SerialWE1::send_bytes(const char* buffer, size_t size) {
     while (size) {
         size_t bytes_to_send{size < 8 ? size : 8};
 
-        sent += this->console_uart->uart_write(buffer + pos_of_bytes, bytes_to_send);
+        sent += _console_uart->uart_write(buffer + pos_of_bytes, bytes_to_send);
         pos_of_bytes += bytes_to_send;
         size -= bytes_to_send;
     }
