@@ -34,7 +34,13 @@
 
 namespace edgelab {
 
-SerialEsp::SerialEsp(usb_serial_jtag_driver_config_t driver_config) : _driver_config(driver_config), _send_lock() {}
+SerialEsp::SerialEsp(usb_serial_jtag_driver_config_t driver_config)
+    : _driver_config(driver_config),
+      _send_lock(),
+      _size(driver_config.rx_buffer_size),
+      _buffer(nullptr),
+      _head(0),
+      _tail(0) {}
 
 SerialEsp::~SerialEsp() { deinit(); }
 
@@ -47,17 +53,29 @@ el_err_code_t SerialEsp::init() {
     if (!this->_is_present) [[unlikely]]
         return EL_EPERM;
 
+    _buffer = new char[_size]{};
+
+    EL_ASSERT(_buffer);
+
     return EL_OK;
 }
 
 el_err_code_t SerialEsp::deinit() {
     this->_is_present = !(usb_serial_jtag_driver_uninstall() == ESP_OK);
 
+    if (_buffer) {
+        delete[] _buffer;
+        _buffer = nullptr;
+    }
+
+    _head = 0;
+    _tail = 0;
+
     return !this->_is_present ? EL_OK : EL_EIO;
 }
 
 char SerialEsp::echo(bool only_visible) {
-    if (!this->_is_present) return EL_EPERM;
+    if (!this->_is_present) return '\0';
 
     char c{get_char()};
     if (only_visible && !std::isprint(c)) return c;
@@ -66,7 +84,7 @@ char SerialEsp::echo(bool only_visible) {
 }
 
 char SerialEsp::get_char() {
-    if (!this->_is_present) return EL_EPERM;
+    if (!this->_is_present) return '\0';
 
     char c{'\0'};
     while (!usb_serial_jtag_read_bytes(&c, 1, portMAX_DELAY))
@@ -74,26 +92,55 @@ char SerialEsp::get_char() {
     return c;
 }
 
-size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
-    if (!this->_is_present) return EL_EPERM;
+std::size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
+    if (!this->_is_present) return 0;
 
-    size_t pos{0};
-    char   c{'\0'};
-    while (pos < size - 2) {
-        if (!usb_serial_jtag_read_bytes(&c, 1, portMAX_DELAY)) continue;
+    {
+        std::size_t len    = 0;
+        std::size_t read   = 0;
+        auto        head   = _head;
+        auto        tail   = _tail;
+        auto        remain = head < tail ? tail - head : _size - (head - tail);
 
-        if (c == delim) [[unlikely]] {
-            buffer[pos++] = c;
-            break;
-        }
-        buffer[pos++] = c;
+        do {
+            len += read = usb_serial_jtag_read_bytes(_buffer + head, 1, 1 / portTICK_PERIOD_MS);
+            head        = (head + read) % _size;
+        } while (read);
+
+        // the store operation makes get_line thread-unsafe
+        if (len > remain) [[unlikely]]
+            _tail = (head + 1) % _size;
+
+        _head = head;
     }
-    buffer[pos++] = '\0';
-    return pos;
+
+    std::size_t       len     = 0;
+    std::size_t const len_max = size - 1;
+    auto              found   = false;
+    auto              head    = _head;
+    auto              tail    = _tail;
+    auto              prev    = tail;
+
+    if (head == tail) return 0;
+
+    for (; (!found) & (head != tail) & (len < len_max); tail = (tail + 1) % _size, ++len) {
+        char c = _buffer[tail];
+        if (c == '\0')
+            break;
+        else if (c == delim)
+            found = true;
+    }
+
+    if (!found) return 0;
+
+    for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
+    _tail = tail;
+
+    return len;
 }
 
-el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
-    if (!this->_is_present) return EL_EPERM;
+std::size_t SerialEsp::read_bytes(char* buffer, size_t size) {
+    if (!this->_is_present) return 0;
 
     size_t read{0};
     size_t pos_of_bytes{0};
@@ -106,13 +153,13 @@ el_err_code_t SerialEsp::read_bytes(char* buffer, size_t size) {
         size -= bytes_to_read;
     }
 
-    return read > 0 ? EL_OK : EL_AGAIN;
+    return read;
 }
 
-el_err_code_t SerialEsp::send_bytes(const char* buffer, size_t size) {
-    const Guard<Mutex> guard(_send_lock);
+std::size_t SerialEsp::send_bytes(const char* buffer, size_t size) {
+    if (!this->_is_present) return 0;
 
-    if (!this->_is_present) return EL_EPERM;
+    const Guard<Mutex> guard(_send_lock);
 
     size_t sent{0};
     size_t pos_of_bytes{0};
@@ -124,7 +171,7 @@ el_err_code_t SerialEsp::send_bytes(const char* buffer, size_t size) {
         size -= bytes_to_send;
     }
 
-    return sent == pos_of_bytes ? EL_OK : EL_AGAIN;
+    return sent;
 }
 
 }  // namespace edgelab
