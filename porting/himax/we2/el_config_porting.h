@@ -35,7 +35,7 @@
 #ifndef CONFIG_EL_TARGET_HIMAX
     #error "Please specify porting target"
 #else
-    #define VENDOR_PREFIX    "himax"
+    #define VENDOR_PREFIX    "grove"
     #define VENDOR_CHIP_NAME "we2"
     #if defined(CONFIG_EL_BOARD_GRIVE_VISION_AI_WE2)
         #include "boards/grove_vision_ai_we2/board.h"
@@ -110,9 +110,12 @@ extern const struct fal_flash_dev _el_flash_db_nor_flash0;
     #define FDB_WRITE_GRAN (32)
     #define FDB_BLOCK_SIZE (8 * 1024)
 
-    #if CONFIG_EL_DEBUG == 0
+    #if CONFIG_EL_DEBUG < 4
         #define FDB_PRINT(...)
-    #elif CONFIG_EL_DEBUG >= 1
+        #define log_d(...)
+        #define log_e(...)
+        #define log_i(...)
+    #elif CONFIG_EL_DEBUG >= 4
         #define FDB_DEBUG_ENABLE
     #endif
 
