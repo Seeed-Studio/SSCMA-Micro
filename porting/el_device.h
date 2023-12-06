@@ -44,7 +44,6 @@ class Device {
     ~Device() = default;
     static Device* get_device();
 
-    virtual void init()  = 0;
     virtual void reset() = 0;
 
     const char* get_device_name() const { return _device_name; }

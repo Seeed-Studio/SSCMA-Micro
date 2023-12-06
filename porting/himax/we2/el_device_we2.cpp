@@ -91,6 +91,8 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
 
 }  // namespace porting
 
+DeviceWE2::DeviceWE2() { init(); }
+
 void DeviceWE2::init() {
     size_t wakeup_event{};
     size_t wakeup_event1{};
