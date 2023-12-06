@@ -113,24 +113,27 @@ class MQTT final : public Supervisable, public Transport {
 
     mqtt_pubsub_config_t get_mqtt_pubsub_config() const { return _mqtt_pubsub_config; }
 
-    el_err_code_t read_bytes(char* buffer, std::size_t size) override {
-        if (!buffer | !size) [[unlikely]]
-            return EL_EINVAL;
+    std::size_t read_bytes(char* buffer, std::size_t size) override {
+        auto        head   = _head;
+        auto        tail   = _tail;
+        auto        remain = head < tail ? tail - head : _size - (head - tail);
+        std::size_t avail  = _size - remain;
 
-        auto        head = _head;
-        auto        tail = _tail;
-        std::size_t len  = 0;
-
-        while (tail != head && len < size) {
-            buffer[len++] = _buffer[tail];
-            tail          = (tail + 1) % _size;
+        size          = std::min(avail, size);
+        std::size_t i = 0;
+        for (; i < avail; ++i) {
+            auto c    = _buffer[tail = (tail + i) % _size];
+            buffer[i] = c;
+            if (c == '\0') [[unlikely]]
+                break;
         }
+
         _tail = tail;
 
-        return EL_OK;
+        return i;
     }
 
-    el_err_code_t send_bytes(const char* buffer, std::size_t size) override {
+    std::size_t send_bytes(const char* buffer, std::size_t size) override {
         return m_send_bytes(_mqtt_pubsub_config.pub_topic, _mqtt_pubsub_config.pub_qos, buffer, size);
     }
 
@@ -144,33 +147,38 @@ class MQTT final : public Supervisable, public Transport {
     char get_char() override {
         auto head = _head;
         auto tail = _tail;
-        if (head == tail) [[unlikely]]
-            return '\0';
-        return _buffer[_tail = (tail + 1) % _size];
+
+        if (head == tail) return '\0';
+
+        auto c = _buffer[tail];
+        tail   = (tail + 1) % _size;
+        _tail  = tail;
+
+        return c;
     }
 
     std::size_t get_line(char* buffer, std::size_t size, const char delim = 0x0d) override {
-        if (!buffer | !size) [[unlikely]]
-            return 0;
-
+        std::size_t       len     = 0;
+        std::size_t const len_max = size - 1;
         auto              head    = _head;
         auto              tail    = _tail;
         auto              prev    = tail;
-        std::size_t const len_max = size - 1;
-        std::size_t       len     = 0;
+        auto              found   = false;
 
-        for (char c = _buffer[tail]; (tail != head) & (len < len_max); tail = (tail + 1) % _size, ++len) {
-            if ((c == delim) | (c == '\0')) {
-                tail = (tail + 1) % _size;
-                len += c != '\0';
+        if (head == tail) return 0;
+
+        for (; (!found) & (head != tail) & (len < len_max); tail = (tail + 1) % _size, ++len) {
+            char c = _buffer[tail];
+            if (c == '\0')
                 break;
-            }
+            else if (c == delim)
+                found = true;
         }
 
-        if (len) {
-            for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
-            _tail = tail;
-        }
+        if (!found) return 0;
+
+        for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
+        _tail = tail;
 
         return len;
     }
@@ -199,23 +207,19 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     inline bool push_to_buffer(const char* bytes, std::size_t size) {
-        if (!bytes | !size) [[unlikely]]
-            return true;
+        std::size_t len    = 0;
+        auto        head   = _head;
+        auto        tail   = _tail;
+        auto        remain = head < tail ? tail - head : _size - (head - tail);
 
-        auto head      = _head;
-        auto tail      = _tail;
-        bool corrupted = false;
-
-        for (std::size_t i = 0; i < size; ++i) {
-            _buffer[head] = bytes[i];
+        for (; (len < size) & (len < remain); ++len) {
+            _buffer[head] = bytes[len];
             head          = (head + 1) % _size;
-            corrupted |= head == tail;
         }
-        if (corrupted) [[unlikely]]
-            _tail = head;
+
         _head = head;
 
-        return !corrupted;
+        return len == size;
     }
 
     inline el_err_code_t m_send_bytes(const char* topic, uint8_t qos, const char* buffer, std::size_t size) {
