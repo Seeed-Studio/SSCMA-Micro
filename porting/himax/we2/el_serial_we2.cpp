@@ -108,16 +108,16 @@ char SerialWE2::get_char() {
     return porting::_serial_ring_buffer->pop();
 }
 
-size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
+std::size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
     if (!this->_is_present) [[unlikely]]
         return 0;
 
     return porting::_serial_ring_buffer->extract(delim, buffer, size);
 }
 
-el_err_code_t SerialWE2::read_bytes(char* buffer, size_t size) {
+std::size_t SerialWE2::read_bytes(char* buffer, size_t size) {
     if (!this->_is_present) [[unlikely]]
-        return EL_EPERM;
+        return 0;
 
     size_t read{0};
     size_t pos_of_bytes{0};
@@ -130,12 +130,12 @@ el_err_code_t SerialWE2::read_bytes(char* buffer, size_t size) {
         size -= bytes_to_read;
     }
 
-    return read > 0 ? EL_OK : EL_AGAIN;
+    return read;
 }
 
-el_err_code_t SerialWE2::send_bytes(const char* buffer, size_t size) {
+std::size_t SerialWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) [[unlikely]]
-        return EL_EPERM;
+        return 0;
 
     size_t sent{0};
     size_t pos_of_bytes{0};
@@ -148,7 +148,7 @@ el_err_code_t SerialWE2::send_bytes(const char* buffer, size_t size) {
         size -= bytes_to_send;
     }
 
-    return sent == pos_of_bytes ? EL_OK : EL_AGAIN;
+    return sent;
 }
 
 }  // namespace edgelab
