@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -13,13 +14,57 @@ typedef std::function<void(void*)>                    branch_cb_t;
 typedef std::function<int(void*)>                     mutable_cb_t;
 typedef std::unordered_map<std::string, mutable_cb_t> mutable_map_t;
 
-typedef struct ipv4_addr_t {
+struct ipv4_addr_t {
     uint8_t addr[4];
-} ipv4_addr_t;
 
-typedef struct ipv6_addr_t {
+    // we're not going to validate the input string
+    static decltype(auto) from_str(std::string s) {
+        ipv4_addr_t r{0};
+        uint8_t     l{0};
+
+        for (std::size_t i = 0; i < s.length(); ++i) {
+            if (!std::isdigit(s[i])) continue;
+
+            uint8_t n{0};
+            for (; (++i < s.length()) & (++n < 3);)
+                if (!std::isdigit(s[i])) break;
+            if (n) {
+                r.addr[l++] = static_cast<uint8_t>(std::atoi(s.substr(i - n, n).c_str()));
+                if (l > 3) return r;
+            }
+        }
+
+        return r;
+    }
+
+    decltype(auto) to_str() const {
+        std::string r{};
+        r.reserve(sizeof "255.255.255.255.");
+        for (std::size_t i = 0; i < 4; ++i) {
+            r += std::to_string(addr[i]);
+            r += '.';
+        }
+        return r.substr(0, r.length() - 1);
+    }
+};
+
+struct ipv6_addr_t {
     uint16_t addr[8];
-} ipv6_addr_t;
+
+    decltype(auto) to_str() const {
+        static const char* digits = "0123456789abcdef";
+        std::string        r{};
+        r.reserve(sizeof "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:");
+        for (std::size_t i = 0; i < 8; ++i) {
+            if (addr[i])
+                for (uint16_t n = addr[i]; n; n >>= 4) r += digits[n & 0x0f];
+            else
+                r += '0';
+            r += ':';
+        }
+        return r.substr(0, r.length() - 1);
+    }
+};
 
 typedef struct in4_info_t {
     ipv4_addr_t ip;
@@ -29,8 +74,6 @@ typedef struct in4_info_t {
 
 typedef struct in6_info_t {
     ipv6_addr_t ip;
-    ipv6_addr_t prefix;
-    ipv6_addr_t gateway;
 } in6_info_t;
 
 typedef enum wifi_name_type_e : uint8_t { SSID, BSSID } wifi_name_type_e;

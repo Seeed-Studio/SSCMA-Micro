@@ -13,9 +13,10 @@
 #include "core/el_types.h"
 #include "core/utils/el_base64.h"
 #include "core/utils/el_cv.h"
+#include "definations.hpp"
 #include "porting/el_device.h"
-#include "sscma/definations.hpp"
-#include "sscma/traits.hpp"
+#include "traits.hpp"
+#include "types.hpp"
 
 namespace sscma::utility {
 
@@ -387,64 +388,18 @@ decltype(auto) get_default_mqtt_server_config(const Device* device) {
     return default_config;
 }
 
-decltype(auto) inline ipv4_addr_to_str(const ipv4_addr_t& addr) {
-    return concat_strings(std::to_string(addr.addr[0]),
-                          ".",
-                          std::to_string(addr.addr[1]),
-                          ".",
-                          std::to_string(addr.addr[2]),
-                          ".",
-                          std::to_string(addr.addr[3]));
-}
-
-template <typename T> decltype(auto) dec_2_hex(T dec) {
-    static_assert(std::is_unsigned<T>::value);
-    static const char* digits = "0123456789abcdef";
-    if (dec == 0U) return std::string{};
-    std::size_t len  = sizeof(T) << 1;
-    std::size_t bits = (len - 1) << 2;
-    std::string hex(len, '0');
-    for (std::size_t i = 0, j = bits; i < len; ++i, j -= 4) hex[i] = digits[(dec >> j) & 0x0f];
-    return hex;
-}
-
-decltype(auto) inline ipv6_addr_to_str(const ipv6_addr_t& addr) {
-    return concat_strings(dec_2_hex(addr.addr[0]),
-                          ":",
-                          dec_2_hex(addr.addr[1]),
-                          ":",
-                          dec_2_hex(addr.addr[2]),
-                          ":",
-                          dec_2_hex(addr.addr[3]),
-                          ":",
-                          dec_2_hex(addr.addr[4]),
-                          ":",
-                          dec_2_hex(addr.addr[5]),
-                          ":",
-                          dec_2_hex(addr.addr[6]),
-                          ":",
-                          dec_2_hex(addr.addr[7]));
-}
-
 decltype(auto) in4_info_2_json_str(const in4_info_t& config) {
     return concat_strings("{\"ip\": \"",
-                          ipv4_addr_to_str(config.ip),
+                          config.ip.to_str(),
                           "\", \"netmask\": \"",
-                          ipv4_addr_to_str(config.netmask),
+                          config.netmask.to_str(),
                           "\", \"gateway\": \"",
-                          ipv4_addr_to_str(config.gateway),
+                          config.gateway.to_str(),
                           "\"}");
 }
 
 decltype(auto) in6_info_2_json_str(const in6_info_t& config) {
-    return concat_strings("{\"ip\": \"",
-                          ipv6_addr_to_str(config.ip),
-                          "\", \"prefix\": \"",
-                          ipv6_addr_to_str(config.prefix),
-                          "\", \"gateway\": \"",
-                          ipv6_addr_to_str(config.gateway),
-
-                          "\"}");
+    return concat_strings("{\"ip\": \"", config.ip.to_str(), "\"}");
 }
 
 }  // namespace sscma::utility

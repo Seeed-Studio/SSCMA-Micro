@@ -281,15 +281,15 @@ class Storage {
         ValueTypeNoCVRef value{};
         if (!key) [[unlikely]]
             return value;
-        auto kv                            = utility::el_make_storage_kv(key, value);
-        bool is_ok __attribute__((unused)) = get(kv);
+        auto                  kv    = utility::el_make_storage_kv(key, value);
+        [[maybe_unused]] bool is_ok = get(kv);
         EL_ASSERT(is_ok);
 
         return value;
     }
 
     template <typename KVType> Storage& operator>>(KVType&& kv) {
-        bool is_ok __attribute__((unused)) = get(std::forward<KVType>(kv));
+        [[maybe_unused]] bool is_ok = get(std::forward<KVType>(kv));
         EL_ASSERT(is_ok);
 
         return *this;

@@ -16,6 +16,12 @@
 #include <string.h>
 #include <inttypes.h>
 
+#ifdef FDB_USING_FILE_POSIX_MODE
+#if !defined(_MSC_VER)
+#include <unistd.h>
+#endif
+#endif /* FDB_USING_FILE_POSIX_MODE */
+
 #define FDB_LOG_TAG ""
 
 #if !defined(FDB_USING_FAL_MODE) && !defined(FDB_USING_FILE_MODE)
@@ -38,13 +44,14 @@ fdb_err_t _fdb_init_ex(fdb_db_t db, const char *name, const char *path, fdb_db_t
 
     if (db->file_mode) {
 #ifdef FDB_USING_FILE_MODE
+        memset(db->cur_file_sec, FDB_FAILED_ADDR, FDB_FILE_CACHE_TABLE_SIZE * sizeof(db->cur_file_sec[0]));
         /* must set when using file mode */
         FDB_ASSERT(db->sec_size != 0);
         FDB_ASSERT(db->max_size != 0);
 #ifdef FDB_USING_FILE_POSIX_MODE
-        db->cur_file = -1;
+        memset(db->cur_file, -1, FDB_FILE_CACHE_TABLE_SIZE * sizeof(db->cur_file[0]));
 #else
-        db->cur_file = 0;
+        memset(db->cur_file, 0, FDB_FILE_CACHE_TABLE_SIZE * sizeof(db->cur_file[0]));
 #endif
         db->storage.dir = path;
         FDB_ASSERT(strlen(path) != 0)
@@ -67,7 +74,7 @@ fdb_err_t _fdb_init_ex(fdb_db_t db, const char *name, const char *path, fdb_db_t
         } else {
             /* must be aligned with block size */
             if (db->sec_size % block_size != 0) {
-                FDB_INFO("Error: db sector size (%" PRIu32 ") MUST align with block size (%" PRIu16 ").\n", db->sec_size, block_size);
+                FDB_INFO("Error: db sector size (%" PRIu32 ") MUST align with block size (%" PRIu32 ").\n", db->sec_size, (uint32_t)block_size);
                 return FDB_INIT_FAILED;
             }
         }
@@ -99,6 +106,7 @@ void _fdb_init_finish(fdb_db_t db, fdb_err_t result)
         db->init_ok = true;
         if (!log_is_show) {
             FDB_INFO("FlashDB V%s is initialize success.\n", FDB_SW_VERSION);
+            FDB_INFO("You can get the latest version on https://github.com/armink/FlashDB .\n");
             log_is_show = true;
         }
     } else if (!db->not_formatable) {
@@ -113,18 +121,17 @@ void _fdb_deinit(fdb_db_t db)
 
     if (db->init_ok) {
 #ifdef FDB_USING_FILE_MODE
+        for (int i = 0; i < FDB_FILE_CACHE_TABLE_SIZE; i++) {
 #ifdef FDB_USING_FILE_POSIX_MODE
-        if (db->cur_file > 0) {
-#if !defined(_MSC_VER)
-#include <unistd.h>
-#endif
-            close(db->cur_file);
-        }
+            if (db->cur_file[i] > 0) {
+                close(db->cur_file[i]);
+            }
 #else
-        if (db->cur_file != 0) {
-            fclose(db->cur_file);
-        }
+            if (db->cur_file[i] != 0) {
+                fclose(db->cur_file[i]);
+            }
 #endif /* FDB_USING_FILE_POSIX_MODE */
+        }
 #endif /* FDB_USING_FILE_MODE */
     }
 

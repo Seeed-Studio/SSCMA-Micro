@@ -25,8 +25,8 @@
 
 #if defined(FDB_USING_TSDB)
 
-#if (FDB_WRITE_GRAN == 64)
-#error "Flash 64 bits write granularity is not supported in TSDB yet!"
+#if (FDB_WRITE_GRAN == 64) || (FDB_WRITE_GRAN == 128)
+#error "Flash 64 or 128 bits write granularity is not supported in TSDB yet!"
 #endif
 
 /* magic word(`T`, `S`, `L`, `0`) */
@@ -381,12 +381,18 @@ static fdb_err_t update_sec_status(fdb_tsdb_t db, tsdb_sec_info_t sector, fdb_bl
     return result;
 }
 
-static fdb_err_t tsl_append(fdb_tsdb_t db, fdb_blob_t blob)
+static fdb_err_t tsl_append(fdb_tsdb_t db, fdb_blob_t blob, fdb_time_t *timestamp)
 {
     fdb_err_t result = FDB_NO_ERR;
-    fdb_time_t cur_time = db->get_time();
+    fdb_time_t cur_time = timestamp == NULL ? db->get_time() : *timestamp;
 
-    FDB_ASSERT(blob->size <= db->max_len);
+    /* check the append length, MUST less than the db->max_len */
+    if(blob->size > db->max_len)
+    {
+        FDB_INFO("Warning: append length (%" PRIdMAX ") is more than the db->max_len (%" PRIdMAX "). This tsl will be dropped.\n", 
+                (intmax_t)blob->size, (intmax_t)(db->max_len));
+        return FDB_WRITE_ERR;
+    }
 
     /* check the current timestamp, MUST more than the last save timestamp */
     if (cur_time <= db->last_time) {
@@ -397,12 +403,13 @@ static fdb_err_t tsl_append(fdb_tsdb_t db, fdb_blob_t blob)
 
     result = update_sec_status(db, &db->cur_sec, blob, cur_time);
     if (result != FDB_NO_ERR) {
+        FDB_INFO("Error: update the sector status failed (%d)", result);
         return result;
     }
-
     /* write the TSL node */
     result = write_tsl(db, blob, cur_time);
     if (result != FDB_NO_ERR) {
+        FDB_INFO("Error: write tsl failed (%d)", result);
         return result;
     }
 
@@ -435,7 +442,31 @@ fdb_err_t fdb_tsl_append(fdb_tsdb_t db, fdb_blob_t blob)
     }
 
     db_lock(db);
-    result = tsl_append(db, blob);
+    result = tsl_append(db, blob, NULL);
+    db_unlock(db);
+
+    return result;
+}
+
+/**
+ * Append a new log to TSDB with specific timestamp.
+ *
+ * @param db database object
+ * @param blob log blob data
+ *
+ * @return result
+ */
+fdb_err_t fdb_tsl_append_with_ts(fdb_tsdb_t db, fdb_blob_t blob, fdb_time_t timestamp)
+{
+    fdb_err_t result = FDB_NO_ERR;
+
+    if (!db_init_ok(db)) {
+        FDB_INFO("Error: TSL (%s) isn't initialize OK.\n", db_name(db));
+        return FDB_INIT_FAILED;
+    }
+
+    db_lock(db);
+    result = tsl_append(db, blob, &timestamp);
     db_unlock(db);
 
     return result;
@@ -690,7 +721,7 @@ size_t fdb_tsl_query_count(fdb_tsdb_t db, fdb_time_t from, fdb_time_t to, fdb_ts
 
     if (!db_init_ok(db)) {
         FDB_INFO("Error: TSL (%s) isn't initialize OK.\n", db_name(db));
-        return FDB_INIT_FAILED;
+        return 0;
     }
 
     fdb_tsl_iter_by_time(db, from, to, query_count_cb, &arg);
@@ -901,6 +932,9 @@ fdb_err_t fdb_tsdb_init(fdb_tsdb_t db, const char *name, const char *path, fdb_g
         goto __exit;
     }
 
+    /* lock the TSDB */
+    db_lock(db);
+
     db->get_time = get_time;
     db->max_len = max_len;
     /* default rollover flag is true */
@@ -960,6 +994,9 @@ fdb_err_t fdb_tsdb_init(fdb_tsdb_t db, const char *name, const char *path, fdb_g
         read_sector_info(db, addr, &sec, false);
         db->last_time = sec.end_time;
     }
+
+    /* unlock the TSDB */
+    db_unlock(db);
 
 __exit:
 

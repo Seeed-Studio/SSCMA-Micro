@@ -32,10 +32,12 @@ namespace edgelab {
 
 class DeviceWE2 final : public Device {
    public:
-    DeviceWE2()  = default;
+    DeviceWE2();
+
     ~DeviceWE2() = default;
 
-    void init() override;
+    void init();
+
     void reset() override;
 };
 

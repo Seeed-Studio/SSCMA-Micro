@@ -42,16 +42,21 @@ class SerialEsp final : public Serial {
     el_err_code_t init() override;
     el_err_code_t deinit() override;
 
-    char   echo(bool only_visible = true) override;
-    char   get_char() override;
-    size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
+    char        echo(bool only_visible = true) override;
+    char        get_char() override;
+    std::size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
 
-    el_err_code_t read_bytes(char* buffer, size_t size) override;
-    el_err_code_t send_bytes(const char* buffer, size_t size) override;
+    std::size_t read_bytes(char* buffer, size_t size) override;
+    std::size_t send_bytes(const char* buffer, size_t size) override;
 
    private:
     usb_serial_jtag_driver_config_t _driver_config;
     Mutex                           _send_lock;
+
+    const std::size_t    _size;
+    char*                _buffer;
+    volatile std::size_t _head;
+    volatile std::size_t _tail;
 };
 
 }  // namespace edgelab

@@ -26,6 +26,9 @@
 #ifndef _EL_TRANSPORT_H_
 #define _EL_TRANSPORT_H_
 
+#include <cstdbool>
+#include <cstdint>
+
 #include "core/el_types.h"
 
 namespace edgelab {
@@ -36,12 +39,12 @@ class Transport {
     Transport() : _is_present(false) {}
     virtual ~Transport() = default;
 
-    virtual el_err_code_t read_bytes(char* buffer, size_t size)       = 0;
-    virtual el_err_code_t send_bytes(const char* buffer, size_t size) = 0;
+    virtual std::size_t read_bytes(char* buffer, size_t size)       = 0;
+    virtual std::size_t send_bytes(const char* buffer, size_t size) = 0;
 
-    virtual char   echo(bool only_visible = true)                               = 0;
-    virtual char   get_char()                                                   = 0;
-    virtual size_t get_line(char* buffer, size_t size, const char delim = 0x0d) = 0;
+    virtual char        echo(bool only_visible = true)                               = 0;
+    virtual char        get_char()                                                   = 0;
+    virtual std::size_t get_line(char* buffer, size_t size, const char delim = 0x0d) = 0;
 
     operator bool() const { return _is_present; }
 

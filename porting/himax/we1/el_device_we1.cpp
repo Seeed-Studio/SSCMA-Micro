@@ -38,6 +38,8 @@ extern "C" {
 
 namespace edgelab {
 
+DeviceWE1::DeviceWE1() { init(); }
+
 void DeviceWE1::init() {
     this->_device_name = "Grove Vision AI (WE-I)";
     this->_device_id   = 0x0001;

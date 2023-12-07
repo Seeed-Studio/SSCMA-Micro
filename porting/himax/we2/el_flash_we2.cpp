@@ -37,13 +37,26 @@ namespace edgelab {
 
 namespace porting {
 
-static int _el_enable_we2_xip() {
-    static int once_please = []() {
-        hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q);
-        hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
-        return 0;
-    }();
-    return once_please;
+static Mutex         _el_flash_xip_lock{};
+static volatile bool _el_flash_xip_enabled = false;
+
+static bool _el_enable_we2_xip() {
+    const Guard<Mutex> guard(_el_flash_xip_lock);
+    auto ret = E_OK;
+    if (_el_flash_xip_enabled) [[unlikely]]
+        goto Return;
+
+    ret = hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q);
+    if (ret != E_OK) [[unlikekly]]
+        goto Return;
+    ret = hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
+    if (ret != E_OK) [[unlikekly]]
+        goto Return;
+
+    _el_flash_xip_enabled = true;
+
+Return:
+    return _el_flash_xip_enabled;
 }
 
 #if CONFIG_EL_MODEL
@@ -53,14 +66,21 @@ el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr
                                             uint32_t*       mmap_handler) {
     *partition_start_addr = 0x00000000;
     *partition_size       = 0x00000010;
-    _el_enable_we2_xip();
-    *flash_2_memory_map = (const uint8_t*)0x3A400000;
+    if (!_el_enable_we2_xip()) [[unlikely]]
+        return EL_EIO;
+    *flash_2_memory_map = reinterpret_cast<const uint8_t*>(0x3A400000);
 
     return EL_OK;
 }
 
 void _el_model_partition_mmap_deinit(uint32_t* mmap_handler) {
-    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, true);
+    const Guard<Mutex> guard(_el_flash_xip_lock);
+    if (!_el_flash_xip_enabled) [[unlikely]]
+        return;
+    auto ret = hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, true);
+    if (ret != E_OK) [[unlikekly]]
+        return;
+    _el_flash_xip_enabled = false;
 }
 #endif
 
@@ -70,8 +90,9 @@ const static size_t _el_flash_db_partition_end = 0x00800000;
 const static size_t _el_flash_db_partition     = _el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
 
 static int _el_flash_db_init(void) {
-    edgelab::porting::_el_enable_we2_xip();
-    return 1;
+    if (edgelab::porting::_el_enable_we2_xip()) [[likely]]
+        return 1;
+    return -1;
 }
 
 static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
@@ -82,7 +103,7 @@ static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 
-    memcpy(buf, (uint8_t*)(0x3A000000 + addr), size);
+    memcpy(buf, reinterpret_cast<uint8_t*>(0x3A000000 + addr), size);
 
     return ret;
 }
