@@ -72,13 +72,13 @@ class WiFi final : public Supervisable, public StatefulInterface {
     bool is_wifi_joined() const { return sync_status_from_driver() >= wifi_sta_e::JOINED; }
 
     in4_info_t get_in4_info() const {
-        auto info = in4_info_t{};
+        in4_info_t info{0};
         _network->get_ip(info);  // driver get in4
         return info;
     }
 
     // TODO: add driver implementation
-    in6_info_t get_in6_info() const { return {}; }
+    in6_info_t get_in6_info() const { return {0}; }
 
    protected:
     bool bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
