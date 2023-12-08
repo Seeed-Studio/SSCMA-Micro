@@ -74,8 +74,8 @@ class WireWE2 final : public Wire {
     char   get_char() override;
     size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
 
-    el_err_code_t read_bytes(char* buffer, size_t size) override;
-    el_err_code_t send_bytes(const char* buffer, size_t size) override;
+    size_t read_bytes(char* buffer, size_t size) override;
+    size_t send_bytes(const char* buffer, size_t size) override;
 
     size_t available() override;
 

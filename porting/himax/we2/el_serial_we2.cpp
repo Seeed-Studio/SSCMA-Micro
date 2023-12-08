@@ -47,7 +47,7 @@ static char               _serial_char_buffer[32]{};
 volatile static DEV_UART* _serial_port_handler = nullptr;
 
 void _serial_uart_dma_recv(void*) {
-    _serial_ring_buffer->push(_serial_char_buffer[0]);
+    _serial_ring_buffer->put(_serial_char_buffer[0]);
     _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
 }
 
@@ -104,8 +104,7 @@ char SerialWE2::get_char() {
     if (!this->_is_present) [[unlikely]]
         return '\0';
 
-    char c{'\0'};
-    return porting::_serial_ring_buffer->pop();
+    return porting::_serial_ring_buffer->get();
 }
 
 std::size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {

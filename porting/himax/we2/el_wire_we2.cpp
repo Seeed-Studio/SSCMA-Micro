@@ -57,61 +57,55 @@ static void i2c_s_callback_fun_rx(void* param) {
     uint8_t  feature    = wire->rx_buffer[0];
     uint8_t  cmd        = wire->rx_buffer[1];
     uint16_t len        = wire->rx_buffer[2] << 8 | wire->rx_buffer[3];
-    uint16_t crc        = wire->rx_buffer[4 + len] << 8 | wire->rx_buffer[5 + len];
+    // uint16_t crc        = wire->rx_buffer[4 + len] << 8 | wire->rx_buffer[5 + len];
     uint16_t available  = wire->tx_ring_buffer->size();
     bool     is_present = *wire;
 
-    // el_printf("feature: %0x, cmd: %0x, len: %d, crc: %0x, available: %d\n", feature, cmd, len, crc, available);
+    el_printf("feature: %0x, cmd: %0x, len: %d, available: %d\n", feature, cmd, len, available);
 
-    if (len > MAX_PL_LEN) {
+    if (len > MAX_PL_LEN || feature != FEATURE_TRANSPORT) {
         wire->wire_read_enable(sizeof(wire->rx_buffer));
         return;
     }
-
-    if (FEATURE_TRANSPORT == feature) {
-        switch (cmd) {
-        case FEATURE_TRANSPORT_CMD_WRITE:
-            if (is_present) {
-                wire->rx_ring_buffer->push((char*)&wire->rx_buffer[4], len);
-            }
-            wire->wire_read_enable(sizeof(wire->rx_buffer));
-            break;
-        case FEATURE_TRANSPORT_CMD_READ:
-            if (len > wire->tx_ring_buffer->size()) {
-                len = wire->tx_ring_buffer->size();
-            }
-            wire->tx_ring_buffer->pop((char*)&wire->tx_buffer[0], len);
-            wire->wire_write_enable(len);
-            break;
-        case FEATURE_TRANSPORT_CMD_AVAILABLE:
-            wire->tx_buffer[0] = available >> 8;
-            wire->tx_buffer[1] = available & 0xff;
-            wire->wire_write_enable(2);
-            break;
-        case FEATURE_TRANSPORT_CMD_RESET:
-            wire->rx_ring_buffer->clear();
-            wire->tx_ring_buffer->clear();
-            wire->wire_read_enable(sizeof(wire->rx_buffer));
-            break;
-        case FEATURE_TRANSPORT_CMD_START:
-            wire->set_present(true);
-            wire->wire_read_enable(sizeof(wire->rx_buffer));
-            break;
-        case FEATURE_TRANSPORT_CMD_STOP:
-            wire->set_present(false);
-            wire->wire_read_enable(sizeof(wire->rx_buffer));
-            break;
-        case FEATURE_TRANSPORT_CMD_STATUS:
-            wire->tx_buffer[0] = is_present;
-            wire->wire_write_enable(1);
-            break;
-        default:
-            wire->wire_read_enable(sizeof(wire->rx_buffer));
-            break;
-        }
-
-    } else {
+    switch (cmd) {
+    case FEATURE_TRANSPORT_CMD_WRITE:
+        // if (is_present) {
+            wire->rx_ring_buffer->put((char*)&wire->rx_buffer[4], len);
+        // }
         wire->wire_read_enable(sizeof(wire->rx_buffer));
+        break;
+    case FEATURE_TRANSPORT_CMD_READ:
+        if (len > wire->tx_ring_buffer->size()) {
+            len = wire->tx_ring_buffer->size();
+        }
+        wire->tx_ring_buffer->get((char*)&wire->tx_buffer[0], len);
+        wire->wire_write_enable(len);
+        break;
+    case FEATURE_TRANSPORT_CMD_AVAILABLE:
+        wire->tx_buffer[0] = available >> 8;
+        wire->tx_buffer[1] = available & 0xff;
+        wire->wire_write_enable(2);
+        break;
+    case FEATURE_TRANSPORT_CMD_RESET:
+        wire->rx_ring_buffer->clear();
+        wire->tx_ring_buffer->clear();
+        wire->wire_read_enable(sizeof(wire->rx_buffer));
+        break;
+    case FEATURE_TRANSPORT_CMD_START:
+        wire->set_present(true);
+        wire->wire_read_enable(sizeof(wire->rx_buffer));
+        break;
+    case FEATURE_TRANSPORT_CMD_STOP:
+        wire->set_present(false);
+        wire->wire_read_enable(sizeof(wire->rx_buffer));
+        break;
+    case FEATURE_TRANSPORT_CMD_STATUS:
+        wire->tx_buffer[0] = is_present;
+        wire->wire_write_enable(1);
+        break;
+    default:
+        wire->wire_read_enable(sizeof(wire->rx_buffer));
+        break;
     }
 }
 
@@ -197,61 +191,44 @@ el_err_code_t WireWE2::deinit() {
     return !this->_is_init ? EL_OK : EL_EIO;
 }
 
-char WireWE2::echo(bool only_visible) {
-    if (!this->_is_present) {
-        return EL_EIO;
-    }
-
-    return EL_ENOTSUP;
-}
+char WireWE2::echo(bool only_visible) { return 0; }
 
 char WireWE2::get_char() {
     if (!this->_is_present) {
-        return EL_EIO;
+        return 0;
     }
-
-    char c{'\0'};
-
-    this->rx_ring_buffer->pop(&c, 1);
-
-    return c;
+    return this->rx_ring_buffer->get();
 }
 
 size_t WireWE2::get_line(char* buffer, size_t size, const char delim) {
     if (!this->_is_present) {
-        return EL_EIO;
+        return 0;
     }
-
     return this->rx_ring_buffer->extract(delim, buffer, size);
 }
 
 size_t WireWE2::available() {
     if (!this->_is_present) {
-        return EL_EIO;
+        return 0;
     }
-
     return this->rx_ring_buffer->size();
 }
 
-el_err_code_t WireWE2::read_bytes(char* buffer, size_t size) {
+size_t WireWE2::read_bytes(char* buffer, size_t size) {
     if (!this->_is_present) {
-        return EL_EIO;
+        return 0;
     }
-
-    this->rx_ring_buffer->pop(buffer, size);
-
-    return EL_OK;
+    return this->rx_ring_buffer->get(buffer, size);
 }
 
-el_err_code_t WireWE2::send_bytes(const char* buffer, size_t size) {
+size_t WireWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) {
         el_printf("not present \n");
-        return EL_EIO;
+        return 0;
     }
     el_printf("send_bytes %d \n", size);
-    this->tx_ring_buffer->push(buffer, size);
 
-    return EL_OK;
+    return this->tx_ring_buffer->put(buffer, size);;
 }
 
 void WireWE2::set_present(bool is_present) {
@@ -260,12 +237,14 @@ void WireWE2::set_present(bool is_present) {
 }
 
 void WireWE2::wire_read_enable(size_t size) {
+    // EL_LOGI("wire_read_enable %d \n", size);
     memset(this->rx_buffer, 0, sizeof(this->rx_buffer));
     hx_CleanDCache_by_Addr((void*)this->rx_buffer, size);
     IIC_ERR_CODE_E ret =
       hx_drv_i2cs_interrupt_read(this->index, this->addr, this->rx_buffer, size, (void*)i2c_s_callback_fun_rx);
 }
 void WireWE2::wire_write_enable(size_t size) {
+    // EL_LOGI("wire_write_enable %d \n", size);
     hx_CleanDCache_by_Addr((void*)this->tx_buffer, size);
     IIC_ERR_CODE_E ret =
       hx_drv_i2cs_interrupt_write(this->index, this->addr, this->tx_buffer, size, (void*)i2c_s_callback_fun_tx);
