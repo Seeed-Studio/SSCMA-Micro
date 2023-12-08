@@ -29,6 +29,11 @@
 
 namespace edgelab {
 
+Storage* Storage::get_ptr() {
+    static Storage storage{};
+    return &storage;
+}
+
     #if CONFIG_EL_LIB_FLASHDB
 Storage::Storage() : __lock(), __kvdb(new fdb_kvdb{}) { EL_ASSERT(__kvdb); }
     #else

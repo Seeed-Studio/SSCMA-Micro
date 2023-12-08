@@ -79,12 +79,10 @@ ModelReply:
 void get_model_info(const std::string& cmd, void* caller) {
     const auto& model_info = static_resource->models->get_model_info(static_resource->current_model_id);
 
-    auto ret = model_info.id ? EL_OK : EL_EINVAL;
-
     const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                   cmd,
                                   "\", \"code\": ",
-                                  std::to_string(ret),
+                                  std::to_string(EL_OK),
                                   ", \"data\": ",
                                   model_info_2_json_str(model_info),
                                   "}\n")};

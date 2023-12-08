@@ -40,22 +40,20 @@
 
 #define SSCMA_WIFI_NAME_LEN                  32
 #define SSCMA_WIFI_PASSWD_LEN                64
-#define SSCMA_WIFI_POLL_RETRY                200
+#define SSCMA_WIFI_POLL_RETRY                300
 #define SSCMA_WIFI_POLL_DELAY_MS             50
-
-#define SSCMA_IPV4_ADDRESS_LEN               16
 
 #define SSCMA_MQTT_DEFAULT_PORT              1883
 #define SSCMA_MQTT_DEFAULT_SSL_PORT          8883
-#define SSCMA_MQTT_POLL_RETRY                200
+#define SSCMA_MQTT_POLL_RETRY                300
 #define SSCMA_MQTT_POLL_DELAY_MS             50
-#define SSCMA_MQTT_CLIENT_ID_LEN             32
+#define SSCMA_MQTT_CLIENT_ID_LEN             64
 #define SSCMA_MQTT_ADDRESS_LEN               128
 #define SSCMA_MQTT_USERNAME_LEN              64
 #define SSCMA_MQTT_PASSWORD_LEN              64
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
 #define SSCMA_MQTT_TOPIC_LEN                 64
 #define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
-#define SSCMA_MQTT_DEVICE_ID_FMT             "sscma_%s_%s_%ld"
-#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%ld/tx"
-#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%ld/rx"
+#define SSCMA_MQTT_DEVICE_ID_FMT             "sscma_%s_%s_%s"
+#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%s/tx"
+#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%s/rx"

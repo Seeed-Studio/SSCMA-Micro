@@ -23,54 +23,18 @@
  *
  */
 
-#ifndef _EL_ALGORITHM_DELEGATE_H_
-#define _EL_ALGORITHM_DELEGATE_H_
+#ifndef _EL_FLASH_H_
+#define _EL_FLASH_H_
 
-#include <forward_list>
+#include <cstddef>
+#include <cstdint>
 
-#include "core/engine/el_engine_base.h"
-#include "el_algorithm_base.h"
-#include "el_algorithm_fomo.h"
-#include "el_algorithm_imcls.h"
-#include "el_algorithm_pfld.h"
-#include "el_algorithm_yolo.h"
+namespace edgelab::porting {
 
-namespace edgelab {
+bool el_flash_mmap_init(uint32_t*, uint32_t*, const uint8_t**, uint32_t*);
 
-using namespace edgelab::base;
-using namespace edgelab::types;
+void el_flash_mmap_deinit(uint32_t*);
 
-namespace utility {
-
-el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine);
-
-}  // namespace utility
-
-using Algorithm = class base::Algorithm;
-
-class AlgorithmDelegate {
-   public:
-    using InfoType = el_algorithm_info_t;
-
-    ~AlgorithmDelegate() = default;
-
-    [[nodiscard]] static AlgorithmDelegate* get_ptr();
-
-    InfoType get_algorithm_info(el_algorithm_type_t type) const;
-
-    const std::forward_list<const InfoType*>& get_all_algorithm_info() const;
-
-    size_t get_all_algorithm_info_count() const;
-
-    bool has_algorithm(el_algorithm_type_t type) const;
-
-   protected:
-    AlgorithmDelegate();
-
-   private:
-    std::forward_list<const InfoType*> _registered_algorithms;
-};
-
-}  // namespace edgelab
+}  // namespace edgelab::porting
 
 #endif

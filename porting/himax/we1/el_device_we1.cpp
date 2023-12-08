@@ -41,7 +41,7 @@ namespace edgelab {
 DeviceWE1::DeviceWE1() { init(); }
 
 void DeviceWE1::init() {
-    this->_device_name = "Grove Vision AI (WE-I)";
+    this->_device_name = PORT_DEVICE_NAME;
     this->_device_id   = 0x0001;
     this->_revision_id = 0x0001;
 

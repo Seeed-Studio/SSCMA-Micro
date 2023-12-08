@@ -27,125 +27,166 @@ extern "C" {
 #include <spi_eeprom_comm.h>
 }
 
+#include <cstdint>
+#include <cstring>
+
 #include "core/el_debug.h"
 #include "core/el_types.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "el_config_porting.h"
+#include "porting/el_flash.h"
 
 namespace edgelab {
 
 namespace porting {
 
-static Mutex         _el_flash_xip_lock{};
-static volatile bool _el_flash_xip_enabled = false;
+static Mutex         _el_flash_lock{};
+static volatile bool _el_flash_enabled = false;
+static volatile bool _el_xip_enabled   = false;
 
-static bool _el_enable_we2_xip() {
-    const Guard<Mutex> guard(_el_flash_xip_lock);
-    auto ret = E_OK;
-    if (_el_flash_xip_enabled) [[unlikely]]
+bool _el_flash_init() {
+    const Guard<Mutex> guard(_el_flash_lock);
+
+    if (_el_flash_enabled) [[unlikely]]
         goto Return;
 
-    ret = hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q);
-    if (ret != E_OK) [[unlikekly]]
-        goto Return;
-    ret = hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
-    if (ret != E_OK) [[unlikekly]]
+    if (hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q) != E_OK) [[unlikely]]
         goto Return;
 
-    _el_flash_xip_enabled = true;
+    _el_flash_enabled = true;
 
 Return:
-    return _el_flash_xip_enabled;
+    return _el_flash_enabled;
 }
 
-#if CONFIG_EL_MODEL
-el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
-                                            uint32_t*       partition_size,
-                                            const uint8_t** flash_2_memory_map,
-                                            uint32_t*       mmap_handler) {
-    *partition_start_addr = 0x00000000;
-    *partition_size       = 0x00000010;
-    if (!_el_enable_we2_xip()) [[unlikely]]
-        return EL_EIO;
-    *flash_2_memory_map = reinterpret_cast<const uint8_t*>(0x3A400000);
+void _el_flash_deinit() {}
 
-    return EL_OK;
+bool _el_flash_enable_xip() {
+    if (!_el_xip_enabled) [[likely]] {
+        if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
+            _el_xip_enabled = true;
+        else
+            return false;
+    }
+
+    return true;
 }
 
-void _el_model_partition_mmap_deinit(uint32_t* mmap_handler) {
-    const Guard<Mutex> guard(_el_flash_xip_lock);
-    if (!_el_flash_xip_enabled) [[unlikely]]
-        return;
-    auto ret = hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, true);
-    if (ret != E_OK) [[unlikekly]]
-        return;
-    _el_flash_xip_enabled = false;
+bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mmap, uint32_t* handler) {
+    *flash_addr = 0x00100000;
+    *size       = 0x00000010;
+
+    if (!_el_flash_init()) [[unlikely]]
+        return false;
+
+    const Guard<Mutex> guard(_el_flash_lock);
+
+    if (!_el_xip_enabled) [[likely]] {
+        if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
+            _el_xip_enabled = true;
+        else
+            return false;
+    }
+
+    *mmap = reinterpret_cast<const uint8_t*>(0x3A000000 + *flash_addr);
+
+    return true;
 }
-#endif
+
+void el_flash_mmap_deinit(uint32_t*) { _el_flash_deinit(); }
 
 #ifdef CONFIG_EL_LIB_FLASHDB
-static Mutex        _el_flash_lock{};
-const static size_t _el_flash_db_partition_end = 0x00800000;
-const static size_t _el_flash_db_partition     = _el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
+
+const static size_t _el_flash_db_partition_end   = 0x00800000;
+const static size_t _el_flash_db_partition_begin = _el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
 
 static int _el_flash_db_init(void) {
-    if (edgelab::porting::_el_enable_we2_xip()) [[likely]]
-        return 1;
-    return -1;
+    if (!_el_flash_init()) [[unlikely]]
+        return -1;
+
+    return 1;
 }
 
 static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-    int8_t             ret  = 0;
-    uint32_t           addr = _el_flash_db_nor_flash0.addr + offset;
 
+    uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 
-    memcpy(buf, reinterpret_cast<uint8_t*>(0x3A000000 + addr), size);
+    if (!_el_xip_enabled) [[unlikely]] {
+        if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
+            _el_xip_enabled = true;
+        else
+            return -1;
+    }
 
-    return ret;
+    // use xip to read data
+    std::memcpy(buf, reinterpret_cast<uint8_t*>(0x3A000000 + addr), size);
+
+    return 0;
 }
 
 static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-    int8_t             ret  = 0;
-    uint32_t           addr = _el_flash_db_nor_flash0.addr + offset;
 
+    uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 
-    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
-    hx_lib_spi_eeprom_word_write(USE_DW_SPI_MST_Q, addr, (uint32_t*)buf, size);
-    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
+    if (_el_xip_enabled) [[likely]] {
+        if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false) == E_OK) [[likely]]
+            _el_xip_enabled = false;
+        else
+            return -1;
+    }
+
+    int ret = -1;
+    if (hx_lib_spi_eeprom_word_write(
+          USE_DW_SPI_MST_Q, addr, const_cast<uint32_t*>(reinterpret_cast<const uint32_t*>(buf)), size) == E_OK)
+      [[likely]]
+        ret = 0;
+
+    if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
+        _el_xip_enabled = true;
 
     return ret;
 }
 
 static int _el_flash_db_erase(long offset, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-    int8_t             ret  = 0;
-    uint32_t           addr = _el_flash_db_nor_flash0.addr + offset;
 
+    uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 
-    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
-    hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, addr, FLASH_SECTOR);
-    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true);
+    if (_el_xip_enabled) {
+        if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false) == E_OK) [[likely]]
+            _el_xip_enabled = false;
+        else
+            return -1;
+    }
+
+    int ret = -1;
+    if (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, addr, FLASH_SECTOR) == E_OK) [[likely]]
+        ret = 0;
+
+    if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
+        _el_xip_enabled = true;
 
     return ret;
 }
 
 extern "C" const struct fal_flash_dev _el_flash_db_nor_flash0 = {
   .name       = CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT,
-  .addr       = _el_flash_db_partition,
+  .addr       = _el_flash_db_partition_begin,
   .len        = CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0,
   .blk_size   = FDB_BLOCK_SIZE,
   .ops        = {_el_flash_db_init, _el_flash_db_read, _el_flash_db_write, _el_flash_db_erase},
   .write_gran = FDB_WRITE_GRAN,
 };
+
 #endif
 
 }  // namespace porting

@@ -42,8 +42,8 @@ namespace edgelab {
 namespace porting {
 
 static inline uint32_t _device_id_from_efuse() {
-    char*     id_full = new char[16]{};
-    esp_err_t err     = esp_efuse_read_field_blob(ESP_EFUSE_OPTIONAL_UNIQUE_ID, id_full, 16u << 3);
+    char      id_full[16]{};
+    esp_err_t err = esp_efuse_read_field_blob(ESP_EFUSE_OPTIONAL_UNIQUE_ID, id_full, 16u << 3);
 
     if (err != ESP_OK) [[unlikely]]
         return 0ul;
@@ -65,7 +65,7 @@ static inline uint32_t _device_id_from_efuse() {
 DeviceEsp::DeviceEsp() { init(); }
 
 void DeviceEsp::init() {
-    this->_device_name = "Seeed Studio XIAO (ESP32-S3)";
+    this->_device_name = PORT_DEVICE_NAME;
     this->_device_id   = porting::_device_id_from_efuse();
     this->_revision_id = efuse_hal_chip_revision();
 

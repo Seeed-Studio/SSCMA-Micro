@@ -89,6 +89,17 @@ inline decltype(auto) quoted(const std::string& str, const char delim = '"') {
     return ss;
 }
 
+template <typename T> decltype(auto) to_hex_string(T dec) {
+    static_assert(std::is_unsigned<T>::value);
+    static const char* digits = "0123456789abcdef";
+    std::size_t const  len    = sizeof(T) << 1;
+    if (dec == 0U) return std::string{len, '0'};
+    std::size_t const bits = (len - 1) << 2;
+    std::string       hex(len, '0');
+    for (std::size_t i = 0, j = bits; i < len; ++i, j -= 4) hex[i] = digits[(dec >> j) & 0x0f];
+    return hex;
+}
+
 decltype(auto) model_info_2_json_str(const el_model_info_t& model_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(model_info.id),
@@ -268,7 +279,7 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
 }
 
 decltype(auto) wifi_config_2_json_str(const wifi_config_t& config, bool secure = true) {
-    const auto& pwd = secure ? std::string(std::strlen(config.passwd), '*') : std::string(config.passwd);
+    const auto& pwd = /* secure ? std::string(std::strlen(config.passwd), '*') : */ std::string(config.passwd);
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),
                                   ", \"name\": ",
@@ -282,7 +293,7 @@ decltype(auto) wifi_config_2_json_str(const wifi_config_t& config, bool secure =
 }
 
 decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config, bool secure = true) {
-    const auto& pwd = secure ? std::string(std::strlen(config.password), '*') : std::string(config.password);
+    const auto& pwd = /* secure ? std::string(std::strlen(config.password), '*') : */ std::string(config.password);
     std::string ss{concat_strings("{\"client_id\": ",
                                   quoted(config.client_id),
                                   ", \"address\": ",
@@ -352,7 +363,8 @@ bool is_bssid(const std::string& str) {
 }
 
 decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
-    auto default_config = mqtt_pubsub_config_t{};
+    auto        default_config = mqtt_pubsub_config_t{};
+    const auto& device_id      = to_hex_string(device->get_device_id());
 
     std::snprintf(default_config.pub_topic,
                   sizeof(default_config.pub_topic) - 1,
@@ -360,7 +372,7 @@ decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
                   SSCMA_AT_API_MAJOR_VERSION,
                   VENDOR_PREFIX,
                   VENDOR_CHIP_NAME,
-                  device->get_device_id());
+                  device_id.c_str());
     default_config.pub_qos = 0;
 
     std::snprintf(default_config.sub_topic,
@@ -369,21 +381,22 @@ decltype(auto) get_default_mqtt_pubsub_config(const Device* device) {
                   SSCMA_AT_API_MAJOR_VERSION,
                   VENDOR_PREFIX,
                   VENDOR_CHIP_NAME,
-                  device->get_device_id());
+                  device_id.c_str());
     default_config.sub_qos = 0;
 
     return default_config;
 }
 
 decltype(auto) get_default_mqtt_server_config(const Device* device) {
-    auto default_config = mqtt_server_config_t{};
+    auto        default_config = mqtt_server_config_t{};
+    const auto& device_id      = to_hex_string(device->get_device_id());
 
     std::snprintf(default_config.client_id,
                   sizeof(default_config.client_id) - 1,
                   SSCMA_MQTT_DEVICE_ID_FMT,
                   VENDOR_PREFIX,
                   VENDOR_CHIP_NAME,
-                  device->get_device_id());
+                  device_id.c_str());
 
     return default_config;
 }

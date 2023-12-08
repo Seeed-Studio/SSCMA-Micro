@@ -32,7 +32,7 @@ using namespace sscma::prototypes;
 
 class Supervisor {
    public:
-    [[nodiscard]] static Supervisor* get_supervisor() {
+    [[nodiscard]] static Supervisor* get_ptr() {
         static Supervisor supervisor;
         return &supervisor;
     }

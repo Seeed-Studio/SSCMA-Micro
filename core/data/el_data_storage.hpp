@@ -150,8 +150,8 @@ static inline el_storage_kv_t<ValueTypeNoCV> el_make_storage_kv_from_type(VarTyp
 
 class Storage {
    public:
-    // currently the consistent of Storage is only ensured on a single instance if there're multiple instances that has same name and save path
-    Storage();
+    [[nodiscard]] static Storage* get_ptr();
+
     ~Storage();
 
     Storage(const Storage&)            = delete;
@@ -334,6 +334,9 @@ class Storage {
     bool erase(const char* key);
     void clear();
     bool reset();
+
+   protected:
+    Storage();
 
    private:
     Mutex __lock;
