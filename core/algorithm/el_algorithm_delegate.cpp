@@ -52,9 +52,9 @@ el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
 
 }  // namespace utility
 
-AlgorithmDelegate* AlgorithmDelegate::get_delegate() {
-    static AlgorithmDelegate data_delegate = AlgorithmDelegate();
-    return &data_delegate;
+AlgorithmDelegate* AlgorithmDelegate::get_ptr() {
+    static auto algorithm_delegate = AlgorithmDelegate{};
+    return &algorithm_delegate;
 }
 
 AlgorithmDelegate::InfoType AlgorithmDelegate::get_algorithm_info(el_algorithm_type_t type) const {

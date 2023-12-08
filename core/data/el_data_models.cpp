@@ -26,20 +26,17 @@
 #include "el_data_models.h"
 
 #if CONFIG_EL_MODEL
+
     #include <algorithm>
+
+    #include "porting/el_flash.h"
 
 namespace edgelab {
 
-namespace porting {
-
-extern el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
-                                                   uint32_t*       partition_size,
-                                                   const uint8_t** flash_2_memory_map,
-                                                   uint32_t*       mmap_handler);
-
-extern void _el_model_partition_mmap_deinit(uint32_t* mmap_handler);
-
-}  // namespace porting
+Models* Models::get_ptr() {
+    static Models models{};
+    return &models;
+}
 
 Models::Models()
     : __partition_start_addr(0u),
@@ -52,21 +49,21 @@ Models::Models()
 Models::~Models() { deinit(); }
 
 el_err_code_t Models::init(el_model_format_v model_format) {
-    el_err_code_t ret = porting::_el_model_partition_mmap_init(
-      &__partition_start_addr, &__partition_size, &__flash_2_memory_map, &__mmap_handler);
-    if (ret != EL_OK) return ret;
+    if (!porting::el_flash_mmap_init(
+          &__partition_start_addr, &__partition_size, &__flash_2_memory_map, &__mmap_handler)) [[unlikely]]
+        return EL_EIO;
     seek_models_from_flash(model_format);
-    return ret;
+    return EL_OK;
 }
 
 void Models::deinit() {
-    porting::_el_model_partition_mmap_deinit(&__mmap_handler);
+    porting::el_flash_mmap_deinit(&__mmap_handler);
     __flash_2_memory_map = nullptr;
     __mmap_handler       = 0;
     __model_info.clear();
 }
 
-size_t Models::seek_models_from_flash(const el_model_format_v& model_format) {
+std::size_t Models::seek_models_from_flash(const el_model_format_v& model_format) {
     if (!__flash_2_memory_map) [[unlikely]]
         return 0u;
 
@@ -92,7 +89,7 @@ size_t Models::seek_models_from_flash(const el_model_format_v& model_format) {
 void Models::m_seek_packed_models_from_flash() {
     const uint8_t*           mem_addr = nullptr;
     const el_model_header_t* header   = nullptr;
-    for (size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
+    for (std::size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
         mem_addr = __flash_2_memory_map + it;
         header   = reinterpret_cast<const el_model_header_t*>(mem_addr);
         if ((el_ntohl(header->b4[0]) & 0xFFFFFF00) != (CONFIG_EL_MODEL_HEADER_MAGIC << 8u)) continue;
@@ -119,7 +116,7 @@ void Models::m_seek_plain_models_from_flash() {
     const uint8_t*           mem_addr = nullptr;
     const el_model_header_t* header   = nullptr;
     uint8_t                  model_id = 1u;
-    for (size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
+    for (std::size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
         mem_addr = __flash_2_memory_map + it;
         header   = reinterpret_cast<const el_model_header_t*>(mem_addr);
         if (el_ntohl(header->b4[1]) != CONFIG_EL_MODEL_TFLITE_MAGIC) [[likely]]
@@ -166,7 +163,7 @@ el_model_info_t Models::get_model_info(el_model_id_t model_id) const {
 
 const std::forward_list<el_model_info_t>& Models::get_all_model_info() const { return __model_info; }
 
-size_t Models::get_all_model_info_size() const { return std::distance(__model_info.begin(), __model_info.end()); }
+std::size_t Models::get_all_model_info_size() const { return std::distance(__model_info.begin(), __model_info.end()); }
 
 }  // namespace edgelab
 

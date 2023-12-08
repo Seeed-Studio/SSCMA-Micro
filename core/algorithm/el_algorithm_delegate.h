@@ -54,7 +54,7 @@ class AlgorithmDelegate {
 
     ~AlgorithmDelegate() = default;
 
-    static AlgorithmDelegate* get_delegate();
+    [[nodiscard]] static AlgorithmDelegate* get_ptr();
 
     InfoType get_algorithm_info(el_algorithm_type_t type) const;
 
