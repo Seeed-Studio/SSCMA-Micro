@@ -35,8 +35,6 @@
 #ifndef CONFIG_EL_TARGET_HIMAX
     #error "Please specify porting target"
 #else
-    #define VENDOR_PREFIX    "grove"
-    #define VENDOR_CHIP_NAME "we2"
     #if defined(CONFIG_EL_BOARD_GRIVE_VISION_AI_WE2)
         #include "boards/grove_vision_ai_we2/board.h"
     #else
@@ -44,7 +42,7 @@
     #endif
 #endif
 
-#define CONFIG_EL_DEBUG                3
+#define CONFIG_EL_DEBUG                1
 
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
@@ -76,7 +74,7 @@
 #define CONFIG_EL_STORAGE_PARTITION_NAME        "db"
 #define CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT "nor_flash0"
 #define CONFIG_EL_STORAGE_PARTITION_FS_NAME_0   "kvdb0"
-#define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (64 * 1024)
+#define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (128 * 1024)
 #define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
 
 #if CONFIG_EL_LIB_FLASHDB

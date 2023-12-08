@@ -30,9 +30,11 @@ extern "C" {
 #include <WE2_core.h>
 #include <ethosu_driver.h>
 #include <hx_drv_pmu.h>
+#include <spi_eeprom_comm.h>
 }
 
 #include <cstdint>
+#include <cstring>
 
 #include "core/el_debug.h"
 #include "el_camera_ov5647.h"
@@ -40,12 +42,38 @@ extern "C" {
 #include "el_network_we2.h"
 #include "el_serial_we2.h"
 #include "el_wire_we2.h"
+#include "porting/el_flash.h"
 
 #define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
 
 namespace edgelab {
 
 namespace porting {
+
+extern bool _el_flash_enable_xip();
+
+static inline uint32_t _device_id_from_flash() {
+    if (!_el_flash_init()) [[unlikely]]
+        return 0ul;
+
+    if (!_el_flash_enable_xip()) [[unlikely]]
+        return 0ul;
+
+    uint8_t id_full[16]{};
+
+    std::memcpy(id_full, reinterpret_cast<uint8_t*>(0x007DF000), sizeof(id_full));
+
+    // Fowler–Noll–Vo hash function
+    uint32_t hash  = 0x811c9dc5;
+    uint32_t prime = 0x1000193;
+    for (size_t i = 0; i < 16; ++i) {
+        uint8_t value = id_full[i];
+        hash          = hash ^ value;
+        hash *= prime;
+    }
+
+    return hash;
+}
 
 struct ethosu_driver _ethosu_drv; /* Default Ethos-U device driver */
 
@@ -105,8 +133,8 @@ void DeviceWE2::init() {
 
     porting::_arm_npu_init(true, true);
 
-    this->_device_name = "Grove Vision AI (WE-II)";
-    this->_device_id   = 0x0001;
+    this->_device_name = PORT_DEVICE_NAME;
+    this->_device_id   = porting::_device_id_from_flash();
     this->_revision_id = 0x0001;
 
     static uint8_t sensor_id = 0;

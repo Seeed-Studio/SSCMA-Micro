@@ -81,6 +81,13 @@ class StaticResource final {
         serial = device->get_serial();
         wire   = device->get_wire();
 
+        models             = Models::get_ptr();
+        storage            = Storage::get_ptr();
+        algorithm_delegate = AlgorithmDelegate::get_ptr();
+
+        static auto v_engine{EngineTFLite()};
+        engine = &v_engine;
+
         static auto v_wifi{WiFi()};
         wifi = &v_wifi;
 
@@ -93,21 +100,10 @@ class StaticResource final {
         static auto v_executor{Executor(SSCMA_REPL_EXECUTOR_STACK_SIZE, SSCMA_REPL_EXECUTOR_PRIO)};
         executor = &v_executor;
 
-        supervisor = Supervisor::get_supervisor();
+        supervisor = Supervisor::get_ptr();
 
         static auto v_action{Condition()};
         action = &v_action;
-
-        static auto v_models{Models()};
-        models = &v_models;
-
-        static auto v_storage{Storage()};
-        storage = &v_storage;
-
-        static auto v_engine{EngineTFLite()};
-        engine = &v_engine;
-
-        algorithm_delegate = AlgorithmDelegate::get_delegate();
 
         inter_init();
 

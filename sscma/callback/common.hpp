@@ -32,9 +32,9 @@ void get_device_id(const std::string& cmd, void* caller) {
                                   cmd,
                                   "\", \"code\": ",
                                   std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  std::to_string(static_resource->device->get_device_id()),
-                                  "}\n")};
+                                  ", \"data\": \"",
+                                  to_hex_string(static_resource->device->get_device_id()),
+                                  "\"}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

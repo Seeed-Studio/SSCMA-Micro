@@ -35,8 +35,6 @@
 #ifndef CONFIG_EL_TARGET_ESPPRESSIF
     #error "Please specify porting target"
 #else
-    #define VENDOR_PREFIX    "esp"
-    #define VENDOR_CHIP_NAME "s3"
     #if defined(CONFIG_EL_BOARD_SEEED_XIAO_ESP32S3)
         #include "boards/seeed_xiao_esp32s3/board.h"
     #elif defined(CONFIG_EL_BOARD_ESPRESSIF_ESP32S3_EYE)

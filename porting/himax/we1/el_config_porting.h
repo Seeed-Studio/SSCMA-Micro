@@ -35,8 +35,6 @@
 #ifndef CONFIG_EL_TARGET_HIMAX
     #error "Please specify porting target"
 #else
-    #define VENDOR_PREFIX    "himax"
-    #define VENDOR_CHIP_NAME "we1"
     #if defined(CONFIG_EL_BOARD_GRIVE_VISION_AI_WE1)
         #include "boards/grove_vision_ai_we1/board.h"
     #else
