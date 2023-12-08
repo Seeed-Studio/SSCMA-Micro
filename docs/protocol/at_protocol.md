@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.12.01
+# AT Protocol Specification v2023.12.06
 
 
 ## Transmission Layer
@@ -39,7 +39,7 @@ Example;
       "type": 0,
       "name": "10@ID?",
       "code": 0,
-      "data": 657103005
+      "data": "7e2d02cf"
     }\n
     ```
 
@@ -139,7 +139,7 @@ Response:
   "type": 0,
   "name": "ID?",
   "code": 0,
-  "data": 657103005
+  "data": "7e2d02cf"
 }\n
 ```
 
@@ -500,7 +500,7 @@ Response:
   "data": {
     "status": 2,
     "config": {
-      "client_id": "example_device_id",
+      "client_id": "sscma_xiao_s3_7e2d02cf",
       "address": "example.local",
       "port": 1883,
       "username": "example_user",
@@ -532,9 +532,9 @@ Response:
   "code": 0,
   "data": {
     "config": {
-      "pub_topic": "sscma/test_pub",
+      "pub_topic": "sscma/v0/xiao_s3_7e2d02cf/tx",
       "pub_qos": 0,
-      "sub_topic": "sscma/test_sub",
+      "sub_topic": "sscma/v0/xiao_s3_7e2d02cf/rx",
       "sub_qos": 0
     }
   }
