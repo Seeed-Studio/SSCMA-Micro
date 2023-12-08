@@ -32,23 +32,16 @@ extern "C" {
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "el_config_porting.h"
+#include "porting/el_flash.h"
 
 namespace edgelab {
 
 namespace porting {
 
-#if CONFIG_EL_MODEL
+bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mmap, uint32_t* handler) { return true; }
 
-el_err_code_t _el_model_partition_mmap_init(uint32_t*       partition_start_addr,
-                                            uint32_t*       partition_size,
-                                            const uint8_t** flash_2_memory_map,
-                                            uint32_t*       mmap_handler) {
-    return EL_OK;
-}
+void el_flash_mmap_deinit(uint32_t* mmap_handler) {}
 
-void _el_model_partition_mmap_deinit(uint32_t* mmap_handler) {}
-
-#endif
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 
