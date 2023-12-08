@@ -50,6 +50,7 @@ namespace edgelab {
 
 namespace porting {
 
+extern bool _el_flash_init();
 extern bool _el_flash_enable_xip();
 
 static inline uint32_t _device_id_from_flash() {

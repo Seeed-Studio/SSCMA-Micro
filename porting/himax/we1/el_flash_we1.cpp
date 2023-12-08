@@ -42,7 +42,6 @@ bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mm
 
 void el_flash_mmap_deinit(uint32_t* mmap_handler) {}
 
-
 #ifdef CONFIG_EL_LIB_FLASHDB
 
 static Mutex        _el_flash_lock{};

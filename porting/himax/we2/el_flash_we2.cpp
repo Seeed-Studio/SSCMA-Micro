@@ -94,7 +94,7 @@ bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mm
     return true;
 }
 
-void el_flash_mmap_deinit(uint32_t*) { el_flash_deinit(); }
+void el_flash_mmap_deinit(uint32_t*) { _el_flash_deinit(); }
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 
