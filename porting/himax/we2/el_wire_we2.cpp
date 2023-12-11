@@ -37,7 +37,7 @@ namespace edgelab {
 namespace porting {
 
 static void i2c_s_callback_fun_tx(void* param) {
-    // el_printf("%s \n", __FUNCTION__);
+    // EL_LOGD("%s \n", __FUNCTION__);
 
     HX_DRV_DEV_IIC*      iic_obj      = (HX_DRV_DEV_IIC*)param;
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(iic_obj->iic_info);
@@ -47,7 +47,7 @@ static void i2c_s_callback_fun_tx(void* param) {
 }
 
 static void i2c_s_callback_fun_rx(void* param) {
-    //el_printf("%s \n", __FUNCTION__);
+    //EL_LOGD("%s \n", __FUNCTION__);
 
     HX_DRV_DEV_IIC*      iic_obj      = (HX_DRV_DEV_IIC*)param;
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(iic_obj->iic_info);
@@ -61,7 +61,7 @@ static void i2c_s_callback_fun_rx(void* param) {
     uint16_t available  = wire->tx_ring_buffer->size();
     bool     is_present = *wire;
 
-    el_printf("feature: %0x, cmd: %0x, len: %d, available: %d\n", feature, cmd, len, available);
+    // EL_LOGD("feature: %0x, cmd: %0x, len: %d, available: %d\n", feature, cmd, len, available);
 
     if (len > MAX_PL_LEN || feature != FEATURE_TRANSPORT) {
         wire->wire_read_enable(sizeof(wire->rx_buffer));
@@ -110,7 +110,7 @@ static void i2c_s_callback_fun_rx(void* param) {
 }
 
 static void i2c_s_callback_fun_err(void* param) {
-    //el_printf("%s \n", __FUNCTION__);
+    //EL_LOGD("%s \n", __FUNCTION__);
     HX_DRV_DEV_IIC*      iic_obj      = (HX_DRV_DEV_IIC*)param;
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(iic_obj->iic_info);
 
@@ -119,7 +119,7 @@ static void i2c_s_callback_fun_err(void* param) {
     wire->wire_read_enable(sizeof(wire->rx_buffer));
 }
 static void i2c_s_callback_fun_sta(void* param) {
-    //el_printf("%s \n", __FUNCTION__);
+    //EL_LOGD("%s \n", __FUNCTION__);
 
     HX_DRV_DEV_IIC*      iic_obj      = (HX_DRV_DEV_IIC*)param;
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(iic_obj->iic_info);
@@ -221,13 +221,10 @@ size_t WireWE2::read_bytes(char* buffer, size_t size) {
 
 size_t WireWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) {
-        el_printf("not present \n");
         return 0;
     }
-    el_printf("send_bytes %d \n", size);
 
     return this->tx_ring_buffer->put(buffer, size);
-    ;
 }
 
 void WireWE2::wire_read_enable(size_t size) {
