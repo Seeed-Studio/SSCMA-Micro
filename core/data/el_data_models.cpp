@@ -89,7 +89,7 @@ std::size_t Models::seek_models_from_flash(const el_model_format_v& model_format
 void Models::m_seek_packed_models_from_flash() {
     const uint8_t*           mem_addr = nullptr;
     const el_model_header_t* header   = nullptr;
-    for (std::size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
+    for (std::size_t it = 0u; it < __partition_size; it += CONFIG_EL_MODEL_SEEK_STEP_BYTES) {
         mem_addr = __flash_2_memory_map + it;
         header   = reinterpret_cast<const el_model_header_t*>(mem_addr);
         if ((el_ntohl(header->b4[0]) & 0xFFFFFF00) != (CONFIG_EL_MODEL_HEADER_MAGIC << 8u)) continue;
@@ -116,7 +116,7 @@ void Models::m_seek_plain_models_from_flash() {
     const uint8_t*           mem_addr = nullptr;
     const el_model_header_t* header   = nullptr;
     uint8_t                  model_id = 1u;
-    for (std::size_t it = 0u; it < __partition_size; it += sizeof(el_model_header_t)) {
+    for (std::size_t it = 0u; it < __partition_size; it += CONFIG_EL_MODEL_SEEK_STEP_BYTES) {
         mem_addr = __flash_2_memory_map + it;
         header   = reinterpret_cast<const el_model_header_t*>(mem_addr);
         if (el_ntohl(header->b4[1]) != CONFIG_EL_MODEL_TFLITE_MAGIC) [[likely]]
