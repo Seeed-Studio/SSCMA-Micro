@@ -82,7 +82,6 @@ class WireWE2 final : public Wire {
    public:
     void wire_read_enable(size_t size);
     void wire_write_enable(size_t size);
-    void set_present(bool is_present);
 
    public:
     lwRingBuffer*    rx_ring_buffer;
@@ -91,7 +90,6 @@ class WireWE2 final : public Wire {
     uint8_t          tx_buffer[MAX_PAYLOAD_LEN];
     USE_DW_IIC_SLV_E index;
     HX_DRV_DEV_IIC*  i2c;
-    bool             _is_init;
 };
 
 }  // namespace edgelab
