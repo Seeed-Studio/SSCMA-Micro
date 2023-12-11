@@ -29,7 +29,8 @@ struct ipv4_addr_t {
             for (; (++i < s.length()) & (++n < 3);)
                 if (!std::isdigit(s[i])) break;
             if (n) {
-                r.addr[l++] = static_cast<uint8_t>(std::atoi(s.substr(i - n, n).c_str()));
+                auto num{s.substr(i - n, n)};
+                r.addr[l++] = static_cast<uint8_t>(std::atoi(num.c_str()));
                 if (l > 3) return r;
             }
         }
