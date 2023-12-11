@@ -62,6 +62,12 @@ class lwRingBuffer {
     }
     char operator[](size_t i) { return buf[(head + i) % len]; }
 
+    /**
+     * Find the first occurrence of c in the ring buffer
+     * @param c the character to search for
+     * @return the index of the first occurrence of c in the ring buffer
+     *         if c is not found, return this->len
+     */
     size_t find(char c) {
         for (size_t i = head; i != tail; i = (i + 1) % len) {
             if (buf[i] == c) {
@@ -70,6 +76,14 @@ class lwRingBuffer {
         }
         return this->len;
     }
+
+    /**
+     * Check if the ring buffer contains the string *str
+     * @param str the string to search for
+     * @param slen the length of the string
+     * @return true if the ring buffer contains the string *str
+     *         false otherwise
+     */
     bool match(const char* str, size_t slen) {
         if (slen > size()) {
             return false;
@@ -81,6 +95,14 @@ class lwRingBuffer {
         }
         return true;
     }
+
+    /**
+     * Extract string from the ring buffer until the character c is found
+     * @param c the character to search for
+     * @param str the string to extract
+     * @param slen the length of the string
+     * @return the length of the string extracted
+     */
     size_t extract(char c, char* str, size_t slen) {
         size_t i = find(c);
         if (i == this->len) {

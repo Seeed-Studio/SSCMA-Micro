@@ -101,7 +101,7 @@ static void network_status_handler(void* arg) {
             // {
             // case NETWORK_JOINED: 
             //     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
-            //     // at_send(&at, AT_SHORT_TIME_MS);
+            //     at_send(&at, AT_SHORT_TIME_MS);
             // default:
             //     break;
             // }
@@ -234,6 +234,9 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
             return err;
         }
     }
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
+    at_send(&at, AT_SHORT_TIME_MS);
+
     return EL_OK;
 }
 
@@ -515,21 +518,17 @@ void resp_action_mqtt(const char* resp, void* arg) {
 void resp_action_ip(const char* resp, void* arg) {
     edgelab::NetworkWE2* net = (edgelab::NetworkWE2*)arg;
     uint32_t ofs = strlen(AT_STR_RESP_IP_H);
-    ipv4_addr_t ipv4 = {0};
     if (strncmp(resp + ofs, "ip:", 3) == 0) {
         ofs += 3;
-        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
-        net->_ip.ip = ipv4;
+        net->_ip.ip = ipv4_addr_t::from_str(std::string(resp + ofs, strlen(resp + ofs)));
         return;
     } else if (strncmp(resp + ofs, "gateway:", 8) == 0) {
         ofs += 8;
-        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
-        net->_ip.gateway = ipv4;
+        net->_ip.gateway = ipv4_addr_t::from_str(std::string(resp + ofs, strlen(resp + ofs)));
         return;
     } else if (strncmp(resp + ofs, "netmask:", 8) == 0) {
         ofs += 8;
-        sscanf(resp + ofs, "\"%d.%d.%d.%d\"", &ipv4.addr[0], &ipv4.addr[1], &ipv4.addr[2], &ipv4.addr[3]);
-        net->_ip.netmask = ipv4;
+        net->_ip.netmask = ipv4_addr_t::from_str(std::string(resp + ofs, strlen(resp + ofs)));
         EL_LOGD("IP GOT\n");
         return;
     }

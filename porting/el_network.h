@@ -80,7 +80,8 @@ public:
         }
     }
     el_err_code_t get_ip(in4_info_t &ip) { 
-        if (this->network_status != NETWORK_CONNECTED) {
+        if (this->network_status == NETWORK_LOST || 
+            this->network_status == NETWORK_IDLE) {
             return EL_EPERM;
         }
         ip = this->_ip;
