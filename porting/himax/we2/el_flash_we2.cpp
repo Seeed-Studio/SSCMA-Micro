@@ -74,8 +74,8 @@ bool _el_flash_enable_xip() {
 }
 
 bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mmap, uint32_t* handler) {
-    *flash_addr = 0x00100000;
-    *size       = 0x00000010;
+    *flash_addr = 0x00400000;
+    *size       = 0x00400000;
 
     if (!_el_flash_init()) [[unlikely]]
         return false;
@@ -98,7 +98,7 @@ void el_flash_mmap_deinit(uint32_t*) { _el_flash_deinit(); }
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 
-const static size_t _el_flash_db_partition_end   = 0x00800000;
+const static size_t _el_flash_db_partition_end   = 0x00400000;
 const static size_t _el_flash_db_partition_begin = _el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
 
 static int _el_flash_db_init(void) {

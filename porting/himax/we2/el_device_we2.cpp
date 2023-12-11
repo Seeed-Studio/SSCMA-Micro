@@ -62,7 +62,7 @@ static inline uint32_t _device_id_from_flash() {
 
     uint8_t id_full[16]{};
 
-    std::memcpy(id_full, reinterpret_cast<uint8_t*>(0x007DF000), sizeof(id_full));
+    std::memcpy(id_full, reinterpret_cast<uint8_t*>(0x3A000000 + 0x003DF000), sizeof id_full);
 
     // Fowler–Noll–Vo hash function
     uint32_t hash  = 0x811c9dc5;
