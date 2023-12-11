@@ -85,10 +85,11 @@
 
 /* model related config */
 #ifndef CONFIG_EL_MODEL
-    #define CONFIG_EL_MODEL                1
-    #define CONFIG_EL_MODEL_TFLITE_MAGIC   0x54464C33
-    #define CONFIG_EL_MODEL_HEADER_MAGIC   0x004C4854
-    #define CONFIG_EL_MODEL_PARTITION_NAME "models"
+    #define CONFIG_EL_MODEL                 1
+    #define CONFIG_EL_MODEL_TFLITE_MAGIC    0x54464C33
+    #define CONFIG_EL_MODEL_HEADER_MAGIC    0x004C4854
+    #define CONFIG_EL_MODEL_PARTITION_NAME  "models"
+    #define CONFIG_EL_MODEL_SEEK_STEP_BYTES sizeof(el_model_header_t)
 #endif
 
 /* sensor related config */
