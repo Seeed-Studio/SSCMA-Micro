@@ -52,8 +52,14 @@
 #define SSCMA_MQTT_USERNAME_LEN              64
 #define SSCMA_MQTT_PASSWORD_LEN              64
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
-#define SSCMA_MQTT_TOPIC_LEN                 64
+#define SSCMA_MQTT_TOPIC_LEN                 128
 #define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
-#define SSCMA_MQTT_DEVICE_ID_FMT             "sscma_%s_%s_%s"
-#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%s/tx"
-#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%s/rx"
+#define SSCMA_MQTT_CLIENT_ID_FMT             "%s_%s_%s"
+#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s/tx"
+#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s/rx"
+
+static_assert(SSCMA_MQTT_DEFAULT_PORT > 0);
+static_assert(SSCMA_MQTT_DEFAULT_PORT < 65536);
+static_assert(SSCMA_MQTT_DEFAULT_SSL_PORT > 0);
+static_assert(SSCMA_MQTT_DEFAULT_SSL_PORT < 65536);
+static_assert(SSCMA_MQTT_TOPIC_LEN > SSCMA_MQTT_CLIENT_ID_LEN);

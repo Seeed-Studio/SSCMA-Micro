@@ -26,8 +26,8 @@
 #ifndef _BOARD_GROVE_VISION_AI_WE1_H_
 #define _BOARD_GROVE_VISION_AI_WE1_H_
 
-#define VENDOR_PREFIX    "grove"
-#define VENDOR_CHIP_NAME "we1"
-#define PORT_DEVICE_NAME "Grove Vision AI (WE1)"
+#define PRODUCT_NAME_PREFIX "grove_vision_ai"
+#define PRODUCT_NAME_SUFFIX "we1"
+#define PORT_DEVICE_NAME    "Grove Vision AI (WE1)"
 
 #endif
