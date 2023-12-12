@@ -26,8 +26,8 @@
 #ifndef _ESPRESSIF_ESP32S3_EYE_BOARD_H_
 #define _ESPRESSIF_ESP32S3_EYE_BOARD_H_
 
-#define VENDOR_PREFIX                "esp"
-#define VENDOR_CHIP_NAME             "s3"
+#define PRODUCT_NAME_PREFIX          "esp32"
+#define PRODUCT_NAME_SUFFIX          "s3"
 #define PORT_DEVICE_NAME             "ESP32-S3 Eye"
 
 #define CAMERA_MODULE_NAME           "ESP-S3-EYE"

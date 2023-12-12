@@ -26,8 +26,8 @@
 #ifndef _SEEED_XIAO_ESP32S3_BOARD_H_
 #define _SEEED_XIAO_ESP32S3_BOARD_H_
 
-#define VENDOR_PREFIX                "xiao"
-#define VENDOR_CHIP_NAME             "s3"
+#define PRODUCT_NAME_PREFIX          "xiao_esp32"
+#define PRODUCT_NAME_SUFFIX          "s3"
 #define PORT_DEVICE_NAME             "Seeed Studio XIAO (ESP32-S3)"
 
 #define LED_0_PIN                    GPIO_NUM_21

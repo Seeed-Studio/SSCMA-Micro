@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.12.06
+# AT Protocol Specification v2023.12.12
 
 
 ## Transmission Layer
@@ -500,7 +500,7 @@ Response:
   "data": {
     "status": 2,
     "config": {
-      "client_id": "sscma_xiao_s3_7e2d02cf",
+      "client_id": "xiao_s3_7e2d02cf",
       "address": "example.local",
       "port": 1883,
       "username": "example_user",
@@ -830,7 +830,7 @@ Note:
 1. If the WiFi is successfully connected in the setup period or after called this API, when the WiFi signal is lost, the device will try to reconnect to the AP automatically.
 1. You don't need to explicitly unsubscribe the MQTT topics or disconnecting the MQTT server before calling this API, we will do it automatically.
 1. Any **Event response** will not contain the sensitive information, e.g. password string, it will be replaced by a `*` string with the same length.
-1. The default timeout of the WiFi connect operation is `0.05s * retry_times`, the default retry times is `200`. The supervisor will poll the WiFi status every `5s` by default and try to reconnect if the WiFi status is not as expected.
+1. The default timeout of the WiFi connect operation is `0.05s * retry_times`, the default retry times is `300`. The supervisor will poll the WiFi status every `5s` by default and try to reconnect if the WiFi status is not as expected.
 1. The `name_type` is determined automatically, `0` means a SSID string, `1` means a BSSID string. The name or password format, security type are verified by the driver (e.g. the password length should >= 8 when the security level is above none), the network supervisor functionality is also based on the driver.
 
 #### Connect to a MQTT server
@@ -866,9 +866,9 @@ Note:
 1. If the MQTT server is successfully connected in the setup period or after called this API, when the MQTT server is offline, the device will try to reconnect to the server automatically.
 1. You don't need to explicitly unsubscribe the MQTT topics or disconnecting the MQTT server before calling this API, we will do it automatically.
 1. Any **Event response** will not contain the sensitive information, e.g. password string, it will be replaced by a `*` string with the same length.
-1. The default timeout of the MQTT connect operation is `0.05s * retry_times`, the default retry times is `200`. The network supervisor will poll the MQTT status every `5s` by default and try to reconnect if the MQTT status is not as expected.
+1. The default timeout of the MQTT connect operation is `0.05s * retry_times`, the default retry times is `300`. The network supervisor will poll the MQTT status every `5s` by default and try to reconnect if the MQTT status is not as expected.
 1. If no port is specified in the `PORT` argument, the default port `1883` (or `8883` for SSL) will be used. The `USE_SSL` is a boolean value, `0` means disable SSL, `1` means enable SSL. The username or password format, address are verified by the driver, the network supervisor functionality is also based on the driver.
-1. The `client_id` is generated automatically if `CLIENT_ID` is a empty string, the default pattern is `"sscma_%s_%s_%ld"` the first `%s` is `VENDOR_PREFIX`, the second `%s` is `VENDOR_CHIP_NAME`, the `%ld` is a unique device ID.
+1. The `client_id` is generated automatically if `CLIENT_ID` is a empty string, the default pattern is `"%s_%s_%ld"` the first `%s` is `PRODUCT_NAME_PREFIX`, the second `%s` is `PRODUCT_NAME_SUFFIX`, the `%ld` is a unique device ID.
 1. The SSL functionality is in development currently, for testing purpose, you can try [EMQX](https://www.emqx.io/) as a MQTT server with SSL enabled.
 
 #### Set SSL certificate (Draft)

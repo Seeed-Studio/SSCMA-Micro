@@ -14,17 +14,28 @@ using namespace sscma::types;
 using namespace sscma::utility;
 
 void set_wifi_network(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
-    // crate config from argv
-    auto config      = wifi_config_t{};
+    auto ret    = EL_OK;
+    auto config = wifi_config_t{};
+
+    if (argv[1].size() >= sizeof(config.name) || argv[3].size() >= sizeof(config.passwd)) [[unlikely]] {
+        ret = EL_EINVAL;
+        goto Reply;
+    }
+
     config.name_type = is_bssid(argv[1]) ? wifi_name_type_e::BSSID : wifi_name_type_e::SSID;
     std::strncpy(config.name, argv[1].c_str(), sizeof(config.name) - 1);
+
     config.security_type = static_cast<wifi_secu_type_e>(std::atol(argv[2].c_str()));
     std::strncpy(config.passwd, argv[3].c_str(), sizeof(config.passwd) - 1);
 
-    auto ret = static_resource->wifi->set_wifi_config(config) ? EL_OK : EL_EINVAL;
-    if (!called_by_event && ret == EL_OK) [[likely]]
+    ret = static_resource->wifi->set_wifi_config(config) ? EL_OK : EL_EINVAL;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
+
+    if (!called_by_event) [[likely]]
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_FAILED;
 
+Reply:
     const auto& ss{concat_strings("\r{\"type\": ",
                                   called_by_event ? "1" : "0",
                                   ", \"name\": \"",

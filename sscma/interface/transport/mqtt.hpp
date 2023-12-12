@@ -45,13 +45,16 @@ class MQTT final : public Supervisable, public Transport {
           _tail(0),
           _mqtt_server_config(std::pair<mqtt_sta_e, mqtt_server_config_t>{
             mqtt_sta_e::UNKNOWN, get_default_mqtt_server_config(Device::get_device())}),
+          _mqtt_pubsub_config_lock(),
           _mqtt_pubsub_config(),
           _sub_topics_set() {
         EL_ASSERT(_interface);
         EL_ASSERT(_network);
         EL_ASSERT(_buffer);
-        _mqtt_handler_ptr   = this;
-        _mqtt_pubsub_config = get_default_mqtt_pubsub_config(Device::get_device());
+
+        sync_mqtt_pubsub_config();
+
+        _mqtt_handler_ptr = this;
 
         _interface->add_pre_down_callback(this, [](void* from) {
             auto mqtt = static_cast<MQTT*>(from);
@@ -111,7 +114,10 @@ class MQTT final : public Supervisable, public Transport {
 
     bool is_mqtt_server_connected() const { return sync_status_from_driver() >= mqtt_sta_e::CONNECTED; }
 
-    mqtt_pubsub_config_t get_mqtt_pubsub_config() const { return _mqtt_pubsub_config; }
+    inline mqtt_pubsub_config_t get_mqtt_pubsub_config() const {
+        const Guard guard(_mqtt_pubsub_config_lock);
+        return _mqtt_pubsub_config;
+    }
 
     std::size_t read_bytes(char* buffer, std::size_t size) override {
         auto        head   = _head;
@@ -134,13 +140,15 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     std::size_t send_bytes(const char* buffer, std::size_t size) override {
-        return m_send_bytes(_mqtt_pubsub_config.pub_topic, _mqtt_pubsub_config.pub_qos, buffer, size);
+        auto config = get_mqtt_pubsub_config();
+        return m_send_bytes(config.pub_topic, config.pub_qos, buffer, size);
     }
 
     char echo(bool only_visible = true) override {
-        auto c = get_char();
+        auto config = get_mqtt_pubsub_config();
+        auto c      = get_char();
         if (only_visible && !std::isprint(c)) return c;
-        m_send_bytes(_mqtt_pubsub_config.pub_topic, _mqtt_pubsub_config.pub_qos, &c, 1);
+        m_send_bytes(config.pub_topic, config.pub_qos, &c, 1);
         return c;
     }
 
@@ -184,7 +192,8 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     void emit_mqtt_discover() {
-        const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(_mqtt_pubsub_config), "\n")};
+        auto        config = get_mqtt_pubsub_config();
+        const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(config), "\n")};
         char        discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
         std::snprintf(
           discover_topic, sizeof(discover_topic) - 1, SSCMA_MQTT_DISCOVER_TOPIC, SSCMA_AT_API_MAJOR_VERSION);
@@ -193,14 +202,37 @@ class MQTT final : public Supervisable, public Transport {
     }
 
    protected:
+    inline mqtt_pubsub_config_t sync_mqtt_pubsub_config() {
+        auto server_config = _mqtt_server_config.load().second.second;
+        auto pubsub_config = mqtt_pubsub_config_t{};
+
+        std::snprintf(pubsub_config.pub_topic,
+                      sizeof(pubsub_config.pub_topic) - 1,
+                      SSCMA_MQTT_PUB_FMT,
+                      SSCMA_AT_API_MAJOR_VERSION,
+                      server_config.client_id);
+        pubsub_config.pub_qos = 0;
+
+        std::snprintf(pubsub_config.sub_topic,
+                      sizeof(pubsub_config.sub_topic) - 1,
+                      SSCMA_MQTT_SUB_FMT,
+                      SSCMA_AT_API_MAJOR_VERSION,
+                      server_config.client_id);
+        pubsub_config.sub_qos = 0;
+
+        const Guard guard(_mqtt_pubsub_config_lock);
+        _mqtt_pubsub_config = pubsub_config;
+
+        return pubsub_config;
+    }
+
     static inline void mqtt_subscribe_callback(char* top, int tlen, char* msg, int mlen) {
         if (!_mqtt_handler_ptr) [[unlikely]]
             return;
         auto this_ptr = static_cast<MQTT*>(_mqtt_handler_ptr);
+        auto config   = this_ptr->get_mqtt_pubsub_config();
 
-        if (tlen ^ std::strlen(this_ptr->_mqtt_pubsub_config.sub_topic) ||
-            std::strncmp(top, this_ptr->_mqtt_pubsub_config.sub_topic, tlen) || mlen <= 1)
-            return;
+        if (tlen ^ std::strlen(config.sub_topic) || std::strncmp(top, config.sub_topic, tlen) || mlen <= 1) return;
 
         if (!this_ptr->push_to_buffer(msg, mlen)) [[unlikely]]
             EL_LOGD("[SSCMA] MQTT::mqtt_subscribe_callback() - buffer may corrupted");
@@ -253,12 +285,13 @@ class MQTT final : public Supervisable, public Transport {
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
             if (current_sta >= config.first) return true;
-            EL_LOGD("[SSCMA] MQTT::bring_up() driver subscribe: %s", _mqtt_pubsub_config.sub_topic);
-            auto ret = _network->subscribe(_mqtt_pubsub_config.sub_topic,
-                                           static_cast<mqtt_qos_t>(_mqtt_pubsub_config.sub_qos));  // driver subscribe
+            auto config = sync_mqtt_pubsub_config();
+            EL_LOGD("[SSCMA] MQTT::bring_up() driver subscribe: %s", config.sub_topic);
+            auto ret = _network->subscribe(config.sub_topic,
+                                           static_cast<mqtt_qos_t>(config.sub_qos));  // driver subscribe
             if (ret != EL_OK) [[unlikely]]
                 return false;
-            _sub_topics_set.emplace(_mqtt_pubsub_config.sub_topic);
+            _sub_topics_set.emplace(config.sub_topic);
             current_sta = sync_status_from_driver();  // sync internal status
         }
 
@@ -347,8 +380,11 @@ class MQTT final : public Supervisable, public Transport {
     volatile std::size_t _tail;
 
     SynchronizableObject<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config;
-    mqtt_pubsub_config_t                                              _mqtt_pubsub_config;
-    std::unordered_set<std::string>                                   _sub_topics_set;
+
+    Mutex                _mqtt_pubsub_config_lock;
+    mqtt_pubsub_config_t _mqtt_pubsub_config;
+
+    std::unordered_set<std::string> _sub_topics_set;
 };
 
 // Important: due to driver's API, the MQTT handler must be a singleton currently
