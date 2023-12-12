@@ -26,19 +26,34 @@ void get_mqtt_pubsub(const std::string& cmd, void* caller) {
 }
 
 void set_mqtt_server(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
-    // crate config from argv
+    auto ret    = EL_OK;
     auto config = get_default_mqtt_server_config(static_resource->device);
+
+    if (argv[1].size() >= sizeof(config.client_id) || argv[2].size() >= sizeof(config.address) ||
+        argv[4].size() >= sizeof(config.username) || argv[5].size() >= sizeof(config.password)) [[unlikely]] {
+        ret = EL_EINVAL;
+        goto Reply;
+    }
+
     if (argv[1].size()) std::strncpy(config.client_id, argv[1].c_str(), sizeof(config.client_id) - 1);
+
     std::strncpy(config.address, argv[2].c_str(), sizeof(config.address) - 1);
+
     config.port = std::atoi(argv[3].c_str());
+
     std::strncpy(config.username, argv[4].c_str(), sizeof(config.username) - 1);
     std::strncpy(config.password, argv[5].c_str(), sizeof(config.password) - 1);
-    config.use_ssl = std::atoi(argv[6].c_str()) != 0;  // TODO: driver add SSL config support
 
-    auto ret = static_resource->mqtt->set_mqtt_server_config(config) ? EL_OK : EL_EINVAL;
-    if (!called_by_event && ret == EL_OK) [[likely]]
+    config.use_ssl = std::atoi(argv[6].c_str()) != 0;
+
+    ret = static_resource->mqtt->set_mqtt_server_config(config) ? EL_OK : EL_EINVAL;
+    if (ret != EL_OK) [[unlikely]]
+        goto Reply;
+
+    if (!called_by_event) [[likely]]
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_FAILED;
 
+Reply:
     const auto& ss{concat_strings("\r{\"type\": ",
                                   called_by_event ? "1" : "0",
                                   ", \"name\": \"",
