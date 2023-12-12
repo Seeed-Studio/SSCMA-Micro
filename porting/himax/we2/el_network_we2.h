@@ -38,10 +38,6 @@ public:
     ~NetworkWE2() = default;
 
     void init(status_cb_t cb) override;
-    void init(status_cb_t cb, mdns_record_t record) {
-        this->init(cb);
-        this->mdns = record;
-    }
     void deinit() override;
 
     el_err_code_t join(const char* ssid, const char *pwd) override;

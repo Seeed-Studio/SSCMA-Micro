@@ -19,6 +19,7 @@ namespace sscma {
 using namespace edgelab;
 
 using namespace sscma::types;
+using namespace sscma::utility;
 using namespace sscma::prototypes;
 
 namespace types {
@@ -88,7 +89,21 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
         if (current_sta == wifi_sta_e::UNINTIALIZED) {
             if (current_sta >= config.first) return true;
-            _network->init();  // driver init
+
+            const auto& device_id = to_hex_string(Device::get_device()->get_device_id());
+            char service_name[64]{0};
+            sprintf(service_name, SSCMA_MDNS_SERVICE_FMT, 
+                    VENDOR_PREFIX, 
+                    VENDOR_CHIP_NAME, 
+                    device_id.c_str(), 
+                    SSCMA_AT_API_MAJOR_VERSION);
+            mdns_record_t record = {
+                .host_name = "_sscma", 
+                .serv_name = service_name, 
+                .port = SSCMA_MDNS_PORT, 
+                .is_enabled = 1
+            };
+            _network->init(nullptr, record);  // driver init
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS, SSCMA_WIFI_POLL_RETRY);
         }

@@ -54,9 +54,13 @@
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
 #define SSCMA_MQTT_TOPIC_LEN                 128
 #define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
+
 #define SSCMA_MQTT_CLIENT_ID_FMT             "%s_%s_%s"
 #define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s/tx"
 #define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s/rx"
+
+#define SSCMA_MDNS_PORT                      3141
+#define SSCMA_MDNS_SERVICE_FMT               "%s_%s_%s.%s._sscma"
 
 static_assert(SSCMA_MQTT_DEFAULT_PORT > 0);
 static_assert(SSCMA_MQTT_DEFAULT_PORT < 65536);

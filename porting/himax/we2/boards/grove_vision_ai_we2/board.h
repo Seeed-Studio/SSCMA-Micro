@@ -26,9 +26,12 @@
 #ifndef _BOARD_GROVE_VISION_AI_WE2_H_
 #define _BOARD_GROVE_VISION_AI_WE2_H_
 
+
 #define PRODUCT_NAME_PREFIX "grove_vision_ai"
 #define PRODUCT_NAME_SUFFIX "we2"
+#define DEVICE_NAME         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
 #define PORT_DEVICE_NAME    "Grove Vision AI (WE2)"
+
 
 #ifdef __cplusplus
 extern "C" {
