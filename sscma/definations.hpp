@@ -57,3 +57,6 @@
 #define SSCMA_MQTT_DEVICE_ID_FMT             "sscma_%s_%s_%s"
 #define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s_%s_%s/tx"
 #define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s_%s_%s/rx"
+
+#define SSCMA_MDNS_PORT                      3141
+#define SSCMA_MDNS_SERVICE_FMT               "%s_%s_%s.%s._sscma"

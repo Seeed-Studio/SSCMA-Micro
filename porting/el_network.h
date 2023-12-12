@@ -69,6 +69,10 @@ public:
     void init() { 
         this->init(nullptr); 
     };
+    void init(status_cb_t cb, mdns_record_t record) {
+        this->init(cb);
+        this->mdns = record;
+    }
     virtual void deinit() = 0;
     el_net_sta_t status() {
         return this->network_status;

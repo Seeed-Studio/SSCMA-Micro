@@ -28,6 +28,7 @@
 
 #define VENDOR_PREFIX    "grove"
 #define VENDOR_CHIP_NAME "we2"
+#define DEVICE_NAME      "vision_ai"
 #define PORT_DEVICE_NAME "Grove Vision AI (WE2)"
 
 #ifdef __cplusplus
