@@ -224,17 +224,6 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
-
-    if (this->mdns.is_enabled) {
-        // TODO: check parameter, and support multiple service
-        sprintf(at.tbuf, AT_STR_HEADER "MDNS=1,\"%s\",\"%s\",%d" AT_STR_CRLF,
-                this->mdns.host_name, this->mdns.serv_name, this->mdns.port);
-        err = at_send(&at, AT_SHORT_TIME_MS);
-        if (err != EL_OK) {
-            EL_LOGD("AT MDNS ERROR : %d\n", err);
-            return err;
-        }
-    }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
     at_send(&at, AT_SHORT_TIME_MS);
 
@@ -256,15 +245,45 @@ el_err_code_t NetworkWE2::quit() {
 }
 
 el_err_code_t NetworkWE2::set_mdns(mdns_record_t record) {
-    this->mdns = record;
     el_err_code_t err = EL_OK;
-    sprintf(at.tbuf, AT_STR_HEADER "MDNS=1,\"%s\",\"%s\",%d" AT_STR_CRLF,
-            this->mdns.host_name, this->mdns.serv_name, this->mdns.port);
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSSTART "=\"%s\"" AT_STR_CRLF, 
+            record.host_name);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ERROR : %d\n", err);
         return err;
     }
+
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, 
+            MDNS_ITEM_SERVER, record.server);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_SERVER, err);
+        return err;
+    }
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%d\"" AT_STR_CRLF,
+            MDNS_ITEM_PORT, record.port);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PORT, err);
+        return err;
+    }
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF,
+            MDNS_ITEM_PROT, record.protocol);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PROT, err);
+        return err;
+    }
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF,
+            MDNS_ITEM_DEST, record.destination);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_DEST, err);
+        return err;
+    }
+
+    return EL_OK;
 }
 
 el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_t cb) {

@@ -198,15 +198,19 @@ class MQTT final : public Supervisable, public Transport {
         auto          server_config = _mqtt_server_config.load().second.second;
         mdns_record_t record{};
 
-        std::snprintf(record.serv_name, (sizeof record.serv_name) - 1, SSCMA_MDNS_SERV_FMT, server_config.client_id);
-        std::snprintf(record.host_name,
-                      (sizeof record.host_name) - 1,
-                      SSCMA_MDNS_HOST_FMT,
+        std::snprintf(record.host_name, sizeof(record.host_name) - 1, 
+                      "%s", server_config.client_id);
+
+        // properties: server, port, protocol, destination
+        std::snprintf(record.server, sizeof(record.server) - 1,
+                      "%s", server_config.address);
+        std::snprintf(record.protocol, sizeof(record.protocol) - 1,
+                      "%s", server_config.use_ssl ? "mqtts" : "mqtt");
+        std::snprintf(record.destination, sizeof(record.destination) - 1,
+                      SSCMA_MQTT_DESTINATION_FMT, 
                       SSCMA_AT_API_MAJOR_VERSION,
-                      server_config.use_ssl ? "mqtts" : "mqtt",
-                      server_config.address);
-        record.port       = server_config.port;
-        record.is_enabled = true;
+                      server_config.client_id);
+        record.port = server_config.port;
 
         _network->set_mdns(record);
     }
@@ -228,14 +232,14 @@ class MQTT final : public Supervisable, public Transport {
 
         std::snprintf(pubsub_config.pub_topic,
                       sizeof(pubsub_config.pub_topic) - 1,
-                      SSCMA_MQTT_PUB_FMT,
+                      SSCMA_MQTT_DESTINATION_FMT "/tx",
                       SSCMA_AT_API_MAJOR_VERSION,
                       server_config.client_id);
         pubsub_config.pub_qos = 0;
 
         std::snprintf(pubsub_config.sub_topic,
                       sizeof(pubsub_config.sub_topic) - 1,
-                      SSCMA_MQTT_SUB_FMT,
+                      SSCMA_MQTT_DESTINATION_FMT "/rx",
                       SSCMA_AT_API_MAJOR_VERSION,
                       server_config.client_id);
         pubsub_config.sub_qos = 0;

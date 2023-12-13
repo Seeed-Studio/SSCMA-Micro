@@ -47,9 +47,11 @@ typedef enum {
 
 typedef struct mdns_record {
     char host_name[SSCMA_MDNS_HOST_NAME_LEN];
-    char serv_name[SSCMA_MDNS_SERV_NAME_LEN];
+    // properties: server, port, protocol, destination
+    char server[SSCMA_MDNS_SERV_NAME_LEN];
+    char destination[SSCMA_MDNS_DEST_NAME_LEN];
+    char protocol[8];
     uint16_t port;
-    bool is_enabled;
 } mdns_record_t;
 
 typedef void (*status_cb_t)(el_net_sta_t sta);
@@ -69,10 +71,6 @@ public:
     void init() { 
         this->init(nullptr); 
     };
-    void init(status_cb_t cb, mdns_record_t record) {
-        this->init(cb);
-        this->mdns = record;
-    }
     virtual void deinit() = 0;
     el_net_sta_t status() {
         return this->network_status;
@@ -119,7 +117,6 @@ public:
 protected:
     bool _is_present;
     el_net_sta_t network_status;
-    mdns_record_t mdns;
 };
 
 }  // namespace edgelab
