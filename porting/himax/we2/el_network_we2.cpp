@@ -255,6 +255,18 @@ el_err_code_t NetworkWE2::quit() {
     return EL_OK;
 }
 
+el_err_code_t NetworkWE2::set_mdns(mdns_record_t record) {
+    this->mdns = record;
+    el_err_code_t err = EL_OK;
+    sprintf(at.tbuf, AT_STR_HEADER "MDNS=1,\"%s\",\"%s\",%d" AT_STR_CRLF,
+            this->mdns.host_name, this->mdns.serv_name, this->mdns.port);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ERROR : %d\n", err);
+        return err;
+    }
+}
+
 el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_t cb) {
     el_err_code_t err = EL_OK;
     if (this->network_status == NETWORK_CONNECTED) {
@@ -272,7 +284,7 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
     if (mqtt_cfg.use_ssl) {
         if (!this->_time_synced) {
             sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPCFG "=1,%d,\"%s\",\"%s\"" AT_STR_CRLF,
-                    UTC_TIME_ZONE_CN, SNTP_SERVER_CN2, SNTP_SERVER_US);
+                    UTC_TIME_ZONE_CN, SNTP_SERVER_CN, SNTP_SERVER_US);
             EL_LOGI("AT CIPSNTPCFG : %s\n", at.tbuf);
             at.port->uart_write(at.tbuf, strlen(at.tbuf));
             uint32_t t = 0;

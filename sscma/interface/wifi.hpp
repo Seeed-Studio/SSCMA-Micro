@@ -89,7 +89,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
         if (current_sta == wifi_sta_e::UNINTIALIZED) {
             if (current_sta >= config.first) return true;
-            _network->init(nullptr);  // driver init
+            _network->init();  // driver init
             current_sta =
               try_ensure_wifi_status_changed_from(current_sta, SSCMA_WIFI_POLL_DELAY_MS, SSCMA_WIFI_POLL_RETRY);
         }
