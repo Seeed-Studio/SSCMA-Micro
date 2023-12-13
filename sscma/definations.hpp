@@ -56,16 +56,19 @@
 #define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
 
 #define SSCMA_MQTT_CLIENT_ID_FMT             "%s_%s_%s"
-#define SSCMA_MQTT_PUB_FMT                   "sscma_%s/%s/tx"
-#define SSCMA_MQTT_SUB_FMT                   "sscma_%s/%s/rx"
+#define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s/tx"
+#define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s/rx"
 
-#define SSCMA_MDNS_HOST_NAME_LEN             128
-#define SSCMA_MDNS_SERV_NAME_LEN             64
-#define SSCMA_MDNS_PORT                      8883
-#define SSCMA_MDNS_SERVICE_FMT               "_sscma_%s._%s"
+#define SSCMA_MDNS_SERV_FMT                  "_%s_sscma"
+#define SSCMA_MDNS_HOST_FMT                  "%s.%s.%s"
+#define SSCMA_MDNS_SERV_NAME_LEN             96
+#define SSCMA_MDNS_HOST_NAME_LEN             160
+#define SSCMA_MDNS_PORT                      3141
 
 static_assert(SSCMA_MQTT_DEFAULT_PORT > 0);
 static_assert(SSCMA_MQTT_DEFAULT_PORT < 65536);
 static_assert(SSCMA_MQTT_DEFAULT_SSL_PORT > 0);
 static_assert(SSCMA_MQTT_DEFAULT_SSL_PORT < 65536);
 static_assert(SSCMA_MQTT_TOPIC_LEN > SSCMA_MQTT_CLIENT_ID_LEN);
+static_assert(SSCMA_MDNS_SERV_NAME_LEN > SSCMA_MQTT_CLIENT_ID_LEN);
+static_assert(SSCMA_MDNS_HOST_NAME_LEN > SSCMA_MQTT_ADDRESS_LEN);
