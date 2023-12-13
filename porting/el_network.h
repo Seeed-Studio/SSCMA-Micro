@@ -46,8 +46,8 @@ typedef enum {
 } mqtt_qos_t;
 
 typedef struct mdns_record {
-    char* host_name;
-    char* serv_name;
+    char host_name[SSCMA_MDNS_HOST_NAME_LEN];
+    char serv_name[SSCMA_MDNS_SERV_NAME_LEN];
     uint16_t port;
     bool is_enabled;
 } mdns_record_t;
@@ -95,6 +95,7 @@ public:
     /* WIFI station */
     virtual el_err_code_t join(const char* ssid, const char *pwd) = 0;
     virtual el_err_code_t quit() = 0;
+    virtual el_err_code_t set_mdns(mdns_record_t record) = 0;
 
     /* MQTT client */
     virtual el_err_code_t connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) = 0;

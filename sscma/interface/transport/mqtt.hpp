@@ -297,6 +297,17 @@ class MQTT final : public Supervisable, public Transport {
 
         if (current_sta == mqtt_sta_e::ACTIVE) {
             emit_mqtt_discover();
+
+            auto server_config = _mqtt_server_config.load().second.second;
+            mdns_record_t record{};
+            sprintf(record.serv_name, SSCMA_MDNS_SERVICE_FMT, 
+                    SSCMA_AT_API_MAJOR_VERSION,
+                    server_config.client_id);
+            sprintf(record.host_name, "%s.mqtt", config.second.address);
+            record.port = config.second.port;
+            record.is_enabled = 1;
+            _network->set_mdns(record);
+
             return true;
         }
 
