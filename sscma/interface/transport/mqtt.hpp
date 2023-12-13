@@ -103,6 +103,9 @@ class MQTT final : public Supervisable, public Transport {
         }
         _mqtt_server_config.store(std::pair<mqtt_sta_e, mqtt_server_config_t>{
           std::strlen(mqtt_server_config.address) ? mqtt_sta_e::ACTIVE : mqtt_sta_e::DISCONNECTED, mqtt_server_config});
+
+        sync_mqtt_pubsub_config();
+
         return true;
     }
 
@@ -191,6 +194,31 @@ class MQTT final : public Supervisable, public Transport {
         return len;
     }
 
+    void emit_mdns_discover() {
+        auto          server_config = _mqtt_server_config.load().second.second;
+        auto          server_port   = std::to_string(server_config.port);
+        mdns_record_t record{};
+
+        std::snprintf(record.host_name,
+                      (sizeof record.host_name) - 1,
+                      SSCMA_MDNS_HOST_FMT,
+                      SSCMA_AT_API_MAJOR_VERSION,
+                      "host",
+                      server_config.client_id);
+        std::snprintf(record.serv_name,
+                      (sizeof record.serv_name) - 1,
+                      SSCMA_MDNS_SERV_FMT,
+                      SSCMA_AT_API_MAJOR_VERSION,
+                      server_config.use_ssl ? "mqtts" : "mqtt",
+                      server_config.address,
+                      server_port.c_str());
+
+        record.port       = SSCMA_MDNS_PORT;
+        record.is_enabled = true;
+
+        _network->set_mdns(record);
+    }
+
     void emit_mqtt_discover() {
         auto        config = get_mqtt_pubsub_config();
         const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(config), "\n")};
@@ -202,7 +230,7 @@ class MQTT final : public Supervisable, public Transport {
     }
 
    protected:
-    inline mqtt_pubsub_config_t sync_mqtt_pubsub_config() {
+    void sync_mqtt_pubsub_config() {
         auto server_config = _mqtt_server_config.load().second.second;
         auto pubsub_config = mqtt_pubsub_config_t{};
 
@@ -222,8 +250,6 @@ class MQTT final : public Supervisable, public Transport {
 
         const Guard guard(_mqtt_pubsub_config_lock);
         _mqtt_pubsub_config = pubsub_config;
-
-        return pubsub_config;
     }
 
     static inline void mqtt_subscribe_callback(char* top, int tlen, char* msg, int mlen) {
@@ -285,7 +311,7 @@ class MQTT final : public Supervisable, public Transport {
 
         if (current_sta == mqtt_sta_e::CONNECTED) {
             if (current_sta >= config.first) return true;
-            auto config = sync_mqtt_pubsub_config();
+            auto config = get_mqtt_pubsub_config();
             EL_LOGD("[SSCMA] MQTT::bring_up() driver subscribe: %s", config.sub_topic);
             auto ret = _network->subscribe(config.sub_topic,
                                            static_cast<mqtt_qos_t>(config.sub_qos));  // driver subscribe
@@ -296,6 +322,7 @@ class MQTT final : public Supervisable, public Transport {
         }
 
         if (current_sta == mqtt_sta_e::ACTIVE) {
+            emit_mdns_discover();
             emit_mqtt_discover();
             return true;
         }

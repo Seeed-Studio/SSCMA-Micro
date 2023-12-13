@@ -59,8 +59,11 @@
 #define SSCMA_MQTT_PUB_FMT                   "sscma/%s/%s/tx"
 #define SSCMA_MQTT_SUB_FMT                   "sscma/%s/%s/rx"
 
+#define SSCMA_MDNS_HOST_FMT                  "_sscma._%s._%s._%s"
+#define SSCMA_MDNS_SERV_FMT                  "_sscma._%s._%s._%s._%s"
+#define SSCMA_MDNS_HOST_NAME_LEN             128
+#define SSCMA_MDNS_SERVICE_NAME_LEN          128
 #define SSCMA_MDNS_PORT                      3141
-#define SSCMA_MDNS_SERVICE_FMT               "%s_%s_%s.%s._sscma"
 
 static_assert(SSCMA_MQTT_DEFAULT_PORT > 0);
 static_assert(SSCMA_MQTT_DEFAULT_PORT < 65536);
