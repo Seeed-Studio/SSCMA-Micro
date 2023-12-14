@@ -206,6 +206,8 @@ class MQTT final : public Supervisable, public Transport {
                       "%s", server_config.address);
         std::snprintf(record.protocol, sizeof(record.protocol) - 1,
                       "%s", server_config.use_ssl ? "mqtts" : "mqtt");
+        std::snprintf(record.authentication, sizeof(record.authentication) - 1,
+                      "%s", (server_config.username != nullptr) ? "user" : "none");
         std::snprintf(record.destination, sizeof(record.destination) - 1,
                       SSCMA_MQTT_DESTINATION_FMT, 
                       SSCMA_AT_API_MAJOR_VERSION,

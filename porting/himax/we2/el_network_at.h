@@ -14,10 +14,11 @@
 #define AT_TX_MAX_LEN      16384  // 默认固件的AT指令长度阈值为256
 #define AT_RX_MAX_LEN      4096   // 可能连续收到多条消息
 
+#define MDNS_ITEM_PROTOCAL "protocol"
 #define MDNS_ITEM_SERVER   "server"
 #define MDNS_ITEM_PORT     "port"
-#define MDNS_ITEM_PROT     "proto"
 #define MDNS_ITEM_DEST     "dest"
+#define MDNS_ITEM_AUTH     "auth"
 
 #define SNTP_SERVER_CN     "cn.ntp.org.cn"
 #define SNTP_SERVER_US     "us.pool.ntp.org"

@@ -269,10 +269,10 @@ el_err_code_t NetworkWE2::set_mdns(mdns_record_t record) {
         return err;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF,
-            MDNS_ITEM_PROT, record.protocol);
+            MDNS_ITEM_PROTOCAL, record.protocol);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
-        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PROT, err);
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PROTOCAL, err);
         return err;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF,
@@ -280,6 +280,13 @@ el_err_code_t NetworkWE2::set_mdns(mdns_record_t record) {
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_DEST, err);
+        return err;
+    }
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF,
+            MDNS_ITEM_AUTH, record.authentication);
+    err = at_send(&at, AT_SHORT_TIME_MS);
+    if (err != EL_OK) {
+        EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_AUTH, err);
         return err;
     }
 

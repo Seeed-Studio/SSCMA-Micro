@@ -51,6 +51,7 @@ typedef struct mdns_record {
     char server[SSCMA_MDNS_SERV_NAME_LEN];
     char destination[SSCMA_MDNS_DEST_NAME_LEN];
     char protocol[8];
+    char authentication[8];
     uint16_t port;
 } mdns_record_t;
 
