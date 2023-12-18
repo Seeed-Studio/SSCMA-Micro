@@ -198,20 +198,22 @@ class MQTT final : public Supervisable, public Transport {
         auto          server_config = _mqtt_server_config.load().second.second;
         mdns_record_t record{};
 
-        std::snprintf(record.host_name, sizeof(record.host_name) - 1, 
-                      "%s", server_config.client_id);
+        static_assert(sizeof record.host_name >= sizeof server_config.client_id);
+        std::strncpy(record.host_name, server_config.client_id, sizeof record.host_name);
 
-        // properties: server, port, protocol, destination
-        std::snprintf(record.server, sizeof(record.server) - 1,
-                      "%s", server_config.address);
-        std::snprintf(record.protocol, sizeof(record.protocol) - 1,
-                      "%s", server_config.use_ssl ? "mqtts" : "mqtt");
-        std::snprintf(record.authentication, sizeof(record.authentication) - 1,
-                      "%s", (server_config.username != nullptr) ? "user" : "none");
-        std::snprintf(record.destination, sizeof(record.destination) - 1,
-                      SSCMA_MQTT_DESTINATION_FMT, 
+        static_assert(sizeof record.server >= sizeof server_config.address);
+        std::strncpy(record.server, server_config.address, sizeof record.server);
+
+        std::strncpy(record.authentication,
+                     std::strlen(server_config.username) ? "y" : "n",
+                     (sizeof record.authentication) - 1);
+        std::strncpy(record.protocol, server_config.use_ssl ? "mqtts" : "mqtt", (sizeof record.protocol) - 1);
+        std::snprintf(record.destination,
+                      (sizeof record.destination) - 1,
+                      SSCMA_MQTT_DESTINATION_FMT,
                       SSCMA_AT_API_MAJOR_VERSION,
                       server_config.client_id);
+
         record.port = server_config.port;
 
         _network->set_mdns(record);
