@@ -59,6 +59,9 @@ class Engine {
 
 class Engines {
    public:
+    using EngineListType = std::forward_list<std::add_pointer<Engine>::type>;
+
+   public:
     virtual ~Engines() = default;
 
     virtual el_err_code_t init(void* memory_resource, std::std::size_t size)             = 0;
@@ -68,13 +71,13 @@ class Engines {
 #endif
     virtual el_err_code_t release() = 0;
 
-    std::forward_list<Engine*> get_engines() { return &__engines; }
+    EngineListType get_engines() { return &__engines; }
 
    protected:
     Engines() = default;
 
    private:
-    std::forward_list<Engine*> __engines;
+    EngineListType __engines;
 
 #ifdef CONFIG_EL_FILESYSTEM
     std::forward_list<uint8_t*> __model_buffers;
