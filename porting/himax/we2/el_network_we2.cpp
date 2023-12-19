@@ -165,11 +165,23 @@ void NetworkWE2::init(status_cb_t cb) {
         EL_LOGD("network_status_handler create error\n");
         return;
     }
-    at.state = AT_STATE_IDLE;
-
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
+    at.state = AT_STATE_PROCESS;
     uint32_t t = 0;
-    at.state   = AT_STATE_PROCESS;
+
+    memset((void*)at.tbuf, '0', 126);
+    memcpy((void*)at.tbuf + 126, AT_STR_CRLF, strlen(AT_STR_CRLF));
+    while (at.state == AT_STATE_PROCESS) {
+        at.port->uart_write(at.tbuf, strlen(at.tbuf));
+        if (t >= AT_SHORT_TIME_MS) {
+            EL_LOGD("AT FLUSH TIMEOUT\n");
+            return;
+        }
+        el_sleep(10);
+        t += 10;
+    }
+    
+    t = 0;
+    sprintf(at.tbuf, AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
     at.port->uart_write(at.tbuf, strlen(at.tbuf));
     EL_LOGD(" %s\n", at.tbuf);
     while (at.state != AT_STATE_READY) {
