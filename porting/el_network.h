@@ -45,6 +45,11 @@ typedef enum {
     MQTT_QOS_2
 } mqtt_qos_t;
 
+#define MDNS_ITEM_PROTOCAL "protocol"
+#define MDNS_ITEM_SERVER   "server"
+#define MDNS_ITEM_PORT     "port"
+#define MDNS_ITEM_DEST     "dest"
+#define MDNS_ITEM_AUTH     "auth"
 typedef struct mdns_record {
     char host_name[SSCMA_MDNS_HOST_NAME_LEN];
     // properties: server, port, protocol, destination
@@ -65,7 +70,7 @@ namespace edgelab {
 // WIFI-STA for MQTT
 class Network {
 public:
-    Network() : _is_present(false), _ip({0}), network_status(NETWORK_LOST) {}
+    Network() : _ip({0}), _is_present(false), network_status(NETWORK_LOST) {}
     virtual ~Network() = default;
 
     virtual void init(status_cb_t cb) = 0;
@@ -98,7 +103,6 @@ public:
 
     /* MQTT client */
     virtual el_err_code_t connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) = 0;
-    virtual el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) = 0;
     virtual el_err_code_t disconnect() = 0;
     virtual el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) = 0;
     virtual el_err_code_t unsubscribe(const char* topic) = 0;

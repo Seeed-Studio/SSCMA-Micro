@@ -81,12 +81,12 @@ typedef enum wifi_name_type_e : uint8_t { SSID, BSSID } wifi_name_type_e;
 
 typedef enum wifi_secu_type_e : uint8_t { AUTO = 0, NONE, WEP, WPA1_WPA2, WPA2_WPA3, WPA3 } wifi_secu_type_e;
 
-typedef struct wifi_config_t {
+typedef struct wifi_sta_cfg_t {
     wifi_name_type_e name_type;
     char             name[SSCMA_WIFI_NAME_LEN];
     wifi_secu_type_e security_type;
     char             passwd[SSCMA_WIFI_PASSWD_LEN];
-} wifi_config_t;
+} wifi_sta_cfg_t;
 
 typedef struct mqtt_server_ssl_config_t {
     char  alpn[SSCMA_MQTT_SSL_ALPN_LEN];

@@ -15,7 +15,7 @@ using namespace sscma::utility;
 
 void set_wifi_network(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     auto ret    = EL_OK;
-    auto config = wifi_config_t{};
+    auto config = wifi_sta_cfg_t{};
 
     if (argv[1].size() >= sizeof(config.name) || argv[3].size() >= sizeof(config.passwd)) [[unlikely]] {
         ret = EL_EINVAL;

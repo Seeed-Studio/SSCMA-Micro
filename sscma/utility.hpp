@@ -278,7 +278,7 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
     return ss;
 }
 
-decltype(auto) wifi_config_2_json_str(const wifi_config_t& config, bool secure = true) {
+decltype(auto) wifi_config_2_json_str(const wifi_sta_cfg_t& config, bool secure = true) {
     const auto& pwd = /* secure ? std::string(std::strlen(config.passwd), '*') : */ std::string(config.passwd);
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),

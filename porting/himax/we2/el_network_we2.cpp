@@ -371,42 +371,6 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
     return EL_OK;
 }
 
-el_err_code_t NetworkWE2::connect(const char* server, const char* user, const char* pass, topic_cb_t cb) {
-    el_err_code_t err = EL_OK;
-    if (this->network_status == NETWORK_CONNECTED) {
-        return EL_OK;
-    } else if (this->network_status != NETWORK_JOINED) {
-        return EL_EPERM;
-    }
-
-    if (cb == NULL) {
-        return EL_EINVAL;
-    }
-    at.cb = cb;
-    this->topic_cb = cb;
-
-    sprintf(at.tbuf,
-            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,1,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
-            MQTT_CLIENT_ID,
-            user,
-            pass);
-    err = at_send(&at, AT_SHORT_TIME_MS);
-    if (err != EL_OK) {
-        EL_LOGD("AT MQTTUSERCFG ERROR : %d\n", err);
-        return err;
-    }
-
-    // el_sleep(AT_SHORT_TIME_MS);
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",1883,1" AT_STR_CRLF, server);
-    err = at_send(&at, AT_LONG_TIME_MS);
-    if (err != EL_OK) {
-        EL_LOGD("AT MQTTCONN ERROR : %d\n", err);
-        return err;
-    }
-
-    return EL_OK;
-}
-
 el_err_code_t NetworkWE2::disconnect() {
     el_err_code_t err = EL_OK;
     if (this->network_status != NETWORK_CONNECTED) {

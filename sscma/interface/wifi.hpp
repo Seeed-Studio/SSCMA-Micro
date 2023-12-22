@@ -34,7 +34,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
    public:
     WiFi()
         : _network(Device::get_device()->get_network()),
-          _wifi_config(std::pair<wifi_sta_e, wifi_config_t>{wifi_sta_e::UNKNOWN, wifi_config_t{}}) {
+          _wifi_config(std::pair<wifi_sta_e, wifi_sta_cfg_t>{wifi_sta_e::UNKNOWN, wifi_sta_cfg_t{}}) {
         EL_ASSERT(_network);
     }
 
@@ -56,17 +56,17 @@ class WiFi final : public Supervisable, public StatefulInterface {
 
     bool is_interface_up() const override { return is_wifi_joined(); }
 
-    bool set_wifi_config(const wifi_config_t& wifi_config) {
+    bool set_wifi_config(const wifi_sta_cfg_t& wifi_config) {
         if (wifi_config.security_type > wifi_secu_type_e::NONE && std::strlen(wifi_config.passwd) < 8) [[unlikely]]
             return false;  // password too short
-        _wifi_config.store(std::pair<wifi_sta_e, wifi_config_t>{
+        _wifi_config.store(std::pair<wifi_sta_e, wifi_sta_cfg_t>{
           std::strlen(wifi_config.name) ? wifi_sta_e::JOINED : wifi_sta_e::UNINTIALIZED, wifi_config});
         return true;
     }
 
-    wifi_config_t get_wifi_config() const { return _wifi_config.load().second.second; }
+    wifi_sta_cfg_t get_wifi_config() const { return _wifi_config.load().second.second; }
 
-    wifi_config_t get_last_wifi_config() const { return _wifi_config.load_last().second.second; }
+    wifi_sta_cfg_t get_last_wifi_config() const { return _wifi_config.load_last().second.second; }
 
     bool is_wifi_config_synchornized() const { return _wifi_config.is_synchorized(); }
 
@@ -82,7 +82,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
     in6_info_t get_in6_info() const { return {0}; }
 
    protected:
-    bool bring_up(const std::pair<wifi_sta_e, wifi_config_t>& config) {
+    bool bring_up(const std::pair<wifi_sta_e, wifi_sta_cfg_t>& config) {
         auto current_sta = sync_status_from_driver();
 
         EL_LOGD("[SSCMA] WiFi::bring_up() - current_sta: %d, target_sta: %d", current_sta, config.first);
@@ -113,7 +113,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
         return false;
     }
 
-    bool set_down(const std::pair<wifi_sta_e, wifi_config_t>& config) {
+    bool set_down(const std::pair<wifi_sta_e, wifi_sta_cfg_t>& config) {
         auto current_sta = sync_status_from_driver();
 
         EL_LOGD("[SSCMA] WiFi::set_down() - current_sta: %d, target_sta: %d", current_sta, config.first);
@@ -183,7 +183,7 @@ class WiFi final : public Supervisable, public StatefulInterface {
    private:
     Network* _network;
 
-    SynchronizableObject<std::pair<wifi_sta_e, wifi_config_t>> _wifi_config;
+    SynchronizableObject<std::pair<wifi_sta_e, wifi_sta_cfg_t>> _wifi_config;
 };
 
 }  // namespace interface

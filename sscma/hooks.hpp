@@ -50,7 +50,7 @@ void init_action_hook(std::string cmd) {
 }
 
 void init_wifi_hook(std::string cmd) {
-    auto config = wifi_config_t{};
+    auto config = wifi_sta_cfg_t{};
     if (static_resource->storage->get(el_make_storage_kv_from_type(config))) [[likely]]
         set_wifi_network(
           {cmd + "@WIFI", std::string(config.name), std::to_string(config.security_type), std::string(config.passwd)},
