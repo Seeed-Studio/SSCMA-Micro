@@ -38,6 +38,7 @@
 #include "lwip/netdb.h"
 #include "mqtt_client.h"
 #include "nvs_flash.h"
+#include "mdns.h"
 
 #include "core/el_types.h"
 #include "porting/el_network.h"
@@ -54,8 +55,9 @@ public:
 
     el_err_code_t join(const char* ssid, const char *pwd) override;
     el_err_code_t quit() override;
+    el_err_code_t set_mdns(mdns_record_t record) override;
 
-    el_err_code_t connect(const char* server, const char *user, const char *pass, topic_cb_t cb) override;
+    el_err_code_t connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) override;
     el_err_code_t disconnect() override;
     el_err_code_t subscribe(const char* topic, mqtt_qos_t qos) override;
     el_err_code_t unsubscribe(const char* topic) override;

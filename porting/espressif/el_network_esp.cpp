@@ -27,12 +27,21 @@
 
 #include "core/el_debug.h"
 
+extern const uint8_t ca_crt[]     asm("_binary_mqtt_ca_crt_start");
+
 void wifi_event_handler(void* arg, esp_event_base_t base, int32_t id, void* data) 
 {
     edgelab::NetworkEsp *net = (edgelab::NetworkEsp *)arg;
+    ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
+
     if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        printf("got ip\n");
         net->set_status(NETWORK_JOINED);
+        memcpy(&net->_ip.ip.addr, &event->ip_info.ip, 4);
+        memcpy(&net->_ip.netmask.addr, &event->ip_info.netmask, 4);
+        memcpy(&net->_ip.gateway.addr, &event->ip_info.gw, 4);
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
+        printf("wifi disconnected\n");
         net->set_status(NETWORK_IDLE);
     }
 }
@@ -61,6 +70,10 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base, int32_t id, voi
 namespace edgelab {
 
 void NetworkEsp::init(status_cb_t cb) {
+    if (this->network_status != NETWORK_LOST) {
+        return;
+    }
+    if (cb) this->status_cb = cb;
     /* Initialize NVS for config */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -87,13 +100,32 @@ void NetworkEsp::init(status_cb_t cb) {
     this->set_status(NETWORK_IDLE);
     return;
 }
+
 void NetworkEsp::deinit() {
+    if (this->network_status == NETWORK_LOST) {
+        return;
+    }
+
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    esp_wifi_clear_default_wifi_driver_and_handlers(esp_netif);
+    esp_netif_destroy(esp_netif);
+    esp_netif = NULL;
+
     this->set_status(NETWORK_LOST);
     return;
 }
 
 el_err_code_t NetworkEsp::join(const char* ssid, const char *pwd) {
-    // printf("ssid=%s pwd=%s\r\n", ssid, pwd);
+    if (this->network_status == NETWORK_JOINED || this->network_status == NETWORK_CONNECTED) {
+        return EL_OK;
+    } else if (network_status == NETWORK_LOST) {
+        return EL_EPERM;
+    }
+
+    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, (void *)this);
+    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, (void *)this);
+
     /* Set ssid and password for connection */
     wifi_config_t cfg = { 
         .sta = {
@@ -111,22 +143,47 @@ el_err_code_t NetworkEsp::join(const char* ssid, const char *pwd) {
         memcpy(cfg.sta.password, pwd, strlen(pwd) + 1);
     }
     if (esp_wifi_set_config(WIFI_IF_STA, &cfg) != ESP_OK) {
-        // printf("set config failed!\r\n");
+        printf("set config failed!\r\n");
         return EL_FAILED;
     }
 
-    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, (void *)this);
-    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, (void *)this);
-
     if (esp_wifi_connect() != ESP_OK) {
-        // printf("connect failed!\r\n");
+        printf("wifi connect failed!\r\n");
         return EL_FAILED;
     }
     return EL_OK;
 }
 
 el_err_code_t NetworkEsp::quit() {
+    if (this->network_status == NETWORK_IDLE || this->network_status == NETWORK_LOST) {
+        return EL_OK;
+    }
+    esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler);
+    esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler);
     esp_wifi_disconnect();
+    return EL_OK;
+}
+
+el_err_code_t NetworkEsp::set_mdns(mdns_record_t record) {
+    if (this->network_status == NETWORK_LOST) {
+        return EL_EPERM;
+    }
+
+    mdns_init();
+    mdns_hostname_set("xiao_esp32s3");
+    mdns_instance_name_set("xiao_esp32s3");
+
+    char port_str[6];
+    sprintf(port_str, "%d", record.port);
+    mdns_txt_item_t serviceTxtData[] = {
+        {MDNS_ITEM_PROTOCAL, record.protocol},
+        {MDNS_ITEM_SERVER, record.server},
+        {MDNS_ITEM_PORT, port_str},
+        {MDNS_ITEM_DEST, record.destination},
+        {MDNS_ITEM_AUTH, record.authentication},
+    };
+    mdns_service_add("xiao_esp32s3", "_sscma", "_tcp", 3141, serviceTxtData, 5);
+
     return EL_OK;
 }
 
@@ -140,29 +197,52 @@ el_err_code_t NetworkEsp::quit() {
  *
  * @return el_err_code_t The error code indicating the result of the connection attempt.
  */
-el_err_code_t NetworkEsp::connect(const char* server, const char *user, const char *pass, topic_cb_t cb) {
-    char url[128] = {0};
-    if (server == NULL) {
-        return EL_EINVAL;
+el_err_code_t NetworkEsp::connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) {
+    if (this->network_status == NETWORK_CONNECTED) {
+        return EL_OK;
+    } else if (this->network_status != NETWORK_JOINED) {
+        return EL_EPERM;
     }
-    if (user != NULL && pass != NULL) {
-        sprintf(url, "mqtt://%s:%s@%s", user, pass, server);
-    } else {
-        sprintf(url, "mqtt://%s", server);
-    }
-
     if (cb) this->topic_cb = cb;
 
-    esp_mqtt_client_config_t mqtt_cfg = {.broker = {.address = {.uri = url}}};
-    mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+    esp_mqtt_client_config_t esp_mqtt_cfg = {
+        .broker = {
+            .address = {
+                .hostname = mqtt_cfg.address,
+                .transport = (mqtt_cfg.use_ssl) ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
+                .port = mqtt_cfg.port,
+            }
+        },
+        .credentials = {
+            .username = mqtt_cfg.username,
+            .client_id = mqtt_cfg.client_id,
+            .authentication = {
+                .password = mqtt_cfg.password
+            }
+        },
+        .task = {
+            .priority = 3,
+            .stack_size = 8192
+        }
+    };
+    if (mqtt_cfg.use_ssl) {
+        esp_mqtt_cfg.broker.verification.certificate = (const char *)ca_crt;
+        // printf("ca_crt: %s\n", ca_crt);
+    }
+    mqtt_client = esp_mqtt_client_init(&esp_mqtt_cfg);
 
     esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, 
                                     mqtt_event_handler, (void *)this);
+    // printf("task stack: %d, prio: %d\n", mqtt_client->config->task_stack, mqtt_client->config->task_prio);
     esp_mqtt_client_start(mqtt_client);
     return EL_OK;
 }
 
 el_err_code_t NetworkEsp::disconnect() {
+    if (this->network_status != NETWORK_CONNECTED) {
+        return EL_EPERM;
+    }
+    esp_mqtt_client_disconnect(mqtt_client);
     esp_mqtt_client_stop(mqtt_client);
     return EL_OK;
 }
