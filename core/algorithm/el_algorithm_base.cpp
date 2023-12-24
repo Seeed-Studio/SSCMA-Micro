@@ -33,56 +33,58 @@
 
 namespace edgelab::base {
 
-Algorithm::Algorithm(EngineType* engine, const InfoType& info)
-    : __p_engine(engine),
-      __p_input(nullptr),
-      __algorithm_info(info),
-      __preprocess_time(0),
-      __run_time(0),
-      __postprocess_time(0) {
-    __input_shape  = engine->get_input_shape(0);
-    __output_shape = engine->get_output_shape(0);
-    __input_quant  = engine->get_input_quant_param(0);
-    __output_quant = engine->get_output_quant_param(0);
+Algorithm::Algorithm(const InfoType info)
+    : __input(nullptr), __algorithm_info(info), __postprocess_time(0), __invoke_time(0), __postprocess_time(0) {
+    if constexpr (std::is_pointer<InfoType>::value) EL_ASSERT(__algorithm_info);
 }
 
 Algorithm::~Algorithm() {
-    __p_engine = nullptr;
-    __p_input  = nullptr;
-
-    __preprocess_time  = 0;
-    __run_time         = 0;
-    __postprocess_time = 0;
+    __input          = nullptr;
+    __algorithm_info = nullptr;
 }
 
-el_err_code_t Algorithm::underlying_run(void* input) {
-    el_err_code_t ret{EL_OK};
-    uint32_t      start_time{0};
-    uint32_t      end_time{0};
+Algorithm::EngineListType Algorithm::find_invokable_engines(EngineListType engines) { return {}; }
 
-    EL_ASSERT(__p_engine != nullptr);
+Algorithm::InfoType Algorithm::get_algorithm_info() const { return __algorithm_info; };
 
-    __p_input = input;
+uint32_t Algorithm::get_preprocess_time() const { return __preprocess_time; }
+
+uint32_t Algorithm::get_run_time() const { return __run_time; }
+
+uint32_t Algorithm::get_postprocess_time() const { return __postprocess_time; }
+
+AlgorithmSingleStage::AlgorithmSingleStage(EngineListType engine_list, const InfoType info)
+    : __engine(nullptr), Algorithm(info) {
+    if constexpr (std::is_pointer<EngineType>::value) EL_ASSERT(std::begin(engine_list) != std::end(engine_list));
+    __engine = engine_list.front();
+}
+
+AlgorithmSingleStage::~AlgorithmSingleStage() { __engine = nullptr; }
+
+el_err_code_t AlgorithmSingleStage::invoke(void* input) {
+    if (!input) [[unlikely]]
+        return EL_EINVAL;
+    this->__input = input;
+
+    auto     ret        = EL_OK;
+    uint32_t start_time = 0U;
+    uint32_t end_time   = 0U;
 
     // preprocess
-    start_time        = el_get_time_ms();
-    ret               = preprocess();
-    end_time          = el_get_time_ms();
-    __preprocess_time = end_time - start_time;
-
-    if (ret != EL_OK) {
+    start_time              = el_get_time_ms();
+    ret                     = preprocess();
+    end_time                = el_get_time_ms();
+    this->__preprocess_time = end_time - start_time;
+    if (ret != EL_OK) [[unlikely]]
         return ret;
-    }
 
     // run
     start_time = el_get_time_ms();
     ret        = __p_engine->run();
     end_time   = el_get_time_ms();
     __run_time = end_time - start_time;
-
-    if (ret != EL_OK) {
+    if (ret != EL_OK) [[unlikely]]
         return ret;
-    }
 
     // postprocess
     start_time         = el_get_time_ms();
@@ -93,12 +95,12 @@ el_err_code_t Algorithm::underlying_run(void* input) {
     return ret;
 }
 
-Algorithm::InfoType Algorithm::get_algorithm_info() const { return __algorithm_info; };
+AlgorithmMultiStage::AlgorithmMultiStage(EngineListType engines, const InfoType info)
+    : __engine_list(), Algorithm(info) {
+    if constexpr (std::is_pointer<EngineType>::value) EL_ASSERT(std::begin(engine_list) != std::end(engine_list));
+    __engine_list = engine_list;
+}
 
-uint32_t Algorithm::get_preprocess_time() const { return __preprocess_time; }
-
-uint32_t Algorithm::get_run_time() const { return __run_time; }
-
-uint32_t Algorithm::get_postprocess_time() const { return __postprocess_time; }
+AlgorithmMultiStage::~AlgorithmMultiStage() { __engine_list.clear(); }
 
 }  // namespace edgelab::base

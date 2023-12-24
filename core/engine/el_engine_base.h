@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu, nullptr (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,54 +27,60 @@
 #define _EL_ENGINE_BASE_H_
 
 #include <cstdint>
+#include <forward_list>
 
 #include "core/el_config_internal.h"
 #include "core/el_types.h"
 
-#ifdef CONFIG_EL_FILESYSTEM
-    #include <fstream>
-    #include <iostream>
-#endif
-
 namespace edgelab::base {
+
+class Engines;
 
 class Engine {
    public:
-    Engine()          = default;
-    virtual ~Engine() = default;
+    virtual void*         get_input(std::size_t index)                                                 = 0;
+    virtual el_err_code_t set_input(std::size_t index, const void* input_data, std::size_t input_size) = 0;
 
-    virtual el_err_code_t init()                        = 0;
-    virtual el_err_code_t init(size_t size)             = 0;
-    virtual el_err_code_t init(void* pool, size_t size) = 0;
+    virtual void* get_output(std::size_t index) = 0;
 
     virtual el_err_code_t run() = 0;
 
+    virtual el_shape_t       get_input_shape(std::size_t index) const        = 0;
+    virtual el_shape_t       get_output_shape(std::size_t index) const       = 0;
+    virtual el_quant_param_t get_input_quant_param(std::size_t index) const  = 0;
+    virtual el_quant_param_t get_output_quant_param(std::size_t index) const = 0;
+
+   protected:
+    Engine()          = default;
+    virtual ~Engine() = default;
+
+    friend class Engines;
+};
+
+class Engines {
+   public:
+    using EngineListType = std::forward_list<std::add_pointer<Engine>::type>;
+
+   public:
+    virtual ~Engines() = default;
+
+    virtual el_err_code_t init(void* memory_resource, std::std::size_t size)             = 0;
+    virtual el_err_code_t spawn_from_model(const void* model_ptr, std::std::size_t size) = 0;
 #ifdef CONFIG_EL_FILESYSTEM
-    virtual el_err_code_t load_model(const char* model_path) = 0;
+    virtual el_err_code_t spawn_from_model(const char* model_path) = 0;
 #endif
+    virtual el_err_code_t release() = 0;
 
-    virtual el_err_code_t load_model(const void* model_data, size_t model_size) = 0;
+    EngineListType get_engines() { return &__engines; }
 
-    virtual el_err_code_t set_input(size_t index, const void* input_data, size_t input_size) = 0;
-    virtual void*         get_input(size_t index)                                            = 0;
+   protected:
+    Engines() = default;
 
-    virtual void* get_output(size_t index) = 0;
+   private:
+    EngineListType __engines;
 
-    virtual el_shape_t       get_input_shape(size_t index) const        = 0;
-    virtual el_shape_t       get_output_shape(size_t index) const       = 0;
-    virtual el_quant_param_t get_input_quant_param(size_t index) const  = 0;
-    virtual el_quant_param_t get_output_quant_param(size_t index) const = 0;
-
-#ifdef CONFIG_EL_INFERENCER_TENSOR_NAME
-    virtual size_t           get_input_index(const char* input_name) const                                = 0;
-    virtual size_t           get_output_index(const char* output_name) const                              = 0;
-    virtual void*            get_input(const char* input_name)                                            = 0;
-    virtual el_err_code_t    set_input(const char* input_name, const void* input_data, size_t input_size) = 0;
-    virtual void*            get_output(const char* output_name)                                          = 0;
-    virtual el_shape_t       get_input_shape(const char* input_name) const                                = 0;
-    virtual el_shape_t       get_output_shape(const char* output_name) const                              = 0;
-    virtual el_quant_param_t get_input_quant_param(const char* input_name) const                          = 0;
-    virtual el_quant_param_t get_output_quant_param(const char* output_name) const                        = 0;
+#ifdef CONFIG_EL_FILESYSTEM
+    std::forward_list<uint8_t*> __model_buffers;
 #endif
 };
 

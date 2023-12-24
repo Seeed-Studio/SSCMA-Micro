@@ -27,6 +27,7 @@
 #define _EL_ALGORITHM_BASE_H_
 
 #include <cstdint>
+#include <type_traits>
 
 #include "core/el_types.h"
 #include "core/engine/el_engine_base.h"
@@ -41,6 +42,11 @@ struct el_algorithm_info_t {
     el_sensor_type_t    input_from;
 };
 
+struct el_algorithm_config_t {
+    static constexpr el_algorithm_info_t info{
+      .type = EL_ALGO_TYPE_NONE, .categroy = EL_ALGO_CAT_NONE, .input_from = EL_SENSOR_TYPE_NONE};
+};
+
 }  // namespace types
 
 namespace base {
@@ -49,41 +55,67 @@ using namespace edgelab::types;
 
 class Algorithm {
    protected:
-    using EngineType = Engine;
-    using InfoType   = el_algorithm_info_t;
+    using InfoType   = std::add_pointer<el_algorithm_info_t>::type;
+    using ConfigType = el_algorithm_config_t;
+
+    using InputType  = void*;
+    using ResultType = void*;
+
+    using EngineType     = std::add_pointer<Engine>::type;
+    using EngineListType = Engines::EngineListType;
+
+    using EnginesType = std::add_pointer<Engines>::type;
 
    public:
-    Algorithm(EngineType* engine, const InfoType& info);
     virtual ~Algorithm();
+
+    static constexpr EngineListType find_invokable_engines(EngineListType engines);
+
+    virtual el_err_code_t invoke(void* input) = 0;
+    virtual void*         get_results()       = 0;
 
     InfoType get_algorithm_info() const;
 
     uint32_t get_preprocess_time() const;
-    uint32_t get_run_time() const;
+    uint32_t get_invoke_time() const;
     uint32_t get_postprocess_time() const;
 
    protected:
-    el_err_code_t underlying_run(void* input);
+    Algorithm(const InfoType info);
+
+    void* __input;
+
+   private:
+    const InfoType __algorithm_info;
+
+    uint32_t __preprocess_time;   // ms
+    uint32_t __invoke_time;       // ms
+    uint32_t __postprocess_time;  // ms
+};
+
+class AlgorithmSingleStage : public Algorithm {
+   public:
+    virtual ~AlgorithmSingleStage() = default;
+
+    virtual el_err_code_t invoke(void* input) override;
+
+   protected:
+    AlgorithmSingleStage(EngineListType engines, const InfoType info);
 
     virtual el_err_code_t preprocess()  = 0;
     virtual el_err_code_t postprocess() = 0;
 
-    EngineType* __p_engine;
+    EngineType __engine;
+};
 
-    void* __p_input;
+class AlgorithmMultiStage : public Algorithm {
+   public:
+    virtual ~AlgorithmMultiStage() = default;
 
-    el_shape_t __input_shape;
-    el_shape_t __output_shape;
+   protected:
+    AlgorithmMultiStage(EngineListType engines, const InfoType info);
 
-    el_quant_param_t __input_quant;
-    el_quant_param_t __output_quant;
-
-   private:
-    InfoType __algorithm_info;
-
-    uint32_t __preprocess_time;   // ms
-    uint32_t __run_time;          // ms
-    uint32_t __postprocess_time;  // ms
+    EngineListType __engine_list;
 };
 
 }  // namespace base
