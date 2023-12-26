@@ -37,20 +37,32 @@ extern "C" {
 #include "core/el_types.h"
 #include "core/utils/el_ringbuffer.hpp"
 #include "el_config_porting.h"
-
 namespace edgelab {
 
 namespace porting {
 
-static lwRingBuffer*      _serial_ring_buffer = nullptr;
-static char               _serial_char_buffer[32]{};
-volatile static DEV_UART* _serial_port_handler = nullptr;
+static lwRingBuffer*      _rb_rx = nullptr;
+static lwRingBuffer*      _rb_tx = nullptr;
+static char               _buf_rx[32]{};
+static char               _buf_tx[1024]{};
+volatile static bool      _tx_busy = false;
+volatile static DEV_UART* _uart    = nullptr;
 
-void _serial_uart_dma_recv(void*) {
-    _serial_ring_buffer->put(_serial_char_buffer[0]);
-    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
+void _uart_dma_recv(void*) {
+    _rb_rx->put(_buf_rx[0]);
+    _uart->uart_read_udma(_buf_rx, 1, (void*)_uart_dma_recv);
 }
 
+void _uart_dma_send(void*) {
+    size_t remind = _rb_tx->size() < 1024 ? _rb_tx->size() : 1024;
+    if (remind == 0) {
+        _tx_busy = false;
+        return;
+    }
+    _rb_tx->get(_buf_tx, remind);
+    SCB_CleanDCache_by_Addr((volatile void*)_buf_tx, remind);
+    _uart->uart_write_udma(_buf_tx, remind, (void*)_uart_dma_send);
+}
 }  // namespace porting
 
 using namespace porting;
@@ -66,15 +78,20 @@ el_err_code_t SerialWE2::init() {
     _console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)CONSOLE_UART_ID);
     _console_uart->uart_open(UART_BAUDRATE_921600);
 
-    if (!_serial_ring_buffer) [[likely]]
-        _serial_ring_buffer = new lwRingBuffer{8192};
+    if (!_rb_rx) [[likely]]
+        _rb_rx = new lwRingBuffer{8192};
 
-    EL_ASSERT(_serial_ring_buffer);
+    if (!_rb_tx) [[likely]]
+        _rb_tx = new lwRingBuffer{16384};
 
-    _serial_port_handler = _console_uart;
-    _serial_port_handler->uart_read_udma(_serial_char_buffer, 1, (void*)_serial_uart_dma_recv);
+    EL_ASSERT(_rb_rx);
+    EL_ASSERT(_rb_tx);
+
+    _uart = _console_uart;
+    _uart->uart_read_udma(_buf_rx, 1, (void*)_uart_dma_recv);
 
     this->_is_present = _console_uart != nullptr;
+    _tx_busy          = false;
 
     return this->_is_present ? EL_OK : EL_EIO;
 }
@@ -104,14 +121,14 @@ char SerialWE2::get_char() {
     if (!this->_is_present) [[unlikely]]
         return '\0';
 
-    return porting::_serial_ring_buffer->get();
+    return porting::_rb_rx->get();
 }
 
 std::size_t SerialWE2::get_line(char* buffer, size_t size, const char delim) {
     if (!this->_is_present) [[unlikely]]
         return 0;
 
-    return porting::_serial_ring_buffer->extract(delim, buffer, size);
+    return porting::_rb_rx->extract(delim, buffer, size);
 }
 
 std::size_t SerialWE2::read_bytes(char* buffer, size_t size) {
@@ -136,15 +153,25 @@ std::size_t SerialWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) [[unlikely]]
         return 0;
 
-    size_t sent{0};
-    size_t pos_of_bytes{0};
+    size_t bytes_to_send{0};
+    size_t sent = 0;
 
-    while (size) {
-        size_t bytes_to_send{size < 8 ? size : 8};
 
-        sent += _console_uart->uart_write(buffer + pos_of_bytes, bytes_to_send);
-        pos_of_bytes += bytes_to_send;
-        size -= bytes_to_send;
+    if (_rb_tx->size() == 0) {
+        while (_tx_busy) {
+        };
+        _tx_busy = true;
+        _rb_tx->put(buffer, size);
+        bytes_to_send = size < 1024 ? size : 1024;
+        _rb_tx->get(_buf_tx, bytes_to_send);
+        SCB_CleanDCache_by_Addr((volatile void*)_buf_tx, bytes_to_send);
+        _uart->uart_write_udma(_buf_tx, bytes_to_send, (void*)_uart_dma_send);
+    } else {
+        while (size) {
+            bytes_to_send = _rb_tx->put(buffer + sent, size);
+            size -= bytes_to_send;
+            sent += bytes_to_send;
+        }
     }
 
     return sent;

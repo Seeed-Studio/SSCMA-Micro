@@ -17,8 +17,8 @@ class lwRingBuffer {
         tail      = (tail + 1) % len;
     }
     size_t put(const char* str, int slen) {
-        if (slen > capacity()) {
-            slen = capacity();
+        if (slen > free()) {
+            slen = free();
         }
         for (int i = 0; i < slen; i++) {
             put(str[i]);
@@ -49,6 +49,7 @@ class lwRingBuffer {
     bool   isEmpty() { return head == tail; }
     bool   isFull() { return (tail + 1) % len == head; }
     size_t size() { return (tail - head + len) % len; }
+    size_t free() { return (head - tail - 1 + len) % len; }
     size_t capacity() { return len; }
     void   clear() { head = tail; }
 
