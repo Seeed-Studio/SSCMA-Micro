@@ -36,14 +36,29 @@ namespace edgelab {
 
 namespace porting {
 
+void i2cs_tx_timeout_cb(void* data) { el_reset(); }
+
+static void i2cs_tx_timer(uint32_t timeout_ms) {
+    TIMER_CFG_T timer_cfg;
+    timer_cfg.period = timeout_ms;
+    timer_cfg.mode   = TIMER_MODE_ONESHOT;
+    timer_cfg.ctrl   = TIMER_CTRL_CPU;
+    timer_cfg.state  = TIMER_STATE_DC;
+
+    hx_drv_timer_cm55s_stop();
+    hx_drv_timer_cm55s_start(&timer_cfg, (Timer_ISREvent_t)i2cs_tx_timeout_cb);
+}
+
 static void i2c_s_callback_fun_tx(void* param) {
     // EL_LOGD("%s \n", __FUNCTION__);
 
     HX_DRV_DEV_IIC*      iic_obj      = (HX_DRV_DEV_IIC*)param;
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(iic_obj->iic_info);
     WireWE2*             wire         = (WireWE2*)iic_info_ptr->extra;
+
     memset(wire->tx_buffer, 0, sizeof(wire->tx_buffer));
     wire->wire_read_enable(sizeof(wire->rx_buffer));
+    hx_drv_timer_cm55s_stop();
 }
 
 static void i2c_s_callback_fun_rx(void* param) {
@@ -137,8 +152,8 @@ el_err_code_t WireWE2::init() {
     EL_ASSERT(!this->_is_present);
 
     this->index = USE_DW_IIC_SLV_0;
-    hx_drv_scu_set_PA2_pinmux(SCU_PA2_PINMUX_SB_I2C_S_SCL_0, 0);
-    hx_drv_scu_set_PA3_pinmux(SCU_PA3_PINMUX_SB_I2C_S_SDA_0, 0);
+    hx_drv_scu_set_PA2_pinmux(SCU_PA2_PINMUX_SB_I2C_S_SCL_0, 1);
+    hx_drv_scu_set_PA3_pinmux(SCU_PA3_PINMUX_SB_I2C_S_SDA_0, 1);
 
     if (IIC_ERR_OK != hx_drv_i2cs_init((USE_DW_IIC_SLV_E)this->index, HX_I2C_HOST_SLV_0_BASE)) {
         return EL_EIO;
@@ -149,7 +164,6 @@ el_err_code_t WireWE2::init() {
     this->i2c->iic_control(DW_IIC_CMD_SET_TXCB, (void*)i2c_s_callback_fun_tx);
     this->i2c->iic_control(DW_IIC_CMD_SET_RXCB, (void*)i2c_s_callback_fun_rx);
     this->i2c->iic_control(DW_IIC_CMD_SET_ERRCB, (void*)i2c_s_callback_fun_err);
-    //this->i2c->iic_control(DW_IIC_CMD_SET_STACB, (void*)i2c_s_callback_fun_sta);
     this->i2c->iic_control(DW_IIC_CMD_SLV_SET_SLV_ADDR, (void*)this->addr);
 
     HX_DRV_DEV_IIC_INFO* iic_info_ptr = &(this->i2c->iic_info);
@@ -173,11 +187,10 @@ el_err_code_t WireWE2::deinit() {
     this->i2c->iic_control(DW_IIC_CMD_SET_TXCB, (void*)NULL);
     this->i2c->iic_control(DW_IIC_CMD_SET_RXCB, (void*)NULL);
     this->i2c->iic_control(DW_IIC_CMD_SET_ERRCB, (void*)NULL);
-    this->i2c->iic_control(DW_IIC_CMD_SET_STACB, (void*)NULL);
 
     this->i2c = nullptr;
 
-    hx_drv_i2cs_deinit((USE_DW_IIC_SLV_E)USE_DW_IIC_SLV_0);
+    hx_drv_i2cs_deinit((USE_DW_IIC_SLV_E)this->index);
 
     this->_is_present = false;
     delete this->rx_ring_buffer;
@@ -239,6 +252,7 @@ void WireWE2::wire_write_enable(size_t size) {
     hx_CleanDCache_by_Addr((void*)this->tx_buffer, size);
     IIC_ERR_CODE_E ret =
       hx_drv_i2cs_interrupt_write(this->index, this->addr, this->tx_buffer, size, (void*)i2c_s_callback_fun_tx);
+    i2cs_tx_timer(I2CS_TX_TIME_OUT_MS);
 }
 
 }  // namespace edgelab

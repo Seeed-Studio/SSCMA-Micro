@@ -60,6 +60,8 @@ extern "C" {
 #define FEATURE_TRANSPORT_CMD_STOP      0x05
 #define FEATURE_TRANSPORT_CMD_RESET     0x06
 
+#define I2CS_TX_TIME_OUT_MS             1000
+
 namespace edgelab {
 
 class WireWE2 final : public Wire {
@@ -82,6 +84,7 @@ class WireWE2 final : public Wire {
    public:
     void wire_read_enable(size_t size);
     void wire_write_enable(size_t size);
+
 
    public:
     lwRingBuffer*    rx_ring_buffer;
