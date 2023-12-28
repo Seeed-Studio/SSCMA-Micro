@@ -137,8 +137,8 @@ el_err_code_t WireWE2::init() {
     EL_ASSERT(!this->_is_present);
 
     this->index = USE_DW_IIC_SLV_0;
-    hx_drv_scu_set_PA2_pinmux(SCU_PA2_PINMUX_SB_I2C_S_SCL_0);
-    hx_drv_scu_set_PA3_pinmux(SCU_PA3_PINMUX_SB_I2C_S_SDA_0);
+    hx_drv_scu_set_PA2_pinmux(SCU_PA2_PINMUX_SB_I2C_S_SCL_0, 0);
+    hx_drv_scu_set_PA3_pinmux(SCU_PA3_PINMUX_SB_I2C_S_SDA_0, 0);
 
     if (IIC_ERR_OK != hx_drv_i2cs_init((USE_DW_IIC_SLV_E)this->index, HX_I2C_HOST_SLV_0_BASE)) {
         return EL_EIO;

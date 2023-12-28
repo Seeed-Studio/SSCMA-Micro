@@ -63,7 +63,7 @@ el_err_code_t SerialWE2::init() {
     if (this->_is_present) [[unlikely]]
         return EL_EPERM;
 
-    _console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)CONSOLE_UART_ID);
+    _console_uart = hx_drv_uart_get_dev((USE_DW_UART_E)0);
     _console_uart->uart_open(UART_BAUDRATE_921600);
 
     if (!_serial_ring_buffer) [[likely]]
@@ -83,7 +83,7 @@ el_err_code_t SerialWE2::deinit() {
     if (!this->_is_present) [[unlikely]]
         return EL_EPERM;
 
-    this->_is_present = !hx_drv_uart_deinit((USE_DW_UART_E)CONSOLE_UART_ID) ? false : true;
+    this->_is_present = !hx_drv_uart_deinit((USE_DW_UART_E)0) ? false : true;
 
     return !this->_is_present ? EL_OK : EL_EIO;
 }
