@@ -51,7 +51,10 @@ el_err_code_t CameraHM0360::start_stream() {
 }
 
 el_err_code_t CameraHM0360::stop_stream() {
-    this->_is_streaming = false;
+    if (this->_is_streaming) {
+        this->_is_streaming = false;
+        return drv_hm0360_capture_stop();
+    }
     return EL_OK;
 }
 

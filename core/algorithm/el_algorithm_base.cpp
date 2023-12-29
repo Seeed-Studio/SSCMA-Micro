@@ -70,6 +70,8 @@ el_err_code_t Algorithm::underlying_run(void* input) {
     end_time          = el_get_time_ms();
     __preprocess_time = end_time - start_time;
 
+    EL_ON_ALGO_PREPROCESS_DONE;
+
     if (ret != EL_OK) {
         return ret;
     }
@@ -80,6 +82,8 @@ el_err_code_t Algorithm::underlying_run(void* input) {
     end_time   = el_get_time_ms();
     __run_time = end_time - start_time;
 
+    EL_ON_ALGO_RUN_DONE;
+
     if (ret != EL_OK) {
         return ret;
     }
@@ -89,6 +93,8 @@ el_err_code_t Algorithm::underlying_run(void* input) {
     ret                = postprocess();
     end_time           = el_get_time_ms();
     __postprocess_time = end_time - start_time;
+
+    EL_ON_ALGO_POSTPROCESS_DONE;
 
     return ret;
 }

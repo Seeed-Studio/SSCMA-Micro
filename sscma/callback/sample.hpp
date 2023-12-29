@@ -105,8 +105,9 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
 
-        auto camera = static_resource->device->get_camera();
-        auto frame  = el_img_t{};
+        auto camera            = static_resource->device->get_camera();
+        auto frame             = el_img_t{};
+        auto encoded_frame_str = std::string{};
 
         _ret = camera->start_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -114,21 +115,23 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
         _ret = camera->get_processed_frame(&frame);
-#else
-        _ret = camera->get_frame(&frame);
-#endif
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
-        event_reply(concat_strings(", ", img_2_json_str(&frame)));
+        encoded_frame_str = std::move(img_2_json_str(&frame));
 #else
-        event_reply(concat_strings(", ", img_2_jpeg_json_str(&frame)));
+        _ret = camera->get_frame(&frame);
+        if (!is_everything_ok()) [[unlikely]]
+            goto Err;
+
+        encoded_frame_str = std::move(img_2_jpeg_json_str(&frame));
 #endif
 
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
+
+        event_reply(concat_strings(", ", std::move(encoded_frame_str)));
 
         static_resource->executor->add_task(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop_cam(); });

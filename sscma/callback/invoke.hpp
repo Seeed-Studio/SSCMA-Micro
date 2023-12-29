@@ -326,6 +326,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
         auto processed_frame = el_img_t{};
 #endif
+        auto encoded_frame_str = std::string{};
 
         _ret = camera->start_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -334,11 +335,17 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _ret = camera->get_frame(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
+
+        if (!_results_only) {
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
-        _ret = camera->get_processed_frame(&processed_frame);
-        if (!is_everything_ok()) [[unlikely]]
-            goto Err;
+            _ret = camera->get_processed_frame(&processed_frame);
+            if (!is_everything_ok()) [[unlikely]]
+                goto Err;
+            encoded_frame_str = std::move(img_2_json_str(&processed_frame));
+#else
+            encoded_frame_str = std::move(img_2_jpeg_json_str(&frame));
 #endif
+        }
 
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
@@ -350,22 +357,18 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         }
         static_resource->action->evalute(_caller);
 
+        _ret = camera->stop_stream();
+        if (!is_everything_ok()) [[unlikely]]
+            goto Err;
+
         if (!_differed || results_filter.compare_and_update(algorithm->get_results())) {
             if (_results_only)
                 event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
             else {
-#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
-                event_reply(concat_strings(
-                  ", ", algorithm_results_2_json_str(algorithm), ", ", img_2_json_str(&processed_frame)));
-#else
                 event_reply(
-                  concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_2_jpeg_json_str(&frame)));
-#endif
+                  concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", std::move(encoded_frame_str)));
             }
         }
-        _ret = camera->stop_stream();
-        if (!is_everything_ok()) [[unlikely]]
-            goto Err;
 
         static_resource->executor->add_task(
           [_this = std::move(getptr()), _algorithm = std::move(algorithm), _results_filter = std::move(results_filter)](

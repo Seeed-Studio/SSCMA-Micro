@@ -52,8 +52,8 @@ class Camera {
     bool is_streaming() const { return _is_streaming; }
 
    protected:
-    bool _is_present;
-    bool _is_streaming;
+    volatile bool _is_present;
+    volatile bool _is_streaming;
 };
 
 }  // namespace edgelab

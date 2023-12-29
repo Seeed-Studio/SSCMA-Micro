@@ -53,6 +53,7 @@ extern "C" {
 el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height);
 el_err_code_t drv_hm0360_deinit();
 el_err_code_t drv_hm0360_capture(uint32_t timeout);
+el_err_code_t drv_hm0360_capture_stop();
 el_img_t      drv_hm0360_get_frame();
 el_img_t      drv_hm0360_get_jpeg();
 

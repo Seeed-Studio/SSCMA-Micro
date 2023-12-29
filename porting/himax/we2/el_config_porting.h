@@ -120,4 +120,7 @@ extern const struct fal_flash_dev _el_flash_db_nor_flash0;
 
 #endif
 
+extern void __on_algo_preprocess_done();
+#define EL_ON_ALGO_PREPROCESS_DONE __on_algo_preprocess_done();
+
 #endif

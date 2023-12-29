@@ -200,7 +200,7 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
@@ -214,8 +214,10 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
 
     sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
     sensordplib_set_sensorctrl_start();
+    sensordplib_retrigger_capture();
 
     EL_LOGD("hm0360 init success!");
+
     return ret;
 
 err:
@@ -256,16 +258,20 @@ el_err_code_t drv_hm0360_deinit() {
 
 el_err_code_t drv_hm0360_capture(uint32_t timeout) {
     uint32_t time = el_get_time_ms();
-    _frame_ready  = false;
-
-    sensordplib_retrigger_capture();
 
     while (!_frame_ready) {
         if (el_get_time_ms() - time >= timeout) {
             return EL_ETIMOUT;
         }
-        el_sleep(5);
+        el_sleep(1);
     }
+
+    return EL_OK;
+}
+
+el_err_code_t drv_hm0360_capture_stop(){
+    _frame_ready  = false;
+    sensordplib_retrigger_capture();
 
     return EL_OK;
 }

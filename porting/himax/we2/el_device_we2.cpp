@@ -38,6 +38,7 @@ extern "C" {
 
 #include "core/el_debug.h"
 #include "el_camera_ov5647.h"
+#include "el_config_porting.h"
 #include "el_network_at.h"
 #include "el_network_we2.h"
 #include "el_serial_we2.h"
@@ -163,3 +164,5 @@ Device* Device::get_device() {
 }
 
 }  // namespace edgelab
+
+void __on_algo_preprocess_done() { edgelab::DeviceWE2::get_device()->get_camera()->stop_stream(); }

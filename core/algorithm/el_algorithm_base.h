@@ -30,6 +30,28 @@
 
 #include "core/el_types.h"
 #include "core/engine/el_engine_base.h"
+#include "el_config_porting.h"
+
+#ifndef EL_ON_ALGO_PREPROCESS_DONE
+    #define EL_ON_ALGO_PREPROCESS_DONE \
+        {}
+#else
+    #warning "EL_ON_ALGO_PREPROCESS_DONE is defined by user"
+#endif
+
+#ifndef EL_ON_ALGO_RUN_DONE
+    #define EL_ON_ALGO_RUN_DONE \
+        {}
+#else
+    #warning "EL_ON_ALGO_RUN_DONE is defined by user"
+#endif
+
+#ifndef EL_ON_ALGO_POSTPROCESS_DONE
+    #define EL_ON_ALGO_POSTPROCESS_DONE \
+        {}
+#else
+    #warning "EL_ON_ALGO_POSTPROCESS_DONE is defined by user"
+#endif
 
 namespace edgelab {
 
