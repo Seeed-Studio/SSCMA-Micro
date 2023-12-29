@@ -10,7 +10,7 @@
 #define MQTT_CLIENT_ID     "HIMAX_WE2"
 
 #define AT_LONG_TIME_MS    5000
-#define AT_SHORT_TIME_MS   1500
+#define AT_SHORT_TIME_MS   500
 #define AT_TX_MAX_LEN      16384  // 默认固件的AT指令长度阈值为256
 #define AT_RX_MAX_LEN      4096   // 可能连续收到多条消息
 
@@ -103,6 +103,8 @@ typedef struct esp_at {
 
     DEV_UART_PTR port;
     uint8_t      state;
+    uint16_t     tbuf_len;
+    uint16_t     sent_len;
 
     topic_cb_t cb;
 } esp_at_t;

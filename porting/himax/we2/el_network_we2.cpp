@@ -46,19 +46,44 @@ static resp_trigger_t resp_flow[] = {
     {AT_STR_RESP_NTP,    resp_action_ntp}
 };
 
+static SemaphoreHandle_t at_got_response = NULL;
+static SemaphoreHandle_t pubraw_complete = NULL;
+static TimerHandle_t pubraw_tmr = NULL;
+// static uint32_t last_pub = 0;
+
+static void pubraw_tmr_cb(TimerHandle_t xTmr) {
+    BaseType_t taskwaken = pdFALSE;
+    if (at.sent_len >= at.tbuf_len) {   // all tbuf data sent
+        EL_LOGW("PUBRAW TIMEOUT\n");
+        xSemaphoreGiveFromISR(pubraw_complete, &taskwaken);
+    }
+}
+
+static void dma_tx_cb(void* arg) {
+    BaseType_t taskwaken = pdFALSE;
+    uint16_t send_len = (at.tbuf_len - at.sent_len) > 4095 ? 4095 : (at.tbuf_len - at.sent_len);
+    at.sent_len += send_len;
+    // EL_LOGD("PUBRAW: %u / %u", at.sent_len, at.tbuf_len);
+    if (at.sent_len < at.tbuf_len) {
+        send_len = (at.tbuf_len - at.sent_len) > 4095 ? 4095 : (at.tbuf_len - at.sent_len);
+        at.port->uart_write_udma(at.tbuf + at.sent_len, send_len, (void*)dma_tx_cb);
+    } else {
+        // EL_LOGI("AT PUBRAW COMPLETE: %u ms\n", xTaskGetTickCount() - last_pub);
+        // last_pub = xTaskGetTickCount();
+        xTimerChangePeriodFromISR(pubraw_tmr, AT_SHORT_TIME_MS * portTICK_PERIOD_MS, NULL);
+    }
+}
+
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     uint32_t t = 0;
+    xSemaphoreTake(at_got_response, 0);
     EL_LOGD("%s\n", at->tbuf);
     at->state = AT_STATE_PROCESS;
     at->port->uart_write(at->tbuf, strlen(at->tbuf));
 
-    while (at->state == AT_STATE_PROCESS) {
-        if (t >= timeout) {
-            // EL_LOGD("AT TIMEOUT\n");
-            return EL_ETIMOUT;
-        }
-        el_sleep(10);
-        t += 10;
+    if (xSemaphoreTake(at_got_response, timeout) == pdFALSE) {
+        EL_LOGD("AT TIMEOUT\n");
+        return EL_ETIMOUT;
     }
 
     if (at->state != AT_STATE_OK) {
@@ -155,7 +180,7 @@ void NetworkWE2::init(status_cb_t cb) {
     }
 
     // Parse data and trigger events
-    if (xTaskCreate(at_recv_parser, "at_recv_parser", 1024, this, 1, &at_rx_parser) != pdPASS) {
+    if (xTaskCreate(at_recv_parser, "at_recv_parser", 512, this, 2, &at_rx_parser) != pdPASS) {
         EL_LOGD("at_recv_parser create error\n");
         return;
     }
@@ -164,6 +189,29 @@ void NetworkWE2::init(status_cb_t cb) {
         pdPASS) {
         EL_LOGD("network_status_handler create error\n");
         return;
+    }
+    if (at_got_response == NULL) {
+        at_got_response = xSemaphoreCreateBinary();
+        if (at_got_response == NULL) {
+            EL_LOGD("at_got_response create error\n");
+            return;
+        }
+    }
+    if (pubraw_complete == NULL) {
+        pubraw_complete = xSemaphoreCreateBinary();
+        if (pubraw_complete == NULL) {
+            EL_LOGD("pubraw_complete create error\n");
+            return;
+        }
+    }
+    xSemaphoreGive(pubraw_complete);
+    if (pubraw_tmr == NULL) {
+        pubraw_tmr = xTimerCreate("pubraw_tmr", pdMS_TO_TICKS(AT_SHORT_TIME_MS), pdFALSE, NULL,
+                                     pubraw_tmr_cb);
+        if (pubraw_tmr == NULL) {
+            EL_LOGD("pubraw_tmr create error\n");
+            return;
+        }
     }
     at.state = AT_STATE_PROCESS;
     uint32_t t = 0;
@@ -183,7 +231,6 @@ void NetworkWE2::init(status_cb_t cb) {
     t = 0;
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
     at.port->uart_write(at.tbuf, strlen(at.tbuf));
-    EL_LOGD(" %s\n", at.tbuf);
     while (at.state != AT_STATE_READY) {
         if (t >= AT_LONG_TIME_MS) {
             EL_LOGD("AT RST TIMEOUT\n");
@@ -441,18 +488,21 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         }
     } 
     else if (len + 1 < sizeof(at.tbuf)) {
+        xSemaphoreTake(pubraw_complete, portMAX_DELAY);
+        // last_pub = xTaskGetTickCount();
+        uint16_t send_len = len;
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
         err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
+            xSemaphoreGive(pubraw_complete);
             EL_LOGW("AT MQTTPUB ERROR : %d\n", err);
             return err;
         }
         snprintf(at.tbuf, len + 1, "%s", dat);
-        err = at_send(&at, AT_SHORT_TIME_MS);
-        if (err != EL_OK) {
-            EL_LOGW("AT MQTTPUB RAW ERROR : %d\n", err);
-            return err;
-        }
+        at.sent_len = 0;
+        at.tbuf_len = strlen(at.tbuf);
+        send_len = at.tbuf_len > 4095 ? 4095 : at.tbuf_len;
+        at.port->uart_write_udma(at.tbuf, send_len, (void*)dma_tx_cb);
     } else {
         EL_LOGD("AT MQTTPUB ERROR : DATA TOO LONG\n");
         return EL_ENOMEM;
@@ -466,14 +516,17 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
 void resp_action_ok(const char* resp, void* arg) {
     EL_LOGD("OK\n");
     at.state = AT_STATE_OK;
+    xSemaphoreGive(at_got_response);
 }
 void resp_action_error(const char* resp, void* arg) {
     EL_LOGD("ERROR\n");
     at.state = AT_STATE_ERROR;
+    xSemaphoreGive(at_got_response);
 }
 void resp_action_ready(const char* resp, void* arg) {
     EL_LOGD("READY\n");
     at.state = AT_STATE_READY;
+    xSemaphoreGive(at_got_response);
 }
 void resp_action_wifi(const char* resp, void* arg) {
     if (resp[strlen(AT_STR_RESP_WIFI_H)] == 'G') {
@@ -555,6 +608,8 @@ void resp_action_ntp(const char* resp, void* arg) {
     return;
 }
 void resp_action_pubraw(const char* resp, void* arg) {
-    at.state = (resp[strlen(AT_STR_RESP_PUBRAW)] == 'O') ? 
-                AT_STATE_OK : AT_STATE_ERROR;
+    // EL_LOGI("AT PUBRAW RESP: %u ms\n", xTaskGetTickCount() - last_pub);
+    // last_pub = xTaskGetTickCount();
+    xTimerStop(pubraw_tmr, 0);
+    xSemaphoreGive(pubraw_complete);
 }
