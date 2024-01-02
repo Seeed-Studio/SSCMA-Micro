@@ -17,12 +17,19 @@ class lwRingBuffer {
         tail      = (tail + 1) % len;
     }
     size_t put(const char* str, int slen) {
-        if (slen > capacity()) {
-            slen = capacity();
+        if (slen > free()) {
+            slen = free();
         }
-        for (int i = 0; i < slen; i++) {
-            put(str[i]);
+        // for (int i = 0; i < slen; i++) {
+        //     put(str[i]);
+        // }
+        if (slen > len - tail) {
+            memcpy(buf + tail, str, len - tail);
+            memcpy(buf, str + len - tail, slen - (len - tail));
+        } else {
+            memcpy(buf + tail, str, slen);
         }
+        tail = (tail + slen) % len;
         return slen;
     }
     void push(char c) { this->put(c); }
@@ -39,9 +46,13 @@ class lwRingBuffer {
         if (slen > size()) {
             slen = size();
         }
-        for (int i = 0; i < slen; i++) {
-            str[i] = get();
+        if(slen > len - head) {
+            memcpy(str, buf + head, len - head);
+            memcpy(str + len - head, buf, slen - (len - head));
+        } else {
+            memcpy(str, buf + head, slen);
         }
+        head = (head + slen) % len;
         return slen;
     }
     char pop() { return get(); }
@@ -49,6 +60,7 @@ class lwRingBuffer {
     bool   isEmpty() { return head == tail; }
     bool   isFull() { return (tail + 1) % len == head; }
     size_t size() { return (tail - head + len) % len; }
+    size_t free() { return (head - tail - 1 + len) % len; }
     size_t capacity() { return len; }
     void   clear() { head = tail; }
 

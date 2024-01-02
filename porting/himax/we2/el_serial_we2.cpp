@@ -44,7 +44,7 @@ namespace porting {
 static lwRingBuffer*              _rb_rx = nullptr;
 static lwRingBuffer*              _rb_tx = nullptr;
 static char                       _buf_rx[32]{};
-static char                       _buf_tx[2048]{};
+static char                       _buf_tx[4095]{};
 volatile static bool              _tx_busy  = false;
 volatile static SemaphoreHandle_t _mutex_tx = nullptr;
 volatile static DEV_UART*         _uart     = nullptr;
@@ -55,7 +55,7 @@ void _uart_dma_recv(void*) {
 }
 
 void _uart_dma_send(void*) {
-    size_t     remaind                  = _rb_tx->size() < 2048 ? _rb_tx->size() : 2048;
+    size_t     remaind                  = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
     _tx_busy                            = remaind != 0;
     if (remaind != 0) {
         _rb_tx->get(_buf_tx, remaind);
@@ -82,7 +82,7 @@ el_err_code_t SerialWE2::init() {
         _rb_rx = new lwRingBuffer{8192};
 
     if (!_rb_tx) [[likely]]
-        _rb_tx = new lwRingBuffer{16384};
+        _rb_tx = new lwRingBuffer{32768};
 
     _mutex_tx = xSemaphoreCreateMutex();
 
@@ -173,18 +173,23 @@ std::size_t SerialWE2::send_bytes(const char* buffer, size_t size) {
     size_t sent = 0;
     xSemaphoreTake(_mutex_tx, portMAX_DELAY);
 
+    //el_printf("\nsend: %d %d\n", size, _rb_tx->size());
+
     while (size) {
         bytes_to_send = _rb_tx->put(buffer + sent, size);
+        //el_printf("\nput: %d\n", bytes_to_send);
         size -= bytes_to_send;
         sent += bytes_to_send;
         if (!_tx_busy) {
             _tx_busy = true;
-            bytes_to_send = _rb_tx->size() < 2048 ? _rb_tx->size() : 2048;
+            bytes_to_send = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
             _rb_tx->get(_buf_tx, bytes_to_send);
             SCB_CleanDCache_by_Addr((volatile void*)_buf_tx, bytes_to_send);
             _uart->uart_write_udma(_buf_tx, bytes_to_send, (void*)_uart_dma_send);
         }
         if (el_get_time_ms() - time_start > 3000) {
+            el_printf("\ntimeout\n");
+            _tx_busy = false;
             break;
         }
     }
