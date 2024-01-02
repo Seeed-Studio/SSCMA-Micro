@@ -202,7 +202,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     //OV5647 Enable
     hx_drv_gpio_set_output(AON_GPIO1, GPIO_OUT_HIGH);
-    hx_drv_scu_set_PA1_pinmux(SCU_PA1_PINMUX_AON_GPIO1);
+    hx_drv_scu_set_PA1_pinmux(SCU_PA1_PINMUX_AON_GPIO1, 0);
     hx_drv_gpio_set_out_value(AON_GPIO1, GPIO_OUT_HIGH);
     EL_LOGD("Set PA1(AON_GPIO1) to High");
 

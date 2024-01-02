@@ -166,8 +166,8 @@ void NetworkWE2::init(status_cb_t cb) {
     }
 
     if (at.port == NULL) {
-        hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX);
-        hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX);
+        hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX, 0);
+        hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX, 0);
         hx_drv_uart_init(USE_DW_UART_1, HX_UART1_BASE);
         at.port = hx_drv_uart_get_dev(USE_DW_UART_1);
         if (at.port == NULL) {
