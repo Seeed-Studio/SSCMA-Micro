@@ -256,6 +256,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     _jpeg.size   = width * height / 4;
 
     // DMA
+    if (!_jpegsize_baseaddr)
     _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 64);
     if (_jpegsize_baseaddr == 0) {
         ret = EL_ENOMEM;
@@ -264,6 +265,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     {
         size_t bs       = (((623 + (size_t)(res.width / 16) * (size_t)(res.height / 16) * 128 + 35) >> 2) << 2);
+        if (!_wdma1_baseaddr)
         _wdma1_baseaddr = (uint32_t)el_aligned_malloc_once(32, bs);  // JPEG
     }
     if (_wdma1_baseaddr == 0) {
@@ -271,7 +273,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
         goto err;
     }
     _wdma2_baseaddr = _wdma1_baseaddr;
-
+    if (!_wdma3_baseaddr)
     _wdma3_baseaddr = (uint32_t)el_aligned_malloc_once(32, res.width * res.height * 3 / 2);
     if (_wdma3_baseaddr == 0) {
         ret = EL_ENOMEM;
@@ -355,19 +357,19 @@ err:
 
     hx_drv_sensorctrl_set_xSleep(0);
 
-    if (_jpegsize_baseaddr != 0) {
-        el_free(_jpegsize_baseaddr);
-        _jpegsize_baseaddr = 0;
-    }
-    if (_wdma3_baseaddr != 0) {
-        el_free(_wdma3_baseaddr);
-        _wdma3_baseaddr = 0;
-    }
-    if (_wdma1_baseaddr) {
-        el_free(_wdma3_baseaddr);
-        _wdma1_baseaddr = 0;
-        _wdma2_baseaddr = 0;
-    }
+    // if (_jpegsize_baseaddr != 0) {
+    //     el_free(_jpegsize_baseaddr);
+    //     _jpegsize_baseaddr = 0;
+    // }
+    // if (_wdma3_baseaddr != 0) {
+    //     el_free(_wdma3_baseaddr);
+    //     _wdma3_baseaddr = 0;
+    // }
+    // if (_wdma1_baseaddr) {
+    //     el_free(_wdma3_baseaddr);
+    //     _wdma1_baseaddr = 0;
+    //     _wdma2_baseaddr = 0;
+    // }
     return ret;
 }
 
