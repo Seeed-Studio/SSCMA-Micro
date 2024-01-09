@@ -25,6 +25,8 @@
 
 #include "el_algorithm_yolo_pose.h"
 
+#include <array>
+#include <cmath>
 #include <type_traits>
 #include <vector>
 
@@ -71,20 +73,13 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
          input_shape.dims[3] != 1))
         return false;
 
-    auto loc_len{[&]() {
-        auto r{static_cast<uint16_t>(input_shape.dims[1])};
-        auto s{r >> 5};  // r / 32
-        auto m{r >> 4};  // r / 16
-        auto l{r >> 3};  // r / 8
-        return s * s + m * m + l * l;
-    }()};
-
-    const auto& output_shape{engine->get_output_shape(0)};
-    if (output_shape.size != 3 ||               // B, IB, BC...
-        output_shape.dims[0] != 1 ||            // B = 1
-        (output_shape.dims[1] - 5) % 3 != 0 ||  // x, y, w, h, s, (x, y, v)...
-        output_shape.dims[2] != loc_len)
-        return false;
+    // TODO: check each output shape of the model
+    uint8_t check = 0b00000000;
+    for (size_t i = 0; i < 7; ++i) {
+        const auto& output_shape{engine->get_output_shape(i)};
+        if (output_shape.size != 0) check |= 1 << i;
+    }
+    if (check ^ 0b01111111) return false;
 
     return true;
 }
@@ -132,118 +127,161 @@ el_err_code_t AlgorithmYOLOPOSE::preprocess() {
     return EL_OK;
 }
 
+namespace types {
+
+struct raw_output_t {
+    int8_t*          data;
+    el_shape_t       shape;
+    el_quant_param_t quant_param;
+};
+
+}  // namespace types
+
+namespace utils {
+
+inline float sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
+
+inline void softmax(float* data, size_t size) {
+    float sum{0.f};
+    for (size_t i = 0; i < size; ++i) {
+        data[i] = std::exp(data[i]);
+        sum += data[i];
+    }
+    for (size_t i = 0; i < size; ++i) {
+        data[i] /= sum;
+    }
+}
+
+inline float dequant_value_i(size_t idx, const types::raw_output_t& output) {
+    return (static_cast<float>(output.data[idx]) - static_cast<float>(output.quant_param.zero_point)) *
+           output.quant_param.scale;
+}
+
+}  // namespace utils
+
 el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     _results.clear();
 
-    // get output
-    auto* data{static_cast<int8_t*>(this->__p_engine->get_output(0))};
-
+    // inputs shape
     const auto width{this->__input_shape.dims[1]};
     const auto height{this->__input_shape.dims[2]};
 
-    const float scale{this->__output_quant.scale};
-    const bool  rescale{scale < 0.1f ? true : false};
+    // fetch output details from interpreter
+    EL_ASSERT(width == height);
+    size_t           input_size = width;
+    constexpr size_t outputs    = 7;
 
-    const int32_t zero_point{this->__output_quant.zero_point};
-
-    // shape: 1, 56, 756
-    // idx  : 0,  1,   2
-    const std::size_t num_types{this->__output_shape.dims[1]};  // 56
-    const std::size_t num_pts{this->__output_shape.dims[2]};    // 756
-    const std::size_t box_strides[]{
-      INDEX_X,            // cx, 0
-      INDEX_Y * num_pts,  // cy, 1
-      INDEX_W * num_pts,  // w , 2
-      INDEX_H * num_pts,  // h , 3
-      INDEX_S * num_pts,  // s , 4
-    };
-
-    ScoreType score_threshold{get_score_threshold()};
-    IoUType   iou_threshold{get_iou_threshold()};
-
-    using BoxType = el_box_t;
-    std::forward_list<BoxType> objects;
-    for (std::size_t i = 0; i < num_pts; ++i) {
-        auto score{static_cast<decltype(scale)>(data[i + box_strides[INDEX_S]] - zero_point) * scale};
-
-        if (score < score_threshold) continue;
-
-        BoxType box{
-          .x      = 0,
-          .y      = 0,
-          .w      = 0,
-          .h      = 0,
-          .score  = static_cast<decltype(BoxType::score)>(score),
-          .target = static_cast<decltype(BoxType::target)>(i),
-        };
-
-        auto x{static_cast<decltype(BoxType::x)>((data[i + box_strides[INDEX_X]] - zero_point) * scale)};
-        auto y{static_cast<decltype(BoxType::y)>((data[i + box_strides[INDEX_Y]] - zero_point) * scale)};
-        auto w{static_cast<decltype(BoxType::w)>((data[i + box_strides[INDEX_W]] - zero_point) * scale)};
-        auto h{static_cast<decltype(BoxType::h)>((data[i + box_strides[INDEX_H]] - zero_point) * scale)};
-
-        box.x = EL_CLIP(x, 0, width) * _w_scale;
-        box.y = EL_CLIP(y, 0, height) * _h_scale;
-        box.w = EL_CLIP(w, 0, width) * _w_scale;
-        box.h = EL_CLIP(h, 0, height) * _h_scale;
-
-        objects.emplace_front(std::move(box));
+    types::raw_output_t raw_outputs[outputs];
+    for (size_t i = 0; i < outputs; ++i) {
+        raw_outputs[i].data        = static_cast<int8_t*>(this->__p_engine->get_output(i));
+        raw_outputs[i].shape       = this->__p_engine->get_output_shape(i);
+        raw_outputs[i].quant_param = this->__p_engine->get_output_quant_param(i);
     }
 
-    el_nms(objects, iou_threshold, score_threshold, false, false);
+    // construct stride matrix and anchor matrix
+    constexpr size_t splits[]  = {8, 16, 32};
+    const size_t     strides[] = {input_size / splits[0], input_size / splits[1], input_size / splits[2]};
+    const size_t     anchors[] = {strides[0] * strides[0], strides[1] * strides[1], strides[2] * strides[2]};
 
-    if (!std::distance(objects.begin(), objects.end())) return EL_OK;
+    std::vector<std::array<float, 2>> anchor_matrix(anchors[0] + anchors[1] + anchors[2]);
 
-    std::size_t              pts_views{num_types - 5};
-    std::vector<std::size_t> pts_strides(pts_views);
-    for (std::size_t i = 0; i < pts_views; ++i) {
-        pts_strides[i] = (i + 5) * num_pts;
-    }
+    size_t          stride_start = 0;
+    size_t          stride_end   = 0;
+    constexpr float anchor_shift = 0.5f;
 
-    pts_views /= 3;
-    decltype(KeyPointType::target) target = 0;
-    for (const auto& obj : objects) {
-        KeyPointType keypoint_tl{
-          .x      = static_cast<decltype(KeyPointType::x)>(obj.x - (obj.w >> 1)),
-          .y      = static_cast<decltype(KeyPointType::y)>(obj.y - (obj.h >> 1)),
-          .score  = obj.score,
-          .target = target,
-        };
-        KeyPointType keypoint_br{
-          .x      = static_cast<decltype(KeyPointType::x)>(keypoint_tl.x + obj.w),
-          .y      = static_cast<decltype(KeyPointType::y)>(keypoint_tl.y + obj.h),
-          .score  = obj.score,
-          .target = target,
-        };
-        _results.emplace_front(std::move(keypoint_tl));
-        _results.emplace_front(std::move(keypoint_br));
+    for (size_t i = 0; i < 3; ++i) {
+        stride_start = stride_end;
+        stride_end   = stride_start + anchors[i];
 
-        auto idx = obj.target;
-        for (std::size_t i = 0; i < pts_views; ++i) {
-            auto         offset{i * 3};
-            KeyPointType keypoint{
-              .x      = 0,
-              .y      = 0,
-              .score  = 0,
-              .target = target,
-            };
+        float      anchor_x = 0.f + anchor_shift;
+        float      anchor_y = -1.f + anchor_shift;
+        const auto stride   = strides[i];
 
-            auto x{static_cast<decltype(KeyPointType::x)>((data[idx + pts_strides[offset]] - zero_point) * scale)};
-            auto y{static_cast<decltype(KeyPointType::y)>((data[idx + pts_strides[offset + 1]] - zero_point) * scale)};
-            auto v{
-              static_cast<decltype(KeyPointType::score)>((data[idx + pts_strides[offset + 2]] - zero_point) * scale)};
-            x = EL_CLIP(x, 0, width) * _w_scale;
-            y = EL_CLIP(y, 0, height) * _h_scale;
+        for (size_t j = stride_start; j < stride_end; ++j) {
+            if (j % stride == 0) {
+                anchor_x = 0.f + anchor_shift;
+                anchor_y += 1.f;
+            }
 
-            keypoint.x     = x;
-            keypoint.y     = y;
-            keypoint.score = v;
+            // assign anchor location to anchor matrix
+            anchor_matrix[j][0] = anchor_x;
+            anchor_matrix[j][1] = anchor_y;
 
-            _results.emplace_front(std::move(keypoint));
+            anchor_x += 1.f;
         }
-
-        ++idx;
     }
+
+    // post-process
+    const float      score_threshold     = static_cast<float>(_score_threshold.load()) / 100.f;
+    constexpr size_t output_scores_ids[] = {4, 6, 2};
+    constexpr size_t output_bboxes_ids[] = {1, 0, 5};
+
+    std::forward_list<el_box_t> bboxes;
+
+    stride_start = 0;
+    stride_end   = 0;
+    for (size_t i = 0; i < 3; ++i) {
+        stride_start = stride_end;
+        stride_end   = stride_start + anchors[i];
+
+        // for each size of bboxes
+        const auto& output_scores = raw_outputs[output_scores_ids[i]];
+        for (size_t j = stride_start, k = 0; j < stride_end; ++j, ++k) {
+            float score = utils::sigmoid(utils::dequant_value_i(k, output_scores));
+
+            if (score < score_threshold) continue;
+
+            // DFL
+            float        dist[4];
+            float        matrix[16];
+            const auto&  output_bboxes = raw_outputs[output_bboxes_ids[i]];
+            const size_t pre           = k * output_bboxes.shape.dims[2];
+            for (size_t m = 0; m < 4; ++m) {
+                const size_t offset = pre + m * 16;
+                for (size_t n = 0; n < 16; ++n) {
+                    matrix[n] = utils::dequant_value_i(offset + n, output_bboxes);
+                }
+
+                utils::softmax(matrix, 16);
+
+                float res = 0.f;
+                for (size_t n = 0; n < 16; ++n) {
+                    res += matrix[n] * static_cast<float>(n);
+                }
+                dist[m] = res;
+            }
+
+            const float stride = static_cast<float>(strides[i]);
+            const auto& anchor = anchor_matrix[j];
+
+            float x1 = anchor[0] - dist[0];
+            float y1 = anchor[1] - dist[1];
+            float x2 = anchor[0] + dist[2];
+            float y2 = anchor[1] + dist[3];
+
+            float cx = x1 + x2;
+            float cy = y1 + y2;
+            float w  = x2 - x1;
+            float h  = y2 - y1;
+
+            float fw = static_cast<float>(width);
+            float fh = static_cast<float>(height);
+
+            el_box_t bbox;
+            bbox.x      = std::round(EL_CLIP(cx, 0.f, fw) * 0.5f * stride * _w_scale);
+            bbox.y      = std::round(EL_CLIP(cy, 0.f, fh) * 0.5f * stride * _h_scale);
+            bbox.w      = std::round(EL_CLIP(w, 0.f, fw) * stride * _w_scale);
+            bbox.h      = std::round(EL_CLIP(h, 0.f, fh) * stride * _h_scale);
+            bbox.score  = std::round(score * 100.f);
+            bbox.target = 0;
+
+            bboxes.emplace_front(bbox);
+        }
+    }
+
+    el_nms(bboxes, _iou_threshold.load(), _score_threshold.load(), false, false);
+
+    std::move(bboxes.begin(), bboxes.end(), std::front_inserter(_results));
 
     return EL_OK;
 }

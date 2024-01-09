@@ -44,7 +44,7 @@ namespace types {
 struct el_algorithm_yolo_pose_config_t {
     static constexpr el_algorithm_info_t info{
       .type = EL_ALGO_TYPE_YOLO_POSE, .categroy = EL_ALGO_CAT_POSE, .input_from = EL_SENSOR_TYPE_CAM};
-    uint8_t score_threshold = 50;
+    uint8_t score_threshold = 70;
     uint8_t iou_threshold   = 45;
 };
 
@@ -53,7 +53,7 @@ struct el_algorithm_yolo_pose_config_t {
 class AlgorithmYOLOPOSE final : public Algorithm {
    public:
     using ImageType    = el_img_t;
-    using KeyPointType = el_point_t;
+    using KeyPointType = el_box_t;
     using ConfigType   = el_algorithm_yolo_pose_config_t;
     using ScoreType    = decltype(el_algorithm_yolo_pose_config_t::score_threshold);
     using IoUType      = decltype(el_algorithm_yolo_pose_config_t::iou_threshold);
@@ -85,14 +85,6 @@ class AlgorithmYOLOPOSE final : public Algorithm {
     el_err_code_t postprocess() override;
 
    private:
-    enum {
-        INDEX_X = 0,
-        INDEX_Y = 1,
-        INDEX_W = 2,
-        INDEX_H = 3,
-        INDEX_S = 4,
-    };
-
     ImageType _input_img;
     float     _w_scale;
     float     _h_scale;

@@ -42,7 +42,7 @@
     #endif
 #endif
 
-#define CONFIG_EL_DEBUG                3
+#define CONFIG_EL_DEBUG                0
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
 #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1200 * 1024)
