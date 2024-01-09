@@ -38,6 +38,9 @@ el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
 #ifdef _EL_ALGORITHM_YOLO_H_  // index 1
     if (AlgorithmYOLO::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO;
 #endif
+#ifdef _EL_ALGORITHM_YOLO_POSE_H_ // index 5
+    if (AlgorithmYOLOPOSE::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO_POSE;
+#endif
 #ifdef _EL_ALGORITHM_FOMO_H_  // index 2
     if (AlgorithmFOMO::is_model_valid(engine)) return EL_ALGO_TYPE_FOMO;
 #endif
@@ -90,6 +93,9 @@ AlgorithmDelegate::AlgorithmDelegate() {
 #endif
 #ifdef _EL_ALGORITHM_IMCLS_H_
     _registered_algorithms.emplace_front(&AlgorithmIMCLS::algorithm_info);
+#endif
+#ifdef _EL_ALGORITHM_YOLO_POSE_H_
+    _registered_algorithms.emplace_front(&AlgorithmYOLOPOSE::algorithm_info);
 #endif
 }
 

@@ -45,6 +45,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _results_only{results_only},
           _caller{caller},
           _task_id{static_resource->current_task_id.load(std::memory_order_seq_cst)},
+          _sensor_info{},
+          _model_info{},
+          _algorithm_info{},
           _times{0},
           _ret{EL_OK},
           _action_hash{0} {
@@ -192,6 +195,17 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         }
         case EL_ALGO_TYPE_IMCLS: {
             using AlgorithmType = AlgorithmIMCLS;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
+            register_config_cmds(algorithm);
+            direct_reply(algorithm_config_2_json_str(algorithm));
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
+            return;
+        }
+        case EL_ALGO_TYPE_YOLO_POSE: {
+            using AlgorithmType = AlgorithmYOLOPOSE;
             auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
             register_config_cmds(algorithm);
             direct_reply(algorithm_config_2_json_str(algorithm));
