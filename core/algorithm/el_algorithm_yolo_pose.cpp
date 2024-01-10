@@ -245,14 +245,11 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         _last_input_height = height;
 
         // TODO: support generate anchor with non-square input
-        _anchor_strides = utils::generate_anchor_strides(width);
+        _anchor_strides = utils::generate_anchor_strides(std::min(width, height));
         _anchor_matrix  = utils::generate_anchor_matrix(_anchor_strides);
     }
 
-    // fetch output details from interpreter
-    EL_ASSERT(width == height);
-    size_t           input_size = width;
-    constexpr size_t outputs    = 7;
+    constexpr size_t outputs = 7;
 
     const int8_t*    output_data[outputs];
     el_shape_t       output_shapes[outputs];
@@ -338,6 +335,8 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         }
     }
 
+    if (anchor_bboxes.empty()) return EL_OK;
+
     utils::anchor_nms(anchor_bboxes, iou_threshold, score_threshold, false);
 
     const auto*  output_keypoints            = output_data[3];
@@ -353,8 +352,11 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         const auto pre =
           (_anchor_strides[anchor_bbox.anchor_class].start + anchor_bbox.anchor_index) * output_keypoints_shape.dims[2];
 
-        const auto anchor = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
+        auto anchor       = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
         const auto stride = _anchor_strides[anchor_bbox.anchor_class].stride;
+
+        anchor.x -= 0.5f;
+        anchor.y -= 0.5f;
 
         const float scale_w = stride * _w_scale;
         const float scale_h = stride * _h_scale;
@@ -370,8 +372,8 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
             float z = utils::dequant_value_i(
               offset + 2, output_keypoints, output_keypoints_quant_parm.zero_point, output_keypoints_quant_parm.scale);
 
-            x = x * 2.f + (anchor.x - 0.5f);
-            y = y * 2.f + (anchor.y - 0.5f);
+            x = x * 2.f + anchor.x;
+            y = y * 2.f + anchor.y;
             z = utils::sigmoid(z);
 
             n_keypoint[i] = {x, y, z};
