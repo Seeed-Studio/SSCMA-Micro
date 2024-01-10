@@ -76,8 +76,9 @@ template <typename T, size_t N> struct pt3_set_t {
 
 struct anchor_stride_t {
     size_t stride;
-    size_t start;
+    size_t splits;
     size_t size;
+    size_t start;
 };
 
 }  // namespace types
