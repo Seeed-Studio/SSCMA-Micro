@@ -276,10 +276,21 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         // for each size of bboxes
         const auto  output_scores_id         = output_scores_ids[i];
         const auto* output_scores            = output_data[output_scores_id];
+        const auto& output_scores_shape      = output_shapes[output_scores_id];
         const auto  output_scores_quant_parm = output_quant_params[output_scores_id];
+
+        const auto  output_bboxes_id         = output_bboxes_ids[i];
+        const auto* output_bboxes            = output_data[output_bboxes_id];
+        const auto& output_bboxes_shape      = output_shapes[output_bboxes_id];
+        const auto  output_bboxes_quant_parm = output_quant_params[output_bboxes_id];
 
         const auto& anchor_array      = _anchor_matrix[i];
         const auto  anchor_array_size = anchor_array.size();
+
+        EL_ASSERT(output_scores_shape.dims[1] == anchor_array_size);
+        EL_ASSERT(output_bboxes_shape.dims[1] == anchor_array_size);
+        EL_ASSERT(output_bboxes_shape.dims[2] == 64);
+
         for (size_t j = 0; j < anchor_array_size; ++j) {
             float score = utils::sigmoid(utils::dequant_value_i(
               j, output_scores, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
@@ -289,11 +300,6 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
             // DFL
             float dist[4];
             float matrix[16];
-
-            const auto  output_bboxes_id         = output_bboxes_ids[i];
-            const auto* output_bboxes            = output_data[output_bboxes_id];
-            const auto& output_bboxes_shape      = output_shapes[output_bboxes_id];
-            const auto  output_bboxes_quant_parm = output_quant_params[output_bboxes_id];
 
             const size_t pre = j * output_bboxes_shape.dims[2];
             for (size_t m = 0; m < 4; ++m) {

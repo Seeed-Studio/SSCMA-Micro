@@ -188,7 +188,7 @@ template <typename T> constexpr decltype(auto) results_2_json_str(const std::for
                                         ", ",
                                         std::to_string(kps.box.target),
                                         "]");
-
+            pts_str += delim;
             delim = "";
             for (const auto& pt : kps.pts) {
                 pts_str += concat_strings(delim,
