@@ -29,6 +29,7 @@
 #include <atomic>
 #include <cstdint>
 #include <forward_list>
+#include <vector>
 
 #include "core/el_types.h"
 #include "el_algorithm_base.h"
@@ -44,8 +45,39 @@ namespace types {
 struct el_algorithm_yolo_pose_config_t {
     static constexpr el_algorithm_info_t info{
       .type = EL_ALGO_TYPE_YOLO_POSE, .categroy = EL_ALGO_CAT_POSE, .input_from = EL_SENSOR_TYPE_CAM};
-    uint8_t score_threshold = 50;
+    uint8_t score_threshold = 70;
     uint8_t iou_threshold   = 45;
+};
+
+struct anchor_bbox_t {
+    float    x1;
+    float    y1;
+    float    x2;
+    float    y2;
+    float    score;
+    uint8_t  anchor_class;
+    uint16_t anchor_index;
+};
+
+template <typename T> struct pt_t {
+    T x;
+    T y;
+};
+
+template <typename T> struct pt3_t {
+    T x;
+    T y;
+    T z;
+};
+
+template <typename T, size_t N> struct pt3_set_t {
+    pt3_t<T> data[N];
+};
+
+struct anchor_stride_t {
+    size_t stride;
+    size_t start;
+    size_t size;
 };
 
 }  // namespace types
@@ -53,7 +85,7 @@ struct el_algorithm_yolo_pose_config_t {
 class AlgorithmYOLOPOSE final : public Algorithm {
    public:
     using ImageType    = el_img_t;
-    using KeyPointType = el_point_t;
+    using KeyPointType = el_keypoint_t;
     using ConfigType   = el_algorithm_yolo_pose_config_t;
     using ScoreType    = decltype(el_algorithm_yolo_pose_config_t::score_threshold);
     using IoUType      = decltype(el_algorithm_yolo_pose_config_t::iou_threshold);
@@ -85,20 +117,18 @@ class AlgorithmYOLOPOSE final : public Algorithm {
     el_err_code_t postprocess() override;
 
    private:
-    enum {
-        INDEX_X = 0,
-        INDEX_Y = 1,
-        INDEX_W = 2,
-        INDEX_H = 3,
-        INDEX_S = 4,
-    };
-
     ImageType _input_img;
     float     _w_scale;
     float     _h_scale;
 
     std::atomic<ScoreType> _score_threshold;
     std::atomic<IoUType>   _iou_threshold;
+
+    decltype(ImageType::width)  _last_input_width;
+    decltype(ImageType::height) _last_input_height;
+
+    std::vector<types::anchor_stride_t>          _anchor_strides;
+    std::vector<std::vector<types::pt_t<float>>> _anchor_matrix;
 
     std::forward_list<KeyPointType> _results;
 };

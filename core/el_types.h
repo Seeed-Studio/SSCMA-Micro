@@ -34,6 +34,8 @@
 #include "el_compiler.h"
 
 #ifdef __cplusplus
+    #include <vector>
+
 extern "C" {
 #endif
 
@@ -81,6 +83,15 @@ typedef struct EL_ATTR_PACKED el_point_t {
     uint8_t  score;
     uint8_t  target;
 } el_point_t;
+
+#ifdef __cplusplus
+typedef struct el_keypoint_t {
+    el_box_t                box;
+    std::vector<el_point_t> pts;
+    uint8_t                 score;
+    uint8_t                 target;
+} el_keypoint_t;
+#endif
 
 typedef struct EL_ATTR_PACKED el_class_t {
     uint16_t score;
