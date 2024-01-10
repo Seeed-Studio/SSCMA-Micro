@@ -151,14 +151,15 @@ inline float dequant_value_i(size_t idx, const int8_t* output_array, int32_t zer
     return static_cast<float>(output_array[idx] - zero_point) * scale;
 }
 
-decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> splits = {8, 16, 32}) {
-    std::vector<types::anchor_stride_t> anchor_strides(splits.size());
-    size_t                              position = 0;
+decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
+    std::vector<types::anchor_stride_t> anchor_strides(strides.size());
+    size_t                              nth_anchor = 0;
     for (size_t i = 0; i < splits.size(); ++i) {
-        size_t stride     = input_size / splits[i];
+        size_t stride     = strides[i];
+        size_t splits     = input_size / stride;
         size_t size       = stride * stride;
-        anchor_strides[i] = {stride, position, size};
-        position += size;
+        anchor_strides[i] = {stride, splits, size, nth_anchor};
+        nth_anchor += size;
     }
     return anchor_strides;
 }
@@ -168,20 +169,20 @@ decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>&
                                       float                                      shift_down  = 1.f) {
     const auto                                   anchor_matrix_size = anchor_strides.size();
     std::vector<std::vector<types::pt_t<float>>> anchor_matrix(anchor_matrix_size);
-    float                                        shift_right_init = shift_right * 0.5f;
-    float                                        shift_down_init  = shift_down * 0.5f;
+    const float                                  shift_right_init = shift_right * 0.5f;
+    const float                                  shift_down_init  = shift_down * 0.5f;
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
         const auto& anchor_stride   = anchor_strides[i];
-        const auto  stride          = anchor_stride.stride;
+        const auto  splits          = anchor_stride.split;
         const auto  size            = anchor_stride.size;
         auto&       anchor_matrix_i = anchor_matrix[i];
 
         anchor_matrix[i].resize(size);
 
         for (size_t j = 0; j < size; ++j) {
-            float x            = static_cast<float>(j % stride) * shift_right + shift_right_init;
-            float y            = static_cast<float>(j / stride) * shift_down + shift_down_init;
+            float x            = static_cast<float>(j % splits) * shift_right + shift_right_init;
+            float y            = static_cast<float>(j / splits) * shift_down + shift_down_init;
             anchor_matrix_i[j] = {x, y};
         }
     }
@@ -189,7 +190,7 @@ decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>&
     return anchor_matrix;
 }
 
-float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) {
+inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) {
     float x1    = std::max(l.x1, r.x1);
     float y1    = std::max(l.y1, r.y1);
     float x2    = std::min(l.x2, r.x2);
@@ -201,11 +202,11 @@ float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) 
     return iou;
 }
 
-void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
-                float                                    nms_iou_thresh,
-                float                                    nms_score_thresh,
-                bool                                     soft_nms,
-                float                                    epsilon = 1e-6) {
+inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
+                       float                                    nms_iou_thresh,
+                       float                                    nms_score_thresh,
+                       bool                                     soft_nms,
+                       float                                    epsilon = 1e-6) {
     bboxes.sort([](const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) { return l.score > r.score; });
 
     for (auto it = bboxes.begin(); it != bboxes.end(); it++) {
@@ -355,8 +356,8 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         const auto anchor = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
         const auto stride = _anchor_strides[anchor_bbox.anchor_class].stride;
 
-        float scale_w = stride * _w_scale;
-        float scale_h = stride * _h_scale;
+        const float scale_w = stride * _w_scale;
+        const float scale_h = stride * _h_scale;
 
         for (size_t i = 0; i < keypoint_nums; ++i) {
             types::pt3_t<float> keypoint;
