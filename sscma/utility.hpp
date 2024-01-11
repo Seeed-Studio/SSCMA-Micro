@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstdint>
+#include <cstring>
 #include <forward_list>
 #include <memory>
 #include <string>
@@ -122,95 +123,113 @@ decltype(auto) sensor_info_2_json_str(const el_sensor_info_t& sensor_info) {
                           "}");
 }
 
-template <typename T> constexpr decltype(auto) results_2_json_str(const std::forward_list<T>& results) {
+decltype(auto) results_2_json_str(const std::forward_list<el_box_t>& results) {
     std::string ss;
     const char* delim = "";
 
-    if constexpr (std::is_same<T, el_box_t>::value) {
-        ss = "\"boxes\": [";
-        for (const auto& box : results) {
-            ss += concat_strings(delim,
-                                 "[",
-                                 std::to_string(box.x),
-                                 ", ",
-                                 std::to_string(box.y),
-                                 ", ",
-                                 std::to_string(box.w),
-                                 ", ",
-                                 std::to_string(box.h),
-                                 ", ",
-                                 std::to_string(box.score),
-                                 ", ",
-                                 std::to_string(box.target),
-                                 "]");
-            delim = ", ";
-        }
-        ss += "]";
-    } else if constexpr (std::is_same<T, el_point_t>::value) {
-        ss = "\"points\": [";
-        for (const auto& point : results) {
-            ss += concat_strings(delim,
-                                 "[",
-                                 std::to_string(point.x),
-                                 ", ",
-                                 std::to_string(point.y),
-                                 ", ",
-                                 std::to_string(point.score),
-                                 ", ",
-                                 std::to_string(point.target),
-                                 "]");
-            delim = ", ";
-        }
-        ss += "]";
-    } else if constexpr (std::is_same<T, el_class_t>::value) {
-        ss = "\"classes\": [";
-        for (const auto& cls : results) {
-            ss += concat_strings(delim, "[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
-            delim = ", ";
-        }
-        ss += "]";
-    } else if constexpr (std::is_same<T, el_keypoint_t>::value) {
-        std::string boxes_str = "\"boxes\": [";
-        std::string pts_str   = "\"points\": [";
-
-        for (const auto& kps : results) {
-            boxes_str += concat_strings(delim,
-                                        "[",
-                                        std::to_string(kps.box.x),
-                                        ", ",
-                                        std::to_string(kps.box.y),
-                                        ", ",
-                                        std::to_string(kps.box.w),
-                                        ", ",
-                                        std::to_string(kps.box.h),
-                                        ", ",
-                                        std::to_string(kps.box.score),
-                                        ", ",
-                                        std::to_string(kps.box.target),
-                                        "]");
-            pts_str += delim;
-            delim = "";
-            for (const auto& pt : kps.pts) {
-                pts_str += concat_strings(delim,
-                                          "[",
-                                          std::to_string(pt.x),
-                                          ", ",
-                                          std::to_string(pt.y),
-                                          ", ",
-                                          std::to_string(pt.score),
-                                          ", ",
-                                          std::to_string(pt.target),
-                                          "]");
-                delim = ", ";
-            }
-            delim = ", ";
-        }
-
-        boxes_str += "]";
-        pts_str += "]";
-
-        ss = concat_strings(std::move(boxes_str), ", ", std::move(pts_str));
+    ss = "\"boxes\": [";
+    for (const auto& box : results) {
+        ss += concat_strings(delim,
+                             "[",
+                             std::to_string(box.x),
+                             ", ",
+                             std::to_string(box.y),
+                             ", ",
+                             std::to_string(box.w),
+                             ", ",
+                             std::to_string(box.h),
+                             ", ",
+                             std::to_string(box.score),
+                             ", ",
+                             std::to_string(box.target),
+                             "]");
+        delim = ", ";
     }
+    ss += "]";
+
+    return ss;
+}
+
+decltype(auto) results_2_json_str(const std::forward_list<el_point_t>& results) {
+    std::string ss;
+    const char* delim = "";
+
+    ss = "\"points\": [";
+    for (const auto& point : results) {
+        ss += concat_strings(delim,
+                             "[",
+                             std::to_string(point.x),
+                             ", ",
+                             std::to_string(point.y),
+                             ", ",
+                             std::to_string(point.score),
+                             ", ",
+                             std::to_string(point.target),
+                             "]");
+        delim = ", ";
+    }
+    ss += "]";
+
+    return ss;
+}
+
+decltype(auto) results_2_json_str(const std::forward_list<el_class_t>& results) {
+    std::string ss;
+    const char* delim = "";
+
+    ss = "\"classes\": [";
+    for (const auto& cls : results) {
+        ss += concat_strings(delim, "[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
+        delim = ", ";
+    }
+    ss += "]";
+
+    return ss;
+}
+
+decltype(auto) results_2_json_str(const std::forward_list<el_keypoint_t>& results) {
+    std::string ss;
+    const char* delim = "";
+
+    ss = "\"keypoints\": [";
+    for (const auto& kp : results) {
+        std::string pts_str{"["};
+        const char* pts_delim = "";
+        for (const auto& pt : kp.pts) {
+            pts_str += concat_strings(pts_delim,
+                                      "[",
+                                      std::to_string(pt.x),
+                                      ", ",
+                                      std::to_string(pt.y),
+                                      ", ",
+                                      std::to_string(pt.score),
+                                      ", ",
+                                      std::to_string(pt.target),
+                                      "]");
+            pts_delim = ", ";
+        }
+        pts_str += "]";
+        ss += concat_strings(delim,
+                             "[",
+                             "[",
+                             std::to_string(kp.box.x),
+                             ", ",
+                             std::to_string(kp.box.y),
+                             ", ",
+                             std::to_string(kp.box.w),
+                             ", ",
+                             std::to_string(kp.box.h),
+                             ", ",
+                             std::to_string(kp.box.score),
+                             ", ",
+                             std::to_string(kp.box.target),
+                             "]",
+                             ", ",
+                             std::move(pts_str),
+                             "]");
+        delim = ", ";
+    }
+    ss += "]";
 
     return ss;
 }
