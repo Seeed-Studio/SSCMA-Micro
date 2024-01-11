@@ -76,7 +76,7 @@ template <typename T, size_t N> struct pt3_set_t {
 
 struct anchor_stride_t {
     size_t stride;
-    size_t splits;
+    size_t split;
     size_t size;
     size_t start;
 };
@@ -125,11 +125,13 @@ class AlgorithmYOLOPOSE final : public Algorithm {
     std::atomic<ScoreType> _score_threshold;
     std::atomic<IoUType>   _iou_threshold;
 
-    decltype(ImageType::width)  _last_input_width;
-    decltype(ImageType::height) _last_input_height;
-
     std::vector<types::anchor_stride_t>          _anchor_strides;
     std::vector<std::vector<types::pt_t<float>>> _anchor_matrix;
+
+    static constexpr size_t _outputs = 7;
+
+    el_shape_t       _output_shapes[_outputs];
+    el_quant_param_t _output_quant_params[_outputs];
 
     std::forward_list<KeyPointType> _results;
 };

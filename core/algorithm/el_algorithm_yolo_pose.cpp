@@ -45,9 +45,7 @@ AlgorithmYOLOPOSE::AlgorithmYOLOPOSE(EngineType* engine, ScoreType score_thresho
       _w_scale(1.f),
       _h_scale(1.f),
       _score_threshold(score_threshold),
-      _iou_threshold(iou_threshold),
-      _last_input_width(0),
-      _last_input_height(0) {
+      _iou_threshold(iou_threshold) {
     init();
 }
 
@@ -56,9 +54,7 @@ AlgorithmYOLOPOSE::AlgorithmYOLOPOSE(EngineType* engine, const ConfigType& confi
       _w_scale(1.f),
       _h_scale(1.f),
       _score_threshold(config.score_threshold),
-      _iou_threshold(config.iou_threshold),
-      _last_input_width(0),
-      _last_input_height(0) {
+      _iou_threshold(config.iou_threshold) {
     init();
 }
 
@@ -133,11 +129,11 @@ inline float dequant_value_i(size_t idx, const int8_t* output_array, int32_t zer
 decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
     std::vector<types::anchor_stride_t> anchor_strides(strides.size());
     size_t                              nth_anchor = 0;
-    for (size_t i = 0; i < splits.size(); ++i) {
+    for (size_t i = 0; i < strides.size(); ++i) {
         size_t stride     = strides[i];
-        size_t splits     = input_size / stride;
-        size_t size       = stride * stride;
-        anchor_strides[i] = {stride, splits, size, nth_anchor};
+        size_t split      = input_size / stride;
+        size_t size       = split * split;
+        anchor_strides[i] = {stride, split, size, nth_anchor};
         nth_anchor += size;
     }
     return anchor_strides;
@@ -153,15 +149,15 @@ decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>&
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
         const auto& anchor_stride   = anchor_strides[i];
-        const auto  splits          = anchor_stride.split;
+        const auto  split           = anchor_stride.split;
         const auto  size            = anchor_stride.size;
         auto&       anchor_matrix_i = anchor_matrix[i];
 
         anchor_matrix[i].resize(size);
 
         for (size_t j = 0; j < size; ++j) {
-            float x            = static_cast<float>(j % splits) * shift_right + shift_right_init;
-            float y            = static_cast<float>(j / splits) * shift_down + shift_down_init;
+            float x            = static_cast<float>(j % split) * shift_right + shift_right_init;
+            float y            = static_cast<float>(j / split) * shift_down + shift_down_init;
             anchor_matrix_i[j] = {x, y};
         }
     }
@@ -185,7 +181,7 @@ inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
                        float                                    nms_iou_thresh,
                        float                                    nms_score_thresh,
                        bool                                     soft_nms,
-                       float                                    epsilon = 1e-6) {
+                       float                                    epsilon = 1e-3) {
     bboxes.sort([](const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) { return l.score > r.score; });
 
     for (auto it = bboxes.begin(); it != bboxes.end(); it++) {
@@ -240,26 +236,26 @@ inline void AlgorithmYOLOPOSE::init() {
     // TODO: support generate anchor with non-square input
     _anchor_strides = utils::generate_anchor_strides(std::min(width, height));
     _anchor_matrix  = utils::generate_anchor_matrix(_anchor_strides);
+
+    for (size_t i = 0; i < _outputs; ++i) {
+        _output_shapes[i]       = this->__p_engine->get_output_shape(i);
+        _output_quant_params[i] = this->__p_engine->get_output_quant_param(i);
+    }
 }
 
 el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     _results.clear();
 
-    constexpr size_t outputs = 7;
-
-    const int8_t*    output_data[outputs];
-    el_shape_t       output_shapes[outputs];
-    el_quant_param_t output_quant_params[outputs];
-
-    for (size_t i = 0; i < outputs; ++i) {
-        output_data[i]         = static_cast<int8_t*>(this->__p_engine->get_output(i));
-        output_shapes[i]       = this->__p_engine->get_output_shape(i);
-        output_quant_params[i] = this->__p_engine->get_output_quant_param(i);
+    const int8_t* output_data[_outputs];
+    for (size_t i = 0; i < _outputs; ++i) {
+        output_data[i] = static_cast<int8_t*>(this->__p_engine->get_output(i));
     }
 
     // post-process
-    const float      score_threshold     = static_cast<float>(_score_threshold.load()) / 100.f;
-    const float      iou_threshold       = static_cast<float>(_iou_threshold.load()) / 100.f;
+    const float score_threshold = static_cast<float>(_score_threshold.load()) / 100.f;
+    const float iou_threshold   = static_cast<float>(_iou_threshold.load()) / 100.f;
+
+    // TODO: dynamically get output ids by output shapes
     constexpr size_t output_scores_ids[] = {4, 6, 2};
     constexpr size_t output_bboxes_ids[] = {1, 0, 5};
 
@@ -270,20 +266,15 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         // for each size of bboxes
         const auto  output_scores_id         = output_scores_ids[i];
         const auto* output_scores            = output_data[output_scores_id];
-        const auto& output_scores_shape      = output_shapes[output_scores_id];
-        const auto  output_scores_quant_parm = output_quant_params[output_scores_id];
+        const auto  output_scores_quant_parm = _output_quant_params[output_scores_id];
 
-        const auto  output_bboxes_id         = output_bboxes_ids[i];
-        const auto* output_bboxes            = output_data[output_bboxes_id];
-        const auto& output_bboxes_shape      = output_shapes[output_bboxes_id];
-        const auto  output_bboxes_quant_parm = output_quant_params[output_bboxes_id];
+        const auto  output_bboxes_id           = output_bboxes_ids[i];
+        const auto* output_bboxes              = output_data[output_bboxes_id];
+        const auto  output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
+        const auto  output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
 
         const auto& anchor_array      = _anchor_matrix[i];
         const auto  anchor_array_size = anchor_array.size();
-
-        EL_ASSERT(output_scores_shape.dims[1] == anchor_array_size);
-        EL_ASSERT(output_bboxes_shape.dims[1] == anchor_array_size);
-        EL_ASSERT(output_bboxes_shape.dims[2] == 64);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             float score = utils::sigmoid(utils::dequant_value_i(
@@ -295,7 +286,7 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
             float dist[4];
             float matrix[16];
 
-            const size_t pre = j * output_bboxes_shape.dims[2];
+            const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m * 16;
                 for (size_t n = 0; n < 16; ++n) {
@@ -336,9 +327,9 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     utils::anchor_nms(anchor_bboxes, iou_threshold, score_threshold, false);
 
     const auto*  output_keypoints            = output_data[3];
-    const auto&  output_keypoints_shape      = output_shapes[3];
-    const auto   output_keypoints_quant_parm = output_quant_params[3];
-    const size_t keypoint_nums               = output_keypoints_shape.dims[2] / 3;
+    const auto   output_keypoints_dims_2     = _output_shapes[3].dims[2];
+    const auto   output_keypoints_quant_parm = _output_quant_params[3];
+    const size_t keypoint_nums               = output_keypoints_dims_2 / 3;
 
     std::vector<types::pt3_t<float>> n_keypoint(keypoint_nums);
 
@@ -346,9 +337,9 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     size_t target = 0;
     for (const auto& anchor_bbox : anchor_bboxes) {
         const auto pre =
-          (_anchor_strides[anchor_bbox.anchor_class].start + anchor_bbox.anchor_index) * output_keypoints_shape.dims[2];
+          (_anchor_strides[anchor_bbox.anchor_class].start + anchor_bbox.anchor_index) * output_keypoints_dims_2;
 
-        auto anchor       = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
+        auto       anchor = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
         const auto stride = _anchor_strides[anchor_bbox.anchor_class].stride;
 
         anchor.x -= 0.5f;
