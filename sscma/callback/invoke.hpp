@@ -377,7 +377,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         if (!_differed || results_filter.compare_and_update(algorithm->get_results())) {
             if (_results_only)
-                event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm)));
+                event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_res_2_json_str(&frame)));
             else {
                 event_reply(
                   concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", std::move(encoded_frame_str)));

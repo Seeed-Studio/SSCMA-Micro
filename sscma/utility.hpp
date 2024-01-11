@@ -234,6 +234,10 @@ decltype(auto) results_2_json_str(const std::forward_list<el_keypoint_t>& result
     return ss;
 }
 
+inline decltype(auto) img_res_2_json_str(const el_img_t* img) {
+    return concat_strings("\"resolution\": [", std::to_string(img->width), ", ", std::to_string(img->height), "]");
+}
+
 inline decltype(auto) img_2_json_str(const el_img_t* img) {
     if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
