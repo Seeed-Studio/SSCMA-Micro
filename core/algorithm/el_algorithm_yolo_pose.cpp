@@ -354,7 +354,6 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     std::vector<types::pt3_t<float>> n_keypoint(keypoint_nums);
 
     // extract keypoints from outputs and store all results
-    size_t target = 0;
     for (const auto& anchor_bbox : anchor_bboxes) {
         const auto pre =
           (_anchor_strides[anchor_bbox.anchor_class].start + anchor_bbox.anchor_index) * output_keypoints_dims_2;
@@ -399,9 +398,10 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
           .w      = static_cast<decltype(KeyPointType::box.w)>(std::round(w)),
           .h      = static_cast<decltype(KeyPointType::box.h)>(std::round(h)),
           .score  = static_cast<decltype(KeyPointType::box.score)>(std::round(s)),
-          .target = static_cast<decltype(KeyPointType::box.target)>(target),
+          .target = static_cast<decltype(KeyPointType::box.target)>(0),
         };
         keypoint.pts.reserve(keypoint_nums);
+        size_t target = 0;
         for (const auto& kp : n_keypoint) {
             float x = kp.x * scale_w;
             float y = kp.y * scale_h;
@@ -410,14 +410,12 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
               .x      = static_cast<decltype(el_point_t::x)>(std::round(x)),
               .y      = static_cast<decltype(el_point_t::y)>(std::round(y)),
               .score  = static_cast<decltype(el_point_t::score)>(std::round(z)),
-              .target = static_cast<decltype(el_point_t::target)>(target),
+              .target = static_cast<decltype(el_point_t::target)>(target++),
             });
         }
         keypoint.score  = keypoint.box.score;
         keypoint.target = keypoint.box.target;
         _results.emplace_front(std::move(keypoint));
-
-        ++target;
     }
 
     return EL_OK;
