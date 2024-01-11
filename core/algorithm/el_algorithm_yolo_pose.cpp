@@ -89,27 +89,6 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
     return true;
 }
 
-inline void AlgorithmYOLOPOSE::init() {
-    EL_ASSERT(is_model_valid(this->__p_engine));
-    EL_ASSERT(_score_threshold.is_lock_free());
-    EL_ASSERT(_iou_threshold.is_lock_free());
-
-    _input_img.data   = static_cast<decltype(ImageType::data)>(this->__p_engine->get_input(0));
-    _input_img.width  = static_cast<decltype(ImageType::width)>(this->__input_shape.dims[1]),
-    _input_img.height = static_cast<decltype(ImageType::height)>(this->__input_shape.dims[2]),
-    _input_img.size =
-      static_cast<decltype(ImageType::size)>(_input_img.width * _input_img.height * this->__input_shape.dims[3]);
-    _input_img.format = EL_PIXEL_FORMAT_UNKNOWN;
-    _input_img.rotate = EL_PIXEL_ROTATE_0;
-    if (this->__input_shape.dims[3] == 3) {
-        _input_img.format = EL_PIXEL_FORMAT_RGB888;
-    } else if (this->__input_shape.dims[3] == 1) {
-        _input_img.format = EL_PIXEL_FORMAT_GRAYSCALE;
-    }
-    EL_ASSERT(_input_img.format != EL_PIXEL_FORMAT_UNKNOWN);
-    EL_ASSERT(_input_img.rotate != EL_PIXEL_ROTATE_UNKNOWN);
-}
-
 el_err_code_t AlgorithmYOLOPOSE::run(ImageType* input) {
     _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
     _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
@@ -232,22 +211,39 @@ inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
 
 }  // namespace utils
 
-el_err_code_t AlgorithmYOLOPOSE::postprocess() {
-    _results.clear();
+inline void AlgorithmYOLOPOSE::init() {
+    EL_ASSERT(is_model_valid(this->__p_engine));
+    EL_ASSERT(_score_threshold.is_lock_free());
+    EL_ASSERT(_iou_threshold.is_lock_free());
+
+    _input_img.data   = static_cast<decltype(ImageType::data)>(this->__p_engine->get_input(0));
+    _input_img.width  = static_cast<decltype(ImageType::width)>(this->__input_shape.dims[1]),
+    _input_img.height = static_cast<decltype(ImageType::height)>(this->__input_shape.dims[2]),
+    _input_img.size =
+      static_cast<decltype(ImageType::size)>(_input_img.width * _input_img.height * this->__input_shape.dims[3]);
+    _input_img.format = EL_PIXEL_FORMAT_UNKNOWN;
+    _input_img.rotate = EL_PIXEL_ROTATE_0;
+    if (this->__input_shape.dims[3] == 3) {
+        _input_img.format = EL_PIXEL_FORMAT_RGB888;
+    } else if (this->__input_shape.dims[3] == 1) {
+        _input_img.format = EL_PIXEL_FORMAT_GRAYSCALE;
+    }
+
+    EL_ASSERT(_input_img.format != EL_PIXEL_FORMAT_UNKNOWN);
+    EL_ASSERT(_input_img.rotate != EL_PIXEL_ROTATE_UNKNOWN);
 
     // inputs shape
     const auto width{this->__input_shape.dims[1]};
     const auto height{this->__input_shape.dims[2]};
 
-    // construct stride matrix and anchor matrix if input shape changed
-    if (width != _last_input_width || height != _last_input_height) {
-        _last_input_width  = width;
-        _last_input_height = height;
+    // construct stride matrix and anchor matrix
+    // TODO: support generate anchor with non-square input
+    _anchor_strides = utils::generate_anchor_strides(std::min(width, height));
+    _anchor_matrix  = utils::generate_anchor_matrix(_anchor_strides);
+}
 
-        // TODO: support generate anchor with non-square input
-        _anchor_strides = utils::generate_anchor_strides(std::min(width, height));
-        _anchor_matrix  = utils::generate_anchor_matrix(_anchor_strides);
-    }
+el_err_code_t AlgorithmYOLOPOSE::postprocess() {
+    _results.clear();
 
     constexpr size_t outputs = 7;
 
