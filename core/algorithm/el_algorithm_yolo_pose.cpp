@@ -89,6 +89,12 @@ el_err_code_t AlgorithmYOLOPOSE::run(ImageType* input) {
     _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
     _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
 
+    const auto size = std::min(_anchor_strides.size(), _scaled_strides.size());
+    for (size_t i = 0; i < size; ++i) {
+        auto stride        = static_cast<float>(_anchor_strides[i].stride);
+        _scaled_strides[i] = std::make_pair(stride * _w_scale, stride * _h_scale);
+    }
+
     // TODO: image type conversion before underlying_run, because underlying_run doing a type erasure
     return underlying_run(input);
 };
@@ -165,16 +171,21 @@ decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>&
     return anchor_matrix;
 }
 
-inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) {
-    float x1    = std::max(l.x1, r.x1);
-    float y1    = std::max(l.y1, r.y1);
-    float x2    = std::min(l.x2, r.x2);
-    float y2    = std::min(l.y2, r.y2);
-    float w     = std::max(0.0f, x2 - x1);
-    float h     = std::max(0.0f, y2 - y1);
-    float inter = w * h;
-    float iou   = inter / ((l.x2 - l.x1) * (l.y2 - l.y1) + (r.x2 - r.x1) * (r.y2 - r.y1) - inter);
-    return iou;
+inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r, float epsilon = 1e-3) {
+    float x1         = std::max(l.x1, r.x1);
+    float y1         = std::max(l.y1, r.y1);
+    float x2         = std::min(l.x2, r.x2);
+    float y2         = std::min(l.y2, r.y2);
+    float w          = std::max(0.0f, x2 - x1);
+    float h          = std::max(0.0f, y2 - y1);
+    float inter      = w * h;
+    float l_area     = (l.x2 - l.x1) * (l.y2 - l.y1);
+    float r_area     = (r.x2 - r.x1) * (r.y2 - r.y1);
+    float union_area = l_area + r_area - inter;
+    if (union_area < epsilon) {
+        return 0.0f;
+    }
+    return inter / union_area;
 }
 
 inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
@@ -241,6 +252,12 @@ inline void AlgorithmYOLOPOSE::init() {
         _output_shapes[i]       = this->__p_engine->get_output_shape(i);
         _output_quant_params[i] = this->__p_engine->get_output_quant_param(i);
     }
+
+    _scaled_strides.reserve(_anchor_strides.size());
+    for (const auto& anchor_stride : _anchor_strides) {
+        _scaled_strides.emplace_back(std::make_pair(static_cast<float>(anchor_stride.stride) * _w_scale,
+                                                    static_cast<float>(anchor_stride.stride) * _h_scale));
+    }
 }
 
 el_err_code_t AlgorithmYOLOPOSE::postprocess() {
@@ -263,7 +280,6 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
-        // for each size of bboxes
         const auto  output_scores_id         = output_scores_ids[i];
         const auto* output_scores            = output_data[output_scores_id];
         const auto  output_scores_quant_parm = _output_quant_params[output_scores_id];
@@ -272,6 +288,10 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         const auto* output_bboxes              = output_data[output_bboxes_id];
         const auto  output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
         const auto  output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
+
+        const auto  stride  = _scaled_strides[i];
+        const float scale_w = stride.first;
+        const float scale_h = stride.second;
 
         const auto& anchor_array      = _anchor_matrix[i];
         const auto  anchor_array_size = anchor_array.size();
@@ -305,10 +325,10 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
 
             const auto anchor = anchor_array[j];
 
-            float x1 = anchor.x - dist[0];
-            float y1 = anchor.y - dist[1];
-            float x2 = anchor.x + dist[2];
-            float y2 = anchor.y + dist[3];
+            float x1 = (anchor.x - dist[0]) * scale_w;
+            float y1 = (anchor.y - dist[1]) * scale_h;
+            float x2 = (anchor.x + dist[2]) * scale_w;
+            float y2 = (anchor.y + dist[3]) * scale_h;
 
             anchor_bboxes.emplace_front(types::anchor_bbox_t{
               .x1           = x1,
@@ -340,13 +360,12 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
           (_anchor_strides[anchor_bbox.anchor_class].start + anchor_bbox.anchor_index) * output_keypoints_dims_2;
 
         auto       anchor = _anchor_matrix[anchor_bbox.anchor_class][anchor_bbox.anchor_index];
-        const auto stride = _anchor_strides[anchor_bbox.anchor_class].stride;
+        const auto stride = _scaled_strides[anchor_bbox.anchor_class];
 
         anchor.x -= 0.5f;
         anchor.y -= 0.5f;
-
-        const float scale_w = stride * _w_scale;
-        const float scale_h = stride * _h_scale;
+        const float scale_w = stride.first;
+        const float scale_h = stride.second;
 
         for (size_t i = 0; i < keypoint_nums; ++i) {
             types::pt3_t<float> keypoint;
@@ -367,10 +386,10 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         }
 
         // convert coordinates and rescale bbox
-        float cx = (anchor_bbox.x1 + anchor_bbox.x2) * 0.5f * scale_w;
-        float cy = (anchor_bbox.y1 + anchor_bbox.y2) * 0.5f * scale_h;
-        float w  = (anchor_bbox.x2 - anchor_bbox.x1) * scale_w;
-        float h  = (anchor_bbox.y2 - anchor_bbox.y1) * scale_h;
+        float cx = (anchor_bbox.x1 + anchor_bbox.x2) * 0.5f;
+        float cy = (anchor_bbox.y1 + anchor_bbox.y2) * 0.5f;
+        float w  = (anchor_bbox.x2 - anchor_bbox.x1);
+        float h  = (anchor_bbox.y2 - anchor_bbox.y1);
         float s  = anchor_bbox.score * 100.f;
 
         KeyPointType keypoint;
