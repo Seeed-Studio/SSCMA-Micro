@@ -34,6 +34,7 @@
 #include "el_algorithm_imcls.h"
 #include "el_algorithm_pfld.h"
 #include "el_algorithm_yolo.h"
+#include "el_algorithm_yolo_pose.h"
 
 namespace edgelab {
 

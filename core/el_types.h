@@ -34,21 +34,23 @@
 #include "el_compiler.h"
 
 #ifdef __cplusplus
+    #include <vector>
+
 extern "C" {
 #endif
 
 typedef enum {
-    EL_OK      = 0,  // success
-    EL_AGAIN   = 1,  // try again
-    EL_ELOG    = 2,  // logic error
-    EL_ETIMOUT = 3,  // timeout
-    EL_EIO     = 4,  // IO error
-    EL_EINVAL  = 5,  // invalid argument
-    EL_ENOMEM  = 6,  // out of memory
-    EL_EBUSY   = 7,  // busy
-    EL_ENOTSUP = 8,  // not supported
-    EL_EPERM   = 9,  // operation not permitted
-    EL_FAILED  = 10, // logic error
+    EL_OK      = 0,   // success
+    EL_AGAIN   = 1,   // try again
+    EL_ELOG    = 2,   // logic error
+    EL_ETIMOUT = 3,   // timeout
+    EL_EIO     = 4,   // IO error
+    EL_EINVAL  = 5,   // invalid argument
+    EL_ENOMEM  = 6,   // out of memory
+    EL_EBUSY   = 7,   // busy
+    EL_ENOTSUP = 8,   // not supported
+    EL_EPERM   = 9,   // operation not permitted
+    EL_FAILED  = 10,  // logic error
 } el_err_code_t;
 
 typedef struct EL_ATTR_PACKED el_shape_t {
@@ -72,7 +74,7 @@ typedef struct EL_ATTR_PACKED el_box_t {
     uint16_t w;
     uint16_t h;
     uint8_t  score;
-    uint8_t  target;
+    uint16_t target;
 } el_box_t;
 
 typedef struct EL_ATTR_PACKED el_point_t {
@@ -81,6 +83,15 @@ typedef struct EL_ATTR_PACKED el_point_t {
     uint8_t  score;
     uint8_t  target;
 } el_point_t;
+
+#ifdef __cplusplus
+typedef struct el_keypoint_t {
+    el_box_t                box;
+    std::vector<el_point_t> pts;
+    uint8_t                 score;
+    uint8_t                 target;
+} el_keypoint_t;
+#endif
 
 typedef struct EL_ATTR_PACKED el_class_t {
     uint16_t score;
@@ -155,7 +166,8 @@ typedef enum {
     EL_ALGO_TYPE_FOMO      = 1u,
     EL_ALGO_TYPE_PFLD      = 2u,
     EL_ALGO_TYPE_YOLO      = 3u,
-    EL_ALGO_TYPE_IMCLS     = 4u
+    EL_ALGO_TYPE_IMCLS     = 4u,
+    EL_ALGO_TYPE_YOLO_POSE = 5u,
 } el_algorithm_type_t;
 
 /**

@@ -25,6 +25,7 @@
 
 #include "el_nms.h"
 
+#include <cmath>
 #include <algorithm>
 
 #include "core/el_compiler.h"
@@ -42,7 +43,7 @@ uint8_t compute_iou(const el_box_t& box1, const el_box_t& box2) {
     float h     = std::max(0.0f, y2 - y1);
     float inter = w * h;
     float iou   = inter / (box1.w * box1.h + box2.w * box2.h - inter);
-    return iou * 100;
+    return std::round(iou * 100.f);
 }
 
 EL_ATTR_WEAK int el_nms(std::forward_list<el_box_t>& boxes,

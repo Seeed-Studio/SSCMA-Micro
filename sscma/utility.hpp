@@ -145,6 +145,7 @@ template <typename T> constexpr decltype(auto) results_2_json_str(const std::for
                                  "]");
             delim = ", ";
         }
+        ss += "]";
     } else if constexpr (std::is_same<T, el_point_t>::value) {
         ss = "\"points\": [";
         for (const auto& point : results) {
@@ -160,14 +161,56 @@ template <typename T> constexpr decltype(auto) results_2_json_str(const std::for
                                  "]");
             delim = ", ";
         }
+        ss += "]";
     } else if constexpr (std::is_same<T, el_class_t>::value) {
         ss = "\"classes\": [";
         for (const auto& cls : results) {
             ss += concat_strings(delim, "[", std::to_string(cls.score), ", ", std::to_string(cls.target), "]");
             delim = ", ";
         }
+        ss += "]";
+    } else if constexpr (std::is_same<T, el_keypoint_t>::value) {
+        std::string boxes_str = "\"boxes\": [";
+        std::string pts_str   = "\"points\": [";
+
+        for (const auto& kps : results) {
+            boxes_str += concat_strings(delim,
+                                        "[",
+                                        std::to_string(kps.box.x),
+                                        ", ",
+                                        std::to_string(kps.box.y),
+                                        ", ",
+                                        std::to_string(kps.box.w),
+                                        ", ",
+                                        std::to_string(kps.box.h),
+                                        ", ",
+                                        std::to_string(kps.box.score),
+                                        ", ",
+                                        std::to_string(kps.box.target),
+                                        "]");
+            pts_str += delim;
+            delim = "";
+            for (const auto& pt : kps.pts) {
+                pts_str += concat_strings(delim,
+                                          "[",
+                                          std::to_string(pt.x),
+                                          ", ",
+                                          std::to_string(pt.y),
+                                          ", ",
+                                          std::to_string(pt.score),
+                                          ", ",
+                                          std::to_string(pt.target),
+                                          "]");
+                delim = ", ";
+            }
+            delim = ", ";
+        }
+
+        boxes_str += "]";
+        pts_str += "]";
+
+        ss = concat_strings(std::move(boxes_str), ", ", std::move(pts_str));
     }
-    ss += "]";
 
     return ss;
 }

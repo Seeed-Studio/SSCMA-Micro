@@ -62,6 +62,18 @@ inline bool compare_result_pair(el_class_t const* l, el_class_t const* r) {
     return distance > 5;                // threshold is 5
 }
 
+// compare keypoints using a euclidean distance like metric
+inline bool compare_result_pair(el_keypoint_t const* l, el_keypoint_t const* r) {
+    auto box_dist = compare_result_pair(&l->box, &r->box);
+    if (box_dist) return true;
+    auto pts_num_min = std::min(l->pts.size(), r->pts.size());
+    for (size_t i = 0; i < pts_num_min; i++) {
+        auto pts_dist = compare_result_pair(&l->pts[i], &r->pts[i]);
+        if (pts_dist) return true;
+    }
+    return false;
+}
+
 // compare results using a euclidean distance like metric
 template <typename ResultType> class ResultsFilter {
    public:
@@ -129,4 +141,4 @@ template <typename ResultType> class ResultsFilter {
     std::forward_list<std::pair<decltype(ResultType::target), std::forward_list<const ResultType*>>> _last_cls_view;
 };
 
-}  // namespace sscma::utility
+}  // namespace sscma::extension
