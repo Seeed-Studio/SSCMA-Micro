@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <numeric>
 #include <type_traits>
 #include <vector>
 
@@ -42,6 +43,8 @@ AlgorithmYOLOPOSE::InfoType AlgorithmYOLOPOSE::algorithm_info{types::el_algorith
 
 AlgorithmYOLOPOSE::AlgorithmYOLOPOSE(EngineType* engine, ScoreType score_threshold, IoUType iou_threshold)
     : Algorithm(engine, AlgorithmYOLOPOSE::algorithm_info),
+      _last_input_width(0),
+      _last_input_height(0),
       _w_scale(1.f),
       _h_scale(1.f),
       _score_threshold(score_threshold),
@@ -51,6 +54,8 @@ AlgorithmYOLOPOSE::AlgorithmYOLOPOSE(EngineType* engine, ScoreType score_thresho
 
 AlgorithmYOLOPOSE::AlgorithmYOLOPOSE(EngineType* engine, const ConfigType& config)
     : Algorithm(engine, config.info),
+      _last_input_width(0),
+      _last_input_height(0),
       _w_scale(1.f),
       _h_scale(1.f),
       _score_threshold(config.score_threshold),
@@ -62,42 +67,6 @@ AlgorithmYOLOPOSE::~AlgorithmYOLOPOSE() {
     _results.clear();
     this->__p_engine = nullptr;
 }
-
-bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
-    const auto& input_shape{engine->get_input_shape(0)};
-    if (input_shape.size != 4 ||                      // B, W, H, C
-        input_shape.dims[0] != 1 ||                   // B = 1
-        input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
-        input_shape.dims[1] < 32 ||                   // W, H >= 32
-        input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
-        (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
-         input_shape.dims[3] != 1))
-        return false;
-
-    // TODO: check each output shape of the model
-    uint8_t check = 0b00000000;
-    for (size_t i = 0; i < 7; ++i) {
-        const auto& output_shape{engine->get_output_shape(i)};
-        if (output_shape.size != 0) check |= 1 << i;
-    }
-    if (check ^ 0b01111111) return false;
-
-    return true;
-}
-
-el_err_code_t AlgorithmYOLOPOSE::run(ImageType* input) {
-    _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
-    _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
-
-    const auto size = std::min(_anchor_strides.size(), _scaled_strides.size());
-    for (size_t i = 0; i < size; ++i) {
-        auto stride        = static_cast<float>(_anchor_strides[i].stride);
-        _scaled_strides[i] = std::make_pair(stride * _w_scale, stride * _h_scale);
-    }
-
-    // TODO: image type conversion before underlying_run, because underlying_run doing a type erasure
-    return underlying_run(input);
-};
 
 el_err_code_t AlgorithmYOLOPOSE::preprocess() {
     auto* i_img{static_cast<ImageType*>(this->__p_input)};
@@ -218,6 +187,81 @@ inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
 
 }  // namespace utils
 
+bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
+    const auto& input_shape{engine->get_input_shape(0)};
+    if (input_shape.size != 4 ||                      // B, W, H, C
+        input_shape.dims[0] != 1 ||                   // B = 1
+        input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
+        input_shape.dims[1] < 32 ||                   // W, H >= 32
+        input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
+        (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
+         input_shape.dims[3] != 1))
+        return false;
+
+    auto anchor_strides_1 = utils::generate_anchor_strides(std::min(input_shape.dims[1], input_shape.dims[2]));
+    auto anchor_strides_2 = anchor_strides_1;
+    auto sum =
+      std::accumulate(anchor_strides_1.begin(), anchor_strides_1.end(), 0u, [](auto sum, const auto& anchor_stride) {
+          return sum + anchor_stride.size;
+      });
+
+    for (size_t i = 0; i < _outputs; ++i) {
+        const auto output_shape{engine->get_output_shape(i)};
+        if (output_shape.size != 3 || output_shape.dims[0] != 1) return false;
+
+        switch (output_shape.dims[2]) {
+        case 1: {
+            auto it = std::find_if(anchor_strides_1.begin(),
+                                   anchor_strides_1.end(),
+                                   [&output_shape](const types::anchor_stride_t& anchor_stride) {
+                                       return anchor_stride.size == output_shape.dims[1];
+                                   });
+            if (it == anchor_strides_1.end())
+                return false;
+            else
+                anchor_strides_1.erase(it);
+        } break;
+        case 64: {
+            auto it = std::find_if(anchor_strides_2.begin(),
+                                   anchor_strides_2.end(),
+                                   [&output_shape](const types::anchor_stride_t& anchor_stride) {
+                                       return anchor_stride.size == output_shape.dims[1];
+                                   });
+            if (it == anchor_strides_2.end())
+                return false;
+            else
+                anchor_strides_2.erase(it);
+        } break;
+        default:
+            if (output_shape.dims[2] % 3 != 0) return false;
+            if (output_shape.dims[1] != sum) return false;
+        }
+    }
+
+    if (anchor_strides_1.size() || anchor_strides_2.size()) return false;
+
+    return true;
+}
+
+el_err_code_t AlgorithmYOLOPOSE::run(ImageType* input) {
+    if (_last_input_width != input->width || _last_input_height != input->height) {
+        _last_input_width  = input->width;
+        _last_input_height = input->height;
+
+        _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
+        _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
+
+        const auto size = std::min(_anchor_strides.size(), _scaled_strides.size());
+        for (size_t i = 0; i < size; ++i) {
+            auto stride        = static_cast<float>(_anchor_strides[i].stride);
+            _scaled_strides[i] = std::make_pair(stride * _w_scale, stride * _h_scale);
+        }
+    }
+
+    // TODO: image type conversion before underlying_run, because underlying_run doing a type erasure
+    return underlying_run(input);
+};
+
 inline void AlgorithmYOLOPOSE::init() {
     EL_ASSERT(is_model_valid(this->__p_engine));
     EL_ASSERT(_score_threshold.is_lock_free());
@@ -258,6 +302,49 @@ inline void AlgorithmYOLOPOSE::init() {
         _scaled_strides.emplace_back(std::make_pair(static_cast<float>(anchor_stride.stride) * _w_scale,
                                                     static_cast<float>(anchor_stride.stride) * _h_scale));
     }
+
+    for (size_t i = 0; i < _outputs; ++i) {
+        // assuimg all outputs has 3 dims and the first dim is 1 (actual validation is done in is_model_valid)
+        auto dim_1 = _output_shapes[i].dims[1];
+        auto dim_2 = _output_shapes[i].dims[2];
+
+        switch (dim_2) {
+        case 1:
+            for (size_t j = 0; j < _anchor_variants; ++j) {
+                if (dim_1 == _anchor_strides[j].size) {
+                    _output_scores_ids[j] = i;
+                    break;
+                }
+            }
+            break;
+        case 64:
+            for (size_t j = 0; j < _anchor_variants; ++j) {
+                if (dim_1 == _anchor_strides[j].size) {
+                    _output_bboxes_ids[j] = i;
+                    break;
+                }
+            }
+            break;
+        default:
+            if (dim_2 % 3 == 0) {
+                _output_keypoints_id = i;
+            }
+        }
+    }
+
+    // check if all outputs ids is unique and less than outputs (redandant)
+    using CheckType       = uint8_t;
+    size_t    check_bytes = sizeof(CheckType) * 8u;
+    CheckType check       = 1 << (_output_keypoints_id % check_bytes);
+    for (size_t i = 0; i < _anchor_variants; ++i) {
+        CheckType f_s = 1 << (_output_scores_ids[i] % check_bytes);
+        CheckType f_b = 1 << (_output_bboxes_ids[i] % check_bytes);
+        EL_ASSERT(!(f_s & f_b));
+        EL_ASSERT(!(f_s & check));
+        EL_ASSERT(!(f_b & check));
+        check |= f_s | f_b;
+    }
+    EL_ASSERT(!(check ^ 0b01111111));
 }
 
 el_err_code_t AlgorithmYOLOPOSE::postprocess() {
@@ -272,19 +359,15 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
     const float score_threshold = static_cast<float>(_score_threshold.load()) / 100.f;
     const float iou_threshold   = static_cast<float>(_iou_threshold.load()) / 100.f;
 
-    // TODO: dynamically get output ids by output shapes
-    constexpr size_t output_scores_ids[] = {4, 6, 2};
-    constexpr size_t output_bboxes_ids[] = {1, 0, 5};
-
     std::forward_list<types::anchor_bbox_t> anchor_bboxes;
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
-        const auto  output_scores_id         = output_scores_ids[i];
+        const auto  output_scores_id         = _output_scores_ids[i];
         const auto* output_scores            = output_data[output_scores_id];
         const auto  output_scores_quant_parm = _output_quant_params[output_scores_id];
 
-        const auto  output_bboxes_id           = output_bboxes_ids[i];
+        const auto  output_bboxes_id           = _output_bboxes_ids[i];
         const auto* output_bboxes              = output_data[output_bboxes_id];
         const auto  output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
         const auto  output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
@@ -346,9 +429,9 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
 
     utils::anchor_nms(anchor_bboxes, iou_threshold, score_threshold, false);
 
-    const auto*  output_keypoints            = output_data[3];
-    const auto   output_keypoints_dims_2     = _output_shapes[3].dims[2];
-    const auto   output_keypoints_quant_parm = _output_quant_params[3];
+    const auto*  output_keypoints            = output_data[_output_keypoints_id];
+    const auto   output_keypoints_dims_2     = _output_shapes[_output_keypoints_id].dims[2];
+    const auto   output_keypoints_quant_parm = _output_quant_params[_output_keypoints_id];
     const size_t keypoint_nums               = output_keypoints_dims_2 / 3;
 
     std::vector<types::pt3_t<float>> n_keypoint(keypoint_nums);
