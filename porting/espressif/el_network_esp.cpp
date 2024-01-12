@@ -209,7 +209,8 @@ el_err_code_t NetworkEsp::connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) 
         .broker = {
             .address = {
                 .hostname = mqtt_cfg.address,
-                .transport = (mqtt_cfg.use_ssl) ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
+                .transport = (mqtt_cfg.use_ssl == 1) ? 
+                             MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
                 .port = mqtt_cfg.port,
             }
         },
@@ -220,10 +221,6 @@ el_err_code_t NetworkEsp::connect(mqtt_server_config_t mqtt_cfg, topic_cb_t cb) 
                 .password = mqtt_cfg.password
             }
         },
-        .task = {
-            .priority = 3,
-            .stack_size = 8192
-        }
     };
     if (mqtt_cfg.use_ssl) {
         esp_mqtt_cfg.broker.verification.certificate = (const char *)ca_crt;

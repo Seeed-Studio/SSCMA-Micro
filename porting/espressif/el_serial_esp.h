@@ -53,10 +53,8 @@ class SerialEsp final : public Serial {
     usb_serial_jtag_driver_config_t _driver_config;
     Mutex                           _send_lock;
 
-    const std::size_t    _size;
-    char*                _buffer;
-    volatile std::size_t _head;
-    volatile std::size_t _tail;
+    std::size_t   _size;
+    lwRingBuffer* _rb_rx;
 };
 
 }  // namespace edgelab

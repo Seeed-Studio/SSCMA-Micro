@@ -29,18 +29,13 @@
 
 #include <cctype>
 
-#include "core/el_debug.h"
-#include "core/el_types.h"
-
 namespace edgelab {
 
 SerialEsp::SerialEsp(usb_serial_jtag_driver_config_t driver_config)
     : _driver_config(driver_config),
       _send_lock(),
       _size(driver_config.rx_buffer_size),
-      _buffer(nullptr),
-      _head(0),
-      _tail(0) {}
+      _rb_rx(nullptr) {}
 
 SerialEsp::~SerialEsp() { deinit(); }
 
@@ -53,9 +48,10 @@ el_err_code_t SerialEsp::init() {
     if (!this->_is_present) [[unlikely]]
         return EL_EPERM;
 
-    _buffer = new char[_size]{};
+    if (!this->_rb_rx) [[likely]]
+        this->_rb_rx = new lwRingBuffer{_size};
 
-    EL_ASSERT(_buffer);
+    EL_ASSERT(this->_rb_rx);
 
     return EL_OK;
 }
@@ -63,13 +59,7 @@ el_err_code_t SerialEsp::init() {
 el_err_code_t SerialEsp::deinit() {
     this->_is_present = !(usb_serial_jtag_driver_uninstall() == ESP_OK);
 
-    if (_buffer) {
-        delete[] _buffer;
-        _buffer = nullptr;
-    }
-
-    _head = 0;
-    _tail = 0;
+    delete this->_rb_rx;
 
     return !this->_is_present ? EL_OK : EL_EIO;
 }
@@ -95,48 +85,14 @@ char SerialEsp::get_char() {
 std::size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
     if (!this->_is_present) return 0;
 
-    {
-        std::size_t len    = 0;
-        std::size_t read   = 0;
-        auto        head   = _head;
-        auto        tail   = _tail;
-        auto        remain = head < tail ? tail - head : _size - (head - tail);
+    size_t rlen = 0;
+    char rbuf[32] = {0}; // Most commands are less than 32 bytes long
+    do {
+        rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 1 / portTICK_PERIOD_MS);
+        this->_rb_rx->put(rbuf, rlen);
+    } while (rlen > 0);
 
-        do {
-            len += read = usb_serial_jtag_read_bytes(_buffer + head, 1, 1 / portTICK_PERIOD_MS);
-            head        = (head + read) % _size;
-        } while (read);
-
-        // the store operation makes get_line thread-unsafe
-        if (len > remain) [[unlikely]]
-            _tail = (head + 1) % _size;
-
-        _head = head;
-    }
-
-    std::size_t       len     = 0;
-    std::size_t const len_max = size - 1;
-    auto              found   = false;
-    auto              head    = _head;
-    auto              tail    = _tail;
-    auto              prev    = tail;
-
-    if (head == tail) return 0;
-
-    for (; (!found) & (head != tail) & (len < len_max); tail = (tail + 1) % _size, ++len) {
-        char c = _buffer[tail];
-        if (c == '\0')
-            break;
-        else if (c == delim)
-            found = true;
-    }
-
-    if (!found) return 0;
-
-    for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
-    _tail = tail;
-
-    return len;
+    return this->_rb_rx->extract(delim, buffer, size);
 }
 
 std::size_t SerialEsp::read_bytes(char* buffer, size_t size) {

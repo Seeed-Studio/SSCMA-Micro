@@ -323,13 +323,20 @@ void register_commands() {
 
 void wait_for_inputs() {
     // mark the system status as ready
-    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+    static_resource->executor->add_task(
+        [](const std::atomic<bool>&) { static_resource->is_ready.store(true); }
+    );
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 
-    auto  transports = std::forward_list<Transport*>{static_resource->serial, static_resource->mqtt, static_resource->wire};
-    char* buf        = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
+    auto transports = std::forward_list<Transport*>{
+        static_resource->serial, 
+        static_resource->mqtt, 
+        static_resource->wire
+    };
+    char* buf = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
     std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
+
 Loop:
     std::for_each(transports.begin(), transports.end(), [&buf](Transport* transport) {
         if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {

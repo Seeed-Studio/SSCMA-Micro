@@ -28,6 +28,10 @@
 
 #include "porting/el_transport.h"
 
+#include "core/el_debug.h"
+#include "core/el_types.h"
+#include "core/utils/el_ringbuffer.hpp"
+
 namespace edgelab {
 
 class Serial : public Transport {

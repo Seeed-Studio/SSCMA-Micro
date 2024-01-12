@@ -33,9 +33,6 @@ extern "C" {
 #include <cctype>
 #include <cstdint>
 
-#include "core/el_debug.h"
-#include "core/el_types.h"
-#include "core/utils/el_ringbuffer.hpp"
 #include "el_config_porting.h"
 namespace edgelab {
 
