@@ -119,8 +119,12 @@ class AlgorithmYOLOPOSE final : public Algorithm {
 
    private:
     ImageType _input_img;
-    float     _w_scale;
-    float     _h_scale;
+
+    decltype(ImageType::width)  _last_input_width;
+    decltype(ImageType::height) _last_input_height;
+
+    float _w_scale;
+    float _h_scale;
 
     std::atomic<ScoreType> _score_threshold;
     std::atomic<IoUType>   _iou_threshold;
@@ -129,7 +133,12 @@ class AlgorithmYOLOPOSE final : public Algorithm {
     std::vector<std::pair<float, float>>         _scaled_strides;
     std::vector<std::vector<types::pt_t<float>>> _anchor_matrix;
 
-    static constexpr size_t _outputs = 7;
+    static constexpr size_t _outputs         = 7;
+    static constexpr size_t _anchor_variants = 3;
+
+    size_t _output_scores_ids[_anchor_variants];
+    size_t _output_bboxes_ids[_anchor_variants];
+    size_t _output_keypoints_id;
 
     el_shape_t       _output_shapes[_outputs];
     el_quant_param_t _output_quant_params[_outputs];
