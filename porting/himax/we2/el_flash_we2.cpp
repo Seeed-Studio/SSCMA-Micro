@@ -169,11 +169,10 @@ static int _el_flash_db_erase(long offset, size_t size) {
     }
 
     int ret = -1;
-    for (size_t i = addr; i < size; i += 4096) {
-        if(i < _el_flash_db_partition_begin)
-            continue;
-        if(i >= _el_flash_db_partition_end)
-            break;
+    for (size_t i = addr; i < addr + size; i += 4096) {
+        ret = -1;
+        if (i < _el_flash_db_partition_begin) continue;
+        if (i >= _el_flash_db_partition_end) break;
         if (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, i, FLASH_SECTOR) == E_OK) [[likely]]
             ret = 0;
     }

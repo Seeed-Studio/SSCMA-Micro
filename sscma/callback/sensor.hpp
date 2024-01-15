@@ -49,7 +49,7 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, void* ca
 
         // if enable is true, init the camera
         if (enable) {
-            ret = camera->init(240, 240);  // TODO: custom resolution
+            ret = camera->init(480, 480);  // TODO: custom resolution
             if (ret != EL_OK) [[unlikely]]
                 goto SensorError;
         }
