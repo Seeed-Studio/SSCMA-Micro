@@ -1,7 +1,14 @@
 #include "drv_ov5647.h"
 
 static HX_CIS_SensorSetting_t OV5647_init_setting[] = {
-#include "OV5647_mipi_2lane_640x480.i"
+#if (OV5647_MIPI_MODE == OV5647_MIPI_640X480)
+    #include "OV5647_mipi_2lane_640x480.i"
+#elif (OV5647_MIPI_MODE == OV5647_MIPI_2592X1944)
+    #include "OV5647_mipi_2lane_2592x1944.i"
+#elif (OV5647_MIPI_MODE == OV5647_MIPI_1296X972)
+    #include "OV5647_mipi_2lane_1296x972.i"
+#endif
+
 };
 
 static HX_CIS_SensorSetting_t OV5647_stream_on[] = {
@@ -34,6 +41,16 @@ el_res_t _drv_ov5647_fit_res(uint16_t width, uint16_t height) {
         res.width  = 160;
         res.height = 120;
     }
+    // if (width > 480 || height > 320) {
+    //     res.width  = 960;
+    //     res.height = 540;
+    // } else if (width > 240 || height > 160) {
+    //     res.width  = 480;
+    //     res.height = 270;
+    // } else {
+    //     res.width  = 240;
+    //     res.height = 135;
+    // }
     EL_LOGD("fit width: %d height: %d", res.width, res.height);
 
     return res;
@@ -47,7 +64,7 @@ void drv_ov5647_cb(SENSORDPLIB_STATUS_E event) {
         _frame_count++;
         break;
     default:
-        EL_LOGD("Unkonw event");
+        el_printf("Unkonw event:%d", event);
 
         break;
     }
@@ -63,8 +80,8 @@ void set_mipi_csirx_enable() {
     uint32_t bitrate_1lane = OV5647_MIPI_CLOCK_FEQ * 2;
     uint32_t mipi_lnno     = OV5647_MIPI_LANE_CNT;
     uint32_t pixel_dpp     = OV5647_MIPI_DPP;
-    uint32_t line_length   = OV5647_MAX_WIDTH;
-    uint32_t frame_length  = OV5647_MAX_HEIGHT;
+    uint32_t line_length   = OV5647_SENSOR_WIDTH;
+    uint32_t frame_length  = OV5647_SENSOR_HEIGHT;
     uint32_t byte_clk      = bitrate_1lane / 8;
     uint32_t continuousout = OV5647_MIPITX_CNTCLK_EN;
     uint32_t deskew_en     = 0;
@@ -256,25 +273,22 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     _jpeg.size   = width * height / 4;
 
     // DMA
-    if (!_jpegsize_baseaddr)
-    _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 64);
+    if (!_jpegsize_baseaddr) _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 64);
     if (_jpegsize_baseaddr == 0) {
         ret = EL_ENOMEM;
         goto err;
     }
 
     {
-        size_t bs       = (((623 + (size_t)(res.width / 16) * (size_t)(res.height / 16) * 128 + 35) >> 2) << 2);
-        if (!_wdma1_baseaddr)
-        _wdma1_baseaddr = (uint32_t)el_aligned_malloc_once(32, bs);  // JPEG
+        size_t bs = (((623 + (size_t)(res.width / 16) * (size_t)(res.height / 16) * 128 + 35) >> 2) << 2);
+        if (!_wdma1_baseaddr) _wdma1_baseaddr = (uint32_t)el_aligned_malloc_once(32, bs);  // JPEG
     }
     if (_wdma1_baseaddr == 0) {
         ret = EL_ENOMEM;
         goto err;
     }
     _wdma2_baseaddr = _wdma1_baseaddr;
-    if (!_wdma3_baseaddr)
-    _wdma3_baseaddr = (uint32_t)el_aligned_malloc_once(32, res.width * res.height * 3 / 2);
+    if (!_wdma3_baseaddr) _wdma3_baseaddr = (uint32_t)el_aligned_malloc_once(32, res.width * res.height * 3 / 2);
     if (_wdma3_baseaddr == 0) {
         ret = EL_ENOMEM;
         goto err;
@@ -291,28 +305,44 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
     sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
-    // datapath init
-    if (OV5647_MAX_WIDTH / res.width == 3) {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_OV5647,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       OV5647_MAX_WIDTH,
-                                       OV5647_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_8TO2);
-        EL_LOGD("subsample: 4x");
-    } else if (OV5647_MAX_WIDTH / res.width == 2) {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_OV5647,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       OV5647_MAX_WIDTH,
-                                       OV5647_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_4TO2);
-        EL_LOGD("subsample: 2x");
-    } else {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_OV5647,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       OV5647_MAX_WIDTH,
-                                       OV5647_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_DISABLE);
-        EL_LOGD("subsample: 1x");
+
+    crop.start_x = 0;
+    crop.start_y = 0;
+    crop.last_x = 0;
+    crop.last_y = 0;
+
+
+    switch (res.width) {
+    case 640:
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   INP_BINNING_DISABLE);
+        break;
+    case 320:
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   INP_BINNING_4TO2_B);
+        break;
+    case 160:
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   INP_BINNING_8TO2_B);
+        break;
+
+    default:
+        break;
     }
 
     //HW5x5 Cfg
@@ -386,7 +416,7 @@ el_err_code_t drv_ov5647_deinit() {
     }
     set_mipi_csirx_disable();
     // power off
-    hx_drv_sensorctrl_set_xSleep(0);
+    hx_drv_sensorctrl_set_xSleep(1);
     return EL_OK;
 }
 
@@ -402,8 +432,8 @@ el_err_code_t drv_ov5647_capture(uint32_t timeout) {
     return EL_OK;
 }
 
-el_err_code_t drv_ov5647_capture_stop(){
-    _frame_ready  = false;
+el_err_code_t drv_ov5647_capture_stop() {
+    _frame_ready = false;
     sensordplib_retrigger_capture();
 
     return EL_OK;
@@ -426,5 +456,6 @@ el_img_t drv_ov5647_get_jpeg() {
     hx_drv_jpeg_get_MemAddrByFrameNo(frame_no, _wdma2_baseaddr, &_jpeg.data);
     _jpeg.size = mem_val == reg_val ? mem_val : reg_val;
     hx_InvalidateDCache_by_Addr((volatile void*)_jpeg.data, _jpeg.size);
+    EL_LOGD("JPEG size: %d", _jpeg.size);
     return _jpeg;
 }

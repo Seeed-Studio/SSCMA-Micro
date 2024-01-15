@@ -169,8 +169,14 @@ static int _el_flash_db_erase(long offset, size_t size) {
     }
 
     int ret = -1;
-    if (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, addr, FLASH_SECTOR) == E_OK) [[likely]]
-        ret = 0;
+    for (size_t i = addr; i < size; i += 4096) {
+        if(i < _el_flash_db_partition_begin)
+            continue;
+        if(i >= _el_flash_db_partition_end)
+            break;
+        if (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, i, FLASH_SECTOR) == E_OK) [[likely]]
+            ret = 0;
+    }
 
     if (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) == E_OK) [[likely]]
         _el_xip_enabled = true;
