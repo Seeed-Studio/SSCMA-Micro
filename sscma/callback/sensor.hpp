@@ -78,28 +78,28 @@ SensorError:
     static_resource->current_sensor_id = 0;
 
 SensorReply:
-    const auto& ss{concat_strings("\r{\"type\": ",
-                                  std::to_string(called_by_event ? 1 : 0),
-                                  ", \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"sensor\": ",
-                                  sensor_info_2_json_str(sensor_info),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           std::to_string(called_by_event ? 1 : 0),
+                           ", \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"sensor\": ",
+                           sensor_info_2_json_str(sensor_info),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_sensor_info(const std::string& cmd, void* caller) {
     const auto& sensor_info = static_resource->device->get_sensor_info(static_resource->current_sensor_id);
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  sensor_info_2_json_str(sensor_info),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           sensor_info_2_json_str(sensor_info),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

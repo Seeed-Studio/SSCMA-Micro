@@ -39,6 +39,8 @@ template <class T, std::size_t N> constexpr inline std::size_t lengthof(const T 
 
 inline std::size_t lengthof(const std::string& s) { return s.length(); }
 
+inline std::size_t lengthof(std::string&& s) { return s.length(); }
+
 template <typename... Args> constexpr inline decltype(auto) concat_strings(Args&&... args) {
     std::size_t length{(lengthof(args) + ...)};  // try calculate total length at compile time
     std::string result;
@@ -345,7 +347,7 @@ decltype(auto) algorithm_results_2_json_str(std::shared_ptr<AlgorithmType> algor
 }
 
 decltype(auto) wifi_config_2_json_str(const wifi_sta_cfg_t& config, bool secure = true) {
-    const auto& pwd = /* secure ? std::string(std::strlen(config.passwd), '*') : */ std::string(config.passwd);
+    auto        pwd = /* secure ? std::string(std::strlen(config.passwd), '*') : */ std::string(config.passwd);
     std::string ss{concat_strings("{\"name_type\": ",
                                   std::to_string(config.name_type),
                                   ", \"name\": ",
@@ -359,7 +361,7 @@ decltype(auto) wifi_config_2_json_str(const wifi_sta_cfg_t& config, bool secure 
 }
 
 decltype(auto) mqtt_server_config_2_json_str(const mqtt_server_config_t& config, bool secure = true) {
-    const auto& pwd = /* secure ? std::string(std::strlen(config.password), '*') : */ std::string(config.password);
+    auto        pwd = /* secure ? std::string(std::strlen(config.password), '*') : */ std::string(config.password);
     std::string ss{concat_strings("{\"client_id\": ",
                                   quoted(config.client_id),
                                   ", \"address\": ",
@@ -429,8 +431,8 @@ bool is_bssid(const std::string& str) {
 }
 
 decltype(auto) get_default_mqtt_server_config(const Device* device) {
-    auto        default_config = mqtt_server_config_t{};
-    const auto& device_id      = to_hex_string(device->get_device_id());
+    auto default_config = mqtt_server_config_t{};
+    auto device_id      = to_hex_string(device->get_device_id());
 
     std::snprintf(default_config.client_id,
                   sizeof(default_config.client_id) - 1,

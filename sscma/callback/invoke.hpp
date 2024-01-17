@@ -132,29 +132,29 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     inline void direct_reply(std::string algorithm_config) {
-        const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                      _cmd,
-                                      "\", \"code\": ",
-                                      std::to_string(_ret),
-                                      ", \"data\": {\"model\": ",
-                                      model_info_2_json_str(_model_info),
-                                      ", \"algorithm\": ",
-                                      algorithm_config,
-                                      ", \"sensor\": ",
-                                      sensor_info_2_json_str(_sensor_info),
-                                      "}}\n")};
+        auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                               _cmd,
+                               "\", \"code\": ",
+                               std::to_string(_ret),
+                               ", \"data\": {\"model\": ",
+                               model_info_2_json_str(_model_info),
+                               ", \"algorithm\": ",
+                               algorithm_config,
+                               ", \"sensor\": ",
+                               sensor_info_2_json_str(_sensor_info),
+                               "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_reply(std::string data) {
-        const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
-                                      _cmd,
-                                      "\", \"code\": ",
-                                      std::to_string(_ret),
-                                      ", \"data\": {\"count\": ",
-                                      std::to_string(_times),
-                                      data,
-                                      "}}\n")};
+        auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
+                               _cmd,
+                               "\", \"code\": ",
+                               std::to_string(_ret),
+                               ", \"data\": {\"count\": ",
+                               std::to_string(_times),
+                               data,
+                               "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
@@ -247,13 +247,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                         ? EL_OK
                                         : EL_EIO;
                             }
-                            const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                                          cmd,
-                                                          "\", \"code\": ",
-                                                          std::to_string(ret),
-                                                          ", \"data\": ",
-                                                          std::to_string(algorithm->get_score_threshold()),
-                                                          "}\n")};
+                            auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                   cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(ret),
+                                                   ", \"data\": ",
+                                                   std::to_string(algorithm->get_score_threshold()),
+                                                   "}\n")};
                             static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
                             // caller, buffer, cahr* id
                         });
@@ -266,13 +266,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                   "TSCORE?", "Get score threshold", "", [algorithm](std::vector<std::string> argv, void* caller) {
                       static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), caller](const std::atomic<bool>&) {
-                            const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                                          cmd,
-                                                          "\", \"code\": ",
-                                                          std::to_string(EL_OK),
-                                                          ", \"data\": ",
-                                                          std::to_string(algorithm->get_score_threshold()),
-                                                          "}\n")};
+                            auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                   cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(EL_OK),
+                                                   ", \"data\": ",
+                                                   std::to_string(algorithm->get_score_threshold()),
+                                                   "}\n")};
                             static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
@@ -296,13 +296,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                         ? EL_OK
                                         : EL_EIO;
                             }
-                            const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                                          cmd,
-                                                          "\", \"code\": ",
-                                                          std::to_string(ret),
-                                                          ", \"data\": ",
-                                                          std::to_string(algorithm->get_iou_threshold()),
-                                                          "}\n")};
+                            auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                   cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(ret),
+                                                   ", \"data\": ",
+                                                   std::to_string(algorithm->get_iou_threshold()),
+                                                   "}\n")};
                             static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
@@ -314,13 +314,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                   "TIOU?", "Get IoU threshold", "", [algorithm](std::vector<std::string> argv, void* caller) {
                       static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), caller](const std::atomic<bool>&) {
-                            const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                                          cmd,
-                                                          "\", \"code\": ",
-                                                          std::to_string(EL_OK),
-                                                          ", \"data\": ",
-                                                          std::to_string(algorithm->get_iou_threshold()),
-                                                          "}\n")};
+                            auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                   cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(EL_OK),
+                                                   ", \"data\": ",
+                                                   std::to_string(algorithm->get_iou_threshold()),
+                                                   "}\n")};
                             static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
                         });
                       return EL_OK;
@@ -377,7 +377,8 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         if (!_differed || results_filter.compare_and_update(algorithm->get_results())) {
             if (_results_only)
-                event_reply(concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_res_2_json_str(&frame)));
+                event_reply(
+                  concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_res_2_json_str(&frame)));
             else {
                 event_reply(
                   concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", std::move(encoded_frame_str)));
@@ -400,7 +401,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     template <typename AlgorithmType> void action_injection(std::shared_ptr<AlgorithmType> algorithm) {
         auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
-            const auto& argv = tokenize_function_2_argv(kv.first);
+            auto argv = tokenize_function_2_argv(kv.first);
             if (!argv.size()) [[unlikely]]
                 continue;
 

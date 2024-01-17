@@ -83,8 +83,8 @@ class MQTT final : public Supervisable, public Transport {
         EL_LOGD("[SSCMA] MQTT::poll_from_supervisor()");
 
         if (_mqtt_server_config.is_synchorized()) [[likely]] {
-            const auto& config      = _mqtt_server_config.load_last();
-            auto        current_sta = sync_status_from_driver();
+            auto config      = _mqtt_server_config.load_last();
+            auto current_sta = sync_status_from_driver();
             if (current_sta < config.second.first) [[unlikely]]
                 bring_up(config.second);
         } else {
@@ -204,9 +204,8 @@ class MQTT final : public Supervisable, public Transport {
         static_assert(sizeof record.server >= sizeof server_config.address);
         std::strncpy(record.server, server_config.address, sizeof record.server);
 
-        std::strncpy(record.authentication,
-                     std::strlen(server_config.username) ? "y" : "n",
-                     (sizeof record.authentication) - 1);
+        std::strncpy(
+          record.authentication, std::strlen(server_config.username) ? "y" : "n", (sizeof record.authentication) - 1);
         std::strncpy(record.protocol, server_config.use_ssl ? "mqtts" : "mqtt", (sizeof record.protocol) - 1);
         std::snprintf(record.destination,
                       (sizeof record.destination) - 1,
@@ -220,9 +219,9 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     void emit_mqtt_discover() {
-        auto        config = get_mqtt_pubsub_config();
-        const auto& ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(config), "\n")};
-        char        discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
+        auto config = get_mqtt_pubsub_config();
+        auto ss{concat_strings("\r", mqtt_pubsub_config_2_json_str(config), "\n")};
+        char discover_topic[SSCMA_MQTT_TOPIC_LEN]{};
         std::snprintf(
           discover_topic, sizeof(discover_topic) - 1, SSCMA_MQTT_DISCOVER_TOPIC, SSCMA_AT_API_MAJOR_VERSION);
 

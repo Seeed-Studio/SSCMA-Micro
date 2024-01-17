@@ -167,11 +167,11 @@ class StaticResource final {
         instance->init([](void* caller, el_err_code_t ret, std::string msg) {  // server print callback function
             if (ret != EL_OK) [[unlikely]] {  // only send error message when error occurs
                 msg.erase(std::remove_if(msg.begin(), msg.end(), [](char c) { return std::iscntrl(c); }), msg.end());
-                const auto& ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",
-                                              std::to_string(ret),
-                                              ", \"data\": ",
-                                              quoted(msg),
-                                              "}\n")};
+                auto ss{concat_strings("\r{\"type\": 2, \"name\": \"AT\", \"code\": ",
+                                       std::to_string(ret),
+                                       ", \"data\": ",
+                                       quoted(msg),
+                                       "}\n")};
                 if (caller) static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
             }
         });

@@ -36,15 +36,15 @@ void set_wifi_network(const std::vector<std::string>& argv, void* caller, bool c
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_FAILED;
 
 Reply:
-    const auto& ss{concat_strings("\r{\"type\": ",
-                                  called_by_event ? "1" : "0",
-                                  ", \"name\": \"",
-                                  argv[0],
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": ",
-                                  wifi_config_2_json_str(config, called_by_event),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           called_by_event ? "1" : "0",
+                           ", \"name\": \"",
+                           argv[0],
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": ",
+                           wifi_config_2_json_str(config, called_by_event),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -61,17 +61,17 @@ void get_wifi_network(const std::string& cmd, void* caller) {
     // 1: joined + staled
     // 2: joined + updated
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": 0, \"data\": {\"status\": ",
-                                  std::to_string(sta_code),
-                                  ", \"in4_info\": ",
-                                  in4_info_2_json_str(in4),
-                                  ", \"in6_info\": ",
-                                  in6_info_2_json_str(in6),
-                                  ", \"config\": ",
-                                  wifi_config_2_json_str(config),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": 0, \"data\": {\"status\": ",
+                           std::to_string(sta_code),
+                           ", \"in4_info\": ",
+                           in4_info_2_json_str(in4),
+                           ", \"in6_info\": ",
+                           in6_info_2_json_str(in6),
+                           ", \"config\": ",
+                           wifi_config_2_json_str(config),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

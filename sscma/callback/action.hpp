@@ -29,15 +29,15 @@ void set_action(const std::vector<std::string>& argv, void* caller, bool called_
        exp = quoted(argv[1]),
        ec  = std::to_string(EL_ELOG),
        crc = std::to_string(static_resource->action->get_condition_hash())](void* caller) {
-          const auto& ss = concat_strings("\r{\"type\": 1, \"name\": \"",
-                                          cmd,
-                                          "\", \"code\": ",
-                                          ec,
-                                          ", \"data\": {\"crc16_maxim\": ",
-                                          crc,
-                                          ", \"action\": ",
-                                          exp,
-                                          "}}\n");
+          auto ss = concat_strings("\r{\"type\": 1, \"name\": \"",
+                                   cmd,
+                                   "\", \"code\": ",
+                                   ec,
+                                   ", \"data\": {\"crc16_maxim\": ",
+                                   crc,
+                                   ", \"action\": ",
+                                   exp,
+                                   "}}\n");
           static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
       });
 
@@ -74,17 +74,17 @@ void set_action(const std::vector<std::string>& argv, void* caller, bool called_
     }
 
 ActionReply:
-    const auto& ss{concat_strings("\r{\"type\": ",
-                                  std::to_string(called_by_event ? 1 : 0),
-                                  ", \"name\": \"",
-                                  argv[0],
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"crc16_maxim\": ",
-                                  std::to_string(hash),
-                                  ", \"action\": ",
-                                  quoted(argv[1]),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           std::to_string(called_by_event ? 1 : 0),
+                           ", \"name\": \"",
+                           argv[0],
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"crc16_maxim\": ",
+                           std::to_string(hash),
+                           ", \"action\": ",
+                           quoted(argv[1]),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -99,15 +99,15 @@ void get_action(const std::string& cmd, void* caller) {
         crc16_maxim = el_crc16_maxim(reinterpret_cast<const uint8_t*>(action), std::strlen(action));
     }
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"crc16_maxim\": ",
-                                  std::to_string(crc16_maxim),
-                                  ", \"action\": ",
-                                  quoted(action),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"crc16_maxim\": ",
+                           std::to_string(crc16_maxim),
+                           ", \"action\": ",
+                           quoted(action),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

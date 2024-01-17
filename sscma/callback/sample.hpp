@@ -66,25 +66,25 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     }
 
     inline void direct_reply() {
-        const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                      _cmd,
-                                      "\", \"code\": ",
-                                      std::to_string(_ret),
-                                      ", \"data\": {\"sensor\": ",
-                                      sensor_info_2_json_str(_sensor_info),
-                                      "}}\n")};
+        auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                               _cmd,
+                               "\", \"code\": ",
+                               std::to_string(_ret),
+                               ", \"data\": {\"sensor\": ",
+                               sensor_info_2_json_str(_sensor_info),
+                               "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
     inline void event_reply(std::string data) {
-        const auto& ss{concat_strings("\r{\"type\": 1, \"name\": \"",
-                                      _cmd,
-                                      "\", \"code\": ",
-                                      std::to_string(_ret),
-                                      ", \"data\": {\"count\": ",
-                                      std::to_string(_times),
-                                      data,
-                                      "}}\n")};
+        auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
+                               _cmd,
+                               "\", \"code\": ",
+                               std::to_string(_ret),
+                               ", \"data\": {\"count\": ",
+                               std::to_string(_times),
+                               data,
+                               "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 

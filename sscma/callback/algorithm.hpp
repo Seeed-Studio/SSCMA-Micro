@@ -15,7 +15,7 @@ void get_available_algorithms(const std::string& cmd, void* caller) {
     const auto& registered_algorithms = static_resource->algorithm_delegate->get_all_algorithm_info();
     const char* delim                 = "";
 
-    std::string ss{
+    auto ss{
       concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
     for (const auto& i : registered_algorithms) {
         ss += concat_strings(delim, algorithm_info_2_json_str(i));
@@ -41,15 +41,15 @@ void set_algorithm(const std::string&  cmd,
             ret = static_resource->storage->emplace(el_make_storage_kv_from_type(algorithm_info.type)) ? EL_OK : EL_EIO;
     }
 
-    const std::string& ss{concat_strings("\r{\"type\": ",
-                                         called_by_event ? "1" : "0",
-                                         ", \"name\": \"",
-                                         cmd,
-                                         "\", \"code\": ",
-                                         std::to_string(ret),
-                                         ", \"data\": ",
-                                         algorithm_info_2_json_str(&algorithm_info),
-                                         "}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           called_by_event ? "1" : "0",
+                           ", \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": ",
+                           algorithm_info_2_json_str(&algorithm_info),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -57,13 +57,13 @@ void get_algorithm_info(const std::string& cmd, void* caller) {
     const auto& algorithm_info =
       static_resource->algorithm_delegate->get_algorithm_info(static_resource->current_algorithm_type);
 
-    const std::string& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                         cmd,
-                                         "\", \"code\": ",
-                                         std::to_string(EL_OK),
-                                         ", \"data\": ",
-                                         algorithm_info_2_json_str(&algorithm_info),
-                                         "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           algorithm_info_2_json_str(&algorithm_info),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

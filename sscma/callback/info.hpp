@@ -19,14 +19,13 @@ void set_info(const std::vector<std::string>& argv, void* caller) {
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
     auto ret = static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EIO;
 
-    const auto& ss{
-      concat_strings("\r{\"type\": 0, \"name\": \"",
-                     argv[0],
-                     "\", \"code\": ",
-                     std::to_string(ret),
-                     ", \"data\": {\"crc16_maxim\": ",
-                     std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
-                     "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           argv[0],
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"crc16_maxim\": ",
+                           std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -37,16 +36,15 @@ void get_info(const std::string& cmd, void* caller) {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_INFO))
         ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EIO;
 
-    const auto& ss{
-      concat_strings("\r{\"type\": 0, \"name\": \"",
-                     cmd,
-                     "\", \"code\": ",
-                     std::to_string(ret),
-                     ", \"data\": {\"crc16_maxim\": ",
-                     std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
-                     ", \"info\": ",
-                     quoted(info),
-                     "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"crc16_maxim\": ",
+                           std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
+                           ", \"info\": ",
+                           quoted(info),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

@@ -64,28 +64,28 @@ ModelError:
     static_resource->current_model_id = 0;
 
 ModelReply:
-    const auto& ss{concat_strings("\r{\"type\": ",
-                                  std::to_string(called_by_event ? 1 : 0),
-                                  ", \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": {\"model\": ",
-                                  model_info_2_json_str(model_info),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           std::to_string(called_by_event ? 1 : 0),
+                           ", \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": {\"model\": ",
+                           model_info_2_json_str(model_info),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_model_info(const std::string& cmd, void* caller) {
     const auto& model_info = static_resource->models->get_model_info(static_resource->current_model_id);
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  model_info_2_json_str(model_info),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           model_info_2_json_str(model_info),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

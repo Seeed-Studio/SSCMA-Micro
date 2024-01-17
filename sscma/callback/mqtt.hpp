@@ -17,11 +17,11 @@ using namespace sscma::utility;
 void get_mqtt_pubsub(const std::string& cmd, void* caller) {
     auto config = static_resource->mqtt->get_mqtt_pubsub_config();
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": 0, \"data\": {\"config\": ",
-                                  mqtt_pubsub_config_2_json_str(config),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": 0, \"data\": {\"config\": ",
+                           mqtt_pubsub_config_2_json_str(config),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -54,15 +54,15 @@ void set_mqtt_server(const std::vector<std::string>& argv, void* caller, bool ca
         ret = static_resource->storage->emplace(el_make_storage_kv_from_type(config)) ? EL_OK : EL_FAILED;
 
 Reply:
-    const auto& ss{concat_strings("\r{\"type\": ",
-                                  called_by_event ? "1" : "0",
-                                  ", \"name\": \"",
-                                  argv[0],
-                                  "\", \"code\": ",
-                                  std::to_string(ret),
-                                  ", \"data\": ",
-                                  mqtt_server_config_2_json_str(config, called_by_event),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": ",
+                           called_by_event ? "1" : "0",
+                           ", \"name\": \"",
+                           argv[0],
+                           "\", \"code\": ",
+                           std::to_string(ret),
+                           ", \"data\": ",
+                           mqtt_server_config_2_json_str(config, called_by_event),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
@@ -77,13 +77,13 @@ void get_mqtt_server(const std::string& cmd, void* caller) {
     // 1: connected + staled
     // 2: connected + updated
 
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": 0, \"data\": {\"status\": ",
-                                  std::to_string(sta_code),
-                                  ", \"config\": ",
-                                  mqtt_server_config_2_json_str(config),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": 0, \"data\": {\"status\": ",
+                           std::to_string(sta_code),
+                           ", \"config\": ",
+                           mqtt_server_config_2_json_str(config),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 

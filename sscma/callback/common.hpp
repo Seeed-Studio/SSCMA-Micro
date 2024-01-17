@@ -28,74 +28,74 @@ void print_help(const std::forward_list<repl_cmd_t>& cmd_list, void* caller) {
 }
 
 void get_device_id(const std::string& cmd, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": \"",
-                                  to_hex_string(static_resource->device->get_device_id()),
-                                  "\"}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": \"",
+                           to_hex_string(static_resource->device->get_device_id()),
+                           "\"}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_name(const std::string& cmd, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  quoted(static_resource->device->get_device_name()),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           quoted(static_resource->device->get_device_name()),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_device_status(const std::string& cmd, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": {\"boot_count\": ",
-                                  std::to_string(static_resource->boot_count),
-                                  ", \"is_ready\": ",
-                                  std::to_string(static_resource->is_ready.load() ? 1 : 0),
-                                  "}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": {\"boot_count\": ",
+                           std::to_string(static_resource->boot_count),
+                           ", \"is_ready\": ",
+                           std::to_string(static_resource->is_ready.load() ? 1 : 0),
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void get_version(const std::string& cmd, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": {\"at_api\": \"",
-                                  SSCMA_AT_API_MAJOR_VERSION,
-                                  "\", \"software\": \"",
-                                  EL_VERSION,
-                                  "\", \"hardware\": \"",
-                                  std::to_string(static_resource->device->get_chip_revision_id()),
-                                  "\"}}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": {\"at_api\": \"",
+                           SSCMA_AT_API_MAJOR_VERSION,
+                           "\", \"software\": \"",
+                           EL_VERSION,
+                           "\", \"hardware\": \"",
+                           std::to_string(static_resource->device->get_chip_revision_id()),
+                           "\"}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void break_task(const std::string& cmd, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  std::to_string(el_get_time_ms()),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           std::to_string(el_get_time_ms()),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
 void task_status(const std::string& cmd, bool sta, void* caller) {
-    const auto& ss{concat_strings("\r{\"type\": 0, \"name\": \"",
-                                  cmd,
-                                  "\", \"code\": ",
-                                  std::to_string(EL_OK),
-                                  ", \"data\": ",
-                                  std::to_string(sta ? 1 : 0),
-                                  "}\n")};
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": ",
+                           std::to_string(EL_OK),
+                           ", \"data\": ",
+                           std::to_string(sta ? 1 : 0),
+                           "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
