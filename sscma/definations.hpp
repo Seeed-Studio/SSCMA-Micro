@@ -53,7 +53,7 @@
 #define SSCMA_MQTT_PASSWORD_LEN              256
 #define SSCMA_MQTT_SSL_ALPN_LEN              SSCMA_MQTT_ADDRESS_LEN
 #define SSCMA_MQTT_TOPIC_LEN                 128
-#define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discover"
+#define SSCMA_MQTT_DISCOVER_TOPIC            "sscma/%s/discovery"
 
 #define SSCMA_MQTT_CLIENT_ID_FMT             "%s_%s_%s"
 #define SSCMA_MQTT_DESTINATION_FMT           "sscma/%s/%s"

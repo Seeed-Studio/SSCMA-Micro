@@ -16,7 +16,7 @@ class lwRingBuffer {
         buf[tail] = c;
         tail      = (tail + 1) % len;
     }
-    size_t put(const char* str, int slen) {
+    size_t put(const char* str, size_t slen) {
         if (slen > free()) {
             slen = free();
         }
@@ -42,7 +42,7 @@ class lwRingBuffer {
         head   = (head + 1) % len;
         return c;
     }
-    size_t get(char* str, int slen) {
+    size_t get(char* str, size_t slen) {
         if (slen > size()) {
             slen = size();
         }
