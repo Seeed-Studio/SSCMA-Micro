@@ -98,8 +98,9 @@ void el_flash_mmap_deinit(uint32_t*) { _el_flash_deinit(); }
 
 #ifdef CONFIG_EL_LIB_FLASHDB
 
-const static size_t _el_flash_db_partition_end   = 0x00400000;
-const static size_t _el_flash_db_partition_begin = _el_flash_db_partition_end - CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
+const static size_t _el_flash_db_partition_begin = 0x00300000;
+const static size_t _el_flash_db_partition_end   = 0x00300000 + CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
+
 
 static int _el_flash_db_init(void) {
     if (!_el_flash_init()) [[unlikely]]
@@ -110,7 +111,7 @@ static int _el_flash_db_init(void) {
 
 static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-
+    
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
@@ -132,6 +133,7 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
 
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
+
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 
@@ -154,10 +156,12 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
     return ret;
 }
 
+
 static int _el_flash_db_erase(long offset, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-
+    
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
+
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
 

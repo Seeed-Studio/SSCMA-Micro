@@ -75,13 +75,13 @@
 #define CONFIG_EL_LIB_JPEGENC                   0
 
 #define CONFIG_EL_STORAGE                       1
-#define CONFIG_EL_STORAGE_NAME                  "edgelab_db"
+#define CONFIG_EL_STORAGE_NAME                  "sscma_db"
 #define CONFIG_EL_STORAGE_PATH                  "kvdb0"
 #define CONFIG_EL_STORAGE_PARTITION_NAME        "db"
 #define CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT "nor_flash0"
 #define CONFIG_EL_STORAGE_PARTITION_FS_NAME_0   "kvdb0"
-#define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (128 * 1024)
-#define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (64)
+#define CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0   (256 * 1024)
+#define CONFIG_EL_STORAGE_KEY_SIZE_MAX          (128)
 
 #if CONFIG_EL_LIB_FLASHDB
     #include "third_party/FlashDB/fal_def.h"
