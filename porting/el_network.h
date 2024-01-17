@@ -26,6 +26,7 @@
 #ifndef _EL_NETWORK_H_
 #define _EL_NETWORK_H_
 
+#include "core/el_common.h"
 #include "core/el_types.h"
 
 #include "core/utils/el_ringbuffer.hpp"

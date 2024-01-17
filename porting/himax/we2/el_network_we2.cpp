@@ -180,12 +180,12 @@ void NetworkWE2::init(status_cb_t cb) {
     }
 
     // Parse data and trigger events
-    if (xTaskCreate(at_recv_parser, "at_recv_parser", 512, this, 2, &at_rx_parser) != pdPASS) {
+    if (xTaskCreate(at_recv_parser, "at_recv_parser", CONFIG_EL_NETWORK_STACK_SIZE, this, CONFIG_EL_NETWORK_PRIO, &at_rx_parser) != pdPASS) {
         EL_LOGD("at_recv_parser create error\n");
         return;
     }
     // Handle network status change events
-    if (xTaskCreate(network_status_handler, "network_status_handler", 64, this, 1, &status_handler) !=
+    if (xTaskCreate(network_status_handler, "network_status_handler", CONFIG_EL_NETWORK_STATUS_STACK_SIZE, this, CONFIG_EL_NETWORK_STATUS_PRIO, &status_handler) !=
         pdPASS) {
         EL_LOGD("network_status_handler create error\n");
         return;
@@ -597,7 +597,6 @@ void resp_action_ip(const char* resp, void* arg) {
     } else if (strncmp(resp + ofs, "netmask:", 8) == 0) {
         ofs += 8;
         net->_ip.netmask = ipv4_addr_t::from_str(std::string(resp + ofs, strlen(resp + ofs)));
-        EL_LOGD("IP GOT\n");
         return;
     }
 }
