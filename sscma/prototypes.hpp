@@ -117,7 +117,7 @@ template <typename T> class SynchronizableObject {
         return *_prev;
     }
 
-    const std::pair<std::size_t, T>& load_last() const {
+    std::pair<std::size_t, T> load_last() const {
         const Guard guard(_lock);
         return *_prev;
     }

@@ -44,8 +44,8 @@ class WiFi final : public Supervisable, public StatefulInterface {
         EL_LOGD("[SSCMA] WiFi::poll_from_supervisor()");
 
         if (_wifi_config.is_synchorized()) [[likely]] {
-            const auto& config      = _wifi_config.load_last();
-            auto        current_sta = sync_status_from_driver();
+            auto config      = _wifi_config.load_last();
+            auto current_sta = sync_status_from_driver();
             if (current_sta < config.second.first) [[unlikely]]
                 bring_up(config.second);
         } else {
