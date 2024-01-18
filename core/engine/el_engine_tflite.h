@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -351,53 +351,48 @@ class OpsResolver : public MicroMutableOpResolver<OpsCount::OpsTail - OpsCount::
 
 namespace edgelab {
 
+class EnginesTFLite;
+
 class EngineTFLite final : public base::Engine {
    public:
-    EngineTFLite();
     ~EngineTFLite();
 
-    el_err_code_t init() override;
-    el_err_code_t init(size_t size) override;
-    el_err_code_t init(void* pool, size_t size) override;
+    void* get_input_addr(std::size_t index) override;
+    void* get_output_addr(std::size_t index) override;
 
     el_err_code_t run() override;
 
-#ifdef CONFIG_EL_FILESYSTEM
-    el_err_code_t load_model(const char* model_path) override;
-#endif
+    std::size_t get_input_num() const override;
+    std::size_t get_output_num() const override;
 
-    el_err_code_t load_model(const void* model_data, size_t model_size) override;
+    el_shape_t get_input_shape(std::size_t index) const override;
+    el_shape_t get_output_shape(std::size_t index) const override;
 
-    el_err_code_t set_input(size_t index, const void* input_data, size_t input_size) override;
-    void*         get_input(size_t index) override;
+    el_quant_param_t get_input_quant_param(std::size_t index) const override;
+    el_quant_param_t get_output_quant_param(std::size_t index) const override;
 
-    void* get_output(size_t index) override;
+   protected:
+    EngineTFLite(tflite::MicroInterpreter* interpreter);
 
-    el_shape_t       get_input_shape(size_t index) const override;
-    el_shape_t       get_output_shape(size_t index) const override;
-    el_quant_param_t get_input_quant_param(size_t index) const override;
-    el_quant_param_t get_output_quant_param(size_t index) const override;
-
-#ifdef CONFIG_EL_INFERENCER_TENSOR_NAME
-    size_t           get_input_index(const char* input_name) const override;
-    size_t           get_output_index(const char* output_name) const override;
-    el_err_code_t    set_input(const char* input_name, const void* input_data, size_t input_size) override;
-    void*            get_input(const char* input_name) override;
-    void*            get_output(const char* output_name) override;
-    el_shape_t       get_input_shape(const char* input_name) const override;
-    el_shape_t       get_output_shape(const char* output_name) const override;
-    el_quant_param_t get_input_quant_param(const char* input_name) const override;
-    el_quant_param_t get_output_quant_param(const char* output_name) const override;
-#endif
+    friend class EnginesTFLite;
 
    private:
-    tflite::MicroInterpreter* interpreter;
-    const tflite::Model*      model;
-    el_memory_pool_t          memory_pool;
+    tflite::MicroInterpreter* _interpreter;
+};
 
-#ifdef CONFIG_EL_FILESYSTEM
-    const char* model_file;
-#endif
+class EnginesTFLite final : public base::Engines {
+   public:
+    EnginesTFLite(void* memory_resource, std::size_t size);
+
+    ~EnginesTFLite() { release(); }
+
+    el_err_code_t attach_model(const void* model_ptr, std::size_t size) override;
+    el_err_code_t release() override;
+
+   private:
+    tflite::MicroAllocator* _allocator;
+
+    static tflite::MicroOpResolver* _resolver;
 };
 
 }  // namespace edgelab

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -329,227 +329,152 @@ OpsResolver::OpsResolver() {
 
 namespace edgelab {
 
-EngineTFLite::EngineTFLite() {
-    interpreter      = nullptr;
-    model            = nullptr;
-    memory_pool.pool = nullptr;
-    memory_pool.size = 0;
-    #ifdef CONFIG_EL_FILESYSTEM
-    model_file = nullptr;
-    #endif
+EngineTFLite::EngineTFLite(tflite::MicroInterpreter* interpreter) : _interpreter(interpreter) {
+    EL_ASSERT(_interpreter);
 }
 
 EngineTFLite::~EngineTFLite() {
-    if (interpreter != nullptr) {
-        delete interpreter;
-        interpreter = nullptr;
+    if (_interpreter) [[likely]] {
+        delete _interpreter;
+        _interpreter = nullptr;
     }
-    if (memory_pool.pool != nullptr) {
-        delete[] static_cast<uint8_t*>(memory_pool.pool);
-        memory_pool.pool = nullptr;
-    }
-    #ifdef CONFIG_EL_FILESYSTEM
-    if (model_file != nullptr) {
-        delete model_file;
-        model_file = nullptr;
-    }
-    #endif
 }
 
-el_err_code_t EngineTFLite::init() { return EL_OK; }
-
-el_err_code_t EngineTFLite::init(size_t size) {
-    void* pool = new uint8_t[size];
-    if (pool == nullptr) {
-        return EL_ENOMEM;
-    }
-    memory_pool.pool = pool;
-    memory_pool.size = size;
-    return init();
-}
-
-el_err_code_t EngineTFLite::init(void* pool, size_t size) {
-    memory_pool.pool = pool;
-    memory_pool.size = size;
-    return init();
-}
-
-el_err_code_t EngineTFLite::run() {
-    EL_ASSERT(interpreter != nullptr);
-
-    if (kTfLiteOk != interpreter->Invoke()) {
-        return EL_ELOG;
-    }
-    return EL_OK;
-}
-
-el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
-    model = tflite::GetModel(model_data);
-    if (model == nullptr) {
-        return EL_EINVAL;
-    }
-    static tflite::OpsResolver resolver;
-    #if EL_DEALLOCATE_USED_INTERPRETER
-    if (interpreter) {
-        delete interpreter;
-        interpreter = nullptr;
-    }
-    #endif
-    interpreter =
-      new tflite::MicroInterpreter(model, resolver, static_cast<uint8_t*>(memory_pool.pool), memory_pool.size);
-    if (interpreter == nullptr) {
-        return EL_ENOMEM;
-    }
-    if (kTfLiteOk != interpreter->AllocateTensors()) {
-        delete interpreter;
-        interpreter = nullptr;
-        return EL_ELOG;
-    }
-    return EL_OK;
-}
-
-el_err_code_t EngineTFLite::set_input(size_t index, const void* input_data, size_t input_size) {
-    EL_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->inputs().size()) {
-        return EL_EINVAL;
-    }
-    TfLiteTensor* input = interpreter->input_tensor(index);
-    if (input == nullptr) {
-        return EL_EINVAL;
-    }
-    if (input_size != input->bytes) {
-        return EL_EINVAL;
-    }
-    memcpy(input->data.data, input_data, input_size);
-    return EL_OK;
-}
-
-void* EngineTFLite::get_input(size_t index) {
-    EL_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->inputs().size()) {
+void* EngineTFLite::get_input_addr(std::size_t index) {
+    if (index >= _interpreter->inputs().size()) [[unlikely]] {
         return nullptr;
     }
-    TfLiteTensor* input = interpreter->input_tensor(index);
-    if (input == nullptr) {
+
+    TfLiteTensor* input = _interpreter->input_tensor(index);
+    if (!input) [[unlikely]] {
         return nullptr;
     }
+
     return input->data.data;
 }
 
-void* EngineTFLite::get_output(size_t index) {
-    EL_ASSERT(interpreter != nullptr);
+void* EngineTFLite::get_output_addr(std::size_t index) {
+    if (index >= _interpreter->outputs().size()) [[unlikely]] {
+        return nullptr;
+    }
 
-    if (index >= interpreter->outputs().size()) {
+    TfLiteTensor* output = _interpreter->output_tensor(index);
+    if (!output) [[unlikely]] {
         return nullptr;
     }
-    TfLiteTensor* output = interpreter->output_tensor(index);
-    if (output == nullptr) {
-        return nullptr;
-    }
+
     return output->data.data;
 }
 
-el_shape_t EngineTFLite::get_input_shape(size_t index) const {
-    el_shape_t shape;
-
-    EL_ASSERT(interpreter != nullptr);
-
-    shape.size = 0;
-    if (index >= interpreter->inputs().size()) {
-        return shape;
-    }
-    TfLiteTensor* input = interpreter->input_tensor(index);
-    if (input == nullptr) {
-        return shape;
-    }
-    shape.size = input->dims->size;
-    shape.dims = input->dims->data;
-    return shape;
-}
-
-el_shape_t EngineTFLite::get_output_shape(size_t index) const {
-    el_shape_t shape;
-    shape.size = 0;
-
-    EL_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->outputs().size()) {
-        return shape;
-    }
-    TfLiteTensor* output = interpreter->output_tensor(index);
-    if (output == nullptr) {
-        return shape;
-    }
-    shape.size = output->dims->size;
-    shape.dims = output->dims->data;
-    return shape;
-}
-
-el_quant_param_t EngineTFLite::get_input_quant_param(size_t index) const {
-    el_quant_param_t quant_param;
-    quant_param.scale      = 0;
-    quant_param.zero_point = 0;
-
-    EL_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->inputs().size()) {
-        return quant_param;
-    }
-    TfLiteTensor* input = interpreter->input_tensor(index);
-    if (input == nullptr) {
-        return quant_param;
-    }
-    quant_param.scale      = input->params.scale;
-    quant_param.zero_point = input->params.zero_point;
-    return quant_param;
-}
-
-el_quant_param_t EngineTFLite::get_output_quant_param(size_t index) const {
-    el_quant_param_t quant_param;
-    quant_param.scale      = 0;
-    quant_param.zero_point = 0;
-
-    EL_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->outputs().size()) {
-        return quant_param;
-    }
-    TfLiteTensor* output = interpreter->output_tensor(index);
-    if (output == nullptr) {
-        return quant_param;
-    }
-    quant_param.scale      = output->params.scale;
-    quant_param.zero_point = output->params.zero_point;
-    return quant_param;
-}
-
-    #ifdef CONFIG_EL_FILESYSTEM
-el_err_code_t EngineTFLite::load_model(const char* model_path) {
-    el_err_code_t ret  = EL_OK;
-    size_t        size = 0;
-    std::ifstream file(model_path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+el_err_code_t EngineTFLite::run() {
+    if (kTfLiteOk != _interpreter->Invoke()) [[unlikely]] {
         return EL_ELOG;
     }
-    size       = file.tellg();
-    model_file = new char[size];
-    if (model_file == nullptr) {
-        return EL_ENOMEM;
-    }
-    file.seekg(0, std::ios::beg);
-    file.read(static_cast<char*>(model_file), size);
-    file.close();
-    ret = load_model(model_file, size);
-    if (ret != EL_OK) {
-        delete model_file;
-        model_file = nullptr;
+
+    return EL_OK;
+}
+
+std::size_t EngineTFLite::get_input_num() const { return _interpreter->inputs().size(); }
+
+std::size_t EngineTFLite::get_output_num() const { return _interpreter->outputs().size(); }
+
+el_shape_t EngineTFLite::get_input_shape(std::size_t index) const {
+    TfLiteTensor* input = _interpreter->input_tensor(index);
+    if (!input) [[unlikely]] {
+        return {};
     }
 
-    return ret;
+    return el_shape_t{
+      .size = static_cast<decltype(el_shape_t::size)>(input->dims->size),
+      .dims = input->dims->data,
+    };
 }
-    #endif
+
+el_shape_t EngineTFLite::get_output_shape(std::size_t index) const {
+    TfLiteTensor* output = _interpreter->output_tensor(index);
+    if (!output) [[unlikely]] {
+        return {};
+    }
+
+    return el_shape_t{
+      .size = static_cast<decltype(el_shape_t::size)>(output->dims->size),
+      .dims = output->dims->data,
+    };
+}
+
+el_quant_param_t EngineTFLite::get_input_quant_param(std::size_t index) const {
+    TfLiteTensor* input = _interpreter->input_tensor(index);
+    if (!input) [[unlikely]] {
+        return {};
+    }
+
+    return el_quant_param_t{
+      .scale      = input->params.scale,
+      .zero_point = input->params.zero_point,
+    };
+}
+
+el_quant_param_t EngineTFLite::get_output_quant_param(std::size_t index) const {
+    TfLiteTensor* output = _interpreter->output_tensor(index);
+    if (!output) [[unlikely]] {
+        return {};
+    }
+
+    return el_quant_param_t{
+      .scale      = output->params.scale,
+      .zero_point = output->params.zero_point,
+    };
+}
+
+EnginesTFLite::EnginesTFLite(void* memory_resource, std::size_t size) : _allocator(nullptr) {
+    static auto resolver{tflite::OpsResolver()};
+    _resolver = &resolver;
+    EL_ASSERT(_resolver);
+
+    _allocator = tflite::MicroAllocator::Create(static_cast<uint8_t*>(memory_resource), size);
+    EL_ASSERT(_allocator);
+}
+
+el_err_code_t EnginesTFLite::attach_model(const void* model_ptr, std::size_t size) {
+    auto model = tflite::GetModel(model_ptr);
+    if (!model) [[unlikely]] {
+        return EL_EINVAL;
+    }
+
+    auto interpreter = new tflite::MicroInterpreter(model, *_resolver, _allocator);
+    if (!interpreter) [[unlikely]] {
+        return EL_ENOMEM;
+    }
+
+    if (kTfLiteOk != interpreter->AllocateTensors()) [[unlikely]] {
+        delete interpreter;
+        return EL_ENOMEM;
+    }
+
+    auto engine = new EngineTFLite(interpreter);
+    if (!engine) [[unlikely]] {
+        delete interpreter;
+        return EL_ENOMEM;
+    }
+
+    this->__engines.emplace_front(engine);
+
+    return EL_OK;
+}
+
+el_err_code_t EnginesTFLite::release() {
+    for (auto& engine : this->__engines) {
+        delete engine;
+        engine = nullptr;
+    }
+    this->__engines.clear();
+
+    if (kTfLiteOk != _allocator->ResetTempAllocations()) [[unlikely]] {
+        return EL_ELOG;
+    }
+
+    return EL_OK;
+}
 
 }  // namespace edgelab
 
