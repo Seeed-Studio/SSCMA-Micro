@@ -178,10 +178,17 @@ el_err_code_t AlgorithmYOLO::postprocess() {
             }
 
             // get box position, int8_t - int32_t (narrowing)
-            auto x{static_cast<decltype(BoxType::x)>((data[idx + INDEX_X] - zero_point) * scale)};
-            auto y{static_cast<decltype(BoxType::y)>((data[idx + INDEX_Y] - zero_point) * scale)};
-            auto w{static_cast<decltype(BoxType::w)>((data[idx + INDEX_W] - zero_point) * scale)};
-            auto h{static_cast<decltype(BoxType::h)>((data[idx + INDEX_H] - zero_point) * scale)};
+            auto x{((data[idx + INDEX_X] - zero_point) * scale)};
+            auto y{((data[idx + INDEX_Y] - zero_point) * scale)};
+            auto w{((data[idx + INDEX_W] - zero_point) * scale)};
+            auto h{((data[idx + INDEX_H] - zero_point) * scale)};
+
+            if (rescale) {
+                x = x * width;
+                y = y * height;
+                w = w * width;
+                h = h * height;
+            }
 
             box.x = EL_CLIP(x, 0, width) * _w_scale;
             box.y = EL_CLIP(y, 0, height) * _h_scale;
