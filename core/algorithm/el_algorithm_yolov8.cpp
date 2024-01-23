@@ -34,10 +34,10 @@
 
 namespace edgelab {
 
-AlgorithmYOLOv8::InfoType AlgorithmYOLOv8::algorithm_info{types::el_algorithm_yolov8_config_t::info};
+AlgorithmYOLOV8::InfoType AlgorithmYOLOV8::algorithm_info{types::el_algorithm_yolov8_config_t::info};
 
-AlgorithmYOLOv8::AlgorithmYOLOv8(EngineType* engine, ScoreType score_threshold, IoUType iou_threshold)
-    : Algorithm(engine, AlgorithmYOLOv8::algorithm_info),
+AlgorithmYOLOV8::AlgorithmYOLOV8(EngineType* engine, ScoreType score_threshold, IoUType iou_threshold)
+    : Algorithm(engine, AlgorithmYOLOV8::algorithm_info),
       _w_scale(1.f),
       _h_scale(1.f),
       _score_threshold(score_threshold),
@@ -45,7 +45,7 @@ AlgorithmYOLOv8::AlgorithmYOLOv8(EngineType* engine, ScoreType score_threshold, 
     init();
 }
 
-AlgorithmYOLOv8::AlgorithmYOLOv8(EngineType* engine, const ConfigType& config)
+AlgorithmYOLOV8::AlgorithmYOLOV8(EngineType* engine, const ConfigType& config)
     : Algorithm(engine, config.info),
       _w_scale(1.f),
       _h_scale(1.f),
@@ -54,12 +54,12 @@ AlgorithmYOLOv8::AlgorithmYOLOv8(EngineType* engine, const ConfigType& config)
     init();
 }
 
-AlgorithmYOLOv8::~AlgorithmYOLOv8() {
+AlgorithmYOLOV8::~AlgorithmYOLOV8() {
     _results.clear();
     this->__p_engine = nullptr;
 }
 
-bool AlgorithmYOLOv8::is_model_valid(const EngineType* engine) {
+bool AlgorithmYOLOV8::is_model_valid(const EngineType* engine) {
 
     const auto& input_shape{engine->get_input_shape(0)};
     if (input_shape.size != 4 ||                      // B, W, H, C
@@ -90,7 +90,7 @@ bool AlgorithmYOLOv8::is_model_valid(const EngineType* engine) {
     return true;
 }
 
-inline void AlgorithmYOLOv8::init() {
+inline void AlgorithmYOLOV8::init() {
     EL_ASSERT(is_model_valid(this->__p_engine));
     EL_ASSERT(_score_threshold.is_lock_free());
     EL_ASSERT(_iou_threshold.is_lock_free());
@@ -111,7 +111,7 @@ inline void AlgorithmYOLOv8::init() {
     EL_ASSERT(_input_img.rotate != EL_PIXEL_ROTATE_UNKNOWN);
 }
 
-el_err_code_t AlgorithmYOLOv8::run(ImageType* input) {
+el_err_code_t AlgorithmYOLOV8::run(ImageType* input) {
     _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
     _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
 
@@ -119,7 +119,7 @@ el_err_code_t AlgorithmYOLOv8::run(ImageType* input) {
     return underlying_run(input);
 };
 
-el_err_code_t AlgorithmYOLOv8::preprocess() {
+el_err_code_t AlgorithmYOLOV8::preprocess() {
     auto* i_img{static_cast<ImageType*>(this->__p_input)};
 
     // convert image
@@ -133,7 +133,7 @@ el_err_code_t AlgorithmYOLOv8::preprocess() {
     return EL_OK;
 }
 
-el_err_code_t AlgorithmYOLOv8::postprocess() {
+el_err_code_t AlgorithmYOLOV8::postprocess() {
     _results.clear();
 
     // get output
@@ -205,22 +205,22 @@ el_err_code_t AlgorithmYOLOv8::postprocess() {
     return EL_OK;
 }
 
-const std::forward_list<AlgorithmYOLOv8::BoxType>& AlgorithmYOLOv8::get_results() const { return _results; }
+const std::forward_list<AlgorithmYOLOV8::BoxType>& AlgorithmYOLOV8::get_results() const { return _results; }
 
-void AlgorithmYOLOv8::set_score_threshold(ScoreType threshold) { _score_threshold.store(threshold); }
+void AlgorithmYOLOV8::set_score_threshold(ScoreType threshold) { _score_threshold.store(threshold); }
 
-AlgorithmYOLOv8::ScoreType AlgorithmYOLOv8::get_score_threshold() const { return _score_threshold.load(); }
+AlgorithmYOLOV8::ScoreType AlgorithmYOLOV8::get_score_threshold() const { return _score_threshold.load(); }
 
-void AlgorithmYOLOv8::set_iou_threshold(IoUType threshold) { _iou_threshold.store(threshold); }
+void AlgorithmYOLOV8::set_iou_threshold(IoUType threshold) { _iou_threshold.store(threshold); }
 
-AlgorithmYOLOv8::IoUType AlgorithmYOLOv8::get_iou_threshold() const { return _iou_threshold.load(); }
+AlgorithmYOLOV8::IoUType AlgorithmYOLOV8::get_iou_threshold() const { return _iou_threshold.load(); }
 
-void AlgorithmYOLOv8::set_algorithm_config(const ConfigType& config) {
+void AlgorithmYOLOV8::set_algorithm_config(const ConfigType& config) {
     set_score_threshold(config.score_threshold);
     set_iou_threshold(config.iou_threshold);
 }
 
-AlgorithmYOLOv8::ConfigType AlgorithmYOLOv8::get_algorithm_config() const {
+AlgorithmYOLOV8::ConfigType AlgorithmYOLOV8::get_algorithm_config() const {
     ConfigType config;
     config.score_threshold = get_score_threshold();
     config.iou_threshold   = get_iou_threshold();

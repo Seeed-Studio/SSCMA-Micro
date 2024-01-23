@@ -50,7 +50,7 @@ struct el_algorithm_yolov8_config_t {
 
 }  // namespace types
 
-class AlgorithmYOLOv8 final : public Algorithm {
+class AlgorithmYOLOV8 final : public Algorithm {
    public:
     using ImageType  = el_img_t;
     using BoxType    = el_box_t;
@@ -60,9 +60,9 @@ class AlgorithmYOLOv8 final : public Algorithm {
 
     static InfoType algorithm_info;
 
-    AlgorithmYOLOv8(EngineType* engine, ScoreType score_threshold = 50, IoUType iou_threshold = 45);
-    AlgorithmYOLOv8(EngineType* engine, const ConfigType& config);
-    ~AlgorithmYOLOv8();
+    AlgorithmYOLOV8(EngineType* engine, ScoreType score_threshold = 50, IoUType iou_threshold = 45);
+    AlgorithmYOLOV8(EngineType* engine, const ConfigType& config);
+    ~AlgorithmYOLOV8();
 
     static bool is_model_valid(const EngineType* engine);
 

@@ -297,7 +297,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     _frame.data = _wdma3_baseaddr;
     _jpeg.data  = _wdma2_baseaddr;
 
-    el_printf("WD1[%x], WD2_J[%x], WD3_RAW[%x], JPAuto[%x]",
+    EL_LOGD("WD1[%x], WD2_J[%x], WD3_RAW[%x], JPAuto[%x]",
             _wdma1_baseaddr,
             _wdma2_baseaddr,
             _wdma3_baseaddr,
