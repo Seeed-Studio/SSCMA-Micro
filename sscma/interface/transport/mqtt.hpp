@@ -299,6 +299,7 @@ class MQTT final : public Supervisable, public Transport {
         if (current_sta == mqtt_sta_e::DISCONNECTED) {
             if (current_sta >= config.first) return true;
             EL_LOGD("[SSCMA] MQTT::bring_up() driver connect: %s:%d", config.second.address, config.second.port);
+            _sub_topics_set.clear();  // clear old topics
             // TODO: driver change topic callback API
             auto ret = _network->connect(config.second, mqtt_subscribe_callback);  // driver connect
             if (ret != EL_OK) [[unlikely]]
