@@ -321,6 +321,20 @@ void register_commands() {
       });
 }
 
+// void print_memory_usage() {
+//     static uint64_t last_time = 0;
+
+//     auto now = el_get_time_ms();
+//     if (now - last_time < 2000) {
+//         return;
+//     }
+
+//     last_time = now;
+
+//     size_t freeHeapSize = xPortGetFreeHeapSize();
+//     printf("Free heap memory: %u bytes\n", freeHeapSize);
+// }
+
 void wait_for_inputs() {
     // mark the system status as ready
     static_resource->executor->add_task(
@@ -330,8 +344,8 @@ void wait_for_inputs() {
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 
     auto transports = std::forward_list<Transport*>{
-        static_resource->serial, 
-        static_resource->mqtt, 
+        static_resource->serial,
+        static_resource->mqtt,
         static_resource->wire
     };
     char* buf = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
@@ -344,6 +358,7 @@ Loop:
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
     });
+    // print_memory_usage();
     el_sleep(20);
     goto Loop;
 }

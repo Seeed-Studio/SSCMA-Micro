@@ -155,7 +155,10 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                std::to_string(_times),
                                data,
                                "}}\n")};
+        // auto s = el_get_time_ms();
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
+        // auto e = el_get_time_ms();
+        // printf("send_bytes -> time: %d, bytes: %d\n", int(e - s), int(ss.size()));
     }
 
     inline void event_loop() {
