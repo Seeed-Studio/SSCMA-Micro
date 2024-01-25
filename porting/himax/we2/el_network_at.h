@@ -97,14 +97,14 @@ typedef enum {
 using namespace edgelab;
 
 typedef struct esp_at {
-    char tbuf[AT_TX_MAX_LEN];
-    // char rbuf[AT_RX_MAX_LEN];
+    char   tbuf[AT_TX_MAX_LEN];
+
     lwRingBuffer* rbuf;
 
     DEV_UART_PTR port;
     uint8_t      state;
-    uint16_t     tbuf_len;
-    uint16_t     sent_len;
+    uint32_t     tbuf_len;
+    uint32_t     sent_len;
 
     topic_cb_t cb;
 } esp_at_t;

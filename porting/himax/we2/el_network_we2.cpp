@@ -99,7 +99,7 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
     EL_LOGD("%s\n", at->tbuf);
     at->state = AT_STATE_PROCESS;
 
-    at->port->uart_write(at->tbuf, strlen(at->tbuf));
+    at->port->uart_write(at->tbuf, at->tbuf_len);
 
     if (xSemaphoreTake(at_got_response, timeout) == pdFALSE) {
         EL_LOGD("AT TIMEOUT\n");
@@ -258,7 +258,7 @@ void NetworkWE2::init(status_cb_t cb) {
     t = 0;
     memset((void*)at.tbuf, 0, 1024 + strlen(AT_STR_CRLF));
 
-    sprintf(at.tbuf, AT_STR_CRLF AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_CRLF AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
     at.port->uart_write(at.tbuf, strlen(at.tbuf));
     while (at.state != AT_STATE_READY) {
         if (t >= AT_LONG_TIME_MS) {
@@ -269,14 +269,14 @@ void NetworkWE2::init(status_cb_t cb) {
         t += 10;
     }
 
-    sprintf(at.tbuf, AT_STR_ECHO AT_STR_CRLF);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_ECHO AT_STR_CRLF);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT ECHO ERROR : %d\n", err);
         return;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWMODE "=1" AT_STR_CRLF);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWMODE "=1" AT_STR_CRLF);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT CWMODE ERROR : %d\n", err);
         return;
@@ -307,13 +307,15 @@ void NetworkWE2::set_status(el_net_sta_t status) {
 }
 
 void NetworkWE2::deinit() {
-    vTaskDelete(status_handler);
-    vTaskDelete(at_rx_parser);
+    // vTaskDelete(status_handler);
+    // vTaskDelete(at_rx_parser);
 
     at.state = AT_STATE_LOST;
 
-    delete at_rbuf;
-    at_rbuf = nullptr;
+    at.tbuf_len = 0;
+
+    // delete at_rbuf;
+    // at_rbuf = nullptr;
 
     this->set_status(NETWORK_LOST);
 }
@@ -327,14 +329,14 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
         return EL_EPERM;
     }
     // AT+CWJAP=[<ssid>],[<pwd>][,<bssid>][,<pci_en>][,<reconn_interval>][,<listen_interval>][,<scan_mode>][,<jap_timeout>][,<pmf>]
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWJAP "=\"%s\",\"%s\"" AT_STR_CRLF, ssid, pwd);
-    err = at_send(&at, AT_LONG_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWJAP "=\"%s\",\"%s\"" AT_STR_CRLF, ssid, pwd);
+    err         = at_send(&at, AT_LONG_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
-    at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = at_send(&at, AT_SHORT_TIME_MS);
 
     return EL_OK;
 }
@@ -344,8 +346,8 @@ el_err_code_t NetworkWE2::quit() {
     if (this->network_status == NETWORK_IDLE || this->network_status == NETWORK_LOST) {
         return EL_OK;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWQAP AT_STR_CRLF);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWQAP AT_STR_CRLF);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT CWJAP ERROR : %d\n", err);
         return err;
@@ -355,38 +357,43 @@ el_err_code_t NetworkWE2::quit() {
 
 el_err_code_t NetworkWE2::set_mdns(mdns_record_t record) {
     el_err_code_t err = EL_OK;
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSSTART "=\"%s\"" AT_STR_CRLF, record.host_name);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len       = sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSSTART "=\"%s\"" AT_STR_CRLF, record.host_name);
+    err               = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ERROR : %d\n", err);
         return err;
     }
 
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_SERVER, record.server);
+    at.tbuf_len =
+      sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_SERVER, record.server);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_SERVER, err);
         return err;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%d\"" AT_STR_CRLF, MDNS_ITEM_PORT, record.port);
+    at.tbuf_len =
+      sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%d\"" AT_STR_CRLF, MDNS_ITEM_PORT, record.port);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PORT, err);
         return err;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_PROTOCAL, record.protocol);
+    at.tbuf_len =
+      sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_PROTOCAL, record.protocol);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_PROTOCAL, err);
         return err;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_DEST, record.destination);
+    at.tbuf_len =
+      sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_DEST, record.destination);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_DEST, err);
         return err;
     }
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_AUTH, record.authentication);
+    at.tbuf_len = sprintf(
+      at.tbuf, AT_STR_HEADER AT_STR_MDNSADD "=\"%s\",\"%s\"" AT_STR_CRLF, MDNS_ITEM_AUTH, record.authentication);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MDNS ADD %s ERROR : %d\n", MDNS_ITEM_AUTH, err);
@@ -429,20 +436,20 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
                 t += 100;
             }
         }
-        sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPTIME AT_STR_CRLF);
-        err = at_send(&at, AT_SHORT_TIME_MS);
+        at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPTIME AT_STR_CRLF);
+        err         = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             EL_LOGI("AT CIPSNTPTIME ERROR : %d\n", err);
             return err;
         }
     }
 
-    sprintf(at.tbuf,
-            AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,%d,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
-            mqtt_cfg.use_ssl ? 4 : 1,
-            mqtt_cfg.client_id,
-            mqtt_cfg.username,
-            mqtt_cfg.password);
+    at.tbuf_len = sprintf(at.tbuf,
+                          AT_STR_HEADER AT_STR_MQTTUSERCFG "=0,%d,\"%s\",\"%s\",\"%s\",0,0,\"\"" AT_STR_CRLF,
+                          mqtt_cfg.use_ssl ? 4 : 1,
+                          mqtt_cfg.client_id,
+                          mqtt_cfg.username,
+                          mqtt_cfg.password);
     EL_LOGI("AT MQTTUSERCFG : %s\n", at.tbuf);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
@@ -451,7 +458,8 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
         return err;
     }
 
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",%d,1" AT_STR_CRLF, mqtt_cfg.address, mqtt_cfg.port);
+    at.tbuf_len =
+      sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCONN "=0,\"%s\",%d,1" AT_STR_CRLF, mqtt_cfg.address, mqtt_cfg.port);
     err = at_send(&at, AT_LONG_TIME_MS * 3);  // 30s
     if (err != EL_OK) {
         EL_LOGI("AT MQTTCONN ERROR : %d\n", err);
@@ -469,8 +477,8 @@ el_err_code_t NetworkWE2::disconnect() {
         return EL_EPERM;
     }
 
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCLEAN "=0" AT_STR_CRLF);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTCLEAN "=0" AT_STR_CRLF);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MQTTCLEAN ERROR : %d\n", err);
         return err;
@@ -484,8 +492,8 @@ el_err_code_t NetworkWE2::subscribe(const char* topic, mqtt_qos_t qos) {
         return EL_EPERM;
     }
 
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTSUB "=0,\"%s\",%d" AT_STR_CRLF, topic, qos);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTSUB "=0,\"%s\",%d" AT_STR_CRLF, topic, qos);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MQTTSUB ERROR : %d\n", err);
         return err;
@@ -499,8 +507,8 @@ el_err_code_t NetworkWE2::unsubscribe(const char* topic) {
         return EL_EPERM;
     }
 
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTUNSUB "=0,\"%s\"" AT_STR_CRLF, topic);
-    err = at_send(&at, AT_SHORT_TIME_MS);
+    at.tbuf_len = sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTUNSUB "=0,\"%s\"" AT_STR_CRLF, topic);
+    err         = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
         EL_LOGD("AT MQTTUNSUB ERROR : %d\n", err);
         return err;
@@ -525,7 +533,8 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
             buf[j++] = dat[i];
         }
         buf[j] = '\0';
-        sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, buf, qos);
+        at.tbuf_len =
+          sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "=0,\"%s\",\"%s\",%d,0" AT_STR_CRLF, topic, buf, qos);
         err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             EL_LOGD("AT MQTTPUB ERROR : %d\n", err);
@@ -535,7 +544,8 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         xSemaphoreTake(pubraw_complete, portMAX_DELAY);
         // last_pub = xTaskGetTickCount();
         uint16_t send_len = len;
-        sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
+        at.tbuf_len =
+          sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
         err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
             // printf("\t[%d] receive_header response timeout\n", (int)count);
