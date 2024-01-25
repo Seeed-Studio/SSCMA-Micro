@@ -185,6 +185,10 @@ void NetworkWE2::init(status_cb_t cb) {
         at.rbuf = at_rbuf;
     }
 
+    at_rbuf->clear();
+
+    memset((void*)at.tbuf, 0, AT_TX_MAX_LEN);
+
     if (at.port == NULL) {
         hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX, 0);
         hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX, 0);
@@ -195,7 +199,7 @@ void NetworkWE2::init(status_cb_t cb) {
             return;
         }
         at.port->uart_open(UART_BAUDRATE_921600);
-        memset((void*)at.tbuf, 0, sizeof(at.tbuf));
+
         at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
     }
 
