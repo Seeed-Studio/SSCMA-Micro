@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -123,21 +124,18 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     std::size_t read_bytes(char* buffer, std::size_t size) override {
-        auto        head   = _head;
-        auto        tail   = _tail;
-        auto        remain = head < tail ? tail - head : _size - (head - tail);
-        std::size_t avail  = _size - remain;
+        std::size_t const size_mask = _size - 1;
+        auto              head      = _head.load();
+        auto              tail      = _tail.load();
+        std::size_t       avail     = head > tail ? head - tail : _size - (tail - head);
 
         size          = std::min(avail, size);
         std::size_t i = 0;
-        for (; i < avail; ++i) {
-            auto c    = _buffer[tail = (tail + i) % _size];
-            buffer[i] = c;
-            if (c == '\0') [[unlikely]]
-                break;
+        for (; (head != tail) & (i < size); tail = (tail + 1) & size_mask, ++i) {
+            buffer[i] = _buffer[tail];
         }
 
-        _tail = tail;
+        _tail.store(tail);
 
         return i;
     }
@@ -156,40 +154,36 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     char get_char() override {
-        auto head = _head;
-        auto tail = _tail;
+        std::size_t const size_mask = _size - 1;
+        auto              head      = _head.load();
+        auto              tail      = _tail.load();
 
         if (head == tail) return '\0';
 
         auto c = _buffer[tail];
-        tail   = (tail + 1) % _size;
-        _tail  = tail;
+        tail   = (tail + 1) & size_mask;
+        _tail.store(tail);
 
         return c;
     }
 
     std::size_t get_line(char* buffer, std::size_t size, const char delim = 0x0d) override {
-        std::size_t       len     = 0;
-        std::size_t const len_max = size - 1;
-        auto              head    = _head;
-        auto              tail    = _tail;
-        auto              prev    = tail;
-        auto              found   = false;
+        std::size_t       len       = 0;
+        std::size_t const size_mask = _size - 1;
+        auto              head      = _head.load();
+        auto              tail      = _tail.load();
+        auto              prev      = tail;
+        auto              found     = false;
 
-        if (head == tail) return 0;
-
-        for (; (!found) & (head != tail) & (len < len_max); tail = (tail + 1) % _size, ++len) {
+        for (; (!found) & (head != tail) & (len < size); tail = (tail + 1) & size_mask, ++len) {
             char c = _buffer[tail];
-            if (c == '\0')
-                break;
-            else if (c == delim)
-                found = true;
+            found  = (c == '\0') | (c == delim);
         }
 
         if (!found) return 0;
 
-        for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) % _size];
-        _tail = tail;
+        for (std::size_t i = 0; i < len; ++i) buffer[i] = _buffer[(prev + i) & size_mask];
+        _tail.store(tail);
 
         return len;
     }
@@ -264,18 +258,19 @@ class MQTT final : public Supervisable, public Transport {
     }
 
     inline bool push_to_buffer(const char* bytes, std::size_t size) {
-        std::size_t len    = 0;
-        auto        head   = _head;
-        auto        tail   = _tail;
-        auto        remain = head < tail ? tail - head : _size - (head - tail);
+        std::size_t       len       = 0;
+        std::size_t const size_mask = _size - 1;
+        auto              head      = _head.load();
+        auto              tail      = _tail.load();
+        std::size_t       remain    = head < tail ? tail - head : _size - (head - tail);
 
         size = std::min(remain, size);
         for (; len < size; ++len) {
             _buffer[head] = bytes[len];
-            head          = (head + 1) % _size;
+            head          = (head + 1) & size_mask;
         }
 
-        _head = head;
+        _head.store(head);
 
         return len == size;
     }
@@ -400,11 +395,11 @@ class MQTT final : public Supervisable, public Transport {
     Network*           _network;
     Mutex              _device_lock;
 
-    static MQTT*         _mqtt_handler_ptr;
-    const std::size_t    _size;
-    char*                _buffer;
-    volatile std::size_t _head;
-    volatile std::size_t _tail;
+    static MQTT*             _mqtt_handler_ptr;
+    const std::size_t        _size;
+    char*                    _buffer;
+    std::atomic<std::size_t> _head;
+    std::atomic<std::size_t> _tail;
 
     SynchronizableObject<std::pair<mqtt_sta_e, mqtt_server_config_t>> _mqtt_server_config;
 
