@@ -48,38 +48,139 @@ static resp_trigger_t resp_flow[] = {
 
 static SemaphoreHandle_t at_got_response = NULL;
 static SemaphoreHandle_t pubraw_complete = NULL;
-static TimerHandle_t pubraw_tmr = NULL;
 // static uint32_t last_pub = 0;
 
-static void pubraw_tmr_cb(TimerHandle_t xTmr) {
-    BaseType_t taskwaken = pdFALSE;
-    if (at.sent_len >= at.tbuf_len) {   // all tbuf data sent
-        EL_LOGW("PUBRAW TIMEOUT\n");
-        xSemaphoreGiveFromISR(pubraw_complete, &taskwaken);
-    }
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+static uint8_t send_seq = 0;
+static uint8_t recv_seq = 0;
+static TaskHandle_t handshake_handler = NULL;
+static SemaphoreHandle_t spi_lock = NULL;
+
+static const uint8_t read_opt[3] = {0x04, 0x04, 0x00};
+static const uint8_t read_done[3] = {0x08, 0x04, 0x00};
+static const uint8_t send_opt[3] = {0x03, 0x00, 0x00};
+static const uint8_t send_done[3] = {0x07, 0x00, 0x00};
+
+volatile static bool at_read_done = false;
+volatile static bool at_write_done = false;
+volatile static bool at_query_done = false;
+static void at_read_done_cb(void* arg) {
+    at_read_done = true;
+}
+static void at_write_done_cb(void* arg) {
+    at_write_done = true;
+}
+static void at_query_status_cb(void* status) {
+    at_query_done = true;
+}
+static spi_recv_opt_t at_query_status(esp_at_t* at) {
+    static const uint8_t query[7] = {0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
+    static uint8_t ret[7] = {0};
+    spi_recv_opt_t query_ret = {0};
+    at_query_done = false;
+
+    SCB_CleanDCache_by_Addr((volatile void*)ret, sizeof(ret));
+    at->port->spi_read_write_dma(
+        (void *)query, sizeof(query),
+        (void *)ret, sizeof(ret),
+        (void *)at_query_status_cb
+    );
+    while(!at_query_done);
+
+    query_ret.direct = ret[3];
+    query_ret.seq_num = ret[4];
+    query_ret.transmit_len = (ret[6] << 8) | ret[5];
+    EL_LOGD("query return, direct: %d, seq: %d, len: %d", 
+            query_ret.direct, query_ret.seq_num, query_ret.transmit_len);
+
+    return query_ret;
 }
 
-static void dma_tx_cb(void* arg) {
-    BaseType_t taskwaken = pdFALSE;
-    uint16_t send_len = (at.tbuf_len - at.sent_len) > 4095 ? 4095 : (at.tbuf_len - at.sent_len);
-    at.sent_len += send_len;
-    // EL_LOGD("PUBRAW: %u / %u", at.sent_len, at.tbuf_len);
-    if (at.sent_len < at.tbuf_len) {
-        send_len = (at.tbuf_len - at.sent_len) > 4095 ? 4095 : (at.tbuf_len - at.sent_len);
-        at.port->uart_write_udma(at.tbuf + at.sent_len, send_len, (void*)dma_tx_cb);
-    } else {
-        // EL_LOGI("AT PUBRAW COMPLETE: %u ms\n", xTaskGetTickCount() - last_pub);
-        // last_pub = xTaskGetTickCount();
-        xTimerChangePeriodFromISR(pubraw_tmr, AT_SHORT_TIME_MS * portTICK_PERIOD_MS, NULL);
+static void at_port_handshake_cb(uint8_t group, uint8_t aIndex);
+
+#else
+static void at_port_txcb(void* arg);
+static void at_port_rxcb(void* arg);
+#endif
+
+static uint16_t send_len = 0;
+static void at_port_write(esp_at_t* at) {
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+    static uint8_t value = 0;
+    static uint8_t send_req[7] = {0x01, 0x00, 0x00, 0xfe, send_seq, 0, 0};
+
+    at->tbuf_len = strlen(at->tbuf);
+    send_len = at->tbuf_len - at->sent_len > AT_DMA_TRAN_MAX_SIZE ? 
+                AT_DMA_TRAN_MAX_SIZE : at->tbuf_len - at->sent_len;
+    send_req[5] = (send_len) & 0xff;
+    send_req[6] = (send_len >> 8) & 0xff;
+
+    hx_drv_gpio_get_in_value(AON_GPIO0, &value);
+    if (value == 1) {
+        EL_LOGD("clean handshake before write");
+        xTaskNotify(handshake_handler, 0, eNoAction);
+        el_sleep(4);
     }
+
+    EL_LOGD("request send: %s", at->tbuf);
+    at->port->spi_write(send_req, 7);
+#else
+    at->port->uart_write(at->tbuf, strlen(at->tbuf));
+#endif
+}
+
+static void at_port_init(esp_at_t* at) {
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+    SCU_PAD_PULL_LIST_T pull_cfg;
+    pull_cfg.pa0.pull_en = SCU_PAD_PULL_EN;
+    pull_cfg.pa0.pull_sel = SCU_PAD_PULL_DOWN;
+    pull_cfg.pb2.pull_en = SCU_PAD_PULL_EN;
+    pull_cfg.pb2.pull_sel = SCU_PAD_PULL_DOWN;
+    pull_cfg.pb3.pull_en = SCU_PAD_PULL_EN;
+    pull_cfg.pb3.pull_sel = SCU_PAD_PULL_DOWN;
+    hx_drv_scu_set_PA0_pinmux(SCU_PA0_PINMUX_AON_GPIO0_0, 0);
+    hx_drv_scu_set_all_pull_cfg(&pull_cfg); 
+    hx_drv_gpio_set_int_type(AON_GPIO0, GPIO_IRQ_TRIG_TYPE_EDGE_RISING);
+    hx_drv_gpio_cb_register(AON_GPIO0, at_port_handshake_cb);
+    hx_drv_gpio_set_input(AON_GPIO0);
+    hx_drv_gpio_set_int_enable(AON_GPIO0, 1);
+
+    hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI_M_DO_1, 0);
+    hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI_M_DI_1, 0);
+    hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI_M_SCLK_1, 1);
+    hx_drv_scu_set_PB11_pinmux(SCU_PB11_PINMUX_SPI_M_CS, 1);
+
+    at->port = hx_drv_spi_mst_get_dev(USE_DW_SPI_MST_S);
+    if (at->port == NULL) {
+        EL_ELOG("spi init error\n");
+        return;
+    }
+    at->port->spi_open(DEV_MASTER_MODE, 20000000);
+    // DW_SPI_M_RXSD_S rx_delay_config;
+    // rx_delay_config.RSD = 2;
+    // rx_delay_config.SE = 0;
+    // at->port->spi_control(SPI_CMD_MST_SET_RXSD, (SPI_CTRL_PARAM)&rx_delay_config);
+#else
+    hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX, 0);
+    hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX, 0);
+    hx_drv_uart_init(USE_DW_UART_1, HX_UART1_BASE);
+    at->port = hx_drv_uart_get_dev(USE_DW_UART_1);
+    if (at->port == NULL) {
+        EL_LOGD("uart init error\n");
+        return;
+    }
+    at->port->uart_open(UART_BAUDRATE_921600);
+    memset((void*)at->tbuf, 0, sizeof(at->tbuf));
+    at->port->uart_read_udma(dma_rx, 1, (void*)at_port_rxcb);
+#endif
 }
 
 static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
-    uint32_t t = 0;
-    xSemaphoreTake(at_got_response, 0);
-    EL_LOGD("%s\n", at->tbuf);
+    xSemaphoreTake(at_got_response, 0); // clear semaphore
+    EL_LOGW("at_send: %s\n", at->tbuf);
     at->state = AT_STATE_PROCESS;
-    at->port->uart_write(at->tbuf, strlen(at->tbuf));
+    at->sent_len = 0;
+    at_port_write(at);
 
     if (xSemaphoreTake(at_got_response, timeout) == pdFALSE) {
         EL_LOGD("AT TIMEOUT\n");
@@ -91,6 +192,87 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
         return EL_EIO;
     }
     return EL_OK;
+}
+
+/************* AT command handler **************/
+
+// update status for spi write, read spi when readable
+static void spi_trans_handler(void* arg) {
+    static uint8_t send_data[256] = {0};
+    static uint8_t read_data[256] = {0};
+    spi_recv_opt_t query_ret = {0};
+    memcpy(send_data, read_opt, sizeof(read_opt));
+    while (1) {
+        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, NULL, portMAX_DELAY) != pdPASS) continue;
+        EL_LOGD("[transmitt]");
+        xSemaphoreTake(spi_lock, portMAX_DELAY);
+        query_ret = at_query_status(&at);
+        if (query_ret.direct == 0x01) {
+            if (query_ret.transmit_len > 253) {
+                EL_LOGW("data too long: %d\n", query_ret.transmit_len);
+                xSemaphoreGive(spi_lock);
+                continue;
+            }
+            EL_LOGD("readable, len: %d, seq: %d", query_ret.transmit_len, query_ret.seq_num);
+            recv_seq = (recv_seq + 1) % 256; // query_ret.seq_num
+
+            at_read_done = false;
+            SCB_CleanDCache_by_Addr((volatile void*)read_data, sizeof(read_opt) + query_ret.transmit_len);
+            at.port->spi_read_write_dma(
+                (void *)send_data, sizeof(read_opt) + query_ret.transmit_len,
+                (void *)read_data, sizeof(read_opt) + query_ret.transmit_len,
+                (void *)at_read_done_cb
+            );
+            
+            while(!at_read_done);
+
+            read_data[query_ret.transmit_len + sizeof(read_opt)] = '\0';
+            EL_LOGD("read: %s", (char*)read_data + sizeof(read_opt));
+            for (uint32_t i = 0; i < query_ret.transmit_len; i++) {
+                *at_rbuf << (char)read_data[i + sizeof(read_opt)];
+                if ((char)read_data[i + sizeof(read_opt)] == '\n') {
+                    xTaskNotifyGive(at_rx_parser);
+                    portYIELD();
+                }
+            }
+
+            at.port->spi_write(read_done, sizeof(read_done));
+            EL_LOGD("read done\n");
+        } else if (query_ret.direct == 0x02) {
+            EL_LOGD("writeable, len: %d, seq: %d", at.tbuf_len, query_ret.seq_num);
+            send_seq++;
+            
+            at_write_done = false;
+            SCB_CleanDCache_by_Addr((volatile void*)at.tbuf, at.tbuf_len);
+            at.port->spi_write_ptl(send_opt, sizeof(send_opt), 
+                                   at.tbuf + at.sent_len, send_len, 
+                                   (void *)at_write_done_cb);
+
+            while(!at_write_done);
+            at.sent_len += send_len;
+            at.port->spi_write(send_done, sizeof(send_done));
+            EL_LOGD("wrote %d/%d", at.sent_len, at.tbuf_len);
+
+            if (at.sent_len < at.tbuf_len) {
+                // at_port_write(&at);
+                static uint8_t send_req[7] = {0x01, 0x00, 0x00, 0xfe, send_seq, 0, 0};
+                send_len = at.tbuf_len - at.sent_len > AT_DMA_TRAN_MAX_SIZE ? 
+                            AT_DMA_TRAN_MAX_SIZE : at.tbuf_len - at.sent_len;
+                send_req[5] = (send_len) & 0xff;
+                send_req[6] = (send_len >> 8) & 0xff;
+                at.port->spi_write(send_req, 7);
+            } else {
+                at.sent_len = 0;
+                at.tbuf_len = 0;
+            }
+        } else {
+            EL_LOGW("unknown direct: %d", query_ret.direct);
+            xSemaphoreGive(spi_lock);
+            continue;
+        }
+        
+        xSemaphoreGive(spi_lock);
+    }
 }
 
 static void at_recv_parser(void* arg) {
@@ -135,121 +317,85 @@ static void network_status_handler(void* arg) {
     }
 }
 
-static void dma_rx_cb(void* arg) {
-    BaseType_t taskwaken = pdFALSE;
-    if (at.state == AT_STATE_LOST) {
-        at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
+static void at_base_init(NetworkWE2* ptr) {
+    EL_LOGD("at_base_init\n");
+    spi_lock = xSemaphoreCreateMutex();
+
+    at_rbuf = new lwRingBuffer(AT_RX_MAX_LEN);
+    at_got_response = xSemaphoreCreateBinary();
+    pubraw_complete = xSemaphoreCreateBinary();
+
+    EL_ASSERT(spi_lock);
+
+    EL_ASSERT(at_rbuf);
+    EL_ASSERT(at_got_response);
+    EL_ASSERT(pubraw_complete);
+    at.rbuf = at_rbuf;
+    // Parse data and trigger events
+    if (xTaskCreate(at_recv_parser, "at_recv_parser", CONFIG_EL_NETWORK_STACK_SIZE, ptr, CONFIG_EL_NETWORK_PRIO, &at_rx_parser) != pdPASS) {
+        EL_LOGD("at_recv_parser create error\n");
         return;
     }
-
-    *at_rbuf << dma_rx[0];
-    if (dma_rx[0] == '\n') {
-        vTaskNotifyGiveFromISR(at_rx_parser, &taskwaken);
+    // Handle network status change events
+    if (xTaskCreate(network_status_handler, "network_status_handler", CONFIG_EL_NETWORK_STATUS_STACK_SIZE, ptr, CONFIG_EL_NETWORK_STATUS_PRIO, &status_handler) !=
+        pdPASS) {
+        EL_LOGD("network_status_handler create error\n");
+        return;
     }
-    at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
-    portYIELD_FROM_ISR(taskwaken);
+    if (xTaskCreate(spi_trans_handler, "spi_trans_handler", 512, NULL, CONFIG_EL_NETWORK_PRIO, &handshake_handler) != pdPASS) {
+        EL_LOGD("spi_trans_handler create error\n");
+        return;
+    }
+    at.state = AT_STATE_IDLE;
 }
 
 namespace edgelab {
 
 void NetworkWE2::init(status_cb_t cb) {
     el_err_code_t err = EL_OK;
-    _at      = &at;
-    at.state = AT_STATE_LOST;
-    if (at_rbuf == NULL) {
-        at_rbuf = new lwRingBuffer(AT_RX_MAX_LEN);
-        if (at_rbuf == NULL) {
-            EL_LOGD("at_rbuf init error\n");
-            return;
-        }
-        at.rbuf = at_rbuf;
+    _at = &at;
+    if (at.state == AT_STATE_LOST) {
+        at_base_init(this);
+        if (at.state != AT_STATE_IDLE) return;
     }
-
     if (at.port == NULL) {
-        hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX, 0);
-        hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX, 0);
-        hx_drv_uart_init(USE_DW_UART_1, HX_UART1_BASE);
-        at.port = hx_drv_uart_get_dev(USE_DW_UART_1);
-        if (at.port == NULL) {
-            EL_LOGD("uart init error\n");
-            return;
-        }
-        at.port->uart_open(UART_BAUDRATE_921600);
-        memset((void*)at.tbuf, 0, sizeof(at.tbuf));
-        at.port->uart_read_udma(dma_rx, 1, (void*)dma_rx_cb);
+        at_port_init(&at);
+        if (at.port == NULL) return;
     }
 
-    // Parse data and trigger events
-    if (xTaskCreate(at_recv_parser, "at_recv_parser", CONFIG_EL_NETWORK_STACK_SIZE, this, CONFIG_EL_NETWORK_PRIO, &at_rx_parser) != pdPASS) {
-        EL_LOGD("at_recv_parser create error\n");
-        return;
-    }
-    // Handle network status change events
-    if (xTaskCreate(network_status_handler, "network_status_handler", CONFIG_EL_NETWORK_STATUS_STACK_SIZE, this, CONFIG_EL_NETWORK_STATUS_PRIO, &status_handler) !=
-        pdPASS) {
-        EL_LOGD("network_status_handler create error\n");
-        return;
-    }
-    if (at_got_response == NULL) {
-        at_got_response = xSemaphoreCreateBinary();
-        if (at_got_response == NULL) {
-            EL_LOGD("at_got_response create error\n");
-            return;
-        }
-    }
-    if (pubraw_complete == NULL) {
-        pubraw_complete = xSemaphoreCreateBinary();
-        if (pubraw_complete == NULL) {
-            EL_LOGD("pubraw_complete create error\n");
-            return;
-        }
-    }
     xSemaphoreGive(pubraw_complete);
-    if (pubraw_tmr == NULL) {
-        pubraw_tmr = xTimerCreate("pubraw_tmr", pdMS_TO_TICKS(AT_SHORT_TIME_MS), pdFALSE, NULL,
-                                     pubraw_tmr_cb);
-        if (pubraw_tmr == NULL) {
-            EL_LOGD("pubraw_tmr create error\n");
-            return;
-        }
-    }
     at.state = AT_STATE_PROCESS;
-    uint32_t t = 0;
-
-    memset((void*)at.tbuf, '0', 126);
-    memcpy((void*)at.tbuf + 126, AT_STR_CRLF, strlen(AT_STR_CRLF));
-    while (at.state == AT_STATE_PROCESS) {
-        at.port->uart_write(at.tbuf, strlen(at.tbuf));
-        if (t >= AT_SHORT_TIME_MS) {
-            EL_LOGD("AT FLUSH TIMEOUT\n");
-            return;
-        }
-        el_sleep(10);
-        t += 10;
-    }
+    // uint32_t t = 0;
+    // memset((void*)at.tbuf, '0', 126);
+    // memcpy((void*)at.tbuf + 126, AT_STR_CRLF, strlen(AT_STR_CRLF));
+    // while (at.state == AT_STATE_PROCESS) {
+    //     at_port_write(&at);
+    //     if (t >= AT_SHORT_TIME_MS) {
+    //         EL_LOGD("AT FLUSH TIMEOUT\n");
+    //         return;
+    //     }
+    //     el_sleep(10);
+    //     t += 10;
+    // }
     
-    t = 0;
-    sprintf(at.tbuf, AT_STR_HEADER AT_STR_RST AT_STR_CRLF);
-    at.port->uart_write(at.tbuf, strlen(at.tbuf));
-    while (at.state != AT_STATE_READY) {
-        if (t >= AT_LONG_TIME_MS) {
-            EL_LOGD("AT RST TIMEOUT\n");
-            return;
-        }
+    static uint8_t value = 0;
+    hx_drv_gpio_get_in_value(AON_GPIO0, &value);
+    if (value == 1) {
+        EL_LOGW("clean handshake before write");
+        xTaskNotify(handshake_handler, 0, eNoAction);
         el_sleep(10);
-        t += 10;
     }
 
     sprintf(at.tbuf, AT_STR_ECHO AT_STR_CRLF);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
-        EL_LOGD("AT ECHO ERROR : %d\n", err);
+        EL_LOGW("AT ECHO ERROR : %d\n", err);
         return;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWMODE "=1" AT_STR_CRLF);
     err = at_send(&at, AT_SHORT_TIME_MS);
     if (err != EL_OK) {
-        EL_LOGD("AT CWMODE ERROR : %d\n", err);
+        EL_LOGW("AT CWMODE ERROR : %d\n", err);
         return;
     }
     
@@ -260,9 +406,9 @@ void NetworkWE2::init(status_cb_t cb) {
 }
 
 void NetworkWE2::deinit() {
-    at.port->uart_close();
+    // at.port->uart_close();
     delete at_rbuf;
-    at.port = NULL;
+    // at.port = NULL;
     vTaskDelete(at_rx_parser);
     vTaskDelete(status_handler);
     at.state = AT_STATE_LOST;
@@ -280,7 +426,7 @@ el_err_code_t NetworkWE2::join(const char* ssid, const char* pwd) {
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CWJAP "=\"%s\",\"%s\"" AT_STR_CRLF, ssid, pwd);
     err = at_send(&at, AT_LONG_TIME_MS * 4);
     if (err != EL_OK) {
-        EL_LOGD("AT CWJAP ERROR : %d\n", err);
+        EL_LOGW("AT CWJAP ERROR : %d\n", err);
         return err;
     }
     sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSTA "?" AT_STR_CRLF);
@@ -371,7 +517,7 @@ el_err_code_t NetworkWE2::connect(const mqtt_server_config_t mqtt_cfg, topic_cb_
             sprintf(at.tbuf, AT_STR_HEADER AT_STR_CIPSNTPCFG "=1,%d,\"%s\",\"%s\"" AT_STR_CRLF,
                     UTC_TIME_ZONE_CN, SNTP_SERVER_CN, SNTP_SERVER_US);
             EL_LOGI("AT CIPSNTPCFG : %s\n", at.tbuf);
-            at.port->uart_write(at.tbuf, strlen(at.tbuf));
+            at_port_write(&at);
             uint32_t t = 0;
             while (!this->_time_synced) {
                 if (t >= AT_LONG_TIME_MS * 12) {
@@ -488,9 +634,12 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         }
     } 
     else if (len + 1 < sizeof(at.tbuf)) {
-        xSemaphoreTake(pubraw_complete, portMAX_DELAY);
+        if (xSemaphoreTake(pubraw_complete, AT_PUB_RAW_TIMEOUT_MS * portTICK_PERIOD_MS) != pdTRUE) {
+            xSemaphoreGive(pubraw_complete);
+            EL_LOGW("AT MQTTPUB ERROR : PUBRAW TIMEOUT\n");
+            return EL_ETIMOUT;
+        }
         // last_pub = xTaskGetTickCount();
-        uint16_t send_len = len;
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
         err = at_send(&at, AT_SHORT_TIME_MS);
         if (err != EL_OK) {
@@ -501,10 +650,14 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         snprintf(at.tbuf, len + 1, "%s", dat);
         at.sent_len = 0;
         at.tbuf_len = strlen(at.tbuf);
-        send_len = at.tbuf_len > 4095 ? 4095 : at.tbuf_len;
-        at.port->uart_write_udma(at.tbuf, send_len, (void*)dma_tx_cb);
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+        at_port_write(&at);
+#else
+        uint16_t send_len = at.tbuf_len > AT_DMA_TRAN_MAX_SIZE ? AT_DMA_TRAN_MAX_SIZE : at.tbuf_len;
+        at.port->uart_write_udma(at.tbuf, send_len, (void*)at_port_txcb);
+#endif
     } else {
-        EL_LOGD("AT MQTTPUB ERROR : DATA TOO LONG\n");
+        EL_LOGW("AT MQTTPUB ERROR : DATA TOO LONG\n");
         return EL_ENOMEM;
     }
 
@@ -513,6 +666,45 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
 
 }  // namespace edgelab
 
+/************* AT port driver callbacks **************/
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+static void at_port_handshake_cb(uint8_t group, uint8_t aIndex) {
+    EL_LOGD("[handshake]");
+    BaseType_t taskwaken = pdFALSE;
+    xTaskNotifyFromISR(handshake_handler, 0, eNoAction, &taskwaken);
+    portYIELD_FROM_ISR(taskwaken);
+}
+#else
+static void at_port_txcb(void* arg) {
+    BaseType_t taskwaken = pdFALSE;
+    uint16_t send_len = (at.tbuf_len - at.sent_len) > AT_DMA_TRAN_MAX_SIZE ? AT_DMA_TRAN_MAX_SIZE : (at.tbuf_len - at.sent_len);
+    at.sent_len += send_len;
+    // EL_LOGD("PUBRAW: %u / %u", at.sent_len, at.tbuf_len);
+    if (at.sent_len < at.tbuf_len) {
+        send_len = (at.tbuf_len - at.sent_len) > AT_DMA_TRAN_MAX_SIZE ? AT_DMA_TRAN_MAX_SIZE : (at.tbuf_len - at.sent_len);
+        at.port->uart_write_udma(at.tbuf + at.sent_len, send_len, (void*)at_port_txcb);
+    } else {
+        // EL_LOGI("AT PUBRAW COMPLETE: %u ms\n", xTaskGetTickCount() - last_pub);
+        // last_pub = xTaskGetTickCount();
+        xTimerChangePeriodFromISR(pubraw_tmr, AT_SHORT_TIME_MS * portTICK_PERIOD_MS, NULL);
+    }
+}
+static void at_port_rxcb(void* arg) {
+    BaseType_t taskwaken = pdFALSE;
+    if (at.state == AT_STATE_LOST) {
+        at.port->uart_read_udma(dma_rx, 1, (void*)at_port_rxcb);
+        return;
+    }
+    *at_rbuf << dma_rx[0];
+    if (dma_rx[0] == '\n') {
+        vTaskNotifyGiveFromISR(at_rx_parser, &taskwaken);
+    }
+    at.port->uart_read_udma(dma_rx, 1, (void*)at_port_rxcb);
+    portYIELD_FROM_ISR(taskwaken);
+}
+#endif
+
+/************* AT command response actions functions **************/
 void resp_action_ok(const char* resp, void* arg) {
     EL_LOGD("OK\n");
     at.state = AT_STATE_OK;
@@ -551,7 +743,7 @@ void resp_action_mqtt(const char* resp, void* arg) {
 
         char* topic_pos = strchr(resp, '"');
         if (topic_pos == NULL) {
-            EL_LOGD("MQTT SUBRECV TOPIC ERROR\n");
+            EL_LOGW("MQTT SUBRECV TOPIC ERROR\n");
             return;
         }
         topic_pos++;  // Skip start character
@@ -563,7 +755,7 @@ void resp_action_mqtt(const char* resp, void* arg) {
         str_len = 0;
         char* msg_pos = topic_pos + topic_len + 1;
         if (msg_pos[0] != ',') {
-            EL_LOGD("MQTT SUBRECV MSG ERROR\n");
+            EL_LOGW("MQTT SUBRECV MSG ERROR\n");
             return;
         }
         msg_pos++;  // Skip start character
@@ -572,7 +764,7 @@ void resp_action_mqtt(const char* resp, void* arg) {
         }
         for (int i = 0; i < str_len; i++) {
             if (msg_pos[i] < '0' || msg_pos[i] > '9') {
-                EL_LOGD("MQTT SUBRECV MSG ERROR\n");
+                EL_LOGW("MQTT SUBRECV MSG ERROR\n");
                 return;
             }
             msg_len = msg_len * 10 + (msg_pos[i] - '0');
@@ -609,6 +801,5 @@ void resp_action_ntp(const char* resp, void* arg) {
 void resp_action_pubraw(const char* resp, void* arg) {
     // EL_LOGI("AT PUBRAW RESP: %u ms\n", xTaskGetTickCount() - last_pub);
     // last_pub = xTaskGetTickCount();
-    xTimerStop(pubraw_tmr, 0);
     xSemaphoreGive(pubraw_complete);
 }

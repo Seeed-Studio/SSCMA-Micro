@@ -43,6 +43,7 @@
 #endif
 
 #define CONFIG_EL_DEBUG                3
+// #define CONFIG_EL_DEBUG_COLOR          1
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
 #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (800 * 1024)
@@ -62,6 +63,8 @@
 #define CONFIG_EL_NETWORK_STACK_SIZE            512
 #define CONFIG_EL_NETWORK_STATUS_PRIO           4
 #define CONFIG_EL_NETWORK_STATUS_STACK_SIZE     128
+
+#define CONFIG_EL_NETWORK_SPI_AT                1
 
 #define CONFIG_EL_MODEL                         1
 #define CONFIG_EL_MODEL_TFLITE_MAGIC            0x54464C33
