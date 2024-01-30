@@ -25,6 +25,7 @@
 
 #include "el_algorithm_yolov8.h"
 
+#include <cmath>
 #include <type_traits>
 
 #include "core/el_common.h"
@@ -60,7 +61,6 @@ AlgorithmYOLOV8::~AlgorithmYOLOV8() {
 }
 
 bool AlgorithmYOLOV8::is_model_valid(const EngineType* engine) {
-
     const auto& input_shape{engine->get_input_shape(0)};
     if (input_shape.size != 4 ||                      // B, W, H, C
         input_shape.dims[0] != 1 ||                   // B = 1
@@ -154,14 +154,14 @@ el_err_code_t AlgorithmYOLOV8::postprocess() {
     IoUType   iou_threshold{get_iou_threshold()};
 
     // parse output
-    for (decltype(num_record) i{0}; i < num_record; ++i) {
-        auto idx{i};
-        auto target = 0;
+    for (decltype(num_record) idx{0}; idx < num_record; ++idx) {
+        uint16_t target = 0;
         // get box target
-        int8_t max{-128};
+        int8_t max{INT8_MIN};
         for (decltype(num_class) t{0}; t < num_class; ++t) {
-            if (max < data[idx + (t + INDEX_T) * num_record]) {
-                max    = data[idx + (t + INDEX_T) * num_record];
+            auto n = data[idx + (t + INDEX_T) * num_record];
+            if (max < n) {
+                max    = n;
                 target = t;
             }
         }
@@ -173,8 +173,8 @@ el_err_code_t AlgorithmYOLOV8::postprocess() {
               .y      = 0,
               .w      = 0,
               .h      = 0,
-              .score  = static_cast<decltype(BoxType::score)>(score),
-              .target = target,
+              .score  = static_cast<decltype(BoxType::score)>(std::round(score)),
+              .target = static_cast<decltype(BoxType::target)>(target),
             };
 
             // get box position, int8_t - int32_t (narrowing)

@@ -15,11 +15,15 @@ typedef std::function<int(void*)>                     mutable_cb_t;
 typedef std::unordered_map<std::string, mutable_cb_t> mutable_map_t;
 
 struct ipv4_addr_t {
+    ipv4_addr_t() : addr{0} {}
+
+    ~ipv4_addr_t() = default;
+
     uint8_t addr[4];
 
     // we're not going to validate the input string
     static decltype(auto) from_str(std::string s) {
-        ipv4_addr_t r{0};
+        ipv4_addr_t r;
         uint8_t     l{0};
 
         for (std::size_t i = 0; i < s.length(); ++i) {
@@ -50,11 +54,14 @@ struct ipv4_addr_t {
 };
 
 struct ipv6_addr_t {
+    ipv6_addr_t() : addr{0} {}
+    ~ipv6_addr_t() = default;
+
     uint16_t addr[8];
 
     decltype(auto) to_str() const {
         static const char* digits = "0123456789abcdef";
-        std::string        r{};
+        std::string        r;
         r.reserve(sizeof "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:");
         for (std::size_t i = 0; i < 8; ++i) {
             if (addr[i])
