@@ -53,80 +53,69 @@ static SemaphoreHandle_t pubraw_complete = NULL;
 #ifdef CONFIG_EL_NETWORK_SPI_AT
 static uint8_t send_seq = 0;
 static uint8_t recv_seq = 0;
+static uint16_t send_len = 0;
 static TaskHandle_t handshake_handler = NULL;
-static SemaphoreHandle_t spi_lock = NULL;
+// static SemaphoreHandle_t spi_lock = NULL;
 
-static const uint8_t read_opt[3] = {0x04, 0x04, 0x00};
-static const uint8_t read_done[3] = {0x08, 0x04, 0x00};
-static const uint8_t send_opt[3] = {0x03, 0x00, 0x00};
-static const uint8_t send_done[3] = {0x07, 0x00, 0x00};
-
-volatile static bool at_read_done = false;
-volatile static bool at_write_done = false;
-volatile static bool at_query_done = false;
-static void at_read_done_cb(void* arg) {
-    at_read_done = true;
-}
-static void at_write_done_cb(void* arg) {
-    at_write_done = true;
-}
-static void at_query_status_cb(void* status) {
-    at_query_done = true;
-}
-static spi_recv_opt_t at_query_status(esp_at_t* at) {
-    static const uint8_t query[7] = {0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
-    static uint8_t ret[7] = {0};
-    spi_recv_opt_t query_ret = {0};
-    at_query_done = false;
-
-    SCB_CleanDCache_by_Addr((volatile void*)ret, sizeof(ret));
-    at->port->spi_read_write_dma(
-        (void *)query, sizeof(query),
-        (void *)ret, sizeof(ret),
-        (void *)at_query_status_cb
-    );
-    while(!at_query_done);
-
-    query_ret.direct = ret[3];
-    query_ret.seq_num = ret[4];
-    query_ret.transmit_len = (ret[6] << 8) | ret[5];
-    EL_LOGD("query return, direct: %d, seq: %d, len: %d", 
-            query_ret.direct, query_ret.seq_num, query_ret.transmit_len);
-
-    return query_ret;
-}
-
+static void spi_dma_cb(void* status);
 static void at_port_handshake_cb(uint8_t group, uint8_t aIndex);
+
+static void at_query_status(esp_at_t* at) {
+    static const uint8_t query[3] = {0x02, 0x04, 0x00};
+    SCB_CleanDCache_by_Addr((volatile void*)&(at->ctrl), 4);
+    at->port->spi_write_then_read_dma(
+        (void *)query, sizeof(query),
+        (void *)&(at->ctrl), 4,
+        (void *)spi_dma_cb
+    );
+}
+static void at_requset_write(esp_at_t* at) {
+    static uint8_t send_req[7] = {0x01, 0x00, 0x00, 0xfe, send_seq, 0, 0};
+    send_len = at->tbuf_len - at->sent_len > AT_DMA_TRAN_MAX_SIZE ? 
+                AT_DMA_TRAN_MAX_SIZE : at->tbuf_len - at->sent_len;
+    send_req[5] = (send_len) & 0xff;
+    send_req[6] = (send_len >> 8) & 0xff;
+    at->port->spi_write(send_req, 7);
+}
 
 #else
 static void at_port_txcb(void* arg);
 static void at_port_rxcb(void* arg);
 #endif
 
-static uint16_t send_len = 0;
 static void at_port_write(esp_at_t* at) {
+    at->tbuf_len = strlen(at->tbuf);
 #ifdef CONFIG_EL_NETWORK_SPI_AT
     static uint8_t value = 0;
-    static uint8_t send_req[7] = {0x01, 0x00, 0x00, 0xfe, send_seq, 0, 0};
-
-    at->tbuf_len = strlen(at->tbuf);
-    send_len = at->tbuf_len - at->sent_len > AT_DMA_TRAN_MAX_SIZE ? 
-                AT_DMA_TRAN_MAX_SIZE : at->tbuf_len - at->sent_len;
-    send_req[5] = (send_len) & 0xff;
-    send_req[6] = (send_len >> 8) & 0xff;
-
     hx_drv_gpio_get_in_value(AON_GPIO0, &value);
     if (value == 1) {
         EL_LOGD("clean handshake before write");
-        xTaskNotify(handshake_handler, 0, eNoAction);
+        xTaskNotify(handshake_handler, AT_SPI_HANDSHAKE_FLAG, eSetBits);
         el_sleep(4);
     }
 
     EL_LOGD("request send: %s", at->tbuf);
-    at->port->spi_write(send_req, 7);
+    at_requset_write(at);
 #else
     at->port->uart_write(at->tbuf, strlen(at->tbuf));
 #endif
+}
+
+// flush buffer by 254 bytes and CRLF util state change
+static void at_port_flush(esp_at_t* at) {
+    at->state = AT_STATE_PROCESS;
+    uint32_t t = 0;
+    memset((void*)at->tbuf, '0', 254);
+    memcpy((void*)at->tbuf + 254, AT_STR_CRLF, strlen(AT_STR_CRLF));
+    while (at->state == AT_STATE_PROCESS) {
+        at_port_write(at);
+        if (t >= AT_SHORT_TIME_MS) {
+            EL_LOGW("AT FLUSH TIMEOUT\n");
+            return;
+        }
+        el_sleep(10);
+        t += 10;
+    }
 }
 
 static void at_port_init(esp_at_t* at) {
@@ -198,80 +187,71 @@ static el_err_code_t at_send(esp_at_t* at, uint32_t timeout) {
 
 // update status for spi write, read spi when readable
 static void spi_trans_handler(void* arg) {
-    static uint8_t send_data[256] = {0};
+    static const uint8_t read_hdr[3] = {0x04, 0x04, 0x00};
+    static const uint8_t read_done[3] = {0x08, 0x04, 0x00};
+    static const uint8_t write_hdr[3] = {0x03, 0x00, 0x00};
+    static const uint8_t write_done[3] = {0x07, 0x00, 0x00};
     static uint8_t read_data[256] = {0};
-    spi_recv_opt_t query_ret = {0};
-    memcpy(send_data, read_opt, sizeof(read_opt));
+    static uint32_t trans_flag = 0;
     while (1) {
-        if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, NULL, portMAX_DELAY) != pdPASS) continue;
-        EL_LOGD("[transmitt]");
-        xSemaphoreTake(spi_lock, portMAX_DELAY);
-        query_ret = at_query_status(&at);
-        if (query_ret.direct == 0x01) {
-            if (query_ret.transmit_len > 253) {
-                EL_LOGW("data too long: %d\n", query_ret.transmit_len);
-                xSemaphoreGive(spi_lock);
-                continue;
-            }
-            EL_LOGD("readable, len: %d, seq: %d", query_ret.transmit_len, query_ret.seq_num);
-            recv_seq = (recv_seq + 1) % 256; // query_ret.seq_num
+        if (xTaskNotifyWait(0, ULONG_MAX, &trans_flag, portMAX_DELAY) != pdPASS) continue;
+        if (!(trans_flag & AT_SPI_HANDSHAKE_FLAG)) continue;
 
-            at_read_done = false;
-            SCB_CleanDCache_by_Addr((volatile void*)read_data, sizeof(read_opt) + query_ret.transmit_len);
-            at.port->spi_read_write_dma(
-                (void *)send_data, sizeof(read_opt) + query_ret.transmit_len,
-                (void *)read_data, sizeof(read_opt) + query_ret.transmit_len,
-                (void *)at_read_done_cb
+        at_query_status(&at);
+        if (xTaskNotifyWait(0, ULONG_MAX, &trans_flag, AT_SHORT_TIME_MS) != pdPASS) continue;
+        if (!(trans_flag & AT_SPI_DMA_DONE_FLAG)) continue;
+        // EL_LOGI("[direct: %d, len: %d, seq: %d]", at.ctrl.direct, at.ctrl.len, at.ctrl.seq);
+        
+        if (at.ctrl.direct == 0x01) {
+            EL_LOGD("readable, len: %d, seq: %d", at.ctrl.len, at.ctrl.seq);
+            recv_seq = (recv_seq + 1) % 256;
+
+            SCB_CleanDCache_by_Addr((volatile void*)read_data, at.ctrl.len);
+            at.port->spi_write_then_read_dma(
+                (void *)read_hdr, sizeof(read_hdr),
+                (void *)read_data, at.ctrl.len,
+                (void *)spi_dma_cb
             );
-            
-            while(!at_read_done);
+            if (xTaskNotifyWait(0, ULONG_MAX, &trans_flag, AT_SHORT_TIME_MS) != pdPASS) continue;
+            if (!(trans_flag & AT_SPI_DMA_DONE_FLAG)) continue;
 
-            read_data[query_ret.transmit_len + sizeof(read_opt)] = '\0';
-            EL_LOGD("read: %s", (char*)read_data + sizeof(read_opt));
-            for (uint32_t i = 0; i < query_ret.transmit_len; i++) {
-                *at_rbuf << (char)read_data[i + sizeof(read_opt)];
-                if ((char)read_data[i + sizeof(read_opt)] == '\n') {
+            read_data[at.ctrl.len] = '\0';
+            EL_LOGD("read: %s", (char*)read_data);
+            for (uint16_t i = 0; i < at.ctrl.len; i++) {
+                *at_rbuf << (char)read_data[i];
+                if ((char)read_data[i] == '\n') {
                     xTaskNotifyGive(at_rx_parser);
-                    portYIELD();
                 }
             }
 
             at.port->spi_write(read_done, sizeof(read_done));
             EL_LOGD("read done\n");
-        } else if (query_ret.direct == 0x02) {
-            EL_LOGD("writeable, len: %d, seq: %d", at.tbuf_len, query_ret.seq_num);
+            portYIELD();
+        } else if (at.ctrl.direct == 0x02) {
+            EL_LOGD("writeable, len: %d, seq: %d", at.tbuf_len, at.ctrl.seq);
             send_seq++;
             
-            at_write_done = false;
             SCB_CleanDCache_by_Addr((volatile void*)at.tbuf, at.tbuf_len);
-            at.port->spi_write_ptl(send_opt, sizeof(send_opt), 
+            at.port->spi_write_ptl(write_hdr, sizeof(write_hdr), 
                                    at.tbuf + at.sent_len, send_len, 
-                                   (void *)at_write_done_cb);
+                                   (void *)spi_dma_cb);
+            if (xTaskNotifyWait(0, ULONG_MAX, &trans_flag, AT_SHORT_TIME_MS) != pdPASS) continue;
+            if (!(trans_flag & AT_SPI_DMA_DONE_FLAG)) continue;
 
-            while(!at_write_done);
             at.sent_len += send_len;
-            at.port->spi_write(send_done, sizeof(send_done));
+            at.port->spi_write(write_done, sizeof(write_done));
             EL_LOGD("wrote %d/%d", at.sent_len, at.tbuf_len);
 
             if (at.sent_len < at.tbuf_len) {
-                // at_port_write(&at);
-                static uint8_t send_req[7] = {0x01, 0x00, 0x00, 0xfe, send_seq, 0, 0};
-                send_len = at.tbuf_len - at.sent_len > AT_DMA_TRAN_MAX_SIZE ? 
-                            AT_DMA_TRAN_MAX_SIZE : at.tbuf_len - at.sent_len;
-                send_req[5] = (send_len) & 0xff;
-                send_req[6] = (send_len >> 8) & 0xff;
-                at.port->spi_write(send_req, 7);
+                at_requset_write(&at);
             } else {
                 at.sent_len = 0;
                 at.tbuf_len = 0;
             }
         } else {
-            EL_LOGW("unknown direct: %d", query_ret.direct);
-            xSemaphoreGive(spi_lock);
+            EL_LOGW("unknown direct: %d", at.ctrl.direct);
             continue;
         }
-        
-        xSemaphoreGive(spi_lock);
     }
 }
 
@@ -319,13 +299,13 @@ static void network_status_handler(void* arg) {
 
 static void at_base_init(NetworkWE2* ptr) {
     EL_LOGD("at_base_init\n");
-    spi_lock = xSemaphoreCreateMutex();
+    // spi_lock = xSemaphoreCreateMutex();
 
     at_rbuf = new lwRingBuffer(AT_RX_MAX_LEN);
     at_got_response = xSemaphoreCreateBinary();
     pubraw_complete = xSemaphoreCreateBinary();
 
-    EL_ASSERT(spi_lock);
+    // EL_ASSERT(spi_lock);
 
     EL_ASSERT(at_rbuf);
     EL_ASSERT(at_got_response);
@@ -364,26 +344,15 @@ void NetworkWE2::init(status_cb_t cb) {
     }
 
     xSemaphoreGive(pubraw_complete);
-    at.state = AT_STATE_PROCESS;
-    // uint32_t t = 0;
-    // memset((void*)at.tbuf, '0', 126);
-    // memcpy((void*)at.tbuf + 126, AT_STR_CRLF, strlen(AT_STR_CRLF));
-    // while (at.state == AT_STATE_PROCESS) {
-    //     at_port_write(&at);
-    //     if (t >= AT_SHORT_TIME_MS) {
-    //         EL_LOGD("AT FLUSH TIMEOUT\n");
-    //         return;
-    //     }
-    //     el_sleep(10);
-    //     t += 10;
-    // }
     
     static uint8_t value = 0;
     hx_drv_gpio_get_in_value(AON_GPIO0, &value);
     if (value == 1) {
         EL_LOGW("clean handshake before write");
-        xTaskNotify(handshake_handler, 0, eNoAction);
+        xTaskNotify(handshake_handler, AT_SPI_HANDSHAKE_FLAG, eSetBits);
         el_sleep(10);
+        hx_drv_gpio_get_in_value(AON_GPIO0, &value);
+        if (value == 1) at_port_flush(&at);
     }
 
     sprintf(at.tbuf, AT_STR_ECHO AT_STR_CRLF);
@@ -668,10 +637,14 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
 
 /************* AT port driver callbacks **************/
 #ifdef CONFIG_EL_NETWORK_SPI_AT
-static void at_port_handshake_cb(uint8_t group, uint8_t aIndex) {
-    EL_LOGD("[handshake]");
+static void spi_dma_cb(void* status) {
     BaseType_t taskwaken = pdFALSE;
-    xTaskNotifyFromISR(handshake_handler, 0, eNoAction, &taskwaken);
+    xTaskNotifyFromISR(handshake_handler, AT_SPI_DMA_DONE_FLAG, eSetBits, &taskwaken);
+    portYIELD_FROM_ISR(taskwaken);
+}
+static void at_port_handshake_cb(uint8_t group, uint8_t aIndex) {
+    BaseType_t taskwaken = pdFALSE;
+    xTaskNotifyFromISR(handshake_handler, AT_SPI_HANDSHAKE_FLAG, eSetBits, &taskwaken);
     portYIELD_FROM_ISR(taskwaken);
 }
 #else

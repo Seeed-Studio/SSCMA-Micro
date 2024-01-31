@@ -65,11 +65,14 @@
 #define AT_DMA_TRAN_MAX_SIZE  4092
 #define AT_PUB_RAW_TIMEOUT_MS 5000
 
+#define AT_SPI_HANDSHAKE_FLAG 0x01
+#define AT_SPI_DMA_DONE_FLAG  0x02
+
 typedef struct {
-    uint32_t     direct : 8; // 0x01: read, 0x02: write
-    uint32_t     seq_num : 8;
-    uint32_t     transmit_len : 16;
-} spi_recv_opt_t;
+    uint32_t direct : 8; // 0x01: read, 0x02: write
+    uint32_t seq : 8;
+    uint32_t len : 16;
+} trans_ctrl_t;
 
 #endif
 
@@ -120,6 +123,7 @@ typedef struct EL_ATTR_PACKED esp_at {
 
 #ifdef CONFIG_EL_NETWORK_SPI_AT
     DEV_SPI_PTR  port;
+    trans_ctrl_t ctrl;
 #else
     DEV_UART_PTR port;
 #endif
