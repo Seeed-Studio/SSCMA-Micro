@@ -16,7 +16,7 @@
 
 #define AT_LONG_TIME_MS    5000
 #define AT_SHORT_TIME_MS   500
-#define AT_TX_MAX_LEN      24576  // 默认固件的AT指令长度阈值为256
+#define AT_TX_MAX_LEN      32768  // 默认固件的AT指令长度阈值为256
 #define AT_RX_MAX_LEN      4096   // 可能连续收到多条消息
 
 #define SNTP_SERVER_CN     "cn.ntp.org.cn"
