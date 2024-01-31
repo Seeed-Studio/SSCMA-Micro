@@ -38,6 +38,7 @@ static SemaphoreHandle_t at_got_response = NULL;
 static SemaphoreHandle_t pubraw_complete = NULL;
 
 static uint16_t send_len = 0;
+static uint8_t fail_count = 0;
 
 static resp_trigger_t resp_flow[] = {
     {AT_STR_RESP_OK,     resp_action_ok},
@@ -100,8 +101,9 @@ static void at_port_write(esp_at_t* at) {
 #endif
 }
 
-// flush buffer by 254 bytes and CRLF util state change
+// flush buffer by 254 bytes zero and CRLF util at-port can response
 static void at_port_flush(esp_at_t* at) {
+    EL_LOGW("FLUSH...\n");
     at->state = AT_STATE_PROCESS;
     uint32_t t = 0;
     memset((void*)at->tbuf, '0', 254);
@@ -263,6 +265,7 @@ static void at_recv_parser(void* arg) {
             for (i = 0; i < num; i++) {
                 if (strncmp(ptr, resp_flow[i].str, strlen(resp_flow[i].str)) == 0) {
                     resp_flow[i].act(ptr, arg);
+                    fail_count = 0; // got response, reset fail count
                     break;
                 }
             }
@@ -586,6 +589,15 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         return EL_EPERM;
     }
 
+    if (fail_count >= 3) {
+        at_port_flush(&at);
+        if (at.state == AT_STATE_PROCESS) {
+            this->deinit();
+            return EL_FAILED;
+        }
+        fail_count = 0;
+    }
+
     if (len + strlen(topic) < 200) {
         char special_chars[] = "\\\"\,\n\r";
         char buf[230] = {0};
@@ -605,9 +617,10 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         }
     } 
     else if (len + 1 < sizeof(at.tbuf)) {
-        if (xSemaphoreTake(pubraw_complete, AT_PUB_RAW_TIMEOUT_MS * portTICK_PERIOD_MS) != pdTRUE) {
+        if (xSemaphoreTake(pubraw_complete, AT_SHORT_TIME_MS * portTICK_PERIOD_MS) != pdTRUE) {
             xSemaphoreGive(pubraw_complete);
             EL_LOGW("AT MQTTPUB ERROR : PUBRAW TIMEOUT\n");
+            fail_count++;
             return EL_ETIMOUT;
         }
         sprintf(at.tbuf, AT_STR_HEADER AT_STR_MQTTPUB "RAW=0,\"%s\",%d,%d,0" AT_STR_CRLF, topic, len, qos);
@@ -615,6 +628,7 @@ el_err_code_t NetworkWE2::publish(const char* topic, const char* dat, uint32_t l
         if (err != EL_OK) {
             xSemaphoreGive(pubraw_complete);
             EL_LOGW("AT MQTTPUB ERROR : %d\n", err);
+            fail_count++;
             return err;
         }
         snprintf(at.tbuf, len + 1, "%s", dat);
