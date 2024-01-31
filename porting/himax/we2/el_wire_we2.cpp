@@ -236,7 +236,6 @@ size_t WireWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) {
         return 0;
     }
-
     return this->tx_ring_buffer->put(buffer, size);
 }
 

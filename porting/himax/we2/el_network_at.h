@@ -2,16 +2,21 @@
 #ifndef _EL_NETWORK_AT_H
 #define _EL_NETWORK_AT_H
 
-#include <hx_drv_uart.h>
-
 #include "el_config_porting.h"
 #include "porting/el_network.h"
+
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+#include <hx_drv_spi.h>
+#include <hx_drv_gpio.h>
+#else
+#include <hx_drv_uart.h>
+#endif
 
 #define MQTT_CLIENT_ID     "HIMAX_WE2"
 
 #define AT_LONG_TIME_MS    5000
 #define AT_SHORT_TIME_MS   500
-#define AT_TX_MAX_LEN      16384  // 默认固件的AT指令长度阈值为256
+#define AT_TX_MAX_LEN      32768  // 默认固件的AT指令长度阈值为256
 #define AT_RX_MAX_LEN      4096   // 可能连续收到多条消息
 
 #define SNTP_SERVER_CN     "cn.ntp.org.cn"
@@ -55,6 +60,21 @@
 
 #define AT_STR_RESP_PUBRAW "+MQTTPUB:"
 
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+
+#define AT_DMA_TRAN_MAX_SIZE  4092
+
+#define AT_SPI_HANDSHAKE_FLAG 0x01
+#define AT_SPI_DMA_DONE_FLAG  0x02
+
+typedef struct {
+    uint32_t direct : 8; // 0x01: read, 0x02: write
+    uint32_t seq : 8;
+    uint32_t len : 16;
+} trans_ctrl_t;
+
+#endif
+
 // NOTE: Deprecated
 typedef enum {
     AT_CMD_NONE = 0,
@@ -96,12 +116,17 @@ typedef enum {
 
 using namespace edgelab;
 
-typedef struct esp_at {
-    char tbuf[AT_TX_MAX_LEN];
-    // char rbuf[AT_RX_MAX_LEN];
+typedef struct EL_ATTR_PACKED esp_at {
     lwRingBuffer* rbuf;
+    char tbuf[AT_TX_MAX_LEN];
 
+#ifdef CONFIG_EL_NETWORK_SPI_AT
+    DEV_SPI_PTR  port;
+    trans_ctrl_t ctrl;
+#else
     DEV_UART_PTR port;
+#endif
+
     uint8_t      state;
     uint16_t     tbuf_len;
     uint16_t     sent_len;
