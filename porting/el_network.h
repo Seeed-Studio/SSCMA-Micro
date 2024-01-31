@@ -71,25 +71,25 @@ namespace edgelab {
 // WIFI-STA for MQTT
 class Network {
 public:
-    Network() : _ip({0}), _is_present(false), network_status(NETWORK_LOST) {}
+    Network() : _ip(), _is_present(false), network_status(NETWORK_LOST) {}
     virtual ~Network() = default;
 
     virtual void init(status_cb_t cb) = 0;
-    void init() { 
-        this->init(nullptr); 
+    void init() {
+        this->init(nullptr);
     };
     virtual void deinit() = 0;
     el_net_sta_t status() {
         return this->network_status;
     };
-    void set_status(el_net_sta_t status) { 
-        this->network_status = status; 
+    void set_status(el_net_sta_t status) {
+        this->network_status = status;
         if (this->status_cb) {
             this->status_cb(this->network_status);
         }
     }
-    el_err_code_t get_ip(in4_info_t &ip) { 
-        if (this->network_status == NETWORK_LOST || 
+    el_err_code_t get_ip(in4_info_t &ip) {
+        if (this->network_status == NETWORK_LOST ||
             this->network_status == NETWORK_IDLE) {
             return EL_EPERM;
         }

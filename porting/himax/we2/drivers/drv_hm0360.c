@@ -18,7 +18,7 @@ static HX_CIS_SensorSetting_t HM0360_stream_xsleep[] = {
 
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = 0;
+static volatile uint32_t _wdma1_baseaddr    = 0x36000000;
 static volatile uint32_t _wdma2_baseaddr    = 0;
 static volatile uint32_t _wdma3_baseaddr    = 0;
 static volatile uint32_t _jpegsize_baseaddr = 0;

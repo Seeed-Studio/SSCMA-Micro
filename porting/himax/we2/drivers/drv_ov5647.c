@@ -23,7 +23,7 @@ static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
 
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = 0;
+static volatile uint32_t _wdma1_baseaddr    = 0x36000000;
 static volatile uint32_t _wdma2_baseaddr    = 0;
 static volatile uint32_t _wdma3_baseaddr    = 0;
 static volatile uint32_t _jpegsize_baseaddr = 0;
@@ -308,9 +308,8 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     crop.start_x = 0;
     crop.start_y = 0;
-    crop.last_x = 0;
-    crop.last_y = 0;
-
+    crop.last_x  = 0;
+    crop.last_y  = 0;
 
     switch (res.width) {
     case 640:
@@ -320,7 +319,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
                                                    OV5647_SENSOR_HEIGHT,
                                                    OV5647_SUB_SAMPLE,
                                                    crop,
-                                                   INP_BINNING_DISABLE);
+                                                   OV5647_BINNING_0);
         break;
     case 320:
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
@@ -329,7 +328,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
                                                    OV5647_SENSOR_HEIGHT,
                                                    OV5647_SUB_SAMPLE,
                                                    crop,
-                                                   INP_BINNING_4TO2_B);
+                                                   OV5647_BINNING_1);
         break;
     case 160:
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
@@ -338,7 +337,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
                                                    OV5647_SENSOR_HEIGHT,
                                                    OV5647_SUB_SAMPLE,
                                                    crop,
-                                                   INP_BINNING_8TO2_B);
+                                                   OV5647_BINNING_2);
         break;
 
     default:

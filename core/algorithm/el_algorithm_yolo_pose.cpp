@@ -450,8 +450,7 @@ el_err_code_t AlgorithmYOLOPOSE::postprocess() {
         const float scale_h = stride.second;
 
         for (size_t i = 0; i < keypoint_nums; ++i) {
-            types::pt3_t<float> keypoint;
-            const auto          offset = pre + i * 3;
+            const auto offset = pre + i * 3;
 
             float x = utils::dequant_value_i(
               offset, output_keypoints, output_keypoints_quant_parm.zero_point, output_keypoints_quant_parm.scale);

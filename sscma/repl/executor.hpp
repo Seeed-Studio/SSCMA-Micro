@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include "core/el_debug.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "sscma/definations.hpp"
