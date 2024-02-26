@@ -44,6 +44,8 @@
     #endif
 #endif
 
+#define SSCMA_HAS_NATIVE_NETWORKING    1
+
 #define CONFIG_EL_DEBUG                3
 
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1

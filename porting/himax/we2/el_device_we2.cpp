@@ -39,8 +39,6 @@ extern "C" {
 #include "core/el_debug.h"
 #include "el_camera_ov5647.h"
 #include "el_config_porting.h"
-#include "el_network_at.h"
-#include "el_network_we2.h"
 #include "el_serial_we2.h"
 #include "el_wire_we2.h"
 #include "porting/el_flash.h"
@@ -149,8 +147,7 @@ void DeviceWE2::init() {
     static SerialWE2 serial{};
     this->_serial = &serial;
 
-    static NetworkWE2 network{};
-    this->_network = &network;
+    this->_network = nullptr;
 
     static WireWE2 wire{0x62};
     this->_wire = &wire;

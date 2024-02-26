@@ -42,8 +42,10 @@ void init_static_resource() {
             init_model_hook(caller);
             init_sensor_hook(caller);
             init_action_hook(caller);
+#if SSCMA_HAS_NATIVE_NETWORKING
             init_wifi_hook(caller);
             init_mqtt_hook(caller);
+#endif
         });
     });
 }
@@ -286,6 +288,29 @@ void register_commands() {
           return EL_OK;
       });
 
+#if SSCMA_HAS_NATIVE_NETWORKING == 0
+    static_resource->instance->register_cmd(
+      "WIFISTA", "Set Wi-Fi status", "STA", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_status(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFIIN4", "Set IPv4 info", "\"IP\",\"NETMASK\",\"GATEWAY\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in4_info(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFIIN6", "Set IPv6 info", "\"IP\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in6_info(argv, caller); });
+          return EL_OK;
+      });
+#endif
+
     static_resource->instance->register_cmd(
       "WIFI?", "Get current Wi-Fi status and config", "", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
@@ -302,6 +327,15 @@ void register_commands() {
             [argv = std::move(argv), caller](const std::atomic<bool>&) { set_mqtt_server(argv, caller); });
           return EL_OK;
       });
+
+#if SSCMA_HAS_NATIVE_NETWORKING == 0
+    static_resource->instance->register_cmd(
+      "MQTTSERVERSTA", "Set MQTT server status", "STA", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_mqtt_status(argv, caller); });
+          return EL_OK;
+      });
+#endif
 
     static_resource->instance->register_cmd(
       "MQTTSERVER?", "Get current MQTT server status and config", "", [](std::vector<std::string> argv, void* caller) {
@@ -323,16 +357,16 @@ void register_commands() {
 
 void wait_for_inputs() {
     // mark the system status as ready
-    static_resource->executor->add_task(
-        [](const std::atomic<bool>&) { static_resource->is_ready.store(true); }
-    );
+    static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 
-    auto transports = std::forward_list<Transport*>{
-        static_resource->serial, 
-        static_resource->mqtt, 
-        static_resource->wire
+    auto transports = std::forward_list<Transport*> {
+        static_resource->serial,
+#if SSCMA_HAS_NATIVE_NETWORKING
+          static_resource->mqtt,
+#endif
+          static_resource->wire
     };
     char* buf = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
     std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
