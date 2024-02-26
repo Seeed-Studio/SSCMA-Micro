@@ -71,8 +71,8 @@ struct ipv6_addr_t {
                 if (!std::isxdigit(s[i])) break;
             if (n) {
                 auto num{s.substr(i - n, n)};
-                if (l >= 7) return r;
                 r.addr[l++] = static_cast<uint16_t>(std::strtol(num.c_str(), nullptr, 16));
+                if (l > 7) return r;
             }
         }
 
@@ -84,9 +84,12 @@ struct ipv6_addr_t {
         std::string        r;
         r.reserve(sizeof "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:");
         for (std::size_t i = 0; i < 8; ++i) {
-            if (addr[i])
-                for (uint16_t n = addr[i]; n; n >>= 4) r += digits[n & 0x0f];
-            else
+            if (addr[i]) {
+                std::string t;
+                t.reserve(4);
+                for (uint16_t n = addr[i]; n; n >>= 4) t += digits[n & 0x0f];
+                r.append(t.rbegin(), t.rend());
+            } else
                 r += '0';
             r += ':';
         }

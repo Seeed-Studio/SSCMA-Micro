@@ -297,14 +297,14 @@ void register_commands() {
       });
 
     static_resource->instance->register_cmd(
-      "WIFIIN4", "Set DHCPv4 info", "\"IP\",\"NETMASK\",\"GATEWAY\"", [](std::vector<std::string> argv, void* caller) {
+      "WIFIIN4", "Set IPv4 info", "\"IP\",\"NETMASK\",\"GATEWAY\"", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
             [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in4_info(argv, caller); });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
-      "WIFIIN6", "Set DHCPv6 info", "\"IP\"", [](std::vector<std::string> argv, void* caller) {
+      "WIFIIN6", "Set IPv6 info", "\"IP\"", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
             [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in6_info(argv, caller); });
           return EL_OK;

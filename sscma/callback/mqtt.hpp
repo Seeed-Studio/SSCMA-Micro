@@ -104,7 +104,7 @@ void set_mqtt_status(const std::vector<std::string>& argv, void* caller) {
                            argv[0],
                            "\", \"code\": 0, \"data\": {\"status\": ",
                            std::to_string(shared_variables::mqtt_status),
-                           "}\n")};
+                           "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 #endif
