@@ -14,14 +14,17 @@
 #include "core/engine/el_engine_tflite.h"
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
-#include "interface/transport/mqtt.hpp"
-#include "interface/wifi.hpp"
 #include "interpreter/condition.hpp"
 #include "porting/el_device.h"
 #include "repl/executor.hpp"
 #include "repl/server.hpp"
 #include "repl/supervisor.hpp"
 #include "utility.hpp"
+
+#if SSCMA_HAS_NATIVE_NETWORKING
+    #include "interface/transport/mqtt.hpp"
+    #include "interface/wifi.hpp"
+#endif
 
 namespace sscma {
 
@@ -30,10 +33,13 @@ using namespace edgelab::base;
 
 using namespace sscma::types;
 using namespace sscma::utility;
-using namespace sscma::interface;
-using namespace sscma::transport;
 using namespace sscma::repl;
 using namespace sscma::interpreter;
+
+#if SSCMA_HAS_NATIVE_NETWORKING
+using namespace sscma::interface;
+using namespace sscma::transport;
+#endif
 
 class StaticResource final {
    public:
@@ -56,11 +62,15 @@ class StaticResource final {
     bool                     is_invoke;
 
     // external resources (hardware related)
-    Device*            device;
-    Serial*            serial;
-    Wire*              wire;
-    WiFi*              wifi;
-    MQTT*              mqtt;
+    Device* device;
+    Serial* serial;
+    Wire*   wire;
+
+#if SSCMA_HAS_NATIVE_NETWORKING
+    WiFi* wifi;
+    MQTT* mqtt;
+#endif
+
     Models*            models;
     Storage*           storage;
     Engine*            engine;
@@ -88,11 +98,13 @@ class StaticResource final {
         static auto v_engine{EngineTFLite()};
         engine = &v_engine;
 
+#if SSCMA_HAS_NATIVE_NETWORKING
         static auto v_wifi{WiFi()};
         wifi = &v_wifi;
 
         static auto v_mqtt{MQTT(wifi)};
         mqtt = &v_mqtt;
+#endif
 
         static auto v_instance{Server()};
         instance = &v_instance;

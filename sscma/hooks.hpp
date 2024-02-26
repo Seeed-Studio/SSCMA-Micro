@@ -12,9 +12,12 @@
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "definations.hpp"
-#include "interface/transport/mqtt.hpp"
-#include "interface/wifi.hpp"
 #include "static_resource.hpp"
+
+#if SSCMA_HAS_NATIVE_NETWORKING
+    #include "interface/transport/mqtt.hpp"
+    #include "interface/wifi.hpp"
+#endif
 
 namespace sscma::hooks {
 
@@ -49,6 +52,7 @@ void init_action_hook(std::string cmd) {
     }
 }
 
+#if SSCMA_HAS_NATIVE_NETWORKING
 void init_wifi_hook(std::string cmd) {
     auto config = wifi_sta_cfg_t{};
     if (static_resource->storage->get(el_make_storage_kv_from_type(config))) [[likely]]
@@ -73,5 +77,6 @@ void init_mqtt_hook(std::string cmd) {
                         true);
     static_resource->supervisor->register_supervised_object(static_resource->mqtt, 1000);
 }
+#endif
 
 }  // namespace sscma::hooks

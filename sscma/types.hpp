@@ -59,6 +59,26 @@ struct ipv6_addr_t {
 
     uint16_t addr[8];
 
+    static decltype(auto) from_str(std::string s) {
+        ipv6_addr_t r;
+        uint8_t     l{0};
+
+        for (std::size_t i = 0; i < s.length(); ++i) {
+            if (!std::isxdigit(s[i])) continue;
+
+            uint16_t n{0};
+            for (; (++i < s.length()) & (++n < 4);)
+                if (!std::isxdigit(s[i])) break;
+            if (n) {
+                auto num{s.substr(i - n, n)};
+                if (l >= 7) return r;
+                r.addr[l++] = static_cast<uint16_t>(std::strtol(num.c_str(), nullptr, 16));
+            }
+        }
+
+        return r;
+    }
+
     decltype(auto) to_str() const {
         static const char* digits = "0123456789abcdef";
         std::string        r;
