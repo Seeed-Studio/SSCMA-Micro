@@ -36,6 +36,7 @@
 #include "el_serial.h"
 #include "el_transport.h"
 #include "el_wire.h"
+#include "el_sspi.h"
 
 namespace edgelab {
 
@@ -55,6 +56,7 @@ class Device {
     Serial*  get_serial() { return _serial; }
     Network* get_network() { return _network; }
     Wire*    get_wire() { return _wire; }
+    SSPI*    get_sspi() { return _sspi; }
 
     el_sensor_info_t get_sensor_info(uint8_t id) const {
         auto it = std::find_if(_registered_sensors.begin(), _registered_sensors.end(), [&](const el_sensor_info_t& s) {
@@ -110,6 +112,7 @@ class Device {
           _display(nullptr),
           _serial(nullptr),
           _network{nullptr},
+          _sspi(nullptr),
           _wire(nullptr) {}
 
     const char* _device_name;
@@ -121,6 +124,7 @@ class Device {
     Serial*  _serial;
     Network* _network;
     Wire*    _wire;
+    SSPI*    _sspi;
 
     std::forward_list<el_sensor_info_t> _registered_sensors;
 };

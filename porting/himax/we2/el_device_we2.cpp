@@ -41,6 +41,7 @@ extern "C" {
 #include "el_config_porting.h"
 #include "el_serial_we2.h"
 #include "el_wire_we2.h"
+#include "el_sspi_we2.h"
 #include "porting/el_flash.h"
 
 #define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
@@ -148,6 +149,8 @@ void DeviceWE2::init() {
     this->_serial = &serial;
 
     this->_network = nullptr;
+    static sspiWE2 sspi{};
+    this->_sspi = &sspi;
 
     static WireWE2 wire{0x62};
     this->_wire = &wire;

@@ -365,6 +365,8 @@ void wait_for_inputs() {
         static_resource->serial,
 #if SSCMA_HAS_NATIVE_NETWORKING
           static_resource->mqtt,
+#else
+          static_resource->sspi,
 #endif
           static_resource->wire
     };

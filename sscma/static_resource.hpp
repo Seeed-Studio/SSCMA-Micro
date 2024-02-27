@@ -69,6 +69,8 @@ class StaticResource final {
 #if SSCMA_HAS_NATIVE_NETWORKING
     WiFi* wifi;
     MQTT* mqtt;
+#else
+    SSPI* sspi;
 #endif
 
     Models*            models;
@@ -104,6 +106,8 @@ class StaticResource final {
 
         static auto v_mqtt{MQTT(wifi)};
         mqtt = &v_mqtt;
+#else
+        sspi = device->get_sspi();
 #endif
 
         static auto v_instance{Server()};
@@ -146,6 +150,9 @@ class StaticResource final {
         EL_LOGI("[SSCMA] initializing basic IO devices...");
         if (serial) serial->init();
         if (wire) wire->init();
+#if !SSCMA_HAS_NATIVE_NETWORKING
+        if (sspi) sspi->init();
+#endif
     }
 
     inline void init_backend() {
