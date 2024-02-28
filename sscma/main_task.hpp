@@ -179,21 +179,24 @@ void register_commands() {
           return EL_OK;
       });
 
-    static_resource->instance->register_cmd(
-      "SENSOR",
-      "Set a default sensor by sensor ID",
-      "SENSOR_ID,ENABLE/DISABLE",
-      [](std::vector<std::string> argv, void* caller) {
-          uint8_t sensor_id = std::atoi(argv[1].c_str());
-          bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
-          static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), sensor_id = std::move(sensor_id), enable = std::move(enable), caller](
-              const std::atomic<bool>&) {
-                static_resource->current_task_id.fetch_add(1, std::memory_order_seq_cst);
-                set_sensor(cmd, sensor_id, enable, caller);
-            });
-          return EL_OK;
-      });
+    static_resource->instance->register_cmd("SENSOR",
+                                            "Set a default sensor by sensor ID",
+                                            "SENSOR_ID,ENABLE/DISABLE,OPT_ID",
+                                            [](std::vector<std::string> argv, void* caller) {
+                                                uint8_t sensor_id = std::atoi(argv[1].c_str());
+                                                bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
+                                                uint8_t opt_id    = std::atoi(argv[3].c_str());
+                                                static_resource->executor->add_task([cmd       = std::move(argv[0]),
+                                                                                     sensor_id = std::move(sensor_id),
+                                                                                     enable    = std::move(enable),
+                                                                                     opt_id    = std::move(opt_id),
+                                                                                     caller](const std::atomic<bool>&) {
+                                                    static_resource->current_task_id.fetch_add(
+                                                      1, std::memory_order_seq_cst);
+                                                    set_sensor(cmd, sensor_id, enable, opt_id, caller);
+                                                });
+                                                return EL_OK;
+                                            });
 
     static_resource->instance->register_cmd(
       "SENSOR?", "Get current sensor info", "", [](std::vector<std::string> argv, void* caller) {

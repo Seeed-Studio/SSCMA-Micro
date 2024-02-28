@@ -43,7 +43,7 @@
 #endif
 
 #define CONFIG_EL_DEBUG                3
-// #define CONFIG_EL_DEBUG_COLOR          1
+#define CONFIG_EL_DEBUG_COLOR          0
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
 #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1060 * 1024)
@@ -129,6 +129,10 @@ extern const struct fal_flash_dev _el_flash_db_nor_flash0;
 #endif
 
 extern void __on_algo_preprocess_done();
-#define EL_ON_ALGO_PREPROCESS_DONE __on_algo_preprocess_done();
+#define EL_ON_ALGO_PREPROCESS_DONE      __on_algo_preprocess_done();
+
+#define SSCMA_SHARED_BASE64_BUFFER      1
+#define SSCMA_SHARED_BASE64_BUFFER_BASE (0x36000000 + (150 * 1024))  // (JPEG_BASE_ADDR + JPEG_SIZE_MAX)
+#define SSCMA_SHARED_BASE64_BUFFER_SIZE (200 * 1024)
 
 #endif

@@ -24,6 +24,14 @@
     #define SSCMA_HAS_NATIVE_NETWORKING 0
 #endif
 
+#ifndef SSCMA_SHARED_BASE64_BUFFER
+    #define SSCMA_SHARED_BASE64_BUFFER 0
+#else
+    #ifndef SSCMA_SHARED_BASE64_BUFFER_BASE or SSCMA_SHARED_BASE64_BUFFER_SIZE
+        #error "Please specify base and size for shared base64 buffer"
+    #endif
+#endif
+
 #define SSCMA_REPL_HISTORY_MAX               8
 
 #define SSCMA_AT_API_MAJOR_VERSION           "v0"

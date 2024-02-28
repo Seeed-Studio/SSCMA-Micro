@@ -35,10 +35,10 @@ namespace edgelab {
 
 class CameraEsp final : public Camera {
    public:
-    CameraEsp()  = default;
+    CameraEsp();
     ~CameraEsp() = default;
 
-    el_err_code_t init(size_t width, size_t height) override;
+    el_err_code_t init(SensorOptIdType opt_id) override;
     el_err_code_t deinit() override;
 
     el_err_code_t start_stream() override;

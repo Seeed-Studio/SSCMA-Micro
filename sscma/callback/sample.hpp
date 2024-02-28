@@ -16,7 +16,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
    public:
     std::shared_ptr<Sample> getptr() { return shared_from_this(); }
 
-    [[nodiscard]] static std::shared_ptr<Sample> create(std::string cmd, std::size_t n_times, void* caller) {
+    [[nodiscard]] static std::shared_ptr<Sample> create(std::string cmd, int32_t n_times, void* caller) {
         return std::shared_ptr<Sample>{
           new Sample{std::move(cmd), n_times, caller}
         };
@@ -27,7 +27,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     inline void run() { prepare(); }
 
    protected:
-    Sample(std::string cmd, std::size_t n_times, void* caller)
+    Sample(std::string cmd, int32_t n_times, void* caller)
         : _cmd{cmd},
           _n_times{n_times},
           _caller{caller},
@@ -71,7 +71,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                "\", \"code\": ",
                                std::to_string(_ret),
                                ", \"data\": {\"sensor\": ",
-                               sensor_info_2_json_str(_sensor_info),
+                               sensor_info_2_json_str(_sensor_info, static_resource->device),
                                "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
@@ -100,7 +100,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     }
 
     void event_loop_cam() {
-        if (_times++ == _n_times) [[unlikely]]
+        if ((_n_times >= 0) & (_times++ >= _n_times)) [[unlikely]]
             return;
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
@@ -145,12 +145,12 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
    private:
     std::string _cmd;
-    std::size_t _n_times;
+    int32_t     _n_times;
     void*       _caller;
 
     std::size_t      _task_id;
     el_sensor_info_t _sensor_info;
-    std::size_t      _times;
+    int32_t          _times;
 
     el_err_code_t _ret;
 };

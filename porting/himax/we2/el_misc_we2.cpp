@@ -84,7 +84,7 @@ EL_ATTR_WEAK void* el_malloc(size_t size) {
 }
 
 EL_ATTR_WEAK void* el_aligned_malloc_once(size_t align, size_t size) {
-    constexpr static const size_t elHeapSize = 1548 * 1024;
+    constexpr static const size_t elHeapSize = 1098 * 1024;
     static uint8_t                elHeap[elHeapSize]{};
     static uint8_t*               cp      = elHeap;
     size_t                        pv      = reinterpret_cast<size_t>(cp);
@@ -128,7 +128,6 @@ EL_ATTR_WEAK void el_status_led(bool on) {
 }
 
 #if CONFIG_EL_HAS_FREERTOS_SUPPORT
-
 EL_ATTR_WEAK void* operator new[](size_t size) { return pvPortMalloc(size); }
 
 EL_ATTR_WEAK void operator delete[](void* p) { vPortFree(p); }
@@ -136,5 +135,4 @@ EL_ATTR_WEAK void operator delete[](void* p) { vPortFree(p); }
 EL_ATTR_WEAK void* operator new(size_t size) { return pvPortMalloc(size); }
 
 EL_ATTR_WEAK void operator delete(void* p) { vPortFree(p); }
-
 #endif

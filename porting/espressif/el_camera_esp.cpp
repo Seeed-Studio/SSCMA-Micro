@@ -34,7 +34,13 @@
 
 namespace edgelab {
 
-el_err_code_t CameraEsp::init(size_t width, size_t height) {
+CameraEsp::CameraEsp() : Camera(0b00000001), config(), fb(nullptr), sensor(nullptr) {}
+
+el_err_code_t CameraEsp::init(SensorOptIdType opt_id) {
+    if ((1 << opt_id) != 0b00000001) {
+        return EL_EINVAL;
+    }
+
     config.ledc_channel = LEDC_CHANNEL_0;
     config.ledc_timer   = LEDC_TIMER_0;
     config.pin_d0       = CAMERA_PIN_D0;

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,20 @@
  *
  */
 
-#ifndef _EL_CAMERA_HM0360_H_
-#define _EL_CAMERA_HM0360_H_
+#ifndef _EL_CAMERA_WE2_H_
+#define _EL_CAMERA_WE2_H_
 
 #include "core/el_types.h"
 #include "porting/el_camera.h"
 
 namespace edgelab {
 
-class CameraHM0360 : public Camera {
+class CameraWE2 final : public Camera {
    public:
-    CameraHM0360()  = default;
-    ~CameraHM0360() = default;
+    CameraWE2();
+    ~CameraWE2() = default;
 
-    el_err_code_t init(size_t width, size_t height) override;
+    el_err_code_t init(SensorOptIdType opt_id) override;
     el_err_code_t deinit() override;
 
     el_err_code_t start_stream() override;

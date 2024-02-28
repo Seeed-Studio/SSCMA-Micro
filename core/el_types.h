@@ -150,6 +150,11 @@ typedef struct EL_ATTR_PACKED el_sensor_info_t {
     el_sensor_state_t state;
 } el_sensor_info_t;
 
+typedef struct el_sensor_opt_t {
+    uint8_t     id;
+    const char* details;
+} el_sensor_opt_t;
+
 typedef enum {
     EL_MODEL_FMT_UNDEFINED     = 0u,
     EL_MODEL_FMT_PACKED_TFLITE = 1u,

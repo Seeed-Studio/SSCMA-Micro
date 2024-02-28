@@ -115,13 +115,38 @@ decltype(auto) model_info_2_json_str(const el_model_info_t& model_info) {
                           "}");
 }
 
-decltype(auto) sensor_info_2_json_str(const el_sensor_info_t& sensor_info) {
+decltype(auto) sensor_info_2_json_str(const el_sensor_info_t& sensor_info, Device* device, bool all_opts = false) {
+    std::string opts;
+
+    switch (sensor_info.type) {
+    case EL_SENSOR_TYPE_CAM: {
+        auto camera = device->get_camera();  // currently only support single camera
+        auto opt_id = camera->current_opt_id();
+        opts += concat_strings(
+          "\"opt_id\": ", std::to_string(opt_id), ", \"opt_detail\": \"", camera->current_opt_detail(), "\"");
+        const char* delim = "";
+        if (all_opts) {
+            opts += ", \"opts\": {";
+            for (const auto& opt : camera->supported_opts()) {
+                opts += concat_strings(delim, quoted(std::to_string(opt.id)), ": ", quoted(opt.details));
+                delim = ", ";
+            }
+            opts += "}";
+        }
+    } break;
+
+    default:
+        opts = "\"opt_id\": -1, \"opt_detail\": \"Unknown\", \"opts\": {}";
+    }
+
     return concat_strings("{\"id\": ",
                           std::to_string(sensor_info.id),
                           ", \"type\": ",
                           std::to_string(sensor_info.type),
                           ", \"state\": ",
                           std::to_string(sensor_info.state),
+                          ", ",
+                          std::move(opts),
                           "}");
 }
 
@@ -244,9 +269,18 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
     if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
-    static std::size_t size        = 0;
-    static std::size_t buffer_size = 0;
+#if SSCMA_SHARED_BASE64_BUFFER
+    static char*       buffer      = reinterpret_cast<char*>(SSCMA_SHARED_BASE64_BUFFER_BASE);
+    static std::size_t buffer_size = SSCMA_SHARED_BASE64_BUFFER_SIZE;
+
+    if ((((img->size + 2u) / 3u) << 2u) + 1u > buffer_size) {
+        EL_LOGW("Error: shared base64 buffer exhausted");
+        return std::string{"\"image\": \"\""};
+    }
+#else
     static char*       buffer      = nullptr;
+    static std::size_t buffer_size = 0;
+    static std::size_t size        = 0;
 
     // only reallcate memory when buffer size is not enough
     if (img->size > size) [[unlikely]] {
@@ -257,6 +291,7 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
             delete[] buffer;
         buffer = new char[buffer_size]{};
     }
+#endif
 
     std::memset(buffer, 0, buffer_size);
     el_base64_encode(img->data, img->size, buffer);
