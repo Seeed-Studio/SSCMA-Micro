@@ -305,7 +305,14 @@ Response:
     {
       "id": 1,
       "type": 1,
-      "state": 1
+      "state": 1,
+      "opt_id": 0,
+      "opt_detail": "240x240 Auto",
+      "opts": {
+        "2": "640x480 Auto",
+        "1": "480x480 Auto",
+        "0": "240x240 Auto"
+      }
     }
   ]
 }\n
@@ -327,7 +334,9 @@ Response:
   "data": {
     "id": 1,
     "type": 1,
-    "state": 1
+    "state": 1,
+    "opt_id": 0,
+    "opt_detail": "240x240 Auto"
   }
 }\n
 ```
@@ -572,9 +581,9 @@ Note: `"model": {..., "type": <AlgorithmType:Unsigned>,  ...}`.
 
 ####  Set a default sensor by sensor ID
 
-Pattern: `AT+SENSOR=<SENSOR_ID,ENABLE/DISABLE>\r`
+Pattern: `AT+SENSOR=<SENSOR_ID,ENABLE/DISABLE,OPT_ID>\r`
 
-Request: `AT+SENSOR=1,1\r`
+Request: `AT+SENSOR=1,1,0\r`
 
 Response:
 
@@ -587,7 +596,9 @@ Response:
     "sensor": {
       "id": 1,
       "type": 1,
-      "state": 1
+      "state": 1,
+      "opt_id": 0,
+      "opt_detail": "240x240 Auto"
     }
   }
 }\n
