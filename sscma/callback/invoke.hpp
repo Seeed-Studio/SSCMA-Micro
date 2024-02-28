@@ -24,7 +24,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     std::shared_ptr<Invoke> getptr() { return shared_from_this(); }
 
     [[nodiscard]] static std::shared_ptr<Invoke> create(
-      std::string cmd, std::size_t n_times, bool differed, bool results_only, void* caller) {
+      std::string cmd, int32_t n_times, bool differed, bool results_only, void* caller) {
         return std::shared_ptr<Invoke>{
           new Invoke{std::move(cmd), n_times, differed, results_only, caller}
         };
@@ -38,7 +38,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     inline void run() { prepare(); }
 
    protected:
-    Invoke(std::string cmd, std::size_t n_times, bool differed, bool results_only, void* caller)
+    Invoke(std::string cmd, int32_t n_times, bool differed, bool results_only, void* caller)
         : _cmd{cmd},
           _n_times{n_times},
           _differed{differed},
@@ -141,7 +141,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                ", \"algorithm\": ",
                                algorithm_config,
                                ", \"sensor\": ",
-                               sensor_info_2_json_str(_sensor_info),
+                               sensor_info_2_json_str(_sensor_info, static_resource->device),
                                "}}\n")};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
@@ -341,7 +341,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     template <typename AlgorithmType, typename ResultType = typename AlgorithmType::OutputType>
     void event_loop_cam(std::shared_ptr<AlgorithmType> algorithm, ResultsFilter<ResultType> results_filter) {
-        if (_times++ == _n_times) [[unlikely]]
+        if ((_n_times >= 0) & (_times++ >= _n_times)) [[unlikely]]
             return;
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
@@ -468,7 +468,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
    private:
     std::string _cmd;
-    std::size_t _n_times;
+    int32_t     _n_times;
     bool        _differed;
     bool        _results_only;
     void*       _caller;
@@ -478,7 +478,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     el_model_info_t     _model_info;
     el_algorithm_info_t _algorithm_info;
 
-    std::size_t   _times;
+    int32_t       _times;
     el_err_code_t _ret;
     uint16_t      _action_hash;
 

@@ -19,7 +19,7 @@ void get_available_sensors(const std::string& cmd, void* caller) {
       concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(EL_OK), ", \"data\": [")};
 
     for (const auto& i : registered_sensors) {
-        ss += concat_strings(delim, sensor_info_2_json_str(i));
+        ss += concat_strings(delim, sensor_info_2_json_str(i, static_resource->device, true));
         delim = ", ";
     }
     ss += "]}\n";
@@ -27,7 +27,8 @@ void get_available_sensors(const std::string& cmd, void* caller) {
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
-void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, void* caller, bool called_by_event = false) {
+void set_sensor(
+  const std::string& cmd, uint8_t sensor_id, bool enable, uint8_t opt_id, void* caller, bool called_by_event = false) {
     auto sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
     // a valid sensor id should always > 0
@@ -49,7 +50,7 @@ void set_sensor(const std::string& cmd, uint8_t sensor_id, bool enable, void* ca
 
         // if enable is true, init the camera
         if (enable) {
-            ret = camera->init(480, 480);  // TODO: custom resolution
+            ret = camera->init(opt_id);  // TODO: custom resolution
             if (ret != EL_OK) [[unlikely]]
                 goto SensorError;
         }
@@ -85,7 +86,7 @@ SensorReply:
                            "\", \"code\": ",
                            std::to_string(ret),
                            ", \"data\": {\"sensor\": ",
-                           sensor_info_2_json_str(sensor_info),
+                           sensor_info_2_json_str(sensor_info, static_resource->device),
                            "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
@@ -98,7 +99,7 @@ void get_sensor_info(const std::string& cmd, void* caller) {
                            "\", \"code\": ",
                            std::to_string(EL_OK),
                            ", \"data\": ",
-                           sensor_info_2_json_str(sensor_info),
+                           sensor_info_2_json_str(sensor_info, static_resource->device),
                            "}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
