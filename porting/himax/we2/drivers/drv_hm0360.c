@@ -1,5 +1,8 @@
 #include "drv_hm0360.h"
 
+#include "drv_common.h"
+#include "drv_shared_cfg.h"
+
 static HX_CIS_SensorSetting_t HM0360_init_setting[] = {
 #include "HM0360_24MHz_Bayer_640x480_setA_VGA_setB_QVGA_MIPI_4b_ParallelOutput_R2.i"
 };
@@ -18,40 +21,31 @@ static HX_CIS_SensorSetting_t HM0360_stream_xsleep[] = {
 
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = 0x36000000;
-static volatile uint32_t _wdma2_baseaddr    = 0;
-static volatile uint32_t _wdma3_baseaddr    = 0;
-static volatile uint32_t _jpegsize_baseaddr = 0;
+static volatile uint32_t _wdma1_baseaddr    = HW1_ADDR_BASE;
+static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
+static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
+static volatile uint32_t _jpegsize_baseaddr = JPEG_SZ_BASE_ADDR;
 static el_img_t          _frame, _jpeg;
 
-el_res_t _drv_hm0360_fit_res(uint16_t width, uint16_t height) {
-    el_res_t res;
-    if (width > 320 || height > 240) {
-        res.width  = 640;
-        res.height = 480;
-    } else if (width > 160 || height > 120) {
-        res.width  = 320;
-        res.height = 240;
-    } else {
-        res.width  = 160;
-        res.height = 120;
-    }
-    EL_LOGD("fit width: %d height: %d", res.width, res.height);
-    return res;
+static void memset_fb() {
+    memset((void*)_wdma1_baseaddr, 0, HW1_ADDR_SIZE);
+    memset((void*)_wdma2_baseaddr, 0, JPEG_SIZE_MAX);
+    memset((void*)_wdma3_baseaddr, 0, YUV422_SIZE_MAX);
+    memset((void*)_jpegsize_baseaddr, 0, JPEG_SZ_SIZE);
 }
 
-void drv_hm0360_cb(SENSORDPLIB_STATUS_E event) {
-    // EL_LOGD("Event: %d", event);
+static void drv_hm0360_cb(SENSORDPLIB_STATUS_E event) {
+    EL_LOGD("Event: %d", event);
+
     switch (event) {
     case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
         _frame_ready = true;
         _frame_count++;
         break;
     default:
-        EL_LOGD("unkonw event");
+        EL_LOGW("Unkonw event: %d", event);
         break;
     }
-    return;
 }
 
 el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
@@ -106,41 +100,30 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
         goto err;
     }
 
-    res = _drv_hm0360_fit_res(width, height);
+    res = _drv_fit_res(width, height);
 
     start_x = (res.width - width) / 2;
     start_y = (res.height - height) / 2;
 
     EL_LOGD("start_x: %d start_y: %d width: %d height: %d", start_x, start_y, width, height);
 
+    _frame.width  = width;
+    _frame.height = height;
+    _frame.rotate = EL_PIXEL_ROTATE_0;
+    _frame.format = EL_PIXEL_FORMAT_YUV422;
+    _frame.size   = width * height * 3 / 2;
+
+    _jpeg.width  = width;
+    _jpeg.height = height;
+    _jpeg.rotate = EL_PIXEL_ROTATE_0;
+    _jpeg.format = EL_PIXEL_FORMAT_JPEG;
+    _jpeg.size   = width * height / 4;
+
     // DMA
-    if (!_jpegsize_baseaddr)
-    _jpegsize_baseaddr = (uint32_t)el_aligned_malloc_once(32, 64);
-    if (_jpegsize_baseaddr == 0) {
-        ret = EL_ENOMEM;
-        goto err;
-    }
+    memset_fb();
 
-    {
-        size_t bs       = (((623 + (size_t)(res.width / 16) * (size_t)(res.height / 16) * 128 + 35) >> 2) << 2);
-         if (!_wdma1_baseaddr)
-        _wdma1_baseaddr = (uint32_t)el_aligned_malloc_once(32, bs);  // JPEG
-    }
-    if (_wdma1_baseaddr == 0) {
-        ret = EL_ENOMEM;
-        goto err;
-    }
-    _wdma2_baseaddr = _wdma1_baseaddr;
-
-     if (!_wdma3_baseaddr)
-    _wdma3_baseaddr = (uint32_t)el_aligned_malloc_once(32, res.width * res.height * 3 / 2);
-    if (_wdma3_baseaddr == 0) {
-        ret = EL_ENOMEM;
-        goto err;
-    }
-
-    sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
-    sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
+    _frame.data = _wdma3_baseaddr;
+    _jpeg.data  = _wdma2_baseaddr;
 
     EL_LOGD("WD1[%x], WD2_J[%x], WD3_RAW[%x], JPAuto[%x]",
             _wdma1_baseaddr,
@@ -148,22 +131,10 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
 
-    _frame.data   = _wdma3_baseaddr;
-    _frame.size   = width * height * 3 / 2;
-    _frame.height = height;
-    _frame.width  = width;
-    _frame.rotate = EL_PIXEL_ROTATE_0;
-    _frame.format = EL_PIXEL_FORMAT_YUV422;
-
-    _jpeg.data   = _wdma2_baseaddr;
-    _jpeg.size   = width * height / 4;
-    _jpeg.height = height;
-    _jpeg.width  = width;
-    _jpeg.rotate = EL_PIXEL_ROTATE_0;
-    _jpeg.format = EL_PIXEL_FORMAT_JPEG;
+    sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
+    sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
 
     // datapath init
-
     if (HM0360_MAX_WIDTH / res.width == 3) {
         sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
                                        SENSORDPLIB_STREAM_NONEAOS,
@@ -226,21 +197,9 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
 err:
     // power off
     EL_LOGD("hm0360 init failed!");
+
     hx_drv_sensorctrl_set_xSleep(0);
 
-    // if (_jpegsize_baseaddr != 0) {
-    //     el_free(_jpegsize_baseaddr);
-    //     _jpegsize_baseaddr = 0;
-    // }
-    // if (_wdma3_baseaddr != 0) {
-    //     el_free(_wdma3_baseaddr);
-    //     _wdma3_baseaddr = 0;
-    // }
-    // if (_wdma1_baseaddr) {
-    //     el_free(_wdma3_baseaddr);
-    //     _wdma1_baseaddr = 0;
-    //     _wdma2_baseaddr = 0;
-    // }
     return ret;
 }
 
@@ -249,13 +208,16 @@ el_err_code_t drv_hm0360_deinit() {
     sensordplib_stop_capture();
     sensordplib_start_swreset();
     sensordplib_stop_swreset_WoSensorCtrl();
+
     // stream off
     if (hx_drv_cis_setRegTable(HM0360_stream_off, HX_CIS_SIZE_N(HM0360_stream_off, HX_CIS_SensorSetting_t)) !=
         HX_CIS_NO_ERROR) {
         return EL_EIO;
     }
+
     // power off
     hx_drv_sensorctrl_set_xSleep(0);
+
     return EL_OK;
 }
 
@@ -266,14 +228,14 @@ el_err_code_t drv_hm0360_capture(uint32_t timeout) {
         if (el_get_time_ms() - time >= timeout) {
             return EL_ETIMOUT;
         }
-        el_sleep(1);
+        el_sleep(5);
     }
 
     return EL_OK;
 }
 
-el_err_code_t drv_hm0360_capture_stop(){
-    _frame_ready  = false;
+el_err_code_t drv_hm0360_capture_stop() {
+    _frame_ready = false;
     sensordplib_retrigger_capture();
 
     return EL_OK;
@@ -284,17 +246,23 @@ el_img_t drv_hm0360_get_frame() { return _frame; }
 el_img_t drv_hm0360_get_jpeg() {
     uint8_t  frame_no, buffer_no = 0;
     uint32_t reg_val = 0, mem_val = 0;
+
     hx_drv_xdma_get_WDMA2_bufferNo(&buffer_no);
     hx_drv_xdma_get_WDMA2NextFrameIdx(&frame_no);
+
     if (frame_no == 0) {
         frame_no = buffer_no - 1;
     } else {
         frame_no = frame_no - 1;
     }
+
     hx_drv_jpeg_get_EncOutRealMEMSize(&reg_val);
     hx_drv_jpeg_get_FillFileSizeToMem(frame_no, (uint32_t)_jpegsize_baseaddr, &mem_val);
     hx_drv_jpeg_get_MemAddrByFrameNo(frame_no, _wdma2_baseaddr, &_jpeg.data);
+
     _jpeg.size = mem_val == reg_val ? mem_val : reg_val;
+
     hx_InvalidateDCache_by_Addr((volatile void*)_jpeg.data, _jpeg.size);
+
     return _jpeg;
 }
