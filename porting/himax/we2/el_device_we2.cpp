@@ -37,7 +37,7 @@ extern "C" {
 #include <cstring>
 
 #include "core/el_debug.h"
-#include "el_camera_ov5647.h"
+#include "el_camera_we2.h"
 #include "el_config_porting.h"
 #include "el_serial_we2.h"
 #include "el_wire_we2.h"
@@ -140,7 +140,7 @@ void DeviceWE2::init() {
 
     static uint8_t sensor_id = 0;
 
-    static CameraOV5647 camera{};
+    static CameraWE2 camera{};
     this->_camera = &camera;
     this->_registered_sensors.emplace_front(el_sensor_info_t{
       .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
@@ -165,4 +165,5 @@ Device* Device::get_device() {
 
 }  // namespace edgelab
 
+// current implementation does not support multiple cameras
 void __on_algo_preprocess_done() { edgelab::DeviceWE2::get_device()->get_camera()->stop_stream(); }
