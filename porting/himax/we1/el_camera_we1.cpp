@@ -32,8 +32,14 @@ extern "C" {
 
 namespace edgelab {
 
-el_err_code_t CameraWE1::init(size_t width, size_t height) {
-    ERROR_T ret                         = ERROR_NONE;
+CameraWE1::CameraWE1() : Camera(0b00000001) {}
+
+el_err_code_t CameraWE1::init(SensorOptIdType opt_id) {
+    ERROR_T ret = ERROR_NONE;
+
+    uint16_t width  = 240;
+    uint16_t height = 240;
+
     this->config.sensor_type            = SENSOR_CAMERA;
     this->config.data.camera_cfg.width  = width;
     this->config.data.camera_cfg.height = height;
