@@ -28,6 +28,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <forward_list>
 
 #include "core/el_types.h"
 
@@ -35,11 +36,30 @@ namespace edgelab {
 
 class Camera {
    public:
-    Camera() : _is_present(false), _is_streaming(false) {}
+    using SensorOptIdType = decltype(el_sensor_opt_t::id);
+
+    Camera(uint32_t supported_opts_mask = 0) : _is_present(false), _is_streaming(false) {
+        std::forward_list<el_sensor_opt_t> presets = {
+          el_sensor_opt_t{.id = 0,   .details = "240x240 Auto"},
+          el_sensor_opt_t{.id = 1,   .details = "480x480 Auto"},
+          el_sensor_opt_t{.id = 2,   .details = "640x480 Auto"},
+          el_sensor_opt_t{.id = 3,  .details = "1280x720 Auto"},
+          el_sensor_opt_t{.id = 4, .details = "1920x1080 Auto"}
+        };
+
+        for (auto& opt : presets) {
+            if (supported_opts_mask & (1 << opt.id)) _supported_opts.push_front(opt);
+        }
+
+        if (!_supported_opts.empty()) {
+            _current_opt_id = _supported_opts.front().id;
+        }
+    }
+
     virtual ~Camera() = default;
 
-    virtual el_err_code_t init(size_t width, size_t height) = 0;
-    virtual el_err_code_t deinit()                          = 0;
+    virtual el_err_code_t init(SensorOptIdType opt_id) = 0;
+    virtual el_err_code_t deinit()                     = 0;
 
     virtual el_err_code_t start_stream() = 0;
     virtual el_err_code_t stop_stream()  = 0;
@@ -51,9 +71,21 @@ class Camera {
 
     bool is_streaming() const { return _is_streaming; }
 
+    SensorOptIdType current_opt_id() const { return _current_opt_id; }
+    const char*     current_opt_detail() const {
+        for (auto& opt : _supported_opts) {
+            if (opt.id == _current_opt_id) return opt.details;
+        }
+        return "Unknown";
+    }
+    const std::forward_list<el_sensor_opt_t>& supported_opts() const { return _supported_opts; }
+
    protected:
     volatile bool _is_present;
     volatile bool _is_streaming;
+
+    SensorOptIdType                    _current_opt_id;
+    std::forward_list<el_sensor_opt_t> _supported_opts;
 };
 
 }  // namespace edgelab
