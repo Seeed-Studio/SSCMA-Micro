@@ -53,20 +53,35 @@ static void drv_ov5647_cb(SENSORDPLIB_STATUS_E event) {
     }
 }
 
-static void set_mipi_csirx_enable() {
+static uint32_t ov5647_set_dp_rc96() {
+    SCU_PDHSC_DPCLK_CFG_T cfg;
+
+    hx_drv_scu_get_pdhsc_dpclk_cfg(&cfg);
+
+    cfg.mipiclk.hscmipiclksrc = SCU_HSCMIPICLKSRC_RC96M48M;
+    cfg.mipiclk.hscmipiclkdiv = 0;
+
+    hx_drv_scu_set_pdhsc_dpclk_cfg(cfg, 0, 1);
+
     uint32_t mipi_pixel_clk = 96;
     hx_drv_scu_get_freq(SCU_CLK_FREQ_TYPE_HSC_MIPI_RXCLK, &mipi_pixel_clk);
-
     mipi_pixel_clk = mipi_pixel_clk / 1000000;
 
-    uint32_t bitrate_1lane = OV5647_MIPI_CLOCK_FEQ * 2;
-    uint32_t mipi_lnno     = OV5647_MIPI_LANE_CNT;
-    uint32_t pixel_dpp     = OV5647_MIPI_DPP;
-    uint32_t line_length   = OV5647_SENSOR_WIDTH;
-    uint32_t frame_length  = OV5647_SENSOR_HEIGHT;
-    uint32_t byte_clk      = bitrate_1lane / 8;
-    uint32_t continuousout = OV5647_MIPITX_CNTCLK_EN;
-    uint32_t deskew_en     = 0;
+    return mipi_pixel_clk;
+}
+
+static void set_mipi_csirx_enable() {
+    uint32_t bitrate_1lane  = OV5647_MIPI_CLOCK_FEQ * 2;
+    uint32_t mipi_lnno      = OV5647_MIPI_LANE_CNT;
+    uint32_t pixel_dpp      = OV5647_MIPI_DPP;
+    uint32_t line_length    = OV5647_SENSOR_WIDTH;
+    uint32_t frame_length   = OV5647_SENSOR_HEIGHT;
+    uint32_t byte_clk       = bitrate_1lane / 8;
+    uint32_t continuousout  = OV5647_MIPITX_CNTCLK_EN;
+    uint32_t deskew_en      = 0;
+    uint32_t mipi_pixel_clk = 96;
+
+    mipi_pixel_clk = ov5647_set_dp_rc96();
 
     EL_LOGD("MIPI CSI Init Enable");
     EL_LOGD("MIPI TX CLK: %dM", mipi_pixel_clk);
@@ -315,7 +330,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
     hw5x5_cfg.demos_color_mode   = DEMOS_COLORMODE_YUV422;
     hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_BGGR;
-    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_FLOOR;
+    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_ROUNDING;
     hw5x5_cfg.hw55_crop_stx      = start_x;
     hw5x5_cfg.hw55_crop_sty      = start_y;
     hw5x5_cfg.hw55_in_width      = width;
@@ -340,7 +355,6 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
     sensordplib_set_sensorctrl_start();
-    sensordplib_retrigger_capture();
 
     EL_LOGD("ov5647 init success!");
 

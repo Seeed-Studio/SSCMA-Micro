@@ -34,9 +34,9 @@
 #include "el_display.h"
 #include "el_network.h"
 #include "el_serial.h"
+#include "el_sspi.h"
 #include "el_transport.h"
 #include "el_wire.h"
-#include "el_sspi.h"
 
 namespace edgelab {
 
@@ -123,8 +123,8 @@ class Device {
     Display* _display;
     Serial*  _serial;
     Network* _network;
-    Wire*    _wire;
     SSPI*    _sspi;
+    Wire*    _wire;
 
     std::forward_list<el_sensor_info_t> _registered_sensors;
 };

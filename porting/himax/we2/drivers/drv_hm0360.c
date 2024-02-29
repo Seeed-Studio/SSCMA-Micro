@@ -188,7 +188,6 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
 
     sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
     sensordplib_set_sensorctrl_start();
-    sensordplib_retrigger_capture();
 
     EL_LOGD("hm0360 init success!");
 

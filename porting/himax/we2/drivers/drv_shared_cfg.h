@@ -4,7 +4,10 @@
 #define FRAME_WIDTH_MAX         640
 #define FRAME_HEIGHT_MAX        480
 
-#define HW1_ADDR_BASE           0x36000000
+#define SRAM2_START_ADDR        0x36000000
+#define SRAM2_SIZE              (0x36060000 - 0x36000000)  // 384KB
+
+#define HW1_ADDR_BASE           SRAM2_START_ADDR
 #define HW1_ADDR_SIZE           0
 
 #define JPEG_10X_SIZE_EXP(w, h) (((623 + (size_t)(w / 16) * (size_t)(h / 16) * 128 + 35) >> 2) << 2)
@@ -13,6 +16,11 @@
 
 #define JPEG_SZ_BASE_ADDR       (JPEG_BASE_ADDR + JPEG_SIZE_MAX)
 #define JPEG_SZ_SIZE            0x1000  // 4KB
+
+#define FREE_SRAM2_BASE_ADDR    (JPEG_SZ_BASE_ADDR + JPEG_SZ_SIZE)
+#define FREE_SRAM2_SIZE         (SRAM2_SIZE - (FREE_SRAM2_BASE_ADDR - SRAM2_START_ADDR))
+
+static_assert(FREE_SRAM2_SIZE > 0, "SRAM2 is not enough");
 
 #define YUV422_SIZE_EXP(w, h)   (w * h * 3 / 2)
 #define YUV422_BASE_ADDR        0x3418F800

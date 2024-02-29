@@ -129,10 +129,12 @@ extern const struct fal_flash_dev _el_flash_db_nor_flash0;
 #endif
 
 extern void __on_algo_preprocess_done();
-#define EL_ON_ALGO_PREPROCESS_DONE      __on_algo_preprocess_done();
+#define EL_ON_ALGO_PREPROCESS_DONE __on_algo_preprocess_done();
+
+#include "drivers/drv_shared_cfg.h"
 
 #define SSCMA_SHARED_BASE64_BUFFER      1
-#define SSCMA_SHARED_BASE64_BUFFER_BASE (0x36000000 + (150 * 1024))  // (JPEG_BASE_ADDR + JPEG_SIZE_MAX)
-#define SSCMA_SHARED_BASE64_BUFFER_SIZE (200 * 1024)
+#define SSCMA_SHARED_BASE64_BUFFER_BASE FREE_SRAM2_BASE_ADDR
+#define SSCMA_SHARED_BASE64_BUFFER_SIZE FREE_SRAM2_SIZE
 
 #endif
