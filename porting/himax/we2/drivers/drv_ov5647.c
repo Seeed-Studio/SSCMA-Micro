@@ -26,17 +26,18 @@ static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
 
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = HW1_ADDR_BASE;
+static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
 static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
 static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
-static volatile uint32_t _jpegsize_baseaddr = JPEG_SZ_BASE_ADDR;
-static el_img_t          _frame, _jpeg;
+static volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
+static el_img_t          _frame;
+static el_img_t          _jpeg;
 
 static void memset_fb() {
-    memset((void*)_wdma1_baseaddr, 0, HW1_ADDR_SIZE);
-    memset((void*)_wdma2_baseaddr, 0, JPEG_SIZE_MAX);
-    memset((void*)_wdma3_baseaddr, 0, YUV422_SIZE_MAX);
-    memset((void*)_jpegsize_baseaddr, 0, JPEG_SZ_SIZE);
+    memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
+    memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
+    memset((void*)_wdma3_baseaddr, 0, YUV422_BASE_SIZE);
+    memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
 }
 
 static void drv_ov5647_cb(SENSORDPLIB_STATUS_E event) {
@@ -60,6 +61,7 @@ static uint32_t ov5647_set_dp_rc96() {
 
     cfg.mipiclk.hscmipiclksrc = SCU_HSCMIPICLKSRC_RC96M48M;
     cfg.mipiclk.hscmipiclkdiv = 0;
+    cfg.dpclk                 = SCU_HSCDPCLKSRC_RC96M48M;
 
     hx_drv_scu_set_pdhsc_dpclk_cfg(cfg, 0, 1);
 
@@ -143,17 +145,17 @@ static void set_mipi_csirx_enable() {
     hscnt_cfg.mipirx_dphy_hscnt_ln0_en = 1;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_en = 1;
 
-    if (mipi_pixel_clk == 200)  //pll200
+    if (mipi_pixel_clk == 200)  // pll200
     {
         hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
         hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
         hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
-    } else if (mipi_pixel_clk == 300)  //pll300
+    } else if (mipi_pixel_clk == 300)  // pll300
     {
         hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
         hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x18;
         hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x18;
-    } else  //rc96
+    } else  // rc96
     {
         hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
         hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
@@ -204,7 +206,8 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
     JPEG_CFG_T    jpeg_cfg;
-    uint16_t      start_x, start_y;
+    uint16_t      start_x;
+    uint16_t      start_y;
     el_res_t      res;
     INP_CROP_T    crop;
 
@@ -282,6 +285,16 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
 
+#if CONFIG_EL_DEBUG > 1
+    printf("sensor w/h: %d/%d\n", OV5647_SENSOR_WIDTH, OV5647_SENSOR_HEIGHT);
+    printf("frame w/h: %d/%d\n", width, height);
+    printf("jpeg w/h: %d/%d\n", width, height);
+    printf("wdma1(no use) base: 0x%x\t size: %d\n", _wdma1_baseaddr, WDMA_1_BASE_SIZE);
+    printf("wdma2(jpeg)   base: 0x%x\t size: %d\n", _wdma2_baseaddr, JPEG_BASE_SIZE);
+    printf("wdma3(yuv422) base: 0x%x\t size: %d\n", _wdma3_baseaddr, YUV422_BASE_SIZE);
+    printf("jpeg fill     base: 0x%x\t size: %d\n", _jpegsize_baseaddr, JPEG_FILL_SIZE);
+#endif
+
     sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
     sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
 
@@ -341,7 +354,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);

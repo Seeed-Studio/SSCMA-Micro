@@ -21,17 +21,18 @@ static HX_CIS_SensorSetting_t HM0360_stream_xsleep[] = {
 
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = HW1_ADDR_BASE;
+static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
 static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
 static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
-static volatile uint32_t _jpegsize_baseaddr = JPEG_SZ_BASE_ADDR;
-static el_img_t          _frame, _jpeg;
+static volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
+static el_img_t          _frame;
+static el_img_t          _jpeg;
 
 static void memset_fb() {
-    memset((void*)_wdma1_baseaddr, 0, HW1_ADDR_SIZE);
-    memset((void*)_wdma2_baseaddr, 0, JPEG_SIZE_MAX);
-    memset((void*)_wdma3_baseaddr, 0, YUV422_SIZE_MAX);
-    memset((void*)_jpegsize_baseaddr, 0, JPEG_SZ_SIZE);
+    memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
+    memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
+    memset((void*)_wdma3_baseaddr, 0, YUV422_BASE_SIZE);
+    memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
 }
 
 static void drv_hm0360_cb(SENSORDPLIB_STATUS_E event) {
@@ -52,7 +53,8 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
     JPEG_CFG_T    jpeg_cfg;
-    uint16_t      start_x, start_y;
+    uint16_t      start_x;
+    uint16_t      start_y;
     el_res_t      res;
     INP_CROP_T    crop;
 
