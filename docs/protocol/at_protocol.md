@@ -395,6 +395,33 @@ Response:
 }\n
 ```
 
+#### Query all keys of KV objects from device flash
+
+Request: `AT+KVQUERY?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "KVQUERY?",
+  "code": 0,
+  "data": [
+    "__ver_num__",
+    "edgelab#type_name#F0F569FD",
+    "edgelab#type_name#30EEDD69",
+    "edgelab#type_name#60DC70C1",
+    "edgelab#type_name#1FEE9C53",
+    "edgelab#type_name#D7A1D0BC",
+    "sscma#version",
+    "sscma#boot_count",
+    "sscma#info"
+    "sscma#conf#model_id",
+    "sscma#conf#sensor_id",
+  ]
+}\n
+```
+
 #### Get score threshold
 
 Request: `AT+TSCORE?\r`
@@ -473,9 +500,7 @@ Response:
       "gateway": "192.168.0.1"
     },
     "in6_info": {
-      "ip": ":::::::",
-      "prefix": ":::::::",
-      "gateway": ":::::::"
+      "ip": ":::::::"
     },
     "config": {
       "name_type": 0,
@@ -734,6 +759,66 @@ Response:
 ```
 
 Note: Max string length is `4096 - strlen("AT+INFO=\"\"\r") - 1 - TagLength`.
+
+#### Create or alter a KV object on device flash
+
+Pattern: `AT+KVALTER=<"KEY","VALUE">\r`
+
+Request: `AT+KVALTER="key_0","This is test value"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "KVALTER",
+  "code": 0,
+  "data": {
+    "key": "key_0",
+    "crc16_maxim": 478
+  }
+}\n
+```
+
+#### Query the value of a KV object from device flash
+
+Pattern: `AT+KVQUERY=<"KEY">\r`
+
+Request: `AT+KVQUERY="key_0"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "KVQUERY",
+  "code": 0,
+  "data": {
+    "key": "key_0",
+    "value": "This is test value",
+    "crc16_maxim": 478
+  }
+}\n
+```
+
+#### Drop a KV object from device flash
+
+Pattern: `AT+KVDROP=<"KEY">\r`
+
+Request: `AT+KVDROP="key_0"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "KVDROP",
+  "code": 0,
+  "data": {
+    "key": "key_0"
+  }
+}\n
+```
 
 #### Set action trigger (Experimental)
 
