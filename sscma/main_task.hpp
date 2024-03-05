@@ -8,6 +8,7 @@
 #include "callback/common.hpp"
 #include "callback/info.hpp"
 #include "callback/invoke.hpp"
+#include "callback/kv.hpp"
 #include "callback/model.hpp"
 #include "callback/mqtt.hpp"
 #include "callback/sample.hpp"
@@ -278,6 +279,37 @@ void register_commands() {
       "INFO?", "Get info string from device flash", "", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
             [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_info(cmd, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "KVALTER",
+      "Create or alter a key-value pair",
+      "\"KEY\",\"VALUE\"",
+      [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_create_or_alter(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "KVQUERY?", "Query all the key names from storage", "", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query_all_key(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "KVQUERY", "Query a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "KVDROP", "Drop a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_drop(argv, caller); });
           return EL_OK;
       });
 

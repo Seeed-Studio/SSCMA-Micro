@@ -54,7 +54,7 @@ namespace edgelab {
 namespace types {
 
 template <typename ValueType> struct el_storage_kv_t {
-    explicit el_storage_kv_t(const char* key_, ValueType&& value_, size_t size_ = sizeof(ValueType)) noexcept
+    explicit el_storage_kv_t(const char* key_, ValueType value_, size_t size_ = sizeof(ValueType)) noexcept
         : key(key_), value(value_), size(size_) {
         EL_ASSERT(size > 0);
     }
@@ -252,11 +252,16 @@ class Storage {
         if (!p_handler || !p_handler->value_len) [[unlikely]]
             return false;
 
+        // TODO: skip allocate buffer if the value_len is equal to kv.size
         unsigned char* buffer = new unsigned char[p_handler->value_len];
         fdb_blob       blob{};
         fdb_blob_read(reinterpret_cast<fdb_db_t>(__kvdb),
                       fdb_kv_to_blob(p_handler, fdb_blob_make(&blob, buffer, p_handler->value_len)));
-        std::memcpy(&kv.value, buffer, std::min(kv.size, static_cast<size_t>(p_handler->value_len)));
+        if constexpr (std::is_pointer<ValueType>::value)
+            std::memcpy(kv.value, buffer, std::min(kv.size, static_cast<size_t>(p_handler->value_len)));
+        else
+            std::memcpy(&kv.value, buffer, std::min(kv.size, static_cast<size_t>(p_handler->value_len)));
+        
         delete[] buffer;
     #endif
 
@@ -299,7 +304,10 @@ class Storage {
         const Guard<Mutex> guard(__lock);
     #if CONFIG_EL_LIB_FLASHDB
         fdb_blob blob{};
-        return fdb_kv_set_blob(__kvdb, kv.key, fdb_blob_make(&blob, &kv.value, kv.size)) == FDB_NO_ERR;
+        if constexpr (std::is_pointer<ValueType>::value)
+            return fdb_kv_set_blob(__kvdb, kv.key, fdb_blob_make(&blob, kv.value, kv.size)) == FDB_NO_ERR;
+        else
+            return fdb_kv_set_blob(__kvdb, kv.key, fdb_blob_make(&blob, &kv.value, kv.size)) == FDB_NO_ERR;
     #else
         return true;
     #endif
