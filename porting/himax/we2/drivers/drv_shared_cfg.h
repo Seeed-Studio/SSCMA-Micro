@@ -1,21 +1,23 @@
 #ifndef _DRV_SHARED_CFG_H_
 #define _DRV_SHARED_CFG_H_
 
-#define ALIGN_32BIT(x)        (((x) + 0x1F) & ~0x1F)
+#define ENABLE_SENSOR_FAST_SWITCH 1
 
-#define FRAME_WIDTH_MAX       640
-#define FRAME_HEIGHT_MAX      480
+#define ALIGN_32BIT(x)            (((x) + 0x1F) & ~0x1F)
 
-#define SRAM_1_TAIL_ADDR      0x3418F800
-#define SRAM_1_TAIL_SIZE      (0x34200000 - 0x3418F800)  // 450KB
+#define FRAME_WIDTH_MAX           640
+#define FRAME_HEIGHT_MAX          480
 
-#define SRAM_2_START_ADDR     0x36000000
-#define SRAM_2_SIZE           (0x36060000 - 0x36000000)  // 384KB
+#define SRAM_1_TAIL_ADDR          0x3418F800
+#define SRAM_1_TAIL_SIZE          (0x34200000 - 0x3418F800)  // 450KB
 
-#define YUV422_SIZE_EXP(w, h) (w * h * 3 / 2)
+#define SRAM_2_START_ADDR         0x36000000
+#define SRAM_2_SIZE               (0x36060000 - 0x36000000)  // 384KB
 
-#define YUV422_BASE_ADDR      ALIGN_32BIT(SRAM_1_TAIL_ADDR)
-#define YUV422_BASE_SIZE      YUV422_SIZE_EXP(FRAME_WIDTH_MAX, FRAME_HEIGHT_MAX)  // 450KB
+#define YUV422_SIZE_EXP(w, h)     (w * h * 3 / 2)
+
+#define YUV422_BASE_ADDR          ALIGN_32BIT(SRAM_1_TAIL_ADDR)
+#define YUV422_BASE_SIZE          YUV422_SIZE_EXP(FRAME_WIDTH_MAX, FRAME_HEIGHT_MAX)  // 450KB
 
 static_assert(YUV422_BASE_SIZE <= SRAM_1_TAIL_SIZE, "SRAM1 is not enough");
 

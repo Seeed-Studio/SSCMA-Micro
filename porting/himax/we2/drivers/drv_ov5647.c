@@ -24,6 +24,7 @@ static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
   {HX_CIS_I2C_Action_W, 0x4202,                 0x0F},
 };
 
+static volatile bool     _initiated_before  = false;
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
 static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
@@ -211,46 +212,55 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     el_res_t      res;
     INP_CROP_T    crop;
 
-    /*
-     * common CIS init
-     */
-    hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
-    EL_LOGD("mclk DIV3, xshutdown_pin=%d", DEAULT_XHSUTDOWN_PIN);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
+        // common CIS init
+        hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
+        EL_LOGD("mclk DIV3, xshutdown_pin=%d", DEAULT_XHSUTDOWN_PIN);
 
-    //OV5647 Enable
-    hx_drv_gpio_set_output(AON_GPIO1, GPIO_OUT_HIGH);
-    hx_drv_scu_set_PA1_pinmux(SCU_PA1_PINMUX_AON_GPIO1, 0);
-    hx_drv_gpio_set_out_value(AON_GPIO1, GPIO_OUT_HIGH);
-    EL_LOGD("Set PA1(AON_GPIO1) to High");
+        // OV5647 Enable
+        hx_drv_gpio_set_output(AON_GPIO1, GPIO_OUT_HIGH);
+        hx_drv_scu_set_PA1_pinmux(SCU_PA1_PINMUX_AON_GPIO1, 0);
+        hx_drv_gpio_set_out_value(AON_GPIO1, GPIO_OUT_HIGH);
+        EL_LOGD("Set PA1(AON_GPIO1) to High");
 
-    hx_drv_cis_set_slaveID(CIS_I2C_ID);
-    EL_LOGD("hx_drv_cis_set_slaveID(0x%02X)", CIS_I2C_ID);
+        hx_drv_cis_set_slaveID(CIS_I2C_ID);
+        EL_LOGD("hx_drv_cis_set_slaveID(0x%02X)", CIS_I2C_ID);
 
-    el_sleep(3);
+        el_sleep(3);
 
-    // off stream
-    if (hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
+        // off stream
+        if (hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        // init stream
+        if (hx_drv_cis_setRegTable(OV5647_init_setting, HX_CIS_SIZE_N(OV5647_init_setting, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
+          {HX_CIS_I2C_Action_W, 0x0101, 0x00},
+        };
+
+        if (hx_drv_cis_setRegTable(OV5647_mirror_setting,
+                                   HX_CIS_SIZE_N(OV5647_mirror_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        set_mipi_csirx_enable();
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
     }
-
-    // init stream
-    if (hx_drv_cis_setRegTable(OV5647_init_setting, HX_CIS_SIZE_N(OV5647_init_setting, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
-    }
-
-    HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
-      {HX_CIS_I2C_Action_W, 0x0101, 0x00},
-    };
-
-    if (hx_drv_cis_setRegTable(OV5647_mirror_setting, HX_CIS_SIZE_N(OV5647_mirror_setting, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
-    }
+#endif
 
     res = _drv_fit_res(width, height);
 
@@ -258,8 +268,6 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     start_y = (res.height - height) / 2;
 
     EL_LOGD("start_x: %d start_y: %d width: %d height: %d", start_x, start_y, width, height);
-
-    set_mipi_csirx_enable();
 
     _frame.width  = width;
     _frame.height = height;
@@ -285,7 +293,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
 
-#if CONFIG_EL_DEBUG > 1
+#if CONFIG_EL_DEBUG > 3
     printf("sensor w/h: %d/%d\n", OV5647_SENSOR_WIDTH, OV5647_SENSOR_HEIGHT);
     printf("frame w/h: %d/%d\n", width, height);
     printf("jpeg w/h: %d/%d\n", width, height);
@@ -295,8 +303,17 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     printf("jpeg fill     base: 0x%x\t size: %d\n", _jpegsize_baseaddr, JPEG_FILL_SIZE);
 #endif
 
-    sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
-    sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
+        sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
+        sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
+    }
+#endif
 
     crop.start_x = 0;
     crop.start_y = 0;
@@ -354,20 +371,36 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
 
-    hx_dplib_register_cb(drv_ov5647_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
 
-    if (hx_drv_cis_setRegTable(OV5647_stream_on, HX_CIS_SIZE_N(OV5647_stream_on, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        return EL_EIO;
+        hx_dplib_register_cb(drv_ov5647_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+
+        if (hx_drv_cis_setRegTable(OV5647_stream_on, HX_CIS_SIZE_N(OV5647_stream_on, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            return EL_EIO;
+        }
+
+        sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
     }
+#endif
 
-    sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
     sensordplib_set_sensorctrl_start();
+
+    _frame_ready = false;
+    sensordplib_retrigger_capture();
+
+    _initiated_before = true;
 
     EL_LOGD("ov5647 init success!");
 
@@ -377,7 +410,21 @@ err:
     // power off
     EL_LOGD("ov5647 init failed!");
 
-    hx_drv_sensorctrl_set_xSleep(0);
+#if ENABLE_SENSOR_FAST_SWITCH
+    _initiated_before = false;
+
+    sensordplib_stop_capture();
+    sensordplib_start_swreset();
+    sensordplib_stop_swreset_WoSensorCtrl();
+
+    // stream off
+    hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t));
+
+    set_mipi_csirx_disable();
+
+#endif
+
+    hx_drv_sensorctrl_set_xSleep(1);
 
     return ret;
 }
@@ -385,6 +432,9 @@ err:
 el_err_code_t drv_ov5647_deinit() {
     // datapath off
     sensordplib_stop_capture();
+
+#if !ENABLE_SENSOR_FAST_SWITCH
+
     sensordplib_start_swreset();
     sensordplib_stop_swreset_WoSensorCtrl();
 
@@ -395,8 +445,12 @@ el_err_code_t drv_ov5647_deinit() {
     }
     set_mipi_csirx_disable();
 
+#endif
+
     // power off
     hx_drv_sensorctrl_set_xSleep(1);
+
+    el_sleep(3);
 
     return EL_OK;
 }
@@ -408,7 +462,7 @@ el_err_code_t drv_ov5647_capture(uint32_t timeout) {
         if (el_get_time_ms() - time >= timeout) {
             return EL_ETIMOUT;
         }
-        el_sleep(5);
+        el_sleep(3);
     }
 
     return EL_OK;

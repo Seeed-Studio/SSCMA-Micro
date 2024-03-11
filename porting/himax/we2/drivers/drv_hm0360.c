@@ -19,6 +19,7 @@ static HX_CIS_SensorSetting_t HM0360_stream_xsleep[] = {
   {HX_CIS_I2C_Action_W, 0x0100, 0x02},
 };
 
+static volatile bool     _initiated_before  = false;
 static volatile bool     _frame_ready       = false;
 static volatile uint32_t _frame_count       = 0;
 static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
@@ -63,44 +64,54 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
         return EL_EINVAL;
     }
 
-    // pinmux
-    hx_drv_scu_set_SEN_INT_pinmux(SCU_SEN_INT_PINMUX_FVALID);
-    hx_drv_scu_set_SEN_GPIO_pinmux(SCU_SEN_GPIO_PINMUX_LVALID);
-    hx_drv_scu_set_SEN_XSLEEP_pinmux(SCU_SEN_XSLEEP_PINMUX_SEN_XSLEEP_0);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
 
-    // clock
-    hx_drv_dp_set_mclk_src(DP_MCLK_SRC_INTERNAL, DP_MCLK_SRC_INT_SEL_XTAL);
+        // pinmux
+        hx_drv_scu_set_SEN_INT_pinmux(SCU_SEN_INT_PINMUX_FVALID);
+        hx_drv_scu_set_SEN_GPIO_pinmux(SCU_SEN_GPIO_PINMUX_LVALID);
+        hx_drv_scu_set_SEN_XSLEEP_pinmux(SCU_SEN_XSLEEP_PINMUX_SEN_XSLEEP_0);
 
-    // sleep control
-    hx_drv_cis_init(DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV1);
-    hx_drv_sensorctrl_set_xSleepCtrl(SENSORCTRL_XSLEEP_BY_CPU);
+        // clock
+        hx_drv_dp_set_mclk_src(DP_MCLK_SRC_INTERNAL, DP_MCLK_SRC_INT_SEL_XTAL);
 
-    // power on
-    hx_drv_sensorctrl_set_xSleep(1);
+        // sleep control
+        hx_drv_cis_init(DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV1);
+        hx_drv_sensorctrl_set_xSleepCtrl(SENSORCTRL_XSLEEP_BY_CPU);
 
-    // off stream
-    if (hx_drv_cis_setRegTable(HM0360_stream_off, HX_CIS_SIZE_N(HM0360_stream_off, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
+        // power on
+        hx_drv_sensorctrl_set_xSleep(1);
+
+        // off stream
+        if (hx_drv_cis_setRegTable(HM0360_stream_off, HX_CIS_SIZE_N(HM0360_stream_off, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        // init stream
+        if (hx_drv_cis_setRegTable(HM0360_init_setting, HX_CIS_SIZE_N(HM0360_init_setting, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        HX_CIS_SensorSetting_t HM0360_mirror_setting[] = {
+          {HX_CIS_I2C_Action_W, 0x0101, 0x00},
+        };
+
+        if (hx_drv_cis_setRegTable(HM0360_mirror_setting,
+                                   HX_CIS_SIZE_N(HM0360_mirror_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
     }
-
-    // init stream
-    if (hx_drv_cis_setRegTable(HM0360_init_setting, HX_CIS_SIZE_N(HM0360_init_setting, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
-    }
-
-    HX_CIS_SensorSetting_t HM0360_mirror_setting[] = {
-      {HX_CIS_I2C_Action_W, 0x0101, 0x00},
-    };
-
-    if (hx_drv_cis_setRegTable(HM0360_mirror_setting, HX_CIS_SIZE_N(HM0360_mirror_setting, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        ret = EL_EIO;
-        goto err;
-    }
+#endif
 
     res = _drv_fit_res(width, height);
 
@@ -133,8 +144,17 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
 
-    sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
-    sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
+        sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
+        sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
+    }
+#endif
 
     // datapath init
     if (HM0360_MAX_WIDTH / res.width == 3) {
@@ -181,15 +201,31 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
 
-    hx_dplib_register_cb(drv_hm0360_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+#if ENABLE_SENSOR_FAST_SWITCH
+    if (!_initiated_before) {
+        // BLOCK START
+#endif
 
-    if (hx_drv_cis_setRegTable(HM0360_stream_on, HX_CIS_SIZE_N(HM0360_stream_on, HX_CIS_SensorSetting_t)) !=
-        HX_CIS_NO_ERROR) {
-        return EL_EIO;
+        hx_dplib_register_cb(drv_hm0360_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+
+        if (hx_drv_cis_setRegTable(HM0360_stream_on, HX_CIS_SIZE_N(HM0360_stream_on, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            return EL_EIO;
+        }
+
+        sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
+
+#if ENABLE_SENSOR_FAST_SWITCH
+        // BLOCK END
     }
+#endif
 
-    sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
     sensordplib_set_sensorctrl_start();
+
+    _frame_ready = false;
+    sensordplib_retrigger_capture();
+
+    _initiated_before = true;
 
     EL_LOGD("hm0360 init success!");
 
@@ -199,6 +235,17 @@ err:
     // power off
     EL_LOGD("hm0360 init failed!");
 
+#if ENABLE_SENSOR_FAST_SWITCH
+    _initiated_before = false;
+
+    sensordplib_stop_capture();
+    sensordplib_start_swreset();
+    sensordplib_stop_swreset_WoSensorCtrl();
+
+    hx_drv_cis_setRegTable(HM0360_stream_off, HX_CIS_SIZE_N(HM0360_stream_off, HX_CIS_SensorSetting_t));
+
+#endif
+
     hx_drv_sensorctrl_set_xSleep(0);
 
     return ret;
@@ -207,6 +254,8 @@ err:
 el_err_code_t drv_hm0360_deinit() {
     // datapath off
     sensordplib_stop_capture();
+
+#if !ENABLE_SENSOR_FAST_SWITCH
     sensordplib_start_swreset();
     sensordplib_stop_swreset_WoSensorCtrl();
 
@@ -215,9 +264,12 @@ el_err_code_t drv_hm0360_deinit() {
         HX_CIS_NO_ERROR) {
         return EL_EIO;
     }
+#endif
 
     // power off
     hx_drv_sensorctrl_set_xSleep(0);
+
+    el_sleep(3);
 
     return EL_OK;
 }
