@@ -41,8 +41,14 @@
 	{HX_CIS_I2C_Action_W, 0x3809, 0x10},
 	{HX_CIS_I2C_Action_W, 0x380a, 0x03},
 	{HX_CIS_I2C_Action_W, 0x380b, 0xcc},
-	{HX_CIS_I2C_Action_W, 0x380c, 0x07},
-	{HX_CIS_I2C_Action_W, 0x380d, 0x68},
+
+	// for 4x quant
+	// {HX_CIS_I2C_Action_W, 0x380c, 0x0c}, // 0x0a 4:0 12:8 H
+	// {HX_CIS_I2C_Action_W, 0x380d, 0x68}, // 0x8c 7:0 7:0  H
+
+	{HX_CIS_I2C_Action_W, 0x380c, 0x0a}, // 0x0a 4:0 12:8 H
+	{HX_CIS_I2C_Action_W, 0x380d, 0x8c}, // 0x8c 7:0 7:0  H
+
 	{HX_CIS_I2C_Action_W, 0x3811, 0x0c},
 	{HX_CIS_I2C_Action_W, 0x3813, 0x06},
 	{HX_CIS_I2C_Action_W, 0x3814, 0x31},
@@ -70,8 +76,10 @@
 	{HX_CIS_I2C_Action_W, 0x3a0a, 0x00},
 	{HX_CIS_I2C_Action_W, 0x3a0b, 0xf6},
 	{HX_CIS_I2C_Action_W, 0x3a0d, 0x08},
-	{HX_CIS_I2C_Action_W, 0x3a0e, 0x06},
-	{HX_CIS_I2C_Action_W, 0x3a0f, 0x58},
+
+	{HX_CIS_I2C_Action_W, 0x3a0e, 0x06}, // 0x07 1:0 9:8 V
+	{HX_CIS_I2C_Action_W, 0x3a0f, 0x58}, // 0xb0 7:0 7:0 V
+
 	{HX_CIS_I2C_Action_W, 0x3a10, 0x50},
 	{HX_CIS_I2C_Action_W, 0x3a1b, 0x58},
 	{HX_CIS_I2C_Action_W, 0x3a1e, 0x50},
