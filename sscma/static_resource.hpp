@@ -62,15 +62,12 @@ class StaticResource final {
     bool                     is_invoke;
 
     // external resources (hardware related)
-    Device* device;
-    Serial* serial;
-    Wire*   wire;
+    Device*                       device;
+    std::forward_list<Transport*> transports;
 
 #if SSCMA_HAS_NATIVE_NETWORKING
     WiFi* wifi;
     MQTT* mqtt;
-#else
-    SSPI* sspi;
 #endif
 
     Models*            models;
@@ -90,8 +87,7 @@ class StaticResource final {
     void init(std::function<void(void)> post_init) {
         device = Device::get_device();
 
-        serial = device->get_serial();
-        wire   = device->get_wire();
+        transports = device->get_transports();
 
         models             = Models::get_ptr();
         storage            = Storage::get_ptr();
@@ -106,8 +102,6 @@ class StaticResource final {
 
         static auto v_mqtt{MQTT(wifi)};
         mqtt = &v_mqtt;
-#else
-        sspi = device->get_sspi();
 #endif
 
         static auto v_instance{Server()};
@@ -148,11 +142,27 @@ class StaticResource final {
 
     inline void init_hardware() {
         EL_LOGI("[SSCMA] initializing basic IO devices...");
-        if (serial) serial->init();
-        if (wire) wire->init();
+        // TODO: init them inside device manager
+        for (auto& transport : transports) {
+            if (!transport) [[unlikely]]
+                continue;
+
+            switch (transport->type) {
+            case EL_TRANSPORT_UART:
+                reinterpret_cast<Serial*>(transport)->init();
+                break;
+            case EL_TRANSPORT_SPI:
 #if !SSCMA_HAS_NATIVE_NETWORKING
-        if (sspi) sspi->init();
+                reinterpret_cast<SSPI*>(transport)->init();
 #endif
+                break;
+            case EL_TRANSPORT_I2C:
+                reinterpret_cast<Wire*>(transport)->init();
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     inline void init_backend() {

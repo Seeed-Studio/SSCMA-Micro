@@ -396,25 +396,20 @@ void wait_for_inputs() {
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 
-    auto transports = std::forward_list<Transport*> {
-        static_resource->serial,
 #if SSCMA_HAS_NATIVE_NETWORKING
-          static_resource->mqtt,
-#else
-          static_resource->sspi,
+    static_resource->transports.emplace_front(static_resource->mqtt);
 #endif
-          static_resource->wire
-    };
+
     char* buf = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
     std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
 
 Loop:
-    std::for_each(transports.begin(), transports.end(), [&buf](Transport* transport) {
+    for (auto& transport : static_resource->transports) {
         if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {
             static_resource->instance->exec(buf, static_cast<void*>(transport));
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
-    });
+    }
     el_sleep(20);
     goto Loop;
 }

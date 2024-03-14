@@ -53,10 +53,10 @@ class Device {
 
     Camera*  get_camera() { return _camera; }
     Display* get_display() { return _display; }
-    Serial*  get_serial() { return _serial; }
+
+    const std::forward_list<Transport*>& get_transports() { return _transports; }
+
     Network* get_network() { return _network; }
-    Wire*    get_wire() { return _wire; }
-    SSPI*    get_sspi() { return _sspi; }
 
     el_sensor_info_t get_sensor_info(uint8_t id) const {
         auto it = std::find_if(_registered_sensors.begin(), _registered_sensors.end(), [&](const el_sensor_info_t& s) {
@@ -110,10 +110,9 @@ class Device {
           _revision_id(0),
           _camera(nullptr),
           _display(nullptr),
-          _serial(nullptr),
           _network{nullptr},
-          _sspi(nullptr),
-          _wire(nullptr) {}
+          _transports{},
+          _registered_sensors{} {}
 
     const char* _device_name;
     uint32_t    _device_id;
@@ -121,11 +120,9 @@ class Device {
 
     Camera*  _camera;
     Display* _display;
-    Serial*  _serial;
     Network* _network;
-    SSPI*    _sspi;
-    Wire*    _wire;
 
+    std::forward_list<Transport*>       _transports;
     std::forward_list<el_sensor_info_t> _registered_sensors;
 };
 

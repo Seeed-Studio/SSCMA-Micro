@@ -27,32 +27,31 @@ using namespace edgelab::utility;
 using namespace sscma::utility;
 using namespace sscma::callback;
 
+// may cause undefined behavior
+static auto default_transport = []() { return static_resource->transports.front(); };
+
 void init_algorithm_hook(std::string cmd) {
     if (static_resource->current_algorithm_type != EL_ALGO_TYPE_UNDEFINED) [[likely]]
         set_algorithm(
-          cmd + "@ALGO", static_resource->current_algorithm_type, static_cast<void*>(static_resource->serial), true);
+          cmd + "@ALGO", static_resource->current_algorithm_type, static_cast<void*>(default_transport()), true);
 }
 
 void init_model_hook(std::string cmd) {
     if (static_resource->current_model_id) [[likely]]
-        set_model(cmd + "@MODEL", static_resource->current_model_id, static_cast<void*>(static_resource->serial), true);
+        set_model(cmd + "@MODEL", static_resource->current_model_id, static_cast<void*>(default_transport()), true);
 }
 
 void init_sensor_hook(std::string cmd) {
     if (static_resource->current_sensor_id) [[likely]]
-        set_sensor(cmd + "@SENSOR",
-                   static_resource->current_sensor_id,
-                   true,
-                   0,
-                   static_cast<void*>(static_resource->serial),
-                   true);
+        set_sensor(
+          cmd + "@SENSOR", static_resource->current_sensor_id, true, 0, static_cast<void*>(default_transport()), true);
 }
 
 void init_action_hook(std::string cmd) {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[SSCMA_CMD_MAX_LENGTH]{};
         static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_ACTION, action));
-        set_action({cmd + "@ACTION", action}, static_cast<void*>(static_resource->serial), true);
+        set_action({cmd + "@ACTION", action}, static_cast<void*>(default_transport()), true);
     }
 }
 
@@ -62,7 +61,7 @@ void init_wifi_hook(std::string cmd) {
     if (static_resource->storage->get(el_make_storage_kv_from_type(config))) [[likely]]
         set_wifi_network(
           {cmd + "@WIFI", std::string(config.name), std::to_string(config.security_type), std::string(config.passwd)},
-          static_cast<void*>(static_resource->serial),
+          static_cast<void*>(default_transport()),
           true);
     static_resource->supervisor->register_supervised_object(static_resource->wifi, 10);
 }
@@ -77,7 +76,7 @@ void init_mqtt_hook(std::string cmd) {
                          std::string(config.username),
                          std::string(config.password),
                          std::to_string(config.use_ssl)},
-                        static_cast<void*>(static_resource->serial),
+                        static_cast<void*>(default_transport()),
                         true);
     static_resource->supervisor->register_supervised_object(static_resource->mqtt, 1000);
 }
