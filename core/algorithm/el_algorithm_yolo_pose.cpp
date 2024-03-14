@@ -214,7 +214,7 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
             auto it = std::find_if(anchor_strides_1.begin(),
                                    anchor_strides_1.end(),
                                    [&output_shape](const types::anchor_stride_t& anchor_stride) {
-                                       return anchor_stride.size == output_shape.dims[1];
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
                                    });
             if (it == anchor_strides_1.end())
                 return false;
@@ -225,7 +225,7 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
             auto it = std::find_if(anchor_strides_2.begin(),
                                    anchor_strides_2.end(),
                                    [&output_shape](const types::anchor_stride_t& anchor_stride) {
-                                       return anchor_stride.size == output_shape.dims[1];
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
                                    });
             if (it == anchor_strides_2.end())
                 return false;
@@ -234,7 +234,7 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
         } break;
         default:
             if (output_shape.dims[2] % 3 != 0) return false;
-            if (output_shape.dims[1] != sum) return false;
+            if (output_shape.dims[1] != static_cast<int>(sum)) return false;
         }
     }
 
@@ -311,7 +311,7 @@ inline void AlgorithmYOLOPOSE::init() {
         switch (dim_2) {
         case 1:
             for (size_t j = 0; j < _anchor_variants; ++j) {
-                if (dim_1 == _anchor_strides[j].size) {
+                if (dim_1 == static_cast<int>(_anchor_strides[j].size)) {
                     _output_scores_ids[j] = i;
                     break;
                 }
@@ -319,7 +319,7 @@ inline void AlgorithmYOLOPOSE::init() {
             break;
         case 64:
             for (size_t j = 0; j < _anchor_variants; ++j) {
-                if (dim_1 == _anchor_strides[j].size) {
+                if (dim_1 == static_cast<int>(_anchor_strides[j].size)) {
                     _output_bboxes_ids[j] = i;
                     break;
                 }
