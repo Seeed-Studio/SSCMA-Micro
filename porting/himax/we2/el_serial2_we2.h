@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 (Seeed Technology Inc.)
+ * Copyright (c) 2023 Seeed Technology Co.,Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,50 +23,36 @@
  *
  */
 
-#include "el_device_we1.h"
+#ifndef _EL_SERIAL2_WE2_H_
+#define _EL_SERIAL2_WE2_H_
 
 extern "C" {
-#include <powermode.h>
+#include <hx_drv_uart.h>
 }
 
-#include <cstdint>
-
-#include "core/el_debug.h"
-#include "el_camera_we1.h"
-#include "el_network_we1.h"
-#include "el_serial_we1.h"
+#include "porting/el_serial.h"
 
 namespace edgelab {
 
-DeviceWE1::DeviceWE1() { init(); }
+class Serial2WE2 final : public Serial {
+   public:
+    Serial2WE2();
+    ~Serial2WE2();
 
-void DeviceWE1::init() {
-    this->_device_name = PORT_DEVICE_NAME;
-    this->_device_id   = 0x0001;
-    this->_revision_id = 0x0001;
+    el_err_code_t init() override;
+    el_err_code_t deinit() override;
 
-    static uint8_t sensor_id = 0;
+    char        echo(bool only_visible = true) override;
+    char        get_char() override;
+    std::size_t get_line(char* buffer, size_t size, const char delim = 0x0d) override;
 
-    static CameraWE1 camera{};
-    this->_camera = &camera;
-    this->_registered_sensors.emplace_front(el_sensor_info_t{
-      .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
+    std::size_t read_bytes(char* buffer, size_t size) override;
+    std::size_t send_bytes(const char* buffer, size_t size) override;
 
-    static SerialWE1 serial{};
-    this->_transports.emplace_front(&serial);
-}
-
-void DeviceWE1::restart() {
-#ifdef EXTERNAL_LDO
-    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_EXTERNAL_LDO);
-#else
-    hx_lib_pm_chip_rst(PMU_WE1_POWERPLAN_INTERNAL_LDO);
-#endif
-}
-
-Device* Device::get_device() {
-    static DeviceWE1 device{};
-    return &device;
-}
+   private:
+    DEV_UART* _console_uart;
+};
 
 }  // namespace edgelab
+
+#endif

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) Seeed Technology Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,13 @@
  *
  */
 
-#ifndef _BOARD_GROVE_VISION_AI_WE2_H_
-#define _BOARD_GROVE_VISION_AI_WE2_H_
+#ifndef _BOARD_DEV_BOARD_WE2_H_
+#define _BOARD_DEV_BOARD_WE2_H_
 
-#define PRODUCT_NAME_PREFIX "grove_vision_ai"
-#define PRODUCT_NAME_SUFFIX "v2"
+#define PRODUCT_NAME_PREFIX "dev_board"
+#define PRODUCT_NAME_SUFFIX "v1"
 #define DEVICE_NAME         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
-#define PORT_DEVICE_NAME    "Grove Vision AI (V2)"
+#define PORT_DEVICE_NAME    "Dev Board"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,16 +62,16 @@ extern "C" {
 
 #define CONFIG_EL_CAMERA_PWR_CTRL_INIT_F                        \
     {                                                           \
-        hx_drv_gpio_set_output(AON_GPIO1, GPIO_OUT_HIGH);       \
+        hx_drv_gpio_set_output(AON_GPIO1, GPIO_OUT_LOW);        \
         hx_drv_scu_set_PA1_pinmux(SCU_PA1_PINMUX_AON_GPIO1, 0); \
-        hx_drv_gpio_set_out_value(AON_GPIO1, GPIO_OUT_HIGH);    \
+        hx_drv_gpio_set_out_value(AON_GPIO1, GPIO_OUT_LOW);     \
     }
 
 #define CONFIG_EL_SPI_CS_INIT_F \
-    { hx_drv_scu_set_PB11_pinmux(SCU_PB11_PINMUX_SPI_S_CS, 1); }
+    { hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI_S_CS, 1); }
 #define CONFIG_EL_SPI_CTRL_INIT_F \
-    { hx_drv_scu_set_PA0_pinmux(SCU_PA0_PINMUX_AON_GPIO0_2, 1); }
-#define CONFIG_EL_SPI_CTRL_PIN AON_GPIO0
+    { hx_drv_scu_set_PB8_pinmux(SCU_PB8_PINMUX_GPIO2_1, 1); }
+#define CONFIG_EL_SPI_CTRL_PIN GPIO21
 
 #ifdef __cplusplus
 }

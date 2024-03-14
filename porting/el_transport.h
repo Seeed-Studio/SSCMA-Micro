@@ -36,7 +36,9 @@ namespace edgelab {
 // No status transport protocol (framed), TCP alternative should have a server class, a connection could derive from Transport
 class Transport {
    public:
-    Transport() : _is_present(false) {}
+    el_transport_type_t type;
+
+    Transport() : type(EL_TRANSPORT_UNKNOWN), _is_present(false) {}
     virtual ~Transport() = default;
 
     virtual std::size_t read_bytes(char* buffer, size_t size)       = 0;

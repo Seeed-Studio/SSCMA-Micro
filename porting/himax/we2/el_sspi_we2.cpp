@@ -46,7 +46,7 @@ static void sspi_txcb(void* param) {
     // }
     memset(sspi_ptr->tx_buffer, 0, sizeof(sspi_ptr->tx_buffer));
     if (sspi_ptr->tx_ring_buffer->isEmpty()) {
-        hx_drv_gpio_set_out_value(AON_GPIO0, GPIO_OUT_LOW);
+        hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_LOW);
     }
     sspi_ptr->sspi_read_enable(sizeof(sspi_ptr->rx_buffer));
 }
@@ -62,8 +62,7 @@ static void sspi_rxcb(void* param) {
     // }
 
     if (len > SPI_WRITE_PL_LEN || feature != FEATURE_TRANSPORT) {
-        EL_LOGW("Invalid data received, feature: %d, cmd: %d, len: %d\n", 
-                 feature, cmd, len);
+        EL_LOGW("Invalid data received, feature: %d, cmd: %d, len: %d\n", feature, cmd, len);
         sspi_ptr->sspi_read_enable(sizeof(sspi_ptr->rx_buffer));
         return;
     }
@@ -90,13 +89,12 @@ static void sspi_rxcb(void* param) {
         sspi_ptr->rx_ring_buffer->clear();
         sspi_ptr->tx_ring_buffer->clear();
         sspi_ptr->sspi_read_enable(sizeof(sspi_ptr->rx_buffer));
-        hx_drv_gpio_set_out_value(AON_GPIO0, GPIO_OUT_LOW);
+        hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_LOW);
         break;
     default:
         sspi_ptr->sspi_read_enable(sizeof(sspi_ptr->rx_buffer));
         break;
     }
-
 }
 
 }  // namespace porting
@@ -110,13 +108,14 @@ sspiWE2::~sspiWE2() { deinit(); }
 el_err_code_t sspiWE2::init() {
     EL_ASSERT(!this->_is_present);
 
-    hx_drv_scu_set_PA0_pinmux(SCU_PA0_PINMUX_AON_GPIO0_2, 1);
-    hx_drv_gpio_set_output(AON_GPIO0, GPIO_OUT_LOW);
+    CONFIG_EL_SPI_CTRL_INIT_F;
+    hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_LOW);
 
     hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI_S_DO, 1);
     hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI_S_DI, 1);
     hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI_S_CLK, 1);
-    hx_drv_scu_set_PB11_pinmux(SCU_PB11_PINMUX_SPI_S_CS, 1);
+    // hx_drv_scu_set_PB11_pinmux(SCU_PB11_PINMUX_SPI_S_CS, 1);
+    CONFIG_EL_SPI_CS_INIT_F;
 
     hx_drv_spi_slv_init(USE_DW_SPI_SLV_0, DW_SSPI_S_RELBASE);
     this->spi = hx_drv_spi_slv_get_dev(USE_DW_SPI_SLV_0);
@@ -196,13 +195,13 @@ size_t sspiWE2::send_bytes(const char* buffer, size_t size) {
         if (xTaskGetTickCount() - ts > 1000) {
             EL_LOGW("TX ring buffer full, cannot send data\n");
             this->tx_ring_buffer->clear();
-            hx_drv_gpio_set_out_value(AON_GPIO0, GPIO_OUT_LOW);
+            hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_LOW);
             return 0;
         }
         el_sleep(5);
     }
     size_t len = this->tx_ring_buffer->put(buffer, size);
-    hx_drv_gpio_set_out_value(AON_GPIO0, GPIO_OUT_HIGH);
+    hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_HIGH);
     return len;
 }
 

@@ -219,6 +219,13 @@ typedef struct EL_ATTR_PACKED el_model_info_t {
 
 typedef uint8_t el_model_id_t;
 
+typedef enum {
+    EL_TRANSPORT_UNKNOWN = 0,
+    EL_TRANSPORT_UART,
+    EL_TRANSPORT_SPI,
+    EL_TRANSPORT_I2C,
+} el_transport_type_t;
+
 #ifdef __cplusplus
 }
 #endif
