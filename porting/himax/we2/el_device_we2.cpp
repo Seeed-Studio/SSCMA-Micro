@@ -39,9 +39,10 @@ extern "C" {
 #include "core/el_debug.h"
 #include "el_camera_we2.h"
 #include "el_config_porting.h"
+#include "el_serial2_we2.h"
 #include "el_serial_we2.h"
-#include "el_wire_we2.h"
 #include "el_sspi_we2.h"
+#include "el_wire_we2.h"
 #include "porting/el_flash.h"
 
 #define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
@@ -146,14 +147,22 @@ void DeviceWE2::init() {
       .id = ++sensor_id, .type = el_sensor_type_t::EL_SENSOR_TYPE_CAM, .state = el_sensor_state_t::EL_SENSOR_STA_REG});
 
     static SerialWE2 serial{};
-    this->_serial = &serial;
+    serial.type = EL_TRANSPORT_UART;
+    this->_transports.emplace_front(&serial);
+
+    static Serial2WE2 serial2{};
+    serial2.type = EL_TRANSPORT_UART;
+    this->_transports.emplace_front(&serial2);
 
     this->_network = nullptr;
-    static sspiWE2 sspi{};
-    this->_sspi = &sspi;
+
+    static sspiWE2 spi{};
+    spi.type = EL_TRANSPORT_SPI;
+    this->_transports.emplace_front(&spi);
 
     static WireWE2 wire{0x62};
-    this->_wire = &wire;
+    wire.type = EL_TRANSPORT_I2C;
+    this->_transports.emplace_front(&wire);
 }
 
 void DeviceWE2::reset() { __NVIC_SystemReset(); }
