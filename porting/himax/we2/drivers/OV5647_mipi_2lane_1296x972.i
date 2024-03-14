@@ -91,8 +91,10 @@
 	{HX_CIS_I2C_Action_W, 0x4837, 0x16},
 	{HX_CIS_I2C_Action_W, 0x4800, 0x24},
 	{HX_CIS_I2C_Action_W, 0x3503, 0x00},
+
 	{HX_CIS_I2C_Action_W, 0x3820, 0x41},
-	{HX_CIS_I2C_Action_W, 0x3821, 0x07},
+	{HX_CIS_I2C_Action_W, 0x3821, 0x00},
+
 	{HX_CIS_I2C_Action_W, 0x350a, 0x00},
 	{HX_CIS_I2C_Action_W, 0x350b, 0x10},
 	{HX_CIS_I2C_Action_W, 0x3500, 0x00},
