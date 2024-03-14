@@ -82,7 +82,7 @@ void DeviceEsp::init() {
     static SerialEsp serial{
       usb_serial_jtag_driver_config_t{.tx_buffer_size = 8192, .rx_buffer_size = 8192}
     };
-    this->_serial = &serial;
+    this->_transports.emplace_front(&serial);
 
     static NetworkEsp network{};
     this->_network = &network;
