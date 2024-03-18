@@ -370,18 +370,23 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+
+#if defined(CONFIG_EL_BOARD_DEV_BOARD_WE2)
     if (width > 240 && height > 240) {
         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
-    } 
+    } else {
+        jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    }
+#endif
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
 
-#if ENABLE_SENSOR_FAST_SWITCH
+    #if ENABLE_SENSOR_FAST_SWITCH
     if (!_initiated_before) {
         // BLOCK START
-#endif
+    #endif
 
         hx_dplib_register_cb(drv_ov5647_cb, SENSORDPLIB_CB_FUNTYPE_DP);
 
@@ -392,10 +397,10 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
         sensordplib_set_mclkctrl_xsleepctrl_bySCMode();
 
-#if ENABLE_SENSOR_FAST_SWITCH
+    #if ENABLE_SENSOR_FAST_SWITCH
         // BLOCK END
     }
-#endif
+    #endif
 
     sensordplib_set_sensorctrl_start();
 
@@ -412,7 +417,7 @@ err:
     // power off
     EL_LOGD("ov5647 init failed!");
 
-#if ENABLE_SENSOR_FAST_SWITCH
+    #if ENABLE_SENSOR_FAST_SWITCH
     _initiated_before = false;
 
     sensordplib_stop_capture();
@@ -424,7 +429,7 @@ err:
 
     set_mipi_csirx_disable();
 
-#endif
+    #endif
 
     hx_drv_sensorctrl_set_xSleep(1);
 
@@ -435,7 +440,7 @@ el_err_code_t drv_ov5647_deinit() {
     // datapath off
     sensordplib_stop_capture();
 
-#if !ENABLE_SENSOR_FAST_SWITCH
+    #if !ENABLE_SENSOR_FAST_SWITCH
 
     sensordplib_start_swreset();
     sensordplib_stop_swreset_WoSensorCtrl();
@@ -447,7 +452,7 @@ el_err_code_t drv_ov5647_deinit() {
     }
     set_mipi_csirx_disable();
 
-#endif
+    #endif
 
     // power off
     hx_drv_sensorctrl_set_xSleep(1);
