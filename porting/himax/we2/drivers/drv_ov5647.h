@@ -45,30 +45,6 @@
 #include "core/el_types.h"
 #include "porting/el_misc.h"
 
-#ifdef TRUSTZONE_SEC
-    #ifdef IP_INST_NS_csirx
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #endif
-#else
-    #ifndef TRUSTZONE
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #endif
-#endif
-
-#define DEAULT_XHSUTDOWN_PIN  AON_GPIO2
-
 #define OV5647_MIPI_640X480   0
 #define OV5647_MIPI_2592X1944 1
 #define OV5647_MIPI_1296X972  2
@@ -101,21 +77,21 @@
 #endif
 
 #define OV5647_SENSOR_I2CID       (0x36)
-#define OV5647_MIPI_CLOCK_FEQ     (220)  //MHz
+#define OV5647_MIPI_CLOCK_FEQ     (220)  // MHz
 #define OV5647_MIPI_LANE_CNT      (2)
-#define OV5647_MIPI_DPP           (10)    //depth per pixel
-#define OV5647_MIPITX_CNTCLK_EN   (1)     //continuous clock output enable
-#define OV5647_MIPI_CTRL_OFF      (0x01)  //MIPI OFF
-#define OV5647_MIPI_CTRL_ON       (0x14)  //MIPI ON
+#define OV5647_MIPI_DPP           (10)    // depth per pixel
+#define OV5647_MIPITX_CNTCLK_EN   (1)     // continuous clock output enable
+#define OV5647_MIPI_CTRL_OFF      (0x01)  // MIPI OFF
+#define OV5647_MIPI_CTRL_ON       (0x14)  // MIPI ON
 #define OV5647_LANE_NB            (2)
 
-#define CIS_I2C_ID                OV5647_SENSOR_I2CID
 #define SENSORDPLIB_SENSOR_OV5647 (SENSORDPLIB_SENSOR_HM2130)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+el_err_code_t drv_ov5647_probe();
 el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height);
 el_err_code_t drv_ov5647_deinit();
 el_err_code_t drv_ov5647_capture(uint32_t timeout);
