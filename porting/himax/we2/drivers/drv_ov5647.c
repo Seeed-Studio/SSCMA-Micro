@@ -33,7 +33,6 @@ el_err_code_t drv_ov5647_probe() {
     CONFIG_EL_CAMERA_PWR_CTRL_INIT_F;
     hx_drv_timer_cm55x_delay_ms(10, TIMER_STATE_DC);
 
-    // read
     if (hx_drv_cis_set_slaveID(CIS_I2C_ID) != HX_CIS_NO_ERROR) {
         return EL_EIO;
     }

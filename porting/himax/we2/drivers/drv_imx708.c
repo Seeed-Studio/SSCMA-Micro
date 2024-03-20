@@ -3,6 +3,13 @@
 #include "drv_common.h"
 #include "drv_shared_cfg.h"
 
+#define SENSORDPLIB_SENSOR_IMX708 (SENSORDPLIB_SENSOR_HM2130)
+#define CIS_MIRROR_SETTING        (0x03)  // 0x00: off / 0x01:H-Mirror / 0x02:V-Mirror / 0x03:HV-Mirror
+#define CIS_I2C_ID                IMX708_SENSOR_I2CID
+#define CIS_ENABLE_MIPI_INF       (0x01)  // 0x00: off / 0x01: on
+#define CIS_MIPI_LANE_NUMBER      (0x02)
+#define CIS_ENABLE_HX_AUTOI2C     (0x00)  // 0x00: off / 0x01: on / 0x2: on and XSLEEP KEEP HIGH
+
 static HX_CIS_SensorSetting_t IMX708_common_setting[] = {
 #include "IMX708_common_setting.i"
 };
@@ -48,37 +55,6 @@ static const uint8_t pdaf_gains[2][9] = {
 static HX_CIS_SensorSetting_t IMX708_mirror_setting[] = {
   {HX_CIS_I2C_Action_W, 0x0101, (CIS_MIRROR_SETTING & 0xFF)},
 };
-
-static volatile bool     _initiated_before  = false;
-static volatile bool     _frame_ready       = false;
-static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
-static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
-static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
-static volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
-static el_img_t          _frame;
-static el_img_t          _jpeg;
-
-static void memset_fb() {
-    memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
-    memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
-    memset((void*)_wdma3_baseaddr, 0, YUV422_BASE_SIZE);
-    memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
-}
-
-static void drv_imx708_cb(SENSORDPLIB_STATUS_E event) {
-    EL_LOGD("Event: %d", event);
-
-    switch (event) {
-    case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
-        _frame_ready = true;
-        _frame_count++;
-        break;
-    default:
-        EL_LOGW("Unkonw event: %d", event);
-        break;
-    }
-}
 
 static uint32_t IMX708_set_pll200() {
     SCU_PDHSC_DPCLK_CFG_T cfg;
@@ -264,6 +240,25 @@ static void set_mipi_csirx_disable() {
     EL_LOGD("0x%08X = 0x%08X", csi_stream0_control_reg, *csi_stream0_control_reg);
 }
 
+el_err_code_t drv_imx708_probe() {
+    hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
+
+    CONFIG_EL_CAMERA_PWR_CTRL_INIT_F;
+    hx_drv_timer_cm55x_delay_ms(10, TIMER_STATE_DC);
+
+    if (hx_drv_cis_set_slaveID(CIS_I2C_ID) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
+
+    uint8_t data;
+    if (hx_drv_cis_get_reg(0x0000, &data) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
+
+    EL_LOGD("imx708 I2C ID: 0x%04X", CIS_I2C_ID);
+    return EL_OK;
+}
+
 el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
@@ -335,8 +330,8 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
             EL_LOGD("IMX708 EXPOSURE(0x%04X) by app (IMX708_exposure_setting)\n", IMX708_EXPOSURE_SETTING);
         }
 
-        if (hx_drv_cis_setRegTable(IMX708_gain_setting,
-                                   HX_CIS_SIZE_N(IMX708_gain_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+        if (hx_drv_cis_setRegTable(IMX708_gain_setting, HX_CIS_SIZE_N(IMX708_gain_setting, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
             EL_LOGD("IMX708 Init by app fail (IMX708_gain_setting)\n");
         } else {
             EL_LOGD("IMX708 Init by app (IMX708_gain_setting)\n");
@@ -403,26 +398,16 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     _jpeg.size   = width * height / 4;
 
     // DMA
-    memset_fb();
+    _reset_all_wdma_buffer();
 
     _frame.data = _wdma3_baseaddr;
     _jpeg.data  = _wdma2_baseaddr;
 
-    EL_LOGD("WD1[%x], WD2_J[%x], WD3_RAW[%x], JPAuto[%x]",
+    EL_LOGD("wdma1[%x], wdma2[%x], wdma3[%x], jpg_sz[%x]",
             _wdma1_baseaddr,
             _wdma2_baseaddr,
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
-
-#if CONFIG_EL_DEBUG > 3
-    printf("sensor w/h: %d/%d\n", IMX708_SENSOR_WIDTH, IMX708_SENSOR_HEIGHT);
-    printf("frame w/h: %d/%d\n", width, height);
-    printf("jpeg w/h: %d/%d\n", width, height);
-    printf("wdma1(no use) base: 0x%x\t size: %d\n", _wdma1_baseaddr, WDMA_1_BASE_SIZE);
-    printf("wdma2(jpeg)   base: 0x%x\t size: %d\n", _wdma2_baseaddr, JPEG_BASE_SIZE);
-    printf("wdma3(yuv422) base: 0x%x\t size: %d\n", _wdma3_baseaddr, YUV422_BASE_SIZE);
-    printf("jpeg fill     base: 0x%x\t size: %d\n", _jpegsize_baseaddr, JPEG_FILL_SIZE);
-#endif
 
 #if ENABLE_SENSOR_FAST_SWITCH
     if (!_initiated_before) {
@@ -510,7 +495,7 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
         // BLOCK START
 #endif
 
-        hx_dplib_register_cb(drv_imx708_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+        hx_dplib_register_cb(_drv_dp_event_cb, SENSORDPLIB_CB_FUNTYPE_DP);
 
         if (hx_drv_cis_setRegTable(IMX708_stream_on, HX_CIS_SIZE_N(IMX708_stream_on, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
@@ -582,52 +567,4 @@ el_err_code_t drv_imx708_deinit() {
     el_sleep(3);
 
     return EL_OK;
-}
-
-el_err_code_t drv_imx708_capture(uint32_t timeout) {
-    uint32_t time = el_get_time_ms();
-
-    while (!_frame_ready) {
-        if (el_get_time_ms() - time >= timeout) {
-            return EL_ETIMOUT;
-        }
-        el_sleep(3);
-    }
-
-    return EL_OK;
-}
-
-el_err_code_t drv_imx708_capture_stop() {
-    _frame_ready = false;
-    sensordplib_retrigger_capture();
-
-    return EL_OK;
-}
-
-el_img_t drv_imx708_get_frame() { return _frame; }
-
-el_img_t drv_imx708_get_jpeg() {
-    uint8_t  frame_no, buffer_no = 0;
-    uint32_t reg_val = 0, mem_val = 0;
-
-    hx_drv_xdma_get_WDMA2_bufferNo(&buffer_no);
-    hx_drv_xdma_get_WDMA2NextFrameIdx(&frame_no);
-
-    if (frame_no == 0) {
-        frame_no = buffer_no - 1;
-    } else {
-        frame_no = frame_no - 1;
-    }
-
-    hx_drv_jpeg_get_EncOutRealMEMSize(&reg_val);
-    hx_drv_jpeg_get_FillFileSizeToMem(frame_no, (uint32_t)_jpegsize_baseaddr, &mem_val);
-    hx_drv_jpeg_get_MemAddrByFrameNo(frame_no, _wdma2_baseaddr, &_jpeg.data);
-
-    _jpeg.size = mem_val == reg_val ? mem_val : reg_val;
-
-    hx_InvalidateDCache_by_Addr((volatile void*)_jpeg.data, _jpeg.size);
-
-    EL_LOGD("JPEG size: %d", _jpeg.size);
-
-    return _jpeg;
 }

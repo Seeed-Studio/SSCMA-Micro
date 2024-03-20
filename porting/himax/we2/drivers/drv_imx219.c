@@ -3,6 +3,19 @@
 #include "drv_common.h"
 #include "drv_shared_cfg.h"
 
+#define CIS_MIRROR_SETTING    (0x03)  // 0x00: off/0x01:H-Mirror/0x02:V-Mirror/0x03:HV-Mirror
+#define CIS_I2C_ID            IMX219_SENSOR_I2CID
+#define CIS_ENABLE_MIPI_INF   (0x01)  // 0x00: off/0x01: on
+#define CIS_MIPI_LANE_NUMBER  (0x02)
+#define CIS_ENABLE_HX_AUTOI2C (0x00)  // 0x00: off/0x01: on/0x2: on and XSLEEP KEEP HIGH
+#define DEAULT_XHSUTDOWN_PIN  AON_GPIO2
+
+#define SENCTRL_SENSOR_TYPE   SENSORDPLIB_SENSOR_IMX219
+#define SENCTRL_STREAM_TYPE   SENSORDPLIB_STREAM_NONEAOS
+#define SENCTRL_SENSOR_WIDTH  IMX219_SENSOR_WIDTH
+#define SENCTRL_SENSOR_HEIGHT IMX219_SENSOR_HEIGHT
+#define SENCTRL_SENSOR_CH     3
+
 static HX_CIS_SensorSetting_t IMX219_init_setting[] = {
 #include "IMX219_mipi_2lane_3280x2464.i"
 };
@@ -38,40 +51,6 @@ static HX_CIS_SensorSetting_t IMX219_mirror_setting[] = {
   {HX_CIS_I2C_Action_W, 0x0172, (CIS_MIRROR_SETTING & 0xFF)},
 };
 
-#undef ENABLE_SENSOR_FAST_SWITCH
-#define ENABLE_SENSOR_FAST_SWITCH 0
-
-static volatile bool     _initiated_before  = false;
-static volatile bool     _frame_ready       = false;
-static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
-static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
-static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
-static volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
-static el_img_t          _frame;
-static el_img_t          _jpeg;
-
-static void memset_fb() {
-    memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
-    memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
-    memset((void*)_wdma3_baseaddr, 0, YUV422_BASE_SIZE);
-    memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
-}
-
-static void drv_imx219_cb(SENSORDPLIB_STATUS_E event) {
-    EL_LOGD("Event: %d", event);
-
-    switch (event) {
-    case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
-        _frame_ready = true;
-        _frame_count++;
-        break;
-    default:
-        EL_LOGW("Unkonw event: %d", event);
-        break;
-    }
-}
-
 static uint32_t imx219_set_pll200() {
     SCU_PDHSC_DPCLK_CFG_T cfg;
 
@@ -98,6 +77,25 @@ static uint32_t imx219_set_pll200() {
     EL_LOGD("MIPI TX CLK: %dM\n", mipi_pixel_clk);
 
     return mipi_pixel_clk;
+}
+
+el_err_code_t drv_imx219_probe() {
+    hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
+
+    CONFIG_EL_CAMERA_PWR_CTRL_INIT_F;
+    hx_drv_timer_cm55x_delay_ms(10, TIMER_STATE_DC);
+
+    if (hx_drv_cis_set_slaveID(CIS_I2C_ID) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
+
+    uint8_t data;
+    if (hx_drv_cis_get_reg(0x0000, &data) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
+
+    EL_LOGD("IMX219 I2C ID: 0x%04X", CIS_I2C_ID);
+    return EL_OK;
 }
 
 static void set_mipi_csirx_enable() {
@@ -345,26 +343,16 @@ el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
     _jpeg.size   = width * height / 4;
 
     // DMA
-    memset_fb();
+    _reset_all_wdma_buffer();
 
     _frame.data = _wdma3_baseaddr;
     _jpeg.data  = _wdma2_baseaddr;
 
-    EL_LOGD("WD1[%x], WD2_J[%x], WD3_RAW[%x], JPAuto[%x]",
+    EL_LOGD("wdma1[%x], wdma2[%x], wdma3[%x], jpg_sz[%x]",
             _wdma1_baseaddr,
             _wdma2_baseaddr,
             _wdma3_baseaddr,
             _jpegsize_baseaddr);
-
-#if CONFIG_EL_DEBUG > 3
-    printf("sensor w/h: %d/%d\n", IMX219_SENSOR_WIDTH, IMX219_SENSOR_HEIGHT);
-    printf("frame w/h: %d/%d\n", width, height);
-    printf("jpeg w/h: %d/%d\n", width, height);
-    printf("wdma1(no use) base: 0x%x\t size: %d\n", _wdma1_baseaddr, WDMA_1_BASE_SIZE);
-    printf("wdma2(jpeg)   base: 0x%x\t size: %d\n", _wdma2_baseaddr, JPEG_BASE_SIZE);
-    printf("wdma3(yuv422) base: 0x%x\t size: %d\n", _wdma3_baseaddr, YUV422_BASE_SIZE);
-    printf("jpeg fill     base: 0x%x\t size: %d\n", _jpegsize_baseaddr, JPEG_FILL_SIZE);
-#endif
 
 #if ENABLE_SENSOR_FAST_SWITCH
     if (!_initiated_before) {
@@ -452,7 +440,7 @@ el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
         // BLOCK START
 #endif
 
-        hx_dplib_register_cb(drv_imx219_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+        hx_dplib_register_cb(_drv_dp_event_cb, SENSORDPLIB_CB_FUNTYPE_DP);
 
         if (hx_drv_cis_setRegTable(IMX219_stream_on, HX_CIS_SIZE_N(IMX219_stream_on, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
@@ -524,52 +512,4 @@ el_err_code_t drv_imx219_deinit() {
     el_sleep(3);
 
     return EL_OK;
-}
-
-el_err_code_t drv_imx219_capture(uint32_t timeout) {
-    uint32_t time = el_get_time_ms();
-
-    while (!_frame_ready) {
-        if (el_get_time_ms() - time >= timeout) {
-            return EL_ETIMOUT;
-        }
-        el_sleep(3);
-    }
-
-    return EL_OK;
-}
-
-el_err_code_t drv_imx219_capture_stop() {
-    _frame_ready = false;
-    sensordplib_retrigger_capture();
-
-    return EL_OK;
-}
-
-el_img_t drv_imx219_get_frame() { return _frame; }
-
-el_img_t drv_imx219_get_jpeg() {
-    uint8_t  frame_no, buffer_no = 0;
-    uint32_t reg_val = 0, mem_val = 0;
-
-    hx_drv_xdma_get_WDMA2_bufferNo(&buffer_no);
-    hx_drv_xdma_get_WDMA2NextFrameIdx(&frame_no);
-
-    if (frame_no == 0) {
-        frame_no = buffer_no - 1;
-    } else {
-        frame_no = frame_no - 1;
-    }
-
-    hx_drv_jpeg_get_EncOutRealMEMSize(&reg_val);
-    hx_drv_jpeg_get_FillFileSizeToMem(frame_no, (uint32_t)_jpegsize_baseaddr, &mem_val);
-    hx_drv_jpeg_get_MemAddrByFrameNo(frame_no, _wdma2_baseaddr, &_jpeg.data);
-
-    _jpeg.size = mem_val == reg_val ? mem_val : reg_val;
-
-    hx_InvalidateDCache_by_Addr((volatile void*)_jpeg.data, _jpeg.size);
-
-    EL_LOGD("JPEG size: %d", _jpeg.size);
-
-    return _jpeg;
 }

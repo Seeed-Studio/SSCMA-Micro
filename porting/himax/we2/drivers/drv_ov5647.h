@@ -94,10 +94,6 @@ extern "C" {
 el_err_code_t drv_ov5647_probe();
 el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height);
 el_err_code_t drv_ov5647_deinit();
-el_err_code_t drv_ov5647_capture(uint32_t timeout);
-el_err_code_t drv_ov5647_capture_stop();
-el_img_t      drv_ov5647_get_frame();
-el_img_t      drv_ov5647_get_jpeg();
 
 #ifdef __cplusplus
 }

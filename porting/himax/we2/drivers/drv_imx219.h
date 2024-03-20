@@ -45,28 +45,6 @@
 #include "core/el_types.h"
 #include "porting/el_misc.h"
 
-#ifdef TRUSTZONE_SEC
-    #ifdef IP_INST_NS_csirx
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #endif
-#else
-    #ifndef TRUSTZONE
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #endif
-#endif
-
 #define IMX219_SENSOR_I2CID       (0x10)
 #define IMX219_MIPI_CLOCK_FEQ     (456)  // MHz
 #define IMX219_MIPI_LANE_CNT      (2)
@@ -78,8 +56,6 @@
 
 #define IMX219_SENSOR_WIDTH       3280
 #define IMX219_SENSOR_HEIGHT      2464
-
-#define DYNAMIC_ADDRESS
 
 #define IMX219_EXPOSURE_DEFAULT   (0x640)
 #define IMX219_EXPOSURE_SETTING   (0xA40)
@@ -98,29 +74,13 @@
 #define IMX219_BINNING_2X2_ANALOG 0x0303
 #define IMX219_BINNING_SETTING    (IMX219_BINNING_NONE)
 
-#define CIS_MIRROR_SETTING        (0x03)  // 0x00: off/0x01:H-Mirror/0x02:V-Mirror/0x03:HV-Mirror
-#define CIS_I2C_ID                IMX219_SENSOR_I2CID
-#define CIS_ENABLE_MIPI_INF       (0x01)  // 0x00: off/0x01: on
-#define CIS_MIPI_LANE_NUMBER      (0x02)
-#define CIS_ENABLE_HX_AUTOI2C     (0x00)  // 0x00: off/0x01: on/0x2: on and XSLEEP KEEP HIGH
-#define DEAULT_XHSUTDOWN_PIN      AON_GPIO2
-
-#define SENCTRL_SENSOR_TYPE       SENSORDPLIB_SENSOR_IMX219
-#define SENCTRL_STREAM_TYPE       SENSORDPLIB_STREAM_NONEAOS
-#define SENCTRL_SENSOR_WIDTH      IMX219_SENSOR_WIDTH
-#define SENCTRL_SENSOR_HEIGHT     IMX219_SENSOR_HEIGHT
-#define SENCTRL_SENSOR_CH         3
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+el_err_code_t drv_imx219_probe();
 el_err_code_t drv_imx219_init(uint16_t width, uint16_t height);
 el_err_code_t drv_imx219_deinit();
-el_err_code_t drv_imx219_capture(uint32_t timeout);
-el_err_code_t drv_imx219_capture_stop();
-el_img_t      drv_imx219_get_frame();
-el_img_t      drv_imx219_get_jpeg();
 
 #ifdef __cplusplus
 }

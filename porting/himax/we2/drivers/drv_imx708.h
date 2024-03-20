@@ -48,30 +48,6 @@
 
 // ------------------------------------------------------------------------
 
-#ifdef TRUSTZONE_SEC
-    #ifdef IP_INST_NS_csirx
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #endif
-#else
-    #ifndef TRUSTZONE
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
-    #else
-        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
-        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
-        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
-    #endif
-#endif
-
-#define DEAULT_XHSUTDOWN_PIN          AON_GPIO2
-
 #define IMX708_SENSOR_WIDTH           2304
 #define IMX708_SENSOR_HEIGHT          1296
 
@@ -93,38 +69,11 @@
 #define IMX708_MIPITX_CNTCLK_EN       (1)   // continuous clock output enable
 #define IMX708_LANE_NB                (2)
 
-#define CIS_I2C_ID                    IMX708_SENSOR_I2CID
-#define SENSORDPLIB_SENSOR_IMX708     (SENSORDPLIB_SENSOR_HM2130)
-#define CIS_MIRROR_SETTING            (0x03)  // 0x00: off / 0x01:H-Mirror / 0x02:V-Mirror / 0x03:HV-Mirror
-#define CIS_I2C_ID                    IMX708_SENSOR_I2CID
-#define CIS_ENABLE_MIPI_INF           (0x01)  // 0x00: off / 0x01: on
-#define CIS_MIPI_LANE_NUMBER          (0x02)
-#define CIS_ENABLE_HX_AUTOI2C         (0x00)  // 0x00: off / 0x01: on / 0x2: on and XSLEEP KEEP HIGH
-
 #define IMX708_SUB_SAMPLE             INP_SUBSAMPLE_DISABLE
 
 #define IMX708_BINNING_0              INP_BINNING_4TO2_B
 #define IMX708_BINNING_1              INP_BINNING_8TO2_B
 #define IMX708_BINNING_2              INP_BINNING_16TO2_B
-
-/*
- * DP SENCTRL CFG
- */
-#define SENCTRL_SENSOR_TYPE   SENSORDPLIB_SENSOR_IMX708
-#define SENCTRL_STREAM_TYPE   SENSORDPLIB_STREAM_NONEAOS
-#define SENCTRL_SENSOR_WIDTH  IMX708_SENSOR_WIDTH
-#define SENCTRL_SENSOR_HEIGHT IMX708_SENSOR_HEIGHT
-#define SENCTRL_SENSOR_CH     3
-
-/*
- * DP INP CFG
- *
- * SENSOR --> INP_CROP --> INP_BINNING --> INP_SUBSAMPLE
- *
- * CROP DISABLE: DP_INP_CROP_START_X/DP_INP_CROP_START_Y/DP_INP_CROP_WIDTH/DP_INP_CROP_HEIGHT all 0
- */
-#define DP_INP_SUBSAMPLE INP_SUBSAMPLE_8TO2_B
-#define DP_INP_BINNING   INP_BINNING_DISABLE
 
 // ------------------------------------------------------------------------
 
@@ -132,12 +81,9 @@
 extern "C" {
 #endif
 
+el_err_code_t drv_imx708_probe();
 el_err_code_t drv_imx708_init(uint16_t width, uint16_t height);
 el_err_code_t drv_imx708_deinit();
-el_err_code_t drv_imx708_capture(uint32_t timeout);
-el_err_code_t drv_imx708_capture_stop();
-el_img_t      drv_imx708_get_frame();
-el_img_t      drv_imx708_get_jpeg();
 
 #ifdef __cplusplus
 }
