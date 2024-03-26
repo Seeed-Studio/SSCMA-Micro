@@ -19,37 +19,6 @@ static HX_CIS_SensorSetting_t HM0360_stream_xsleep[] = {
   {HX_CIS_I2C_Action_W, 0x0100, 0x02},
 };
 
-static volatile bool     _initiated_before  = false;
-static volatile bool     _frame_ready       = false;
-static volatile uint32_t _frame_count       = 0;
-static volatile uint32_t _wdma1_baseaddr    = WDMA_1_BASE_ADDR;
-static volatile uint32_t _wdma2_baseaddr    = JPEG_BASE_ADDR;
-static volatile uint32_t _wdma3_baseaddr    = YUV422_BASE_ADDR;
-static volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
-static el_img_t          _frame;
-static el_img_t          _jpeg;
-
-static void memset_fb() {
-    memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
-    memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
-    memset((void*)_wdma3_baseaddr, 0, YUV422_BASE_SIZE);
-    memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
-}
-
-static void drv_hm0360_cb(SENSORDPLIB_STATUS_E event) {
-    EL_LOGD("Event: %d", event);
-
-    switch (event) {
-    case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
-        _frame_ready = true;
-        _frame_count++;
-        break;
-    default:
-        EL_LOGW("Unkonw event: %d", event);
-        break;
-    }
-}
-
 el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
@@ -111,9 +80,40 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
 #if ENABLE_SENSOR_FAST_SWITCH
         // BLOCK END
     }
-#endif
 
-    res = _drv_fit_res(width, height);
+#endif
+    int32_t factor_w = floor((float)HM0360_MAX_WIDTH / (float)width);
+    int32_t factor_h = floor((float)HM0360_MAX_HEIGHT / (float)height);
+    int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
+
+    if (min_f >= 4) {
+        res.width  = HM0360_MAX_WIDTH / 4;
+        res.height = HM0360_MAX_HEIGHT / 4;
+
+        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
+                                       SENSORDPLIB_STREAM_NONEAOS,
+                                       HM0360_MAX_WIDTH,
+                                       HM0360_MAX_HEIGHT,
+                                       INP_SUBSAMPLE_8TO2);
+    } else if (min_f >= 2) {
+        res.width  = HM0360_MAX_WIDTH / 2;
+        res.height = HM0360_MAX_HEIGHT / 2;
+
+        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
+                                       SENSORDPLIB_STREAM_NONEAOS,
+                                       HM0360_MAX_WIDTH,
+                                       HM0360_MAX_HEIGHT,
+                                       INP_SUBSAMPLE_4TO2);
+    } else {
+        res.width  = HM0360_MAX_WIDTH;
+        res.height = HM0360_MAX_HEIGHT;
+
+        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
+                                       SENSORDPLIB_STREAM_NONEAOS,
+                                       HM0360_MAX_WIDTH,
+                                       HM0360_MAX_HEIGHT,
+                                       INP_SUBSAMPLE_DISABLE);
+    }
 
     start_x = (res.width - width) / 2;
     start_y = (res.height - height) / 2;
@@ -133,7 +133,7 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     _jpeg.size   = width * height / 4;
 
     // DMA
-    memset_fb();
+    _reset_all_wdma_buffer();
 
     _frame.data = _wdma3_baseaddr;
     _jpeg.data  = _wdma2_baseaddr;
@@ -156,30 +156,6 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     }
 #endif
 
-    // datapath init
-    if (HM0360_MAX_WIDTH / res.width == 3) {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       HM0360_MAX_WIDTH,
-                                       HM0360_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_8TO2);
-        EL_LOGD("subsample: 4x");
-    } else if (HM0360_MAX_WIDTH / res.width == 2) {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       HM0360_MAX_WIDTH,
-                                       HM0360_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_4TO2);
-        EL_LOGD("subsample: 2x");
-    } else {
-        sensordplib_set_sensorctrl_inp(SENSORDPLIB_SENSOR_HM0360_MODE3,
-                                       SENSORDPLIB_STREAM_NONEAOS,
-                                       HM0360_MAX_WIDTH,
-                                       HM0360_MAX_HEIGHT,
-                                       INP_SUBSAMPLE_DISABLE);
-        EL_LOGD("subsample: 1x");
-    }
-
     //HW5x5 Cfg
     hw5x5_cfg.hw5x5_path         = HW5x5_PATH_THROUGH_DEMOSAIC;
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
@@ -193,6 +169,8 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
 
     //JPEG Cfg
     jpeg_cfg.jpeg_path      = JPEG_PATH_ENCODER_EN;
+    jpeg_cfg.dec_roi_stx    = 0;
+    jpeg_cfg.dec_roi_sty    = 0;
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
@@ -206,7 +184,7 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
         // BLOCK START
 #endif
 
-        hx_dplib_register_cb(drv_hm0360_cb, SENSORDPLIB_CB_FUNTYPE_DP);
+        hx_dplib_register_cb(_drv_dp_event_cb, SENSORDPLIB_CB_FUNTYPE_DP);
 
         if (hx_drv_cis_setRegTable(HM0360_stream_on, HX_CIS_SIZE_N(HM0360_stream_on, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
@@ -272,50 +250,4 @@ el_err_code_t drv_hm0360_deinit() {
     el_sleep(3);
 
     return EL_OK;
-}
-
-el_err_code_t drv_hm0360_capture(uint32_t timeout) {
-    uint32_t time = el_get_time_ms();
-
-    while (!_frame_ready) {
-        if (el_get_time_ms() - time >= timeout) {
-            return EL_ETIMOUT;
-        }
-        el_sleep(5);
-    }
-
-    return EL_OK;
-}
-
-el_err_code_t drv_hm0360_capture_stop() {
-    _frame_ready = false;
-    sensordplib_retrigger_capture();
-
-    return EL_OK;
-}
-
-el_img_t drv_hm0360_get_frame() { return _frame; }
-
-el_img_t drv_hm0360_get_jpeg() {
-    uint8_t  frame_no, buffer_no = 0;
-    uint32_t reg_val = 0, mem_val = 0;
-
-    hx_drv_xdma_get_WDMA2_bufferNo(&buffer_no);
-    hx_drv_xdma_get_WDMA2NextFrameIdx(&frame_no);
-
-    if (frame_no == 0) {
-        frame_no = buffer_no - 1;
-    } else {
-        frame_no = frame_no - 1;
-    }
-
-    hx_drv_jpeg_get_EncOutRealMEMSize(&reg_val);
-    hx_drv_jpeg_get_FillFileSizeToMem(frame_no, (uint32_t)_jpegsize_baseaddr, &mem_val);
-    hx_drv_jpeg_get_MemAddrByFrameNo(frame_no, _wdma2_baseaddr, &_jpeg.data);
-
-    _jpeg.size = mem_val == reg_val ? mem_val : reg_val;
-
-    hx_InvalidateDCache_by_Addr((volatile void*)_jpeg.data, _jpeg.size);
-
-    return _jpeg;
 }

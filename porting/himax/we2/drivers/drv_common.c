@@ -37,7 +37,6 @@ volatile uint32_t _jpegsize_baseaddr = JPEG_FILL_BASE_ADDR;
 el_img_t          _frame;
 el_img_t          _jpeg;
 
-
 void _reset_all_wdma_buffer() {
     memset((void*)_wdma1_baseaddr, 0, WDMA_1_BASE_SIZE);
     memset((void*)_wdma2_baseaddr, 0, JPEG_BASE_SIZE);
@@ -58,25 +57,6 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
         EL_LOGW("unkonw event: %d", event);
         break;
     }
-}
-
-el_res_t _drv_fit_res(uint16_t width, uint16_t height) {
-    el_res_t res;
-
-    if (width > 320 || height > 240) {
-        res.width  = 640;
-        res.height = 480;
-    } else if (width > 160 || height > 120) {
-        res.width  = 320;
-        res.height = 240;
-    } else {
-        res.width  = 160;
-        res.height = 120;
-    }
-
-    EL_LOGD("fit width: %d height: %d", res.width, res.height);
-
-    return res;
 }
 
 el_err_code_t _drv_capture(uint32_t timeout) {

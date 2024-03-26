@@ -149,26 +149,11 @@ static void set_mipi_csirx_enable() {
     hx_drv_scu_set_DP_SWReset(dp_swrst);
 
     MIPIRX_DPHYHSCNT_CFG_T hscnt_cfg;
-    hscnt_cfg.mipirx_dphy_hscnt_clk_en = 0;
-    hscnt_cfg.mipirx_dphy_hscnt_ln0_en = 1;
-    hscnt_cfg.mipirx_dphy_hscnt_ln1_en = 1;
 
-    if (mipi_pixel_clk == 200)  // pll200
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
-    } else if (mipi_pixel_clk == 300)  // pll300
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x18;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x18;
-    } else  // rc96
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x06;
-    }
+    hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
+    hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
+    hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
+    
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
     if (pixel_dpp == 10 || pixel_dpp == 8) {
@@ -378,7 +363,60 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     }
 #endif
 
-    res = _drv_fit_res(width, height);
+    crop.start_x = 0;
+    crop.start_y = 0;
+    crop.last_x  = 0;
+    crop.last_y  = 0;
+
+    int32_t factor_w = floor((float)IMX708_SENSOR_WIDTH / (float)width);
+    int32_t factor_h = floor((float)IMX708_SENSOR_HEIGHT / (float)height);
+    int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
+
+    if (min_f >= 8) {
+        res.width  = IMX708_SENSOR_WIDTH / 8;
+        res.height = IMX708_SENSOR_HEIGHT / 8;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX708_SENSOR_WIDTH,
+                                                   IMX708_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_16TO2_B);
+    } else if (min_f >= 4) {
+        res.width  = IMX708_SENSOR_WIDTH / 4;
+        res.height = IMX708_SENSOR_HEIGHT / 4;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX708_SENSOR_WIDTH,
+                                                   IMX708_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_8TO2_B);
+    } else if (min_f >= 2) {
+        res.width  = IMX708_SENSOR_WIDTH / 2;
+        res.height = IMX708_SENSOR_HEIGHT / 2;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX708_SENSOR_WIDTH,
+                                                   IMX708_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_4TO2_B);
+    } else {
+        res.width  = IMX708_SENSOR_WIDTH;
+        res.height = IMX708_SENSOR_HEIGHT;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX708_SENSOR_WIDTH,
+                                                   IMX708_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_DISABLE);
+    }
 
     start_x = (res.width - width) / 2;
     start_y = (res.height - height) / 2;
@@ -421,46 +459,6 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     }
 #endif
 
-    crop.start_x = 0;
-    crop.start_y = 0;
-    crop.last_x  = 0;
-    crop.last_y  = 0;
-
-    switch (res.width) {
-    case 640:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   IMX708_SENSOR_WIDTH,
-                                                   IMX708_SENSOR_HEIGHT,
-                                                   IMX708_SUB_SAMPLE,
-                                                   crop,
-                                                   IMX708_BINNING_0);
-        break;
-
-    case 320:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   IMX708_SENSOR_WIDTH,
-                                                   IMX708_SENSOR_HEIGHT,
-                                                   IMX708_SUB_SAMPLE,
-                                                   crop,
-                                                   IMX708_BINNING_1);
-        break;
-
-    case 160:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX708,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   IMX708_SENSOR_WIDTH,
-                                                   IMX708_SENSOR_HEIGHT,
-                                                   IMX708_SUB_SAMPLE,
-                                                   crop,
-                                                   IMX708_BINNING_2);
-        break;
-
-    default:
-        break;
-    }
-
     //HW5x5 Cfg
     hw5x5_cfg.hw5x5_path         = HW5x5_PATH_THROUGH_DEMOSAIC;
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
@@ -474,6 +472,8 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
 
     //JPEG Cfg
     jpeg_cfg.jpeg_path      = JPEG_PATH_ENCODER_EN;
+    jpeg_cfg.dec_roi_stx    = 0;
+    jpeg_cfg.dec_roi_sty    = 0;
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;

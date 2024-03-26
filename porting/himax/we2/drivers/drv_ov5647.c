@@ -253,7 +253,60 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     }
 #endif
 
-    res = _drv_fit_res(width, height);
+    crop.start_x = 0;
+    crop.start_y = 0;
+    crop.last_x  = 0;
+    crop.last_y  = 0;
+
+    int32_t factor_w = floor((float)OV5647_SENSOR_WIDTH / (float)width);
+    int32_t factor_h = floor((float)OV5647_SENSOR_HEIGHT / (float)height);
+    int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
+
+    if (min_f >= 8) {
+        res.width  = OV5647_SENSOR_WIDTH / 8;
+        res.height = OV5647_SENSOR_HEIGHT / 8;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   OV5647_BINNING_2);
+    } else if (min_f >= 4) {
+        res.width  = OV5647_SENSOR_WIDTH / 4;
+        res.height = OV5647_SENSOR_HEIGHT / 4;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   OV5647_BINNING_1);
+    } else if (min_f >= 2) {
+        res.width  = OV5647_SENSOR_WIDTH / 2;
+        res.height = OV5647_SENSOR_HEIGHT / 2;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   OV5647_BINNING_0);
+    } else {
+        res.width  = OV5647_SENSOR_WIDTH;
+        res.height = OV5647_SENSOR_HEIGHT;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   OV5647_SENSOR_WIDTH,
+                                                   OV5647_SENSOR_HEIGHT,
+                                                   OV5647_SUB_SAMPLE,
+                                                   crop,
+                                                   INP_BINNING_DISABLE);
+    }
 
     start_x = (res.width - width) / 2;
     start_y = (res.height - height) / 2;
@@ -296,46 +349,6 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     }
 #endif
 
-    crop.start_x = 0;
-    crop.start_y = 0;
-    crop.last_x  = 0;
-    crop.last_y  = 0;
-
-    switch (res.width) {
-    case 640:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
-                                                   crop,
-                                                   OV5647_BINNING_0);
-        break;
-
-    case 320:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
-                                                   crop,
-                                                   OV5647_BINNING_1);
-        break;
-
-    case 160:
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
-                                                   crop,
-                                                   OV5647_BINNING_2);
-        break;
-
-    default:
-        break;
-    }
-
     //HW5x5 Cfg
     hw5x5_cfg.hw5x5_path         = HW5x5_PATH_THROUGH_DEMOSAIC;
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
@@ -349,10 +362,13 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     //JPEG Cfg
     jpeg_cfg.jpeg_path      = JPEG_PATH_ENCODER_EN;
+    jpeg_cfg.dec_roi_stx    = 0;
+    jpeg_cfg.dec_roi_sty    = 0;
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
     jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+
     if (width > 240 && height > 240) {
         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
     }
