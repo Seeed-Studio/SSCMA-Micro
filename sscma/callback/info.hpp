@@ -15,9 +15,10 @@ using namespace sscma::utility;
 
 void set_info(const std::vector<std::string>& argv, void* caller) {
     char info[SSCMA_CMD_MAX_LENGTH]{};
-
+    char key[sizeof(SSCMA_STORAGE_KEY_INFO) + 4]{};
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
-    auto ret = static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EIO;
+    snprintf(key, sizeof(key), SSCMA_STORAGE_KEY_INFO "#%d", static_resource->current_model_id);
+    auto ret = static_resource->storage->emplace(el_make_storage_kv(key, info)) ? EL_OK : EL_EIO;
 
     auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                            argv[0],
@@ -31,10 +32,13 @@ void set_info(const std::vector<std::string>& argv, void* caller) {
 
 void get_info(const std::string& cmd, void* caller) {
     char info[SSCMA_CMD_MAX_LENGTH]{};
+    char key[sizeof(SSCMA_STORAGE_KEY_INFO) + 4]{};
     auto ret = EL_OK;
 
-    if (static_resource->storage->contains(SSCMA_STORAGE_KEY_INFO))
-        ret = static_resource->storage->get(el_make_storage_kv(SSCMA_STORAGE_KEY_INFO, info)) ? EL_OK : EL_EIO;
+    snprintf(key, sizeof(key), SSCMA_STORAGE_KEY_INFO "#%d", static_resource->current_model_id);
+
+    if (static_resource->storage->contains(key))
+        ret = static_resource->storage->get(el_make_storage_kv(key, info)) ? EL_OK : EL_EIO;
 
     auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                            cmd,

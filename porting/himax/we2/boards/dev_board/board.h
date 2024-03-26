@@ -71,7 +71,7 @@ extern "C" {
     { hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI_S_CS, 1); }
 #define CONFIG_EL_SPI_CTRL_INIT_F \
     { hx_drv_scu_set_PB8_pinmux(SCU_PB8_PINMUX_GPIO2_1, 1); }
-#define CONFIG_EL_SPI_CTRL_PIN GPIO21
+#define CONFIG_EL_SPI_CTRL_PIN GPIO2
 
 #ifdef __cplusplus
 }
