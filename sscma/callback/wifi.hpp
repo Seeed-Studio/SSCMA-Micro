@@ -15,11 +15,32 @@ using namespace sscma::utility;
 
 #if SSCMA_HAS_NATIVE_NETWORKING == 0
 namespace shared_variables {
-static int32_t    wifi_status = 0;
-static in4_info_t in4_info{};
-static in6_info_t in6_info{};
+static std::string wifi_ver    = "";
+static int32_t     wifi_status = 0;
+static in4_info_t  in4_info{};
+static in6_info_t  in6_info{};
 }  // namespace shared_variables
 #endif
+
+void set_wifi_ver(const std::vector<std::string>& argv, void* caller) {
+    shared_variables::wifi_ver = argv[1];
+
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           argv[0],
+                           "\", \"code\": 0, \"data\": {\"ver\": \"",
+                           shared_variables::wifi_ver,
+                           "\"}}\n")};
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
+}
+
+void get_wifi_ver(const std::string& cmd, void* caller) {
+    auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
+                           cmd,
+                           "\", \"code\": 0, \"data\": {\"ver\": \"",
+                           shared_variables::wifi_ver,
+                           "\"}}\n")};
+    static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
+}
 
 void set_wifi_network(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     auto ret    = EL_OK;

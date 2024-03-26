@@ -344,6 +344,20 @@ void register_commands() {
             [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in6_info(argv, caller); });
           return EL_OK;
       });
+
+    static_resource->instance->register_cmd(
+      "WIFIVER", "Set Wi-Fi version", "VER", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_ver(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFIVER?", "Get Wi-Fi version", "", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_wifi_ver(cmd, caller); });
+          return EL_OK;
+      });
 #endif
 
     static_resource->instance->register_cmd(
