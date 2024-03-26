@@ -396,7 +396,9 @@ void wait_for_inputs() {
 
     // broadcast device status to all transports
     for (auto& transport : static_resource->transports) {
-        static_resource->executor->add_task([](const std::atomic<bool>&) { get_device_status(std::string("INIT@STAT?"), static_cast<void*>(transport)); });
+        static_resource->executor->add_task([transport = transport](const std::atomic<bool>&) {
+            get_device_status(std::string("INIT@STAT?"), static_cast<void*>(transport));
+        });
     }
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
