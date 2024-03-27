@@ -53,6 +53,9 @@ el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
 #ifdef _EL_ALGORITHM_PFLD_H_  // index 4
     if (AlgorithmPFLD::is_model_valid(engine)) return EL_ALGO_TYPE_PFLD;
 #endif
+#ifdef _EL_ALGORITHM_NVIDIA_DET_H_
+   if (AlgorithmNvidiaDet::is_model_valid(engine)) return EL_ALGO_TYPE_NVIDIA_DET;
+#endif
     return EL_ALGO_TYPE_UNDEFINED;
 }
 
@@ -102,6 +105,9 @@ AlgorithmDelegate::AlgorithmDelegate() {
 #endif
 #ifdef _EL_ALGORITHM_YOLO_V8_H_
     _registered_algorithms.emplace_front(&AlgorithmYOLOV8::algorithm_info);
+#endif
+#ifdef _EL_ALGORITHM_NVIDIA_DET_H_
+    _registered_algorithms.emplace_front(&AlgorithmNvidiaDet::algorithm_info);
 #endif
 }
 
