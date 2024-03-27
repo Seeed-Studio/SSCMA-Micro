@@ -138,22 +138,10 @@ static void set_mipi_csirx_enable() {
     hscnt_cfg.mipirx_dphy_hscnt_ln0_en = 1;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_en = 1;
 
-    if (mipi_pixel_clk == 200)  // pll200
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
-    } else if (mipi_pixel_clk == 300)  // pll300
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x18;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x18;
-    } else  // rc96
-    {
-        hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-        hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
-        hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x06;
-    }
+    hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
+    hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
+    hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x06;
+    
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
     if (pixel_dpp == 10 || pixel_dpp == 8) {

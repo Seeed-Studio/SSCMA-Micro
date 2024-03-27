@@ -150,6 +150,10 @@ static void set_mipi_csirx_enable() {
 
     MIPIRX_DPHYHSCNT_CFG_T hscnt_cfg;
 
+    hscnt_cfg.mipirx_dphy_hscnt_clk_en = 0;
+    hscnt_cfg.mipirx_dphy_hscnt_ln0_en = 1;
+    hscnt_cfg.mipirx_dphy_hscnt_ln1_en = 1;
+
     hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
     hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
