@@ -35,14 +35,17 @@ namespace utility {
 
 // Note: the order index influences the algorthm type in current implementation
 el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
-#ifdef _EL_ALGORITHM_YOLO_H_  // index 1
-    if (AlgorithmYOLO::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO;
+#ifdef _EL_ALGORITHM_YOLO_POSE_H_  // index 5
+    if (AlgorithmYOLOPOSE::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO_POSE;
 #endif
-#ifdef _EL_ALGORITHM_YOLO_V8_H_ // index 6
+#ifdef _EL_ALGORITHM_YOLO_V8_H_  // index 6
     if (AlgorithmYOLOV8::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO_V8;
 #endif
-#ifdef _EL_ALGORITHM_YOLO_POSE_H_ // index 5
-    if (AlgorithmYOLOPOSE::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO_POSE;
+#ifdef _EL_ALGORITHM_NVIDIA_DET_H_
+    if (AlgorithmNvidiaDet::is_model_valid(engine)) return EL_ALGO_TYPE_NVIDIA_DET;
+#endif
+#ifdef _EL_ALGORITHM_YOLO_H_  // index 1
+    if (AlgorithmYOLO::is_model_valid(engine)) return EL_ALGO_TYPE_YOLO;
 #endif
 #ifdef _EL_ALGORITHM_FOMO_H_  // index 2
     if (AlgorithmFOMO::is_model_valid(engine)) return EL_ALGO_TYPE_FOMO;
@@ -52,9 +55,6 @@ el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
 #endif
 #ifdef _EL_ALGORITHM_PFLD_H_  // index 4
     if (AlgorithmPFLD::is_model_valid(engine)) return EL_ALGO_TYPE_PFLD;
-#endif
-#ifdef _EL_ALGORITHM_NVIDIA_DET_H_
-   if (AlgorithmNvidiaDet::is_model_valid(engine)) return EL_ALGO_TYPE_NVIDIA_DET;
 #endif
     return EL_ALGO_TYPE_UNDEFINED;
 }
