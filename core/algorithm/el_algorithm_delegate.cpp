@@ -56,7 +56,6 @@ el_algorithm_type_t el_algorithm_type_from_engine(const Engine* engine) {
 #ifdef _EL_ALGORITHM_PFLD_H_  // index 4
     if (AlgorithmPFLD::is_model_valid(engine)) return EL_ALGO_TYPE_PFLD;
 #endif
-
     return EL_ALGO_TYPE_UNDEFINED;
 }
 
