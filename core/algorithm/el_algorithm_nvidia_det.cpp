@@ -70,12 +70,14 @@ bool AlgorithmNvidiaDet::is_model_valid(const EngineType* engine) {
         (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
          input_shape.dims[3] != 1))
         return false;
+    auto output_shape0 = engine->get_output_shape(0);
+    auto output_shape1 = engine->get_output_shape(1);
 
-    auto ibox_len{[&]() {
-        auto r{static_cast<uint16_t>(input_shape.dims[1])};
-        auto m{r >> 4};  // r / 16
-        return (m * m);
-    }()};
+    if (output_shape0.size < 4 || output_shape1.size < 4) return false;
+
+    if (input_shape.dims[1] / 16 != output_shape0.dims[1] || input_shape.dims[2] / 16 != output_shape0.dims[2] ||
+        input_shape.dims[1] / 16 != output_shape1.dims[1] || input_shape.dims[2] / 16 != output_shape1.dims[2])
+        return false;
 
     return true;
 }
