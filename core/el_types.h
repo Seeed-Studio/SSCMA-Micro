@@ -167,13 +167,14 @@ typedef int el_model_format_v;
  * @brief Algorithm Types
  */
 typedef enum {
-    EL_ALGO_TYPE_UNDEFINED = 0u,
-    EL_ALGO_TYPE_FOMO      = 1u,
-    EL_ALGO_TYPE_PFLD      = 2u,
-    EL_ALGO_TYPE_YOLO      = 3u,
-    EL_ALGO_TYPE_IMCLS     = 4u,
-    EL_ALGO_TYPE_YOLO_POSE = 5u,
-    EL_ALGO_TYPE_YOLO_V8   = 6u,
+    EL_ALGO_TYPE_UNDEFINED  = 0u,
+    EL_ALGO_TYPE_FOMO       = 1u,
+    EL_ALGO_TYPE_PFLD       = 2u,
+    EL_ALGO_TYPE_YOLO       = 3u,
+    EL_ALGO_TYPE_IMCLS      = 4u,
+    EL_ALGO_TYPE_YOLO_POSE  = 5u,
+    EL_ALGO_TYPE_YOLO_V8    = 6u,
+    EL_ALGO_TYPE_NVIDIA_DET = 7u,
 } el_algorithm_type_t;
 
 /**

@@ -36,6 +36,7 @@
 #include "el_algorithm_yolo.h"
 #include "el_algorithm_yolo_pose.h"
 #include "el_algorithm_yolov8.h"
+#include "el_algorithm_nvidia_det.h"
 
 namespace edgelab {
 
