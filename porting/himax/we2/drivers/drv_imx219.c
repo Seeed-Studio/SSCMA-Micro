@@ -174,6 +174,17 @@ static void set_mipi_csirx_enable() {
 
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
+    if (pixel_dpp == 10 || pixel_dpp == 8) {
+        sensordplib_csirx_set_pixel_depth(pixel_dpp);
+    } else {
+        EL_LOGD("PIXEL DEPTH2 fail %d", pixel_dpp);
+        return;
+    }
+
+    sensordplib_csirx_set_deskew(deskew_en);
+    sensordplib_csirx_set_fifo_fill(rx_fifo_fill);
+    sensordplib_csirx_enable(mipi_lnno);
+
     CSITX_DPHYCLKMODE_E clkmode;
     if (continuousout) {
         clkmode = CSITX_DPHYCLOCK_CONT;
@@ -182,14 +193,6 @@ static void set_mipi_csirx_enable() {
     }
 
     sensordplib_csitx_set_dphy_clkmode(clkmode);
-
-    if (pixel_dpp == 10 || pixel_dpp == 8) {
-        sensordplib_csirx_set_pixel_depth(pixel_dpp);
-    } else {
-        EL_LOGD("PIXEL DEPTH fail %d", pixel_dpp);
-
-        return;
-    }
 
     sensordplib_csitx_set_deskew(deskew_en);
     sensordplib_csitx_set_fifo_fill(tx_fifo_fill);

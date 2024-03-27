@@ -160,7 +160,6 @@ static void set_mipi_csirx_enable() {
         sensordplib_csirx_set_pixel_depth(pixel_dpp);
     } else {
         EL_LOGD("PIXEL DEPTH fail %d", pixel_dpp);
-
         return;
     }
 
@@ -175,13 +174,6 @@ static void set_mipi_csirx_enable() {
         clkmode = CSITX_DPHYCLOCK_NON_CONT;
     }
     sensordplib_csitx_set_dphy_clkmode(clkmode);
-
-    if (pixel_dpp == 10 || pixel_dpp == 8) {
-        sensordplib_csitx_set_pixel_depth(pixel_dpp);
-    } else {
-        EL_LOGD("PIXEL DEPTH fail %d\n", pixel_dpp);
-        return;
-    }
 
     sensordplib_csitx_set_deskew(deskew_en);
     sensordplib_csitx_set_fifo_fill(tx_fifo_fill);
