@@ -320,50 +320,61 @@ el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
     crop.last_y  = 0;
 
     int32_t factor_w = floor((float)IMX219_SENSOR_WIDTH / (float)width);
-    int32_t factor_h = floor((float)IMX219_SENSOR_WIDTH / (float)height);
+    int32_t factor_h = floor((float)IMX219_SENSOR_HEIGHT / (float)height);
     int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
 
     if (min_f >= 16) {
         res.width  = IMX219_SENSOR_WIDTH / 16;
-        res.height = IMX219_SENSOR_WIDTH / 16;
+        res.height = IMX219_SENSOR_HEIGHT / 16;
 
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
                                                    IMX219_SENSOR_WIDTH,
-                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
                                                    INP_SUBSAMPLE_4TO2,
                                                    crop,
                                                    INP_BINNING_16TO2_B);
     } else if (min_f >= 8) {
         res.width  = IMX219_SENSOR_WIDTH / 8;
-        res.height = IMX219_SENSOR_WIDTH / 8;
+        res.height = IMX219_SENSOR_HEIGHT / 8;
 
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
                                                    IMX219_SENSOR_WIDTH,
-                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
                                                    INP_SUBSAMPLE_DISABLE,
                                                    crop,
                                                    INP_BINNING_16TO2_B);
-    } else if (min_f >= 4) {
-        res.width  = IMX219_SENSOR_WIDTH / 4;
-        res.height = IMX219_SENSOR_WIDTH / 4;
+    } else if (min_f >= 5) {
+        res.width  = IMX219_SENSOR_WIDTH / 5;
+        res.height = IMX219_SENSOR_HEIGHT / 5;
 
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
                                                    IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_10TO2_B);
+    } else if (min_f >= 4) {
+        res.width  = IMX219_SENSOR_WIDTH / 4;
+        res.height = IMX219_SENSOR_HEIGHT / 4;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
                                                    IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
                                                    INP_SUBSAMPLE_DISABLE,
                                                    crop,
                                                    INP_BINNING_8TO2_B);
     } else {
         res.width  = IMX219_SENSOR_WIDTH;
-        res.height = IMX219_SENSOR_WIDTH;
+        res.height = IMX219_SENSOR_HEIGHT;
 
         sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
                                                    IMX219_SENSOR_WIDTH,
-                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
                                                    INP_SUBSAMPLE_DISABLE,
                                                    crop,
                                                    INP_SUBSAMPLE_DISABLE);
