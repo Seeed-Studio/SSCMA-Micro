@@ -131,7 +131,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        event_reply(concat_strings(", ", std::move(encoded_frame_str)));
+        event_reply(concat_strings(", ", img_res_2_json_str(&frame), ", ", std::move(encoded_frame_str)));
 
         static_resource->executor->add_task(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop_cam(); });
