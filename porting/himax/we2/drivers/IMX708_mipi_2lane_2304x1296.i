@@ -1,9 +1,9 @@
 		/**
 		 *   IMX708_2lane_2304x1296_regs
 		 */
-		{ HX_CIS_I2C_Action_W, 0x0342, 0x1E},
+		{ HX_CIS_I2C_Action_W, 0x0342, 0x2e},
 		{ HX_CIS_I2C_Action_W, 0x0343, 0x90},
-		{ HX_CIS_I2C_Action_W, 0x0340, 0x05},
+		{ HX_CIS_I2C_Action_W, 0x0340, 0x0f},
 		{ HX_CIS_I2C_Action_W, 0x0341, 0x38},
 		{ HX_CIS_I2C_Action_W, 0x0344, 0x00},
 		{ HX_CIS_I2C_Action_W, 0x0345, 0x00},

@@ -72,6 +72,8 @@ static uint32_t IMX708_set_pll200() {
         cfg.mipiclk.hscmipiclkdiv = 0;
     }
 
+    cfg.dpclk = SCU_HSCDPCLKSRC_RC96M48M;
+
     hx_drv_scu_set_pdhsc_dpclk_cfg(cfg, 0, 1);
 
     uint32_t mipi_pixel_clk = 96;
