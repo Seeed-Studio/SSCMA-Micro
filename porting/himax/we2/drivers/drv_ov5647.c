@@ -1,5 +1,7 @@
 #include "drv_ov5647.h"
 
+#include <el_config_porting.h>
+
 #include "drv_common.h"
 #include "drv_shared_cfg.h"
 
@@ -141,7 +143,7 @@ static void set_mipi_csirx_enable() {
     hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
     hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x06;
-    
+
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
     if (pixel_dpp == 10 || pixel_dpp == 8) {
@@ -226,6 +228,9 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
         HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
           {HX_CIS_I2C_Action_W, 0x0101, 0x00},
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
+          {HX_CIS_I2C_Action_W, 0x3821, 0x07},
+#endif
         };
 
         if (hx_drv_cis_setRegTable(OV5647_mirror_setting,
