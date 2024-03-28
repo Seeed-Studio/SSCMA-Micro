@@ -282,36 +282,36 @@ void register_commands() {
           return EL_OK;
       });
 
-    static_resource->instance->register_cmd(
-      "KVALTER",
-      "Create or alter a key-value pair",
-      "\"KEY\",\"VALUE\"",
-      [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_create_or_alter(argv, caller); });
-          return EL_OK;
-      });
+    // static_resource->instance->register_cmd(
+    //   "KVALTER",
+    //   "Create or alter a key-value pair",
+    //   "\"KEY\",\"VALUE\"",
+    //   [](std::vector<std::string> argv, void* caller) {
+    //       static_resource->executor->add_task(
+    //         [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_create_or_alter(argv, caller); });
+    //       return EL_OK;
+    //   });
 
-    static_resource->instance->register_cmd(
-      "KVQUERY?", "Query all the key names from storage", "", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query_all_key(argv, caller); });
-          return EL_OK;
-      });
+    // static_resource->instance->register_cmd(
+    //   "KVQUERY?", "Query all the key names from storage", "", [](std::vector<std::string> argv, void* caller) {
+    //       static_resource->executor->add_task(
+    //         [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query_all_key(argv, caller); });
+    //       return EL_OK;
+    //   });
 
-    static_resource->instance->register_cmd(
-      "KVQUERY", "Query a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query(argv, caller); });
-          return EL_OK;
-      });
+    // static_resource->instance->register_cmd(
+    //   "KVQUERY", "Query a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
+    //       static_resource->executor->add_task(
+    //         [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_query(argv, caller); });
+    //       return EL_OK;
+    //   });
 
-    static_resource->instance->register_cmd(
-      "KVDROP", "Drop a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_drop(argv, caller); });
-          return EL_OK;
-      });
+    // static_resource->instance->register_cmd(
+    //   "KVDROP", "Drop a key-value pair by key name", "\"KEY\"", [](std::vector<std::string> argv, void* caller) {
+    //       static_resource->executor->add_task(
+    //         [argv = std::move(argv), caller](const std::atomic<bool>&) { kv_drop(argv, caller); });
+    //       return EL_OK;
+    //   });
 
     static_resource->instance->register_cmd(
       "WIFI",
@@ -342,6 +342,20 @@ void register_commands() {
       "WIFIIN6", "Set IPv6 info", "\"IP\"", [](std::vector<std::string> argv, void* caller) {
           static_resource->executor->add_task(
             [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_in6_info(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFIVER", "Set Wi-Fi version", "VER", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [argv = std::move(argv), caller](const std::atomic<bool>&) { set_wifi_ver(argv, caller); });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "WIFIVER?", "Get Wi-Fi version", "", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_wifi_ver(cmd, caller); });
           return EL_OK;
       });
 #endif
@@ -393,6 +407,13 @@ void register_commands() {
 void wait_for_inputs() {
     // mark the system status as ready
     static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+
+    // broadcast device status to all transports
+    for (auto& transport : static_resource->transports) {
+        static_resource->executor->add_task([transport = transport](const std::atomic<bool>&) {
+            get_device_status(std::string("INIT@STAT?"), static_cast<void*>(transport));
+        });
+    }
 
     EL_LOGI("[SSCMA] AT server is ready to use :)");
 

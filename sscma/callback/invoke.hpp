@@ -403,8 +403,12 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 event_reply(
                   concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", img_res_2_json_str(&frame)));
             else {
-                event_reply(
-                  concat_strings(", ", algorithm_results_2_json_str(algorithm), ", ", std::move(encoded_frame_str)));
+                event_reply(concat_strings(", ",
+                                           algorithm_results_2_json_str(algorithm),
+                                           ", ",
+                                           img_res_2_json_str(&frame),
+                                           ", ",
+                                           std::move(encoded_frame_str)));
             }
         }
 

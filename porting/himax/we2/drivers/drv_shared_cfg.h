@@ -1,6 +1,30 @@
 #ifndef _DRV_SHARED_CFG_H_
 #define _DRV_SHARED_CFG_H_
 
+#ifdef TRUSTZONE_SEC
+    #ifdef IP_INST_NS_csirx
+        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
+        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
+        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
+    #else
+        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
+        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
+        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
+    #endif
+#else
+    #ifndef TRUSTZONE
+        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL_ALIAS
+        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x50)
+        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY_ALIAS + 0x48)
+    #else
+        #define CSIRX_REGS_BASE        BASE_ADDR_MIPI_RX_CTRL
+        #define CSIRX_DPHY_REG         (BASE_ADDR_APB_MIPI_RX_PHY + 0x50)
+        #define CSIRX_DPHY_TUNCATE_REG (BASE_ADDR_APB_MIPI_RX_PHY + 0x48)
+    #endif
+#endif
+
+#define DEAULT_XHSUTDOWN_PIN      AON_GPIO2
+
 #define ENABLE_SENSOR_FAST_SWITCH 1
 
 #define ALIGN_32BIT(x)            (((x) + 0x1F) & ~0x1F)

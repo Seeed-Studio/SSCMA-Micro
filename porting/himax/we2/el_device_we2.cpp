@@ -160,9 +160,11 @@ void DeviceWE2::init() {
     spi.type = EL_TRANSPORT_SPI;
     this->_transports.emplace_front(&spi);
 
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
     static WireWE2 wire{0x62};
     wire.type = EL_TRANSPORT_I2C;
     this->_transports.emplace_front(&wire);
+#endif
 }
 
 void DeviceWE2::reset() { __NVIC_SystemReset(); }

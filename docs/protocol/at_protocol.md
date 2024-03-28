@@ -520,6 +520,23 @@ Status Table:
 | `1`    | the WiFi is joined, but the latested configuration is not applied |
 | `2`    | the WiFi is joined, and the latested configuration is applied     |
 
+#### Get Wi-Fi module version (no native network only)
+
+Request: `AT+WIFIVER?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "WIFIVER",
+  "code": 0,
+  "data": {
+    "ver": "v0.0.1"
+  }
+}\n
+```
+
 #### Get MQTT server status
 
 Request: `AT+MQTTSERVER?\r`
@@ -943,6 +960,23 @@ Response:
   "code": 0,
   "data": {
     "status": 2
+  }
+}\n
+```
+
+#### Set Wi-Fi module version (no native network only)
+
+Request: `AT+WIFIVER="v0.0.1"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "WIFIVER",
+  "code": 0,
+  "data": {
+    "ver": "v0.0.1"
   }
 }\n
 ```

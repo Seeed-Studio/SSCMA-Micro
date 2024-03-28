@@ -25,12 +25,22 @@
 
 #include "el_camera_we2.h"
 
+#include "el_config_porting.h"
+
 extern "C" {
+#include <drivers/drv_common.h>
+#include <drivers/drv_imx219.h>
+#include <drivers/drv_imx708.h>
 #include <drivers/drv_ov5647.h>
+#include <hx_drv_gpio.h>
+#include <hx_drv_timer.h>
 #include <sensor_dp_lib.h>
 }
 
 namespace edgelab {
+
+static el_err_code_t (*_drv_cam_init)(uint16_t, uint16_t) = nullptr;
+static el_err_code_t (*_drv_cam_deinit)()                 = nullptr;
 
 CameraWE2::CameraWE2() : Camera(0b00000111) {}
 
@@ -40,17 +50,33 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
     }
 
     auto ret = EL_OK;
+
+    if (!_drv_cam_init) {
+        if (drv_ov5647_probe() == EL_OK) {
+            _drv_cam_init   = drv_ov5647_init;
+            _drv_cam_deinit = drv_ov5647_deinit;
+        } else if (drv_imx219_probe() == EL_OK) {
+            _drv_cam_init   = drv_imx219_init;
+            _drv_cam_deinit = drv_imx219_deinit;
+        } else if (drv_imx708_probe() == EL_OK) {
+            _drv_cam_init   = drv_imx708_init;
+            _drv_cam_deinit = drv_imx708_deinit;
+        } else {
+            return EL_EIO;
+        }
+    }
+
     switch (opt_id) {
     case 0:
-        ret = drv_ov5647_init(240, 240);
+        ret                   = _drv_cam_init(240, 240);
         this->_current_opt_id = 0;
         break;
     case 1:
-        ret = drv_ov5647_init(480, 480);
+        ret                   = _drv_cam_init(480, 480);
         this->_current_opt_id = 1;
         break;
     case 2:
-        ret = drv_ov5647_init(640, 480);
+        ret                   = _drv_cam_init(640, 480);
         this->_current_opt_id = 2;
         break;
     default:
@@ -69,8 +95,11 @@ el_err_code_t CameraWE2::deinit() {
         return EL_OK;
     }
 
+    if (!_drv_cam_deinit) [[unlikely]] {
+        return EL_EIO;
+    }
 
-    auto ret = drv_ov5647_deinit();
+    auto ret = _drv_cam_deinit();
 
     if (ret == EL_OK) [[likely]] {
         this->_is_present = false;
@@ -88,7 +117,7 @@ el_err_code_t CameraWE2::start_stream() {
         }
     }
 
-    auto ret = drv_ov5647_capture(2000);
+    auto ret = _drv_capture(2000);
 
     if (ret == EL_OK) [[likely]] {
         this->_is_streaming = true;
@@ -102,7 +131,7 @@ el_err_code_t CameraWE2::stop_stream() {
         return EL_OK;  // only ensure the camera is not streaming
     }
 
-    auto ret = drv_ov5647_capture_stop();
+    auto ret = _drv_capture_stop();
 
     if (ret == EL_OK) [[likely]] {
         this->_is_streaming = false;
@@ -116,7 +145,7 @@ el_err_code_t CameraWE2::get_frame(el_img_t* img) {
         return EL_EPERM;
     }
 
-    *img = drv_ov5647_get_frame();
+    *img = _drv_get_frame();
     // just assign, not sure whether the img is valid
 
     return EL_OK;
@@ -127,7 +156,7 @@ el_err_code_t CameraWE2::get_processed_frame(el_img_t* img) {
         return EL_EPERM;
     }
 
-    *img = drv_ov5647_get_jpeg();
+    *img = _drv_get_jpeg();
     // just assign, not sure whether the img is valid
 
     return EL_OK;

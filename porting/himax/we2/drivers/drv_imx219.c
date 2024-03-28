@@ -1,35 +1,85 @@
-#include "drv_ov5647.h"
-
-#include <el_config_porting.h>
+#include "drv_imx219.h"
 
 #include "drv_common.h"
 #include "drv_shared_cfg.h"
 
-static HX_CIS_SensorSetting_t OV5647_init_setting[] = {
-#if (OV5647_MIPI_MODE == OV5647_MIPI_640X480)
-    #include "OV5647_mipi_2lane_640x480.i"
-#elif (OV5647_MIPI_MODE == OV5647_MIPI_2592X1944)
-    #include "OV5647_mipi_2lane_2592x1944.i"
-#elif (OV5647_MIPI_MODE == OV5647_MIPI_1296X972)
-    #include "OV5647_mipi_2lane_1296x972.i"
-#endif
+#define CIS_MIRROR_SETTING    (0x03)  // 0x00: off/0x01:H-Mirror/0x02:V-Mirror/0x03:HV-Mirror
+#define CIS_I2C_ID            IMX219_SENSOR_I2CID
+#define CIS_ENABLE_MIPI_INF   (0x01)  // 0x00: off/0x01: on
+#define CIS_MIPI_LANE_NUMBER  (0x02)
+#define CIS_ENABLE_HX_AUTOI2C (0x00)  // 0x00: off/0x01: on/0x2: on and XSLEEP KEEP HIGH
+#define DEAULT_XHSUTDOWN_PIN  AON_GPIO2
 
+#define SENCTRL_SENSOR_TYPE   SENSORDPLIB_SENSOR_IMX219
+#define SENCTRL_STREAM_TYPE   SENSORDPLIB_STREAM_NONEAOS
+#define SENCTRL_SENSOR_WIDTH  IMX219_SENSOR_WIDTH
+#define SENCTRL_SENSOR_HEIGHT IMX219_SENSOR_HEIGHT
+#define SENCTRL_SENSOR_CH     3
+
+static HX_CIS_SensorSetting_t IMX219_init_setting[] = {
+#include "IMX219_mipi_2lane_3280x2464.i"
 };
 
-#define CIS_I2C_ID                OV5647_SENSOR_I2CID
-#define SENSORDPLIB_SENSOR_OV5647 (SENSORDPLIB_SENSOR_HM2130)
-
-static HX_CIS_SensorSetting_t OV5647_stream_on[] = {
-  {HX_CIS_I2C_Action_W, 0x4800, OV5647_MIPI_CTRL_ON},
-  {HX_CIS_I2C_Action_W, 0x4202,                0x00},
+static HX_CIS_SensorSetting_t IMX219_stream_on[] = {
+  {HX_CIS_I2C_Action_W, 0x0100, 0x01},
 };
 
-static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
-  {HX_CIS_I2C_Action_W, 0x4800, OV5647_MIPI_CTRL_OFF},
-  {HX_CIS_I2C_Action_W, 0x4202,                 0x0F},
+static HX_CIS_SensorSetting_t IMX219_stream_off[] = {
+  {HX_CIS_I2C_Action_W, 0x0100, 0x00},
 };
 
-el_err_code_t drv_ov5647_probe() {
+static HX_CIS_SensorSetting_t IMX219_binning_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x0174, ((IMX219_BINNING_SETTING >> 8) & 0xFF)},
+  {HX_CIS_I2C_Action_W, 0x0175,        (IMX219_BINNING_SETTING & 0xFF)},
+};
+
+static HX_CIS_SensorSetting_t IMX219_exposure_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x015a, ((IMX219_EXPOSURE_SETTING >> 8) & 0xFF)},
+  {HX_CIS_I2C_Action_W, 0x015b,        (IMX219_EXPOSURE_SETTING & 0xFF)},
+};
+
+static HX_CIS_SensorSetting_t IMX219_again_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x0157, (IMX219_AGAIN_SETTING & 0xFF)},
+};
+
+static HX_CIS_SensorSetting_t IMX219_dgain_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x0158, ((IMX219_DGAIN_SETTING >> 8) & 0xFF)},
+  {HX_CIS_I2C_Action_W, 0x0159,        (IMX219_DGAIN_SETTING & 0xFF)},
+};
+
+static HX_CIS_SensorSetting_t IMX219_mirror_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x0172, (CIS_MIRROR_SETTING & 0xFF)},
+};
+
+static uint32_t imx219_set_pll200() {
+    SCU_PDHSC_DPCLK_CFG_T cfg;
+
+    hx_drv_scu_get_pdhsc_dpclk_cfg(&cfg);
+
+    uint32_t pllfreq;
+    hx_drv_swreg_aon_get_pllfreq(&pllfreq);
+
+    if (pllfreq == 400000000) {
+        cfg.mipiclk.hscmipiclksrc = SCU_HSCMIPICLKSRC_PLL;
+        cfg.mipiclk.hscmipiclkdiv = 1;
+    } else {
+        cfg.mipiclk.hscmipiclksrc = SCU_HSCMIPICLKSRC_PLL;
+        cfg.mipiclk.hscmipiclkdiv = 0;
+    }
+
+    hx_drv_scu_set_pdhsc_dpclk_cfg(cfg, 0, 1);
+
+    uint32_t mipi_pixel_clk = 96;
+    hx_drv_scu_get_freq(SCU_CLK_FREQ_TYPE_HSC_MIPI_RXCLK, &mipi_pixel_clk);
+    mipi_pixel_clk = mipi_pixel_clk / 1000000;
+
+    EL_LOGD("MIPI CLK change to PLL freq:(%d / %d)\n", pllfreq, (cfg.mipiclk.hscmipiclkdiv + 1));
+    EL_LOGD("MIPI TX CLK: %dM\n", mipi_pixel_clk);
+
+    return mipi_pixel_clk;
+}
+
+el_err_code_t drv_imx219_probe() {
     hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
 
     CONFIG_EL_CAMERA_PWR_CTRL_INIT_F;
@@ -44,41 +94,22 @@ el_err_code_t drv_ov5647_probe() {
         return EL_EIO;
     }
 
-    EL_LOGD("ov5647 I2C ID: 0x%04X", CIS_I2C_ID);
-
+    EL_LOGD("IMX219 I2C ID: 0x%04X", CIS_I2C_ID);
     return EL_OK;
 }
 
-static uint32_t ov5647_set_dp_rc96() {
-    SCU_PDHSC_DPCLK_CFG_T cfg;
-
-    hx_drv_scu_get_pdhsc_dpclk_cfg(&cfg);
-
-    cfg.mipiclk.hscmipiclksrc = SCU_HSCMIPICLKSRC_RC96M48M;
-    cfg.mipiclk.hscmipiclkdiv = 0;
-    cfg.dpclk                 = SCU_HSCDPCLKSRC_RC96M48M;
-
-    hx_drv_scu_set_pdhsc_dpclk_cfg(cfg, 0, 1);
-
-    uint32_t mipi_pixel_clk = 96;
-    hx_drv_scu_get_freq(SCU_CLK_FREQ_TYPE_HSC_MIPI_RXCLK, &mipi_pixel_clk);
-    mipi_pixel_clk = mipi_pixel_clk / 1000000;
-
-    return mipi_pixel_clk;
-}
-
 static void set_mipi_csirx_enable() {
-    uint32_t bitrate_1lane  = OV5647_MIPI_CLOCK_FEQ * 2;
-    uint32_t mipi_lnno      = OV5647_MIPI_LANE_CNT;
-    uint32_t pixel_dpp      = OV5647_MIPI_DPP;
-    uint32_t line_length    = OV5647_SENSOR_WIDTH;
-    uint32_t frame_length   = OV5647_SENSOR_HEIGHT;
+    uint32_t bitrate_1lane  = IMX219_MIPI_CLOCK_FEQ * 2;
+    uint32_t mipi_lnno      = IMX219_MIPI_LANE_CNT;
+    uint32_t pixel_dpp      = IMX219_MIPI_DPP;
+    uint32_t line_length    = IMX219_SENSOR_WIDTH;
+    uint32_t frame_length   = IMX219_SENSOR_HEIGHT;
     uint32_t byte_clk       = bitrate_1lane / 8;
-    uint32_t continuousout  = OV5647_MIPITX_CNTCLK_EN;
+    uint32_t continuousout  = IMX219_MIPITX_CNTCLK_EN;
     uint32_t deskew_en      = 0;
     uint32_t mipi_pixel_clk = 96;
 
-    mipi_pixel_clk = ov5647_set_dp_rc96();
+    mipi_pixel_clk = imx219_set_pll200();
 
     EL_LOGD("MIPI CSI Init Enable");
     EL_LOGD("MIPI TX CLK: %dM", mipi_pixel_clk);
@@ -136,27 +167,47 @@ static void set_mipi_csirx_enable() {
     hx_drv_scu_set_DP_SWReset(dp_swrst);
 
     MIPIRX_DPHYHSCNT_CFG_T hscnt_cfg;
+
     hscnt_cfg.mipirx_dphy_hscnt_clk_en = 0;
     hscnt_cfg.mipirx_dphy_hscnt_ln0_en = 1;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_en = 1;
 
     hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
-    hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x06;
-    hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x06;
+    hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
+    hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
 
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
     if (pixel_dpp == 10 || pixel_dpp == 8) {
         sensordplib_csirx_set_pixel_depth(pixel_dpp);
     } else {
-        EL_LOGD("PIXEL DEPTH fail %d", pixel_dpp);
-
+        EL_LOGD("PIXEL DEPTH2 fail %d", pixel_dpp);
         return;
     }
 
     sensordplib_csirx_set_deskew(deskew_en);
     sensordplib_csirx_set_fifo_fill(rx_fifo_fill);
     sensordplib_csirx_enable(mipi_lnno);
+
+    CSITX_DPHYCLKMODE_E clkmode;
+    if (continuousout) {
+        clkmode = CSITX_DPHYCLOCK_CONT;
+    } else {
+        clkmode = CSITX_DPHYCLOCK_NON_CONT;
+    }
+
+    sensordplib_csitx_set_dphy_clkmode(clkmode);
+
+    sensordplib_csitx_set_deskew(deskew_en);
+    sensordplib_csitx_set_fifo_fill(tx_fifo_fill);
+    sensordplib_csitx_enable(mipi_lnno, bitrate_1lane, line_length, frame_length);
+
+    SCU_VMUTE_CFG_T ctrl;
+    ctrl.timingsrc = SCU_VMUTE_CTRL_TIMING_SRC_VMUTE;
+    ctrl.txphypwr  = SCU_VMUTE_CTRL_TXPHY_PWR_DISABLE;
+    ctrl.ctrlsrc   = SCU_VMUTE_CTRL_SRC_SW;
+    ctrl.swctrl    = SCU_VMUTE_CTRL_SW_ENABLE;
+    hx_drv_scu_set_vmute(&ctrl);
 
     EL_LOGD("VMUTE: 0x%08X", *(uint32_t*)(SCU_LSC_ADDR + 0x408));
     EL_LOGD("0x53061000: 0x%08X", *(uint32_t*)(CSITX_REGS_BASE + 0x1000));
@@ -185,7 +236,7 @@ static void set_mipi_csirx_disable() {
     EL_LOGD("0x%08X = 0x%08X", csi_stream0_control_reg, *csi_stream0_control_reg);
 }
 
-el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
+el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
     JPEG_CFG_T    jpeg_cfg;
@@ -202,7 +253,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
         hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
         EL_LOGD("mclk DIV3, xshutdown_pin=%d", DEAULT_XHSUTDOWN_PIN);
 
-        // OV5647 Enable
+        // IMX219 Enable
         CONFIG_EL_CAMERA_PWR_CTRL_INIT_F;
 
         EL_LOGD("Init PA1(AON_GPIO1)");
@@ -213,28 +264,45 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
         el_sleep(3);
 
         // off stream
-        if (hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t)) !=
+        if (hx_drv_cis_setRegTable(IMX219_stream_off, HX_CIS_SIZE_N(IMX219_stream_off, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
             ret = EL_EIO;
             goto err;
         }
 
         // init stream
-        if (hx_drv_cis_setRegTable(OV5647_init_setting, HX_CIS_SIZE_N(OV5647_init_setting, HX_CIS_SensorSetting_t)) !=
+        if (hx_drv_cis_setRegTable(IMX219_init_setting, HX_CIS_SIZE_N(IMX219_init_setting, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
             ret = EL_EIO;
             goto err;
         }
 
-        HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
-          {HX_CIS_I2C_Action_W, 0x0101, 0x00},
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
-          {HX_CIS_I2C_Action_W, 0x3821, 0x07},
-#endif
-        };
+        if (hx_drv_cis_setRegTable(IMX219_binning_setting,
+                                   HX_CIS_SIZE_N(IMX219_binning_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
 
-        if (hx_drv_cis_setRegTable(OV5647_mirror_setting,
-                                   HX_CIS_SIZE_N(OV5647_mirror_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+        if (hx_drv_cis_setRegTable(IMX219_exposure_setting,
+                                   HX_CIS_SIZE_N(IMX219_exposure_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        if (hx_drv_cis_setRegTable(IMX219_again_setting, HX_CIS_SIZE_N(IMX219_again_setting, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        if (hx_drv_cis_setRegTable(IMX219_dgain_setting, HX_CIS_SIZE_N(IMX219_dgain_setting, HX_CIS_SensorSetting_t)) !=
+            HX_CIS_NO_ERROR) {
+            ret = EL_EIO;
+            goto err;
+        }
+
+        if (hx_drv_cis_setRegTable(IMX219_mirror_setting,
+                                   HX_CIS_SIZE_N(IMX219_mirror_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
             ret = EL_EIO;
             goto err;
         }
@@ -251,54 +319,65 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     crop.last_x  = 0;
     crop.last_y  = 0;
 
-    int32_t factor_w = floor((float)OV5647_SENSOR_WIDTH / (float)width);
-    int32_t factor_h = floor((float)OV5647_SENSOR_HEIGHT / (float)height);
+    int32_t factor_w = floor((float)IMX219_SENSOR_WIDTH / (float)width);
+    int32_t factor_h = floor((float)IMX219_SENSOR_HEIGHT / (float)height);
     int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
 
-    if (min_f >= 8) {
-        res.width  = OV5647_SENSOR_WIDTH / 8;
-        res.height = OV5647_SENSOR_HEIGHT / 8;
+    if (min_f >= 16) {
+        res.width  = IMX219_SENSOR_WIDTH / 16;
+        res.height = IMX219_SENSOR_HEIGHT / 16;
 
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
+                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_4TO2,
                                                    crop,
-                                                   OV5647_BINNING_2);
+                                                   INP_BINNING_16TO2_B);
+    } else if (min_f >= 8) {
+        res.width  = IMX219_SENSOR_WIDTH / 8;
+        res.height = IMX219_SENSOR_HEIGHT / 8;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_16TO2_B);
+    } else if (min_f >= 5) {
+        res.width  = IMX219_SENSOR_WIDTH / 5;
+        res.height = IMX219_SENSOR_HEIGHT / 5;
+
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
+                                                   SENSORDPLIB_STREAM_NONEAOS,
+                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
+                                                   crop,
+                                                   INP_BINNING_10TO2_B);
     } else if (min_f >= 4) {
-        res.width  = OV5647_SENSOR_WIDTH / 4;
-        res.height = OV5647_SENSOR_HEIGHT / 4;
+        res.width  = IMX219_SENSOR_WIDTH / 4;
+        res.height = IMX219_SENSOR_HEIGHT / 4;
 
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
+                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
                                                    crop,
-                                                   OV5647_BINNING_1);
-    } else if (min_f >= 2) {
-        res.width  = OV5647_SENSOR_WIDTH / 2;
-        res.height = OV5647_SENSOR_HEIGHT / 2;
-
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
-                                                   SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
-                                                   crop,
-                                                   OV5647_BINNING_0);
+                                                   INP_BINNING_8TO2_B);
     } else {
-        res.width  = OV5647_SENSOR_WIDTH;
-        res.height = OV5647_SENSOR_HEIGHT;
+        res.width  = IMX219_SENSOR_WIDTH;
+        res.height = IMX219_SENSOR_HEIGHT;
 
-        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_IMX219,
                                                    SENSORDPLIB_STREAM_NONEAOS,
-                                                   OV5647_SENSOR_WIDTH,
-                                                   OV5647_SENSOR_HEIGHT,
-                                                   OV5647_SUB_SAMPLE,
+                                                   IMX219_SENSOR_WIDTH,
+                                                   IMX219_SENSOR_HEIGHT,
+                                                   INP_SUBSAMPLE_DISABLE,
                                                    crop,
-                                                   INP_BINNING_DISABLE);
+                                                   INP_SUBSAMPLE_DISABLE);
     }
 
     start_x = (res.width - width) / 2;
@@ -360,11 +439,15 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
 
+#if defined(CONFIG_EL_BOARD_DEV_BOARD_WE2)
     if (width > 240 && height > 240) {
         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    } else {
+        jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
     }
+#endif
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
@@ -376,7 +459,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
         hx_dplib_register_cb(_drv_dp_event_cb, SENSORDPLIB_CB_FUNTYPE_DP);
 
-        if (hx_drv_cis_setRegTable(OV5647_stream_on, HX_CIS_SIZE_N(OV5647_stream_on, HX_CIS_SensorSetting_t)) !=
+        if (hx_drv_cis_setRegTable(IMX219_stream_on, HX_CIS_SIZE_N(IMX219_stream_on, HX_CIS_SensorSetting_t)) !=
             HX_CIS_NO_ERROR) {
             return EL_EIO;
         }
@@ -395,13 +478,13 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     _initiated_before = true;
 
-    EL_LOGD("ov5647 init success!");
+    EL_LOGD("imx219 init success!");
 
     return ret;
 
 err:
     // power off
-    EL_LOGD("ov5647 init failed!");
+    EL_LOGD("imx219 init failed!");
 
 #if ENABLE_SENSOR_FAST_SWITCH
     _initiated_before = false;
@@ -411,7 +494,7 @@ err:
     sensordplib_stop_swreset_WoSensorCtrl();
 
     // stream off
-    hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t));
+    hx_drv_cis_setRegTable(IMX219_stream_off, HX_CIS_SIZE_N(IMX219_stream_off, HX_CIS_SensorSetting_t));
 
     set_mipi_csirx_disable();
 
@@ -422,7 +505,7 @@ err:
     return ret;
 }
 
-el_err_code_t drv_ov5647_deinit() {
+el_err_code_t drv_imx219_deinit() {
     // datapath off
     sensordplib_stop_capture();
 
@@ -432,7 +515,7 @@ el_err_code_t drv_ov5647_deinit() {
     sensordplib_stop_swreset_WoSensorCtrl();
 
     // stream off
-    if (hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t)) !=
+    if (hx_drv_cis_setRegTable(IMX219_stream_off, HX_CIS_SIZE_N(IMX219_stream_off, HX_CIS_SensorSetting_t)) !=
         HX_CIS_NO_ERROR) {
         return EL_EIO;
     }
