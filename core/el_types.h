@@ -225,6 +225,7 @@ typedef enum {
     EL_TRANSPORT_UART,
     EL_TRANSPORT_SPI,
     EL_TRANSPORT_I2C,
+    EL_TRANSPORT_MQTT
 } el_transport_type_t;
 
 #ifdef __cplusplus

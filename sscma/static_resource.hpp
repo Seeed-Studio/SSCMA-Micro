@@ -102,6 +102,7 @@ class StaticResource final {
 
         static auto v_mqtt{MQTT(wifi)};
         mqtt = &v_mqtt;
+        mqtt->type = EL_TRANSPORT_MQTT;
 #endif
 
         static auto v_instance{Server()};
@@ -159,6 +160,7 @@ class StaticResource final {
             case EL_TRANSPORT_I2C:
                 reinterpret_cast<Wire*>(transport)->init();
                 break;
+            case EL_TRANSPORT_MQTT:
             default:
                 break;
             }

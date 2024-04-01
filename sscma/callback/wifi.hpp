@@ -20,7 +20,6 @@ static int32_t     wifi_status = 0;
 static in4_info_t  in4_info{};
 static in6_info_t  in6_info{};
 }  // namespace shared_variables
-#endif
 
 void set_wifi_ver(const std::vector<std::string>& argv, void* caller) {
     shared_variables::wifi_ver = argv[1];
@@ -41,6 +40,7 @@ void get_wifi_ver(const std::string& cmd, void* caller) {
                            "\"}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
+#endif
 
 void set_wifi_network(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     auto ret    = EL_OK;
