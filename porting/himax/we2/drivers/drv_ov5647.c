@@ -347,7 +347,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
     hw5x5_cfg.demos_color_mode   = DEMOS_COLORMODE_YUV422;
     hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_GRBG;
-    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_FLOOR;
+    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_ROUNDING;
     hw5x5_cfg.hw55_crop_stx      = start_x;
     hw5x5_cfg.hw55_crop_sty      = start_y;
     hw5x5_cfg.hw55_in_width      = width;
@@ -360,9 +360,13 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
     jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
 
+#if defined(CONFIG_EL_BOARD_DEV_BOARD_WE2)
     if (width > 240 && height > 240) {
         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    } else {
+        jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
     }
+#endif
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
