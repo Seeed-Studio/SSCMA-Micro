@@ -38,7 +38,7 @@ constexpr static uint16_t YEAR =
 constexpr static uint16_t MONTH = (__DATE__[0] == 'J')   ? ((__DATE__[1] == 'a') ? 1 : ((__DATE__[2] == 'n') ? 6 : 7))
                                   : (__DATE__[0] == 'F') ? 2
                                   : (__DATE__[0] == 'M') ? ((__DATE__[2] == 'r') ? 3 : 5)
-                                  : (__DATE__[0] == 'A') ? ((__DATE__[2] == 'p') ? 4 : 8)
+                                  : (__DATE__[0] == 'A') ? ((__DATE__[1] == 'p') ? 4 : 8)
                                   : (__DATE__[0] == 'S') ? 9
                                   : (__DATE__[0] == 'O') ? 10
                                   : (__DATE__[0] == 'N') ? 11
