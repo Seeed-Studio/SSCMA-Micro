@@ -93,7 +93,7 @@
 	{HX_CIS_I2C_Action_W, 0x3503, 0x00},
 
 	{HX_CIS_I2C_Action_W, 0x3820, 0x41},
-	{HX_CIS_I2C_Action_W, 0x3821, 0x00},
+	{HX_CIS_I2C_Action_W, 0x3821, 0x00}, // LR flip
 
 	{HX_CIS_I2C_Action_W, 0x350a, 0x00},
 	{HX_CIS_I2C_Action_W, 0x350b, 0x10},

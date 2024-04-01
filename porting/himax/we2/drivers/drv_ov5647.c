@@ -29,6 +29,13 @@ static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
   {HX_CIS_I2C_Action_W, 0x4202,                 0x0F},
 };
 
+static HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
+  {HX_CIS_I2C_Action_W, 0x0101, 0x00},
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
+  {HX_CIS_I2C_Action_W, 0x3821, 0x07},
+#endif
+};
+
 el_err_code_t drv_ov5647_probe() {
     hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3);
 
@@ -226,13 +233,6 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
             goto err;
         }
 
-        HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
-          {HX_CIS_I2C_Action_W, 0x0101, 0x00},
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
-          {HX_CIS_I2C_Action_W, 0x3821, 0x07},
-#endif
-        };
-
         if (hx_drv_cis_setRegTable(OV5647_mirror_setting,
                                    HX_CIS_SIZE_N(OV5647_mirror_setting, HX_CIS_SensorSetting_t)) != HX_CIS_NO_ERROR) {
             ret = EL_EIO;
@@ -346,8 +346,8 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     hw5x5_cfg.hw5x5_path         = HW5x5_PATH_THROUGH_DEMOSAIC;
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
     hw5x5_cfg.demos_color_mode   = DEMOS_COLORMODE_YUV422;
-    hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_BGGR;
-    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_ROUNDING;
+    hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_GRBG;
+    hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_FLOOR;
     hw5x5_cfg.hw55_crop_stx      = start_x;
     hw5x5_cfg.hw55_crop_sty      = start_y;
     hw5x5_cfg.hw55_in_width      = width;
@@ -355,12 +355,10 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 
     //JPEG Cfg
     jpeg_cfg.jpeg_path      = JPEG_PATH_ENCODER_EN;
-    jpeg_cfg.dec_roi_stx    = 0;
-    jpeg_cfg.dec_roi_sty    = 0;
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
 
     if (width > 240 && height > 240) {
         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
