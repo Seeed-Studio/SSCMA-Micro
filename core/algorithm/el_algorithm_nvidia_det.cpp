@@ -143,9 +143,12 @@ el_err_code_t AlgorithmNvidiaDet::postprocess() {
     _results.clear();
     el_shape_t __output_shape0;
     el_shape_t __output_shape1;
+
+    static_assert(sizeof(float) == 4);
+
     // get output
-    auto* data0{static_cast<_Float32*>(this->__p_engine->get_output(0))};
-    auto* data1{static_cast<_Float32*>(this->__p_engine->get_output(1))};
+    auto* data0{static_cast<float*>(this->__p_engine->get_output(0))};
+    auto* data1{static_cast<float*>(this->__p_engine->get_output(1))};
     __output_shape0 = this->__p_engine->get_output_shape(0);
     __output_shape1 = this->__p_engine->get_output_shape(1);
 
@@ -155,7 +158,6 @@ el_err_code_t AlgorithmNvidiaDet::postprocess() {
     this->_conf_shape   = __output_shape0.dims[3] > __output_shape1.dims[3] ? __output_shape1 : __output_shape0;
     this->_bboxes_shape = __output_shape0.dims[3] > __output_shape1.dims[3] ? __output_shape0 : __output_shape1;
 
-    auto B          = this->_conf_shape.dims[0];
     auto H          = this->_conf_shape.dims[1];
     auto W          = this->_conf_shape.dims[2];
     auto BboxsCount = this->_conf_shape.dims[3];
