@@ -292,9 +292,9 @@ static uint32_t find_next_kv_addr(fdb_kvdb_t db, uint32_t start, uint32_t end)
             return FAILED_ADDR;
         for (i = 0; i < sizeof(buf) - sizeof(uint32_t) && start + i < end; i++) {
 #ifndef FDB_BIG_ENDIAN            /* Little Endian Order */
-            magic = buf[i] + (buf[i + 1] << 8) + (buf[i + 2] << 16) + (buf[i + 3] << 24);
+            magic = buf[i] + ((uint32_t)buf[i + 1] << 8) + ((uint32_t)buf[i + 2] << 16) + ((uint32_t)buf[i + 3] << 24);
 #else                       /* Big Endian Order */
-            magic = buf[i + 3] + (buf[i + 2] << 8) + (buf[i + 1] << 16) + (buf[i] << 24);
+            magic = buf[i + 3] + ((uint32_t)buf[i + 2] << 8) + ((uint32_t)buf[i + 1] << 16) + ((uint32_t)buf[i] << 24);
 #endif
             if (magic == KV_MAGIC_WORD && (start + i - KV_MAGIC_OFFSET) >= start_bak) {
                 return start + i - KV_MAGIC_OFFSET;
@@ -433,7 +433,7 @@ static fdb_err_t read_sector_info(fdb_kvdb_t db, uint32_t addr, kv_sec_info_t se
     sector->addr = addr;
     sector->magic = sec_hdr.magic;
     /* check magic word and combined value */
-    if (sector->magic != SECTOR_MAGIC_WORD ||
+    if (sector->magic != SECTOR_MAGIC_WORD || 
         (sec_hdr.combined != SECTOR_NOT_COMBINED && sec_hdr.combined != SECTOR_COMBINED)) {
         sector->check_ok = false;
         sector->combined = SECTOR_NOT_COMBINED;
@@ -485,8 +485,8 @@ static fdb_err_t read_sector_info(fdb_kvdb_t db, uint32_t addr, kv_sec_info_t se
 #ifdef FDB_KV_USING_CACHE
         update_sector_cache(db, sector);
     } else {
-        kv_sec_info_t sector_cache = get_sector_from_cache(db, sector->addr);
-        if (!sector_cache) {
+        kv_sec_info_t sec_cache = get_sector_from_cache(db, sector->addr);
+        if (!sec_cache) {
             sector->empty_kv = FAILED_ADDR;
             sector->remain = 0;
             update_sector_cache(db, sector);
@@ -937,7 +937,7 @@ static fdb_err_t del_kv(fdb_kvdb_t db, const char *key, fdb_kv_t old_kv, bool co
 {
     fdb_err_t result = FDB_NO_ERR;
     uint32_t dirty_status_addr;
-    struct fdb_kv kv = { FDB_KV_UNUSED };
+    struct fdb_kv kv = { .status = FDB_KV_UNUSED };
 
 #if (KV_STATUS_TABLE_SIZE >= FDB_DIRTY_STATUS_TABLE_SIZE)
     uint8_t status_table[KV_STATUS_TABLE_SIZE];
@@ -1397,6 +1397,13 @@ fdb_err_t fdb_kv_set_default(fdb_kvdb_t db)
 
     /* lock the KV cache */
     db_lock(db);
+
+#ifdef FDB_KV_USING_CACHE
+    for (i = 0; i < FDB_KV_CACHE_TABLE_SIZE; i++) {
+        db->kv_cache_table[i].addr = FDB_DATA_UNUSED;
+    }
+#endif /* FDB_KV_USING_CACHE */
+
     /* format all sectors */
     for (addr = 0; addr < db_max_size(db); addr += db_sec_size(db)) {
         result = format_sector(db, addr, SECTOR_NOT_COMBINED);
