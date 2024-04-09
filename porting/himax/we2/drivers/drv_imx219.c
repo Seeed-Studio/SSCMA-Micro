@@ -434,8 +434,6 @@ el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
 
     //JPEG Cfg
     jpeg_cfg.jpeg_path      = JPEG_PATH_ENCODER_EN;
-    jpeg_cfg.dec_roi_stx    = 0;
-    jpeg_cfg.dec_roi_sty    = 0;
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
