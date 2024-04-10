@@ -214,10 +214,10 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
         return {nullptr, STATUS_FROM_FRESULT(res)};
     }
 
-    std::unique_ptr<File> handler = std::unique_ptr<FileWE2>(new (std::nothrow) FileWE2(&file));
+    std::unique_ptr<File> handler   = std::unique_ptr<FileWE2>(new (std::nothrow) FileWE2(&file));
+    bool                  allocated = handler != nullptr;
     return {
-      std::move(handler),
-      handler != nullptr ? STATUS_FROM_FRESULT(res) : Status{false, "Failed to allocate file handler"}
+      std::move(handler), allocated ? STATUS_FROM_FRESULT(res) : Status{false, "Failed to allocate file handler"}
     };
 }
 

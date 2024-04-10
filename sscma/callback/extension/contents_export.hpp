@@ -83,7 +83,7 @@ class ContentsExport {
         if (_retry > 0) {
             --_retry;
         } else if (_retry <= 0) {
-            callback({false, "Error, init filesystem count exceeded"});
+            callback({false, "Error, init file system retry count exceeded"});
             return false;
         }
 
