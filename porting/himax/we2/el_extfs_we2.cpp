@@ -7,6 +7,8 @@
 #include <hx_drv_scu.h>
 
 #include <cstring>
+#include <new>
+#include <utility>
 
 #include "porting/el_misc.h"
 
@@ -108,11 +110,11 @@ Status FileWE2::read(uint8_t* data, size_t size, size_t* read) {
 }
 
 FileWE2::FileWE2(const void* f) {
-    _file                     = new FIL{};
+    _file                     = new (std::nothrow) FIL{};
     *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
 }
 
-ExtfsWE2::ExtfsWE2() { _fs = new FATFS{}; }
+ExtfsWE2::ExtfsWE2() { _fs = new (std::nothrow) FATFS{}; }
 
 ExtfsWE2::~ExtfsWE2() {
     unmount();
@@ -134,7 +136,7 @@ Status ExtfsWE2::mount(const char* path) {
         goto MountReturn;
     }
 
-    curdir = new char[CONFIG_CURDIR_NAME_MAX_LEN]{};
+    curdir = new (std::nothrow) char[CONFIG_CURDIR_NAME_MAX_LEN]{};
     if (curdir == nullptr) {
         res = FR_NOT_ENOUGH_CORE;
         goto MountReturn;
@@ -212,7 +214,11 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
         return {nullptr, STATUS_FROM_FRESULT(res)};
     }
 
-    return {std::unique_ptr<FileWE2>(new FileWE2(&file)), STATUS_FROM_FRESULT(res)};
+    std::unique_ptr<File> handler = std::unique_ptr<FileWE2>(new (std::nothrow) FileWE2(&file));
+    return {
+      std::move(handler),
+      handler != nullptr ? STATUS_FROM_FRESULT(res) : Status{false, "Failed to allocate file handler"}
+    };
 }
 
 Extfs* Extfs::get_ptr() {
