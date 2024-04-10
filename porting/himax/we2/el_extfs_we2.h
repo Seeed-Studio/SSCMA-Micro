@@ -29,6 +29,7 @@ class FileWE2 final : public File {
 
     void   close() override;
     Status write(const uint8_t*, size_t, size_t*) override;
+    Status read(uint8_t*, size_t, size_t*) override;
 
     friend class ExtfsWE2;
 
@@ -48,6 +49,7 @@ class ExtfsWE2 final : public Extfs {
     void       unmount() override;
     bool       exists(const char*) override;
     bool       isdir(const char*) override;
+    Status     mkdir(const char*) override;
     FileStatus open(const char*, int) override;
 
    private:
