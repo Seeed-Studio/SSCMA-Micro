@@ -42,6 +42,7 @@ class File {
 
     virtual void   close()                                = 0;
     virtual Status write(const uint8_t*, size_t, size_t*) = 0;
+    virtual Status read(uint8_t*, size_t, size_t*)        = 0;
 
     friend class Extfs;
 
@@ -49,7 +50,7 @@ class File {
     File() = default;
 };
 
-enum OpenMode : int { READ, WRITE, APPEND };
+enum OpenMode : int { READ = 1 << 1, WRITE = 1 << 2, APPEND = 1 << 3 };
 
 class Extfs {
    public:
@@ -61,6 +62,7 @@ class Extfs {
     virtual void       unmount()              = 0;
     virtual bool       exists(const char*)    = 0;
     virtual bool       isdir(const char*)     = 0;
+    virtual Status     mkdir(const char*)     = 0;
     virtual FileStatus open(const char*, int) = 0;
 
    protected:

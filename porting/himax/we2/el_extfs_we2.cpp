@@ -10,7 +10,7 @@
 
 #include "porting/el_misc.h"
 
-#define CONFIG_CURDIR_NAME_MAX_LEN 128
+#define CONFIG_CURDIR_NAME_MAX_LEN 256
 
 extern "C" {
 void SSPI_CS_GPIO_Output_Level(bool setLevelHigh) { hx_drv_gpio_set_out_value(GPIO16, (GPIO_OUT_LEVEL_E)setLevelHigh); }
@@ -96,6 +96,15 @@ Status FileWE2::write(const uint8_t* data, size_t size, size_t* written) {
     return STATUS_FROM_FRESULT(res);
 }
 
+Status FileWE2::read(uint8_t* data, size_t size, size_t* read) {
+    UINT    br;
+    FRESULT res = f_read(static_cast<FIL*>(_file), data, size, &br);
+    if (read) {
+        *read = br;
+    }
+    return STATUS_FROM_FRESULT(res);
+}
+
 FileWE2::FileWE2(const void* f) {
     _file                     = new FIL{};
     *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
@@ -116,10 +125,16 @@ Status ExtfsWE2::mount(const char* path) {
     hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI_M_SCLK_1, 1);
     hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI_M_CS_1, 1);
 
-    char curdir[CONFIG_CURDIR_NAME_MAX_LEN]{};
+    char* curdir = nullptr;
 
     FRESULT res = f_mount(static_cast<FATFS*>(_fs), "", 1);
     if (res != FR_OK) {
+        goto MountReturn;
+    }
+
+    curdir = new char[CONFIG_CURDIR_NAME_MAX_LEN]{};
+    if (curdir == nullptr) {
+        res = FR_NOT_ENOUGH_CORE;
         goto MountReturn;
     }
 
@@ -127,7 +142,7 @@ Status ExtfsWE2::mount(const char* path) {
     if (res != FR_OK) {
         goto MountReturn;
     }
- 
+
     {
         const char* dir = path;
         char*       drv = std::strchr(curdir, ':');
@@ -149,6 +164,11 @@ Status ExtfsWE2::mount(const char* path) {
     }
 
 MountReturn:
+    if (curdir != nullptr) {
+        delete[] curdir;
+        curdir = nullptr;
+    }
+
     return STATUS_FROM_FRESULT(res);
 }
 
@@ -157,13 +177,18 @@ void ExtfsWE2::unmount() { f_unmount(""); }
 bool ExtfsWE2::exists(const char* f) {
     FILINFO fno;
     FRESULT res = f_stat(f, &fno);
-    return res == FR_OK;
+    return res == FR_OK && std::strlen(fno.fname) > 0;
 }
 
 bool ExtfsWE2::isdir(const char* f) {
     FILINFO fno;
     FRESULT res = f_stat(f, &fno);
     return res == FR_OK && fno.fattrib & AM_DIR;
+}
+
+Status ExtfsWE2::mkdir(const char* path) {
+    FRESULT res = f_mkdir(path);
+    return STATUS_FROM_FRESULT(res);
 }
 
 FileStatus ExtfsWE2::open(const char* path, int mode) {
@@ -174,7 +199,7 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
         m |= FA_OPEN_EXISTING | FA_READ;
     }
     if (mode & OpenMode::WRITE) {
-        m |= FA_CREATE_NEW | FA_WRITE;
+        m |= FA_CREATE_ALWAYS | FA_WRITE;
     }
     if (mode & OpenMode::APPEND) {
         m |= FA_OPEN_APPEND | FA_WRITE;
