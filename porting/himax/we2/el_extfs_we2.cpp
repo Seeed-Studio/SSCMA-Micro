@@ -82,9 +82,11 @@ static Status STATUS_FROM_FRESULT(FRESULT res) {
 FileWE2::~FileWE2() { close(); }
 
 void FileWE2::close() {
-    f_close(static_cast<FIL*>(_file));
-    delete static_cast<FIL*>(_file);
-    _file = nullptr;
+    if (_file != nullptr) {
+        f_close(static_cast<FIL*>(_file));
+        delete static_cast<FIL*>(_file);
+        _file = nullptr;
+    }
 }
 
 Status FileWE2::write(const uint8_t* data, size_t size, size_t* written) {
