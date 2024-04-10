@@ -17,11 +17,9 @@
 #ifndef _EL_EXTFS_H_
 #define _EL_EXTFS_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
-
-#include "core/el_debug.h"
-#include "core/el_types.h"
 
 namespace edgelab {
 
@@ -34,7 +32,7 @@ struct Status {
 };
 
 struct FileStatus {
-    std::shared_ptr<File> file;
+    std::unique_ptr<File> file;
     Status                status;
 };
 
