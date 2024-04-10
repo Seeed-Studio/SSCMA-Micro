@@ -17,10 +17,6 @@
 #ifndef _EL_EXTFS_WE2_H_
 #define _EL_EXTFS_WE2_H_
 
-extern "C" {
-#include <ff.h>
-}
-
 #include "porting/el_extfs.h"
 
 namespace edgelab {
@@ -37,15 +33,15 @@ class FileWE2 final : public File {
     friend class ExtfsWE2;
 
    protected:
-    FileWE2(const FIL&);
+    FileWE2(const void*);
 
-   private:
-    FIL _file;
+   protected:
+    void* _file;
 };
 
 class ExtfsWE2 final : public Extfs {
    public:
-    ExtfsWE2() = default;
+    ExtfsWE2();
     ~ExtfsWE2() override;
 
     Status     mount(const char*) override;
@@ -55,7 +51,7 @@ class ExtfsWE2 final : public Extfs {
     FileStatus open(const char*, int) override;
 
    private:
-    FATFS _fs;
+    void* _fs;
 };
 
 }  // namespace edgelab

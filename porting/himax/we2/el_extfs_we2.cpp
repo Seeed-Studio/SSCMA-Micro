@@ -2,11 +2,17 @@
 
 #include <WE2_core.h>
 #include <WE2_device.h>
+#include <ff.h>
 #include <hx_drv_gpio.h>
 #include <hx_drv_scu.h>
 
-extern "C" {
+#include <cstring>
 
+#include "porting/el_misc.h"
+
+#define CONFIG_CURDIR_NAME_MAX_LEN 128
+
+extern "C" {
 void SSPI_CS_GPIO_Output_Level(bool setLevelHigh) { hx_drv_gpio_set_out_value(GPIO16, (GPIO_OUT_LEVEL_E)setLevelHigh); }
 
 void SSPI_CS_GPIO_Pinmux(bool setGpioFn) {
@@ -76,22 +82,33 @@ static Status STATUS_FROM_FRESULT(FRESULT res) {
 FileWE2::~FileWE2() { close(); }
 
 void FileWE2::close() {
-    f_close(&_file);
-    _file.obj.fs = nullptr;
+    f_close(static_cast<FIL*>(_file));
+    delete static_cast<FIL*>(_file);
+    _file = nullptr;
 }
 
 Status FileWE2::write(const uint8_t* data, size_t size, size_t* written) {
     UINT    bw;
-    FRESULT res = f_write(&_file, data, size, &bw);
+    FRESULT res = f_write(static_cast<FIL*>(_file), data, size, &bw);
     if (written) {
         *written = bw;
     }
     return STATUS_FROM_FRESULT(res);
 }
 
-FileWE2::FileWE2(const FIL& f) : _file(f) {}
+FileWE2::FileWE2(const void* f) {
+    _file                     = new FIL{};
+    *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
+}
 
-ExtfsWE2::~ExtfsWE2() { unmount(); }
+ExtfsWE2::ExtfsWE2() { _fs = new FATFS{}; }
+
+ExtfsWE2::~ExtfsWE2() {
+    unmount();
+
+    delete static_cast<FATFS*>(_fs);
+    _fs = nullptr;
+}
 
 Status ExtfsWE2::mount(const char* path) {
     hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI_M_DO_1, 1);
@@ -99,12 +116,37 @@ Status ExtfsWE2::mount(const char* path) {
     hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI_M_SCLK_1, 1);
     hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI_M_CS_1, 1);
 
-    FRESULT res = f_mount(&_fs, "", 1);
+    char curdir[CONFIG_CURDIR_NAME_MAX_LEN]{};
+
+    FRESULT res = f_mount(static_cast<FATFS*>(_fs), "", 1);
     if (res != FR_OK) {
         goto MountReturn;
     }
 
-    res = f_chdir(path);
+    res = f_getcwd(curdir, CONFIG_CURDIR_NAME_MAX_LEN);
+    if (res != FR_OK) {
+        goto MountReturn;
+    }
+ 
+    {
+        const char* dir = path;
+        char*       drv = std::strchr(curdir, ':');
+        if (drv != nullptr) {
+            dir = drv + 1;
+        }
+        if (strcmp(dir, path) != 0) {
+            size_t len = CONFIG_CURDIR_NAME_MAX_LEN - (drv - curdir);
+            if (len < strlen(path)) {
+                res = FR_INVALID_NAME;
+                goto MountReturn;
+            }
+            if (snprintf(drv, len, "%s", path) < 0) {
+                res = FR_INVALID_NAME;
+                goto MountReturn;
+            }
+            res = f_chdir(curdir);
+        }
+    }
 
 MountReturn:
     return STATUS_FROM_FRESULT(res);
@@ -143,7 +185,7 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
         return {nullptr, STATUS_FROM_FRESULT(res)};
     }
 
-    return {std::shared_ptr<File>(new FileWE2(file)), STATUS_FROM_FRESULT(res)};
+    return {std::unique_ptr<FileWE2>(new FileWE2(&file)), STATUS_FROM_FRESULT(res)};
 }
 
 Extfs* Extfs::get_ptr() {
