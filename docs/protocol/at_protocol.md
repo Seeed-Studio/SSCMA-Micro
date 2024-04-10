@@ -873,13 +873,13 @@ Events:
 
 Function map:
 
-| Name                   | Brief                                                              |
-|------------------------|--------------------------------------------------------------------|
-| `count()`              | Count the number of all results                                    |
-| `count(target,id)`     | Count the number of the results filter by a target id              |
-| `max_score()`          | Get the max score of all results                                   |
-| `max_score(target,id)` | Get the max score of the results filter by a target id             |
-| `led(enable)`          | When `enable` larger than `1`, turn the status LED, otherwise else |
+| Name                   | Brief                                                                |
+|------------------------|----------------------------------------------------------------------|
+| `count()`              | Count the number of all results                                      |
+| `count(target,id)`     | Count the number of the results filter by a target id                |
+| `max_score()`          | Get the max score of all results                                     |
+| `max_score(target,id)` | Get the max score of the results filter by a target id               |
+| `led(enable)`          | When `enable` larger than `1`, turn on the status LED, otherwise off |
 
 Note:
 
