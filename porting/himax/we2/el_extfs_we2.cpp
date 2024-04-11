@@ -12,6 +12,7 @@
 
 #include "porting/el_misc.h"
 
+#define CONFIG_FS_MAX_MOUNT_TIMES  0
 #define CONFIG_CURDIR_NAME_MAX_LEN 256
 
 extern "C" {
@@ -114,6 +115,8 @@ FileWE2::FileWE2(const void* f) {
     *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
 }
 
+int ExtfsWE2::_fs_mount_times = 0;
+
 ExtfsWE2::ExtfsWE2() { _fs = new (std::nothrow) FATFS{}; }
 
 ExtfsWE2::~ExtfsWE2() {
@@ -124,6 +127,11 @@ ExtfsWE2::~ExtfsWE2() {
 }
 
 Status ExtfsWE2::mount(const char* path) {
+    if (_fs_mount_times > CONFIG_FS_MAX_MOUNT_TIMES) {
+        return {false, "Filesystem mount times exceed the limit"};
+    }
+    _fs_mount_times += 1;
+
     hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI_M_DO_1, 1);
     hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI_M_DI_1, 1);
     hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI_M_SCLK_1, 1);
