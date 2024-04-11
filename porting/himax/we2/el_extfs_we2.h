@@ -53,7 +53,8 @@ class ExtfsWE2 final : public Extfs {
     FileStatus open(const char*, int) override;
 
    private:
-    void* _fs;
+    static int _fs_mount_times;
+    void*      _fs;
 };
 
 }  // namespace edgelab

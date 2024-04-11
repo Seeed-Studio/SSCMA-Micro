@@ -16,9 +16,7 @@ using namespace edgelab;
 
 class ContentsExport {
    public:
-    // Retry count should always larger than 0
-    // on WE2 it should be 1 because its middleware may panic system on the second try
-    ContentsExport(int retry = 1) : _retry(retry), _extfs(nullptr), _path(""), _bytes(0), _size(0), _data(nullptr) {}
+    ContentsExport() : _extfs(nullptr), _path(""), _bytes(0), _size(0), _data(nullptr) {}
 
     ~ContentsExport() {
         if (_data != nullptr) {
@@ -50,7 +48,11 @@ class ContentsExport {
     }
 
     bool commit(std::string name, std::function<void(Status)> callback) {
-        if (!init_filesystem(callback)) {
+        if (_data == nullptr || _bytes <= 0) [[unlikely]] {
+            return false;
+        }
+
+        if (!init_filesystem(callback)) [[unlikely]] {
             _extfs = nullptr;
             return false;
         }
@@ -68,6 +70,7 @@ class ContentsExport {
             callback(status);
             return false;
         }
+        _bytes = 0;
 
         handler.file->close();
 
@@ -78,13 +81,6 @@ class ContentsExport {
     bool init_filesystem(std::function<void(Status)>& callback) {
         if (_extfs != nullptr) [[unlikely]] {
             return true;
-        }
-
-        if (_retry > 0) {
-            --_retry;
-        } else if (_retry <= 0) {
-            callback({false, "Error, init file system retry count exceeded"});
-            return false;
         }
 
         _extfs = Extfs::get_ptr();
@@ -139,7 +135,7 @@ class ContentsExport {
                 callback(handler.status);
                 return false;
             }
-            int len = std::snprintf(reinterpret_cast<char*>(buffer), sizeof(buffer), "%ld", dir_id);
+            int len = std::snprintf(reinterpret_cast<char*>(buffer), sizeof(buffer), "%d", dir_id);
             res     = handler.file->write(buffer, len > 0 ? len : 0, nullptr);
             if (!res.success) {
                 callback(res);
@@ -164,8 +160,6 @@ class ContentsExport {
     }
 
    private:
-    int _retry;
-
     Extfs* _extfs;
 
     std::string _path;
