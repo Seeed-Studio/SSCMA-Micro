@@ -7,6 +7,7 @@
 #include <string>
 
 #include "core/algorithm/el_algorithm_delegate.h"
+#include "extension/contents_export.hpp"
 #include "extension/results_filter.hpp"
 #include "sscma/definations.hpp"
 #include "sscma/static_resource.hpp"
@@ -50,7 +51,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _algorithm_info{},
           _times{0},
           _ret{EL_OK},
-          _action_hash{0} {
+          _action_hash{0},
+          _contents_export{false},
+          _exporter{std::make_shared<ContentsExport>()} {
         static_resource->is_invoke = true;
     }
 
@@ -358,12 +361,15 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (static_resource->current_task_id.load(std::memory_order_seq_cst) != _task_id) [[unlikely]]
             return;
 
-        auto camera = static_resource->device->get_camera();
-        auto frame  = el_img_t{};
-#if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
-        auto processed_frame = el_img_t{};
-#endif
+        auto camera            = static_resource->device->get_camera();
+        auto frame             = el_img_t{};
+        auto processed_frame   = el_img_t{};
         auto encoded_frame_str = std::string{};
+
+        if (_action_hash != static_resource->action->get_condition_hash()) [[unlikely]] {
+            _action_hash = static_resource->action->get_condition_hash();
+            action_injection(algorithm);
+        }
 
         _ret = camera->start_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -373,25 +379,23 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        if (!_results_only) {
+        if (!_results_only || _contents_export) {
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
             _ret = camera->get_processed_frame(&processed_frame);
             if (!is_everything_ok()) [[unlikely]]
                 goto Err;
             encoded_frame_str = std::move(img_2_json_str(&processed_frame));
 #else
-            encoded_frame_str = std::move(img_2_jpeg_json_str(&frame));
+            encoded_frame_str = std::move(img_2_jpeg_json_str(&frame, &processed_frame));
 #endif
+            if (_contents_export && _exporter) [[likely]]
+                _exporter->cache(processed_frame.data, processed_frame.size);
         }
 
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        if (_action_hash != static_resource->action->get_condition_hash()) [[unlikely]] {
-            _action_hash = static_resource->action->get_condition_hash();
-            action_injection(algorithm);
-        }
         static_resource->action->evalute(_caller);
 
         _ret = camera->stop_stream();
@@ -426,6 +430,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     template <typename AlgorithmType> void action_injection(std::shared_ptr<AlgorithmType> algorithm) {
+        // reset action related flags
+        _contents_export = false;
+
         auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
             auto argv = tokenize_function_2_argv(kv.first);
@@ -476,6 +483,37 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 }
                 continue;
             }
+
+            if (argv[0] == "save_jpeg") {
+                // save jpeg
+                if (argv.size() == 1) {
+                    _contents_export = true;
+                    std::string cmd  = _cmd;
+                    kv.second        = [exporter = _exporter, cmd = std::move(cmd)](void* caller) -> int {
+                        bool        success   = false;
+                        uint32_t    time      = el_get_time_ms();
+                        std::string file_name = concat_strings(std::to_string(time), ".jpeg");
+
+                        if (!exporter) [[unlikely]]
+                            return 0;
+
+                        success = exporter->commit(file_name, [caller, cmd = std::move(cmd)](Status status) {
+                            if (status.success) return;
+                            auto ss{concat_strings("\r{\"type\": 1, \"name\": ",
+                                                   quoted(cmd + "@ACTION"),
+                                                   ", code\": ",
+                                                   std::to_string(EL_EIO),
+                                                   ", \"data\": ",
+                                                   quoted(status.message),
+                                                   "}\n")};
+                            static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
+                        });
+
+                        return success ? 1 : 0;
+                    };
+                }
+                continue;
+            }
         }
         static_resource->action->set_mutable_map(mutable_map);
     }
@@ -497,6 +535,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     int32_t       _times;
     el_err_code_t _ret;
     uint16_t      _action_hash;
+
+    bool                            _contents_export;
+    std::shared_ptr<ContentsExport> _exporter;
 
     std::forward_list<std::string> _config_cmds;
 };
