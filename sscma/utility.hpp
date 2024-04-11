@@ -300,7 +300,7 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
-inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img) {
+inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img, el_img_t* cache = nullptr) {
     if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
@@ -323,8 +323,11 @@ inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img) {
                              .format = EL_PIXEL_FORMAT_JPEG,
                              .rotate = img->rotate};
 
-    if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]]
+    if (el_img_convert(img, &jpeg_img) == EL_OK) [[likely]] {
+        if (cache) [[likely]]
+            *cache = jpeg_img;
         return img_2_json_str(&jpeg_img);
+    }
 
     return std::string("\"image\": \"\"");
 }
