@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.12.12
+# AT Protocol Specification v2023.04.12
 
 
 ## Transmission Layer
@@ -873,13 +873,14 @@ Events:
 
 Function map:
 
-| Name                   | Brief                                                                |
-|------------------------|----------------------------------------------------------------------|
-| `count()`              | Count the number of all results                                      |
-| `count(target,id)`     | Count the number of the results filter by a target id                |
-| `max_score()`          | Get the max score of all results                                     |
-| `max_score(target,id)` | Get the max score of the results filter by a target id               |
-| `led(enable)`          | When `enable` larger than `1`, turn on the status LED, otherwise off |
+| Name                   | Brief                                                                                   |
+|------------------------|-----------------------------------------------------------------------------------------|
+| `count()`              | Count the number of all results                                                         |
+| `count(target,id)`     | Count the number of the results filter by a target id                                   |
+| `max_score()`          | Get the max score of all results                                                        |
+| `max_score(target,id)` | Get the max score of the results filter by a target id                                  |
+| `led(enable)`          | When `enable` larger than `1`, turn on the status LED, otherwise off, always return `1` |
+| `save_jpeg()`          | Save current frame to external TF card, returns `1` when success, otherwise `0`         |
 
 Note:
 
@@ -898,6 +899,14 @@ Note:
     - Binary operator.
     - Compare operator.
     - Logic operator.
+1. Save JPEG specific:
+    - External TF card may required to be formatted as FAT32 (cluster size at 8192), the maximum supported capacity may limited to 32GB.
+    - The default **save path** is `<Device(Product) Name> Export`, if the directory is not exist, it will be created automatically.
+    - Inside the **save path**, each boot with this action triggered may create a new **save foler** named by a incremented number, the lastest folder name is stored in a hidden file named `.sscma` in the save path, user should not modify this file, otherwise error may occur.
+    - Inside the **save folder**, each file is named in numeric format with the `.jpeg` extension, the number is the timestamp (the up time of the device in milliseconds) when the file is triggered to save, so it only guarantees the saved files will not be overwritten in at most 49 days (`max(uint32_t) / 1000 / 60 / 60 / 24` = 49.7 days).
+    - Unexpected power off or reboot may cause the file system to be corrupted, data loss may occur.
+    - If the external TF card failed to initialize or a file is failed to save, the function will return `0` and once its fails a **event response** will be emmitted.
+    - The **event response** has a **tag** as same as the **command body** which used to **start invoke**, e.g.`INVOKE@ACTION` or `<Tag>@INVOKE@ACTION`, the `data` field contains a brief description of the error.
 
 #### Connect to a WiFi AP
 
