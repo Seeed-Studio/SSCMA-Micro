@@ -48,18 +48,19 @@ constexpr static uint16_t MONTH = (__DATE__[0] == 'J')   ? ((__DATE__[1] == 'a')
 constexpr static uint16_t DAY =
   (__DATE__[4] == ' ') ? (__DATE__[5] - '0') : (__DATE__[4] - '0') * 10 + (__DATE__[5] - '0');
 
-constexpr static char VERSION[]{'v',
-                                YEAR / 1000 + '0',
-                                (YEAR % 1000) / 100 + '0',
-                                (YEAR % 100) / 10 + '0',
-                                YEAR % 10 + '0',
-                                '.',
-                                MONTH / 10 + '0',
-                                MONTH % 10 + '0',
-                                '.',
-                                DAY / 10 + '0',
-                                DAY % 10 + '0',
-                                '\0'};
+constexpr static char VERSION[]{
+  YEAR / 1000 + '0',
+  (YEAR % 1000) / 100 + '0',
+  (YEAR % 100) / 10 + '0',
+  YEAR % 10 + '0',
+  '.',
+  MONTH / 10 + '0',
+  MONTH % 10 + '0',
+  '.',
+  DAY / 10 + '0',
+  DAY % 10 + '0',
+  '\0',
+};
 
 }  // namespace constants
 
