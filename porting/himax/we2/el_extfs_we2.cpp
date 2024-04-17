@@ -82,7 +82,7 @@ static Status STATUS_FROM_FRESULT(FRESULT res) {
     }
 }
 
-FileWE2::~FileWE2() { close(); }
+FileWE2::~FileWE2() {}
 
 void FileWE2::close() {
     if (_file != nullptr) {
@@ -90,6 +90,8 @@ void FileWE2::close() {
         delete static_cast<FIL*>(_file);
         _file = nullptr;
     }
+    _fs_mount_times = 0;
+    _mounted        = false;
 }
 
 Status FileWE2::write(const uint8_t* data, size_t size, size_t* written) {
@@ -115,7 +117,8 @@ FileWE2::FileWE2(const void* f) {
     *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
 }
 
-int ExtfsWE2::_fs_mount_times = 0;
+int  ExtfsWE2::_fs_mount_times = 0;
+bool ExtfsWE2::_mounted        = false;
 
 ExtfsWE2::ExtfsWE2() { _fs = new (std::nothrow) FATFS{}; }
 
@@ -127,6 +130,9 @@ ExtfsWE2::~ExtfsWE2() {
 }
 
 Status ExtfsWE2::mount(const char* path) {
+    if (_mounted) {
+        return {true, ""};
+    }
     if (_fs_mount_times > CONFIG_FS_MAX_MOUNT_TIMES) {
         return {false, "Filesystem mount times exceed the limit"};
     }
@@ -179,6 +185,10 @@ MountReturn:
     if (curdir != nullptr) {
         delete[] curdir;
         curdir = nullptr;
+    }
+
+    if (res == FR_OK) {
+        _mounted = true;
     }
 
     return STATUS_FROM_FRESULT(res);
