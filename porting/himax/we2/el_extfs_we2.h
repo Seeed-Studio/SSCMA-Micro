@@ -55,8 +55,6 @@ class ExtfsWE2 final : public Extfs {
    private:
     static int _fs_mount_times;
     void*      _fs;
-
-    static bool _mounted;
 };
 
 }  // namespace edgelab

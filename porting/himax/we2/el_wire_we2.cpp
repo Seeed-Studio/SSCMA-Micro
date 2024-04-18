@@ -171,8 +171,8 @@ el_err_code_t WireWE2::init() {
 
     this->_is_present = this->i2c ? true : false;
 
-    this->rx_ring_buffer = new lwRingBuffer(512);
-    this->tx_ring_buffer = new lwRingBuffer(16384);
+    this->rx_ring_buffer = new lwRingBuffer(1024 * 4);
+    this->tx_ring_buffer = new lwRingBuffer(1024 * 64);
 
     this->wire_read_enable(sizeof(this->tx_buffer));
 

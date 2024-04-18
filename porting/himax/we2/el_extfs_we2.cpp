@@ -82,7 +82,7 @@ static Status STATUS_FROM_FRESULT(FRESULT res) {
     }
 }
 
-FileWE2::~FileWE2() {}
+FileWE2::~FileWE2() { close(); }
 
 void FileWE2::close() {
     if (_file != nullptr) {
@@ -90,8 +90,6 @@ void FileWE2::close() {
         delete static_cast<FIL*>(_file);
         _file = nullptr;
     }
-    _fs_mount_times = 0;
-    _mounted        = false;
 }
 
 Status FileWE2::write(const uint8_t* data, size_t size, size_t* written) {
@@ -117,22 +115,22 @@ FileWE2::FileWE2(const void* f) {
     *static_cast<FIL*>(_file) = *static_cast<const FIL*>(f);
 }
 
-int  ExtfsWE2::_fs_mount_times = 0;
-bool ExtfsWE2::_mounted        = false;
+int ExtfsWE2::_fs_mount_times = 0;
 
 ExtfsWE2::ExtfsWE2() { _fs = new (std::nothrow) FATFS{}; }
 
 ExtfsWE2::~ExtfsWE2() {
     unmount();
-
-    delete static_cast<FATFS*>(_fs);
-    _fs = nullptr;
+    if (_fs != nullptr) delete static_cast<FATFS*>(_fs);
 }
 
 Status ExtfsWE2::mount(const char* path) {
-    if (_mounted) {
-        return {true, ""};
+    // a middle layer bug exist on we2, this is only a dirty workaround to avoid creash we2 system
+    static bool failed_before = false;
+    if (failed_before) {
+        return {false, "Please ensure the SD card is in slot and reset the board to mount the filesystem again"};
     }
+
     if (_fs_mount_times > CONFIG_FS_MAX_MOUNT_TIMES) {
         return {false, "Filesystem mount times exceed the limit"};
     }
@@ -187,14 +185,18 @@ MountReturn:
         curdir = nullptr;
     }
 
-    if (res == FR_OK) {
-        _mounted = true;
+    if (res != FR_OK) {
+        failed_before = true;
     }
 
     return STATUS_FROM_FRESULT(res);
 }
 
-void ExtfsWE2::unmount() { f_unmount(""); }
+void ExtfsWE2::unmount() {
+    f_unmount("");
+
+    _fs_mount_times = 0;
+}
 
 bool ExtfsWE2::exists(const char* f) {
     FILINFO fno;

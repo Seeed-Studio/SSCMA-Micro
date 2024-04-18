@@ -23,6 +23,9 @@ class ContentsExport {
             delete[] _data;
             _data = nullptr;
         }
+        if (_extfs != nullptr) {
+            _extfs->unmount();
+        }
     };
 
     bool cache(const uint8_t* data, size_t size, size_t realloc_trigger = 1024 * 10) {
