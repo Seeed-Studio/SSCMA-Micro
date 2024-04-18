@@ -27,15 +27,13 @@
 
 #include <driver/usb_serial_jtag.h>
 
+#include <unistd.h>
 #include <cctype>
 
 namespace edgelab {
 
 SerialEsp::SerialEsp(usb_serial_jtag_driver_config_t driver_config)
-    : _driver_config(driver_config),
-      _send_lock(),
-      _size(driver_config.rx_buffer_size),
-      _rb_rx(nullptr) {}
+    : _driver_config(driver_config), _send_lock(), _size(driver_config.rx_buffer_size), _rb_rx(nullptr) {}
 
 SerialEsp::~SerialEsp() { deinit(); }
 
@@ -85,8 +83,8 @@ char SerialEsp::get_char() {
 std::size_t SerialEsp::get_line(char* buffer, size_t size, const char delim) {
     if (!this->_is_present) return 0;
 
-    size_t rlen = 0;
-    char rbuf[32] = {0}; // Most commands are less than 32 bytes long
+    size_t rlen     = 0;
+    char   rbuf[32] = {0};  // Most commands are less than 32 bytes long
     do {
         rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 1 / portTICK_PERIOD_MS);
         this->_rb_rx->put(rbuf, rlen);
@@ -126,6 +124,9 @@ std::size_t SerialEsp::send_bytes(const char* buffer, size_t size) {
         pos_of_bytes += bytes_to_send;
         size -= bytes_to_send;
     }
+
+    // ! https://github.com/espressif/esp-idf/issues/13162
+    fsync(fileno(stdout));
 
     return sent;
 }

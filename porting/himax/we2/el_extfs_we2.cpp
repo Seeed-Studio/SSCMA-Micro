@@ -130,7 +130,7 @@ Status ExtfsWE2::mount(const char* path) {
     if (failed_before) {
         return {false, "Please reset the board to mount the filesystem again"};
     }
-
+  
     if (_fs_mount_times > CONFIG_FS_MAX_MOUNT_TIMES) {
         return {false, "Filesystem mount times exceed the limit"};
     }
