@@ -128,9 +128,9 @@ Status ExtfsWE2::mount(const char* path) {
     // a middle layer bug exist on we2, this is only a dirty workaround to avoid creash we2 system
     static bool failed_before = false;
     if (failed_before) {
-        return {false, "Please reset the board to mount the filesystem again"};
+        return {false, "Please ensure the SD card is in slot and reset the board to mount the filesystem again"};
     }
-  
+
     if (_fs_mount_times > CONFIG_FS_MAX_MOUNT_TIMES) {
         return {false, "Filesystem mount times exceed the limit"};
     }
