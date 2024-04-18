@@ -900,7 +900,7 @@ Note:
     - Compare operator.
     - Logic operator.
 1. Save JPEG specific:
-    - External TF card may required to be formatted as FAT32 (cluster size at 8192), the maximum supported capacity may limited to 32GB.
+    - External TF card may required to be formatted as FAT32 (cluster size at 8192) or exFat.
     - The default **save path** is `<Device(Product) Name> Export`, if the directory is not exist, it will be created automatically.
     - Inside the **save path**, each boot with this action triggered may create a new **save foler** named by a incremented number, the lastest folder name is stored in a hidden file named `.sscma` in the save path, user should not modify this file, otherwise error may occur.
     - Inside the **save folder**, each file is named in numeric format with the `.jpeg` extension, the number is the timestamp (the up time of the device in milliseconds) when the file is triggered to save, so it only guarantees the saved files will not be overwritten in at most 49 days (`max(uint32_t) / 1000 / 60 / 60 / 24` = 49.7 days).
