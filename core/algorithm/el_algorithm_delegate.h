@@ -32,11 +32,12 @@
 #include "el_algorithm_base.h"
 #include "el_algorithm_fomo.h"
 #include "el_algorithm_imcls.h"
+#include "el_algorithm_nvidia_det.h"
 #include "el_algorithm_pfld.h"
 #include "el_algorithm_yolo.h"
 #include "el_algorithm_yolo_pose.h"
+#include "el_algorithm_yolo_world.h"
 #include "el_algorithm_yolov8.h"
-#include "el_algorithm_nvidia_det.h"
 
 namespace edgelab {
 
