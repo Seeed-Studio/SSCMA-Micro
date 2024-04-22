@@ -193,6 +193,9 @@ static void set_mipi_csirx_disable() {
 }
 
 el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
+    _drv_dp_event_cb_on_frame_ready = NULL;
+    _drv_dp_on_stop_stream = NULL;
+
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
     JPEG_CFG_T    jpeg_cfg;

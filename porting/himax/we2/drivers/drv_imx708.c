@@ -10,6 +10,8 @@
 #define CIS_MIPI_LANE_NUMBER      (0x02)
 #define CIS_ENABLE_HX_AUTOI2C     (0x00)  // 0x00: off / 0x01: on / 0x2: on and XSLEEP KEEP HIGH
 
+static bool _is_version_c = false;
+
 static HX_CIS_SensorSetting_t IMX708_common_setting[] = {
 #include "IMX708_common_setting.i"
 };
@@ -159,7 +161,7 @@ static void set_mipi_csirx_enable() {
     hscnt_cfg.mipirx_dphy_hscnt_clk_val = 0x03;
     hscnt_cfg.mipirx_dphy_hscnt_ln0_val = 0x10;
     hscnt_cfg.mipirx_dphy_hscnt_ln1_val = 0x10;
-    
+
     sensordplib_csirx_set_hscnt(hscnt_cfg);
 
     if (pixel_dpp == 10 || pixel_dpp == 8) {
@@ -242,7 +244,42 @@ el_err_code_t drv_imx708_probe() {
     return EL_OK;
 }
 
+#define WE2_CHIP_VERSION_C 0x8538000c
+
+static void _on_frame_ready_cb() {
+    // stream off
+    if (hx_drv_cis_setRegTable(IMX708_stream_off, HX_CIS_SIZE_N(IMX708_stream_off, HX_CIS_SensorSetting_t)) !=
+        HX_CIS_NO_ERROR) {
+        EL_LOGW("stream off fail");
+    }
+    set_mipi_csirx_disable();
+}
+
+static void _on_stop_capture_cb() {
+    set_mipi_csirx_enable();
+    // stream on
+    if (hx_drv_cis_setRegTable(IMX708_stream_on, HX_CIS_SIZE_N(IMX708_stream_on, HX_CIS_SensorSetting_t)) !=
+        HX_CIS_NO_ERROR) {
+        EL_LOGW("stream on fail");
+    }
+}
+
 el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
+    uint32_t chipid;
+    uint32_t version;
+    hx_drv_scu_get_version(&chipid, &version);
+    if (chipid == WE2_CHIP_VERSION_C) {
+        _is_version_c     = true;
+        _initiated_before = false;
+
+        _drv_dp_event_cb_on_frame_ready = _on_frame_ready_cb;
+        _drv_dp_on_stop_stream          = _on_stop_capture_cb;
+    } else {
+        _is_version_c                   = false;
+        _drv_dp_event_cb_on_frame_ready = NULL;
+        _drv_dp_on_stop_stream          = NULL;
+    }
+
     el_err_code_t ret = EL_OK;
     HW5x5_CFG_T   hw5x5_cfg;
     JPEG_CFG_T    jpeg_cfg;
@@ -505,10 +542,27 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     }
 #endif
 
+    if (_is_version_c) {
+        _on_stop_capture_cb();
+    }
+
     sensordplib_set_sensorctrl_start();
 
     _frame_ready = false;
     sensordplib_retrigger_capture();
+
+    if (_is_version_c) {
+        auto last_time = el_get_time_ms();
+        while (!_frame_ready) {
+            el_sleep(3);
+            if (el_get_time_ms() - last_time > 1000) {
+                ret = EL_ETIMOUT;
+                EL_LOGD("wait frame ready timeout");
+                goto err;
+            }
+        }
+        _on_stop_capture_cb();
+    }
 
     _initiated_before = true;
 
