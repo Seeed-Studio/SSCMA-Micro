@@ -155,7 +155,8 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
     auto width{this->__input_shape.dims[1]};
     auto height{this->__input_shape.dims[2]};
 
-    float   scale_scores{_output_quant_params[1].scale * 100.f};
+    float scale_scores{_output_quant_params[1].scale};
+    scale_scores = scale_scores < 0.1f ? scale_scores * 100.f : scale_scores;  // rescale
     int32_t zero_point_scores{_output_quant_params[1].zero_point};
 
     float   scale_bboxes{_output_quant_params[0].scale};
@@ -207,7 +208,7 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
             _results.emplace_front(std::move(box));
         }
     }
-    
+
     el_nms(_results, iou_threshold, score_threshold, false, true);
 
     _results.sort([](const BoxType& a, const BoxType& b) { return a.x < b.x; });
