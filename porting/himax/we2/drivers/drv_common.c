@@ -71,6 +71,7 @@ el_err_code_t _drv_capture(uint32_t timeout) {
     while (!_frame_ready) {
         if (el_get_time_ms() - time >= timeout) {
             EL_LOGD("frame timeout\n");
+            _initiated_before = false;
             return EL_ETIMOUT;
         }
         el_sleep(3);
