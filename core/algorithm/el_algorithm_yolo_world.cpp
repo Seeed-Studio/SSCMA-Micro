@@ -170,42 +170,43 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
     IoUType   iou_threshold{get_iou_threshold()};
 
     // parse output
-    for (size_t target{0}; target < num_classes; ++target) {
-        size_t idx     = target * num_bboxes;
-        size_t idx_end = idx + num_bboxes;
-
-        for (size_t bbox_i{idx}; bbox_i < idx_end; ++bbox_i) {
+    for (size_t bbox_i = 0; bbox_i < num_bboxes; ++bbox_i) {
+        size_t idx_s = bbox_i * num_classes;
+        for (size_t target_i = 0; target_i < num_classes; ++target_i) {
             uint8_t bbox_i_score =
-              static_cast<decltype(scale_scores)>(data_scores[bbox_i] - zero_point_scores) * scale_scores;
+              static_cast<decltype(scale_scores)>(data_scores[idx_s + target_i] - zero_point_scores) * scale_scores;
             if (bbox_i_score < score_threshold) {
                 continue;
             }
 
-            BoxType box{
-              .x      = 0,
-              .y      = 0,
-              .w      = 0,
-              .h      = 0,
-              .score  = static_cast<decltype(BoxType::score)>(bbox_i_score),
-              .target = static_cast<decltype(BoxType::target)>(target),
-            };
+            {
+                BoxType box{
+                  .x      = 0,
+                  .y      = 0,
+                  .w      = 0,
+                  .h      = 0,
+                  .score  = bbox_i_score,
+                  .target = static_cast<decltype(BoxType::target)>(target_i),
+                };
 
-            auto tl_x{((data_bboxes[idx + INDEX_TL_X] - zero_point_bboxes) * scale_bboxes)};
-            auto tl_y{((data_bboxes[idx + INDEX_TL_Y] - zero_point_bboxes) * scale_bboxes)};
-            auto br_x{((data_bboxes[idx + INDEX_BR_X] - zero_point_bboxes) * scale_bboxes)};
-            auto br_y{((data_bboxes[idx + INDEX_BR_Y] - zero_point_bboxes) * scale_bboxes)};
+                size_t idx_b = bbox_i * num_element;
+                auto   tl_x{((data_bboxes[idx_b + INDEX_TL_X] - zero_point_bboxes) * scale_bboxes)};
+                auto   tl_y{((data_bboxes[idx_b + INDEX_TL_Y] - zero_point_bboxes) * scale_bboxes)};
+                auto   br_x{((data_bboxes[idx_b + INDEX_BR_X] - zero_point_bboxes) * scale_bboxes)};
+                auto   br_y{((data_bboxes[idx_b + INDEX_BR_Y] - zero_point_bboxes) * scale_bboxes)};
 
-            box.w = br_x - tl_x;
-            box.h = br_y - tl_y;
-            box.x = tl_x + box.w / 2;
-            box.y = tl_y + box.h / 2;
+                box.w = br_x - tl_x;
+                box.h = br_y - tl_y;
+                box.x = tl_x + box.w / 2;
+                box.y = tl_y + box.h / 2;
 
-            box.x = EL_CLIP(box.x, 0, width) * _w_scale;
-            box.y = EL_CLIP(box.y, 0, height) * _h_scale;
-            box.w = EL_CLIP(box.w, 0, width) * _w_scale;
-            box.h = EL_CLIP(box.h, 0, height) * _h_scale;
+                box.x = EL_CLIP(box.x, 0, width) * _w_scale;
+                box.y = EL_CLIP(box.y, 0, height) * _h_scale;
+                box.w = EL_CLIP(box.w, 0, width) * _w_scale;
+                box.h = EL_CLIP(box.h, 0, height) * _h_scale;
 
-            _results.emplace_front(std::move(box));
+                _results.emplace_front(std::move(box));
+            }
         }
     }
 
