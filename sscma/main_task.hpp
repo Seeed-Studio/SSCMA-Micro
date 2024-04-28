@@ -421,7 +421,7 @@ void wait_for_inputs() {
     static_resource->transports.emplace_front(static_resource->mqtt);
 #endif
 
-    char* buf = reinterpret_cast<char*>(el_aligned_malloc_once(16, SSCMA_CMD_MAX_LENGTH + 1));
+    char* buf = reinterpret_cast<char*>(new unsigned char[SSCMA_CMD_MAX_LENGTH + 1]);
     std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
 
 Loop:

@@ -44,11 +44,11 @@
     #endif
 #endif
 
-#define CONFIG_EL_DEBUG                3
+#define CONFIG_EL_DEBUG                3  // use 0 to make firmware generator happy
 #define CONFIG_EL_DEBUG_COLOR          0
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
-#define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1100 * 1024)
+#define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1110 * 1024)
 
 #define CONFIG_EL_TFLITE
 #define CONFIG_EL_TFLITE_OP_SOFTMAX
