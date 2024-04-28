@@ -30,6 +30,9 @@ extern volatile uint32_t _jpegsize_baseaddr;
 extern el_img_t          _frame;
 extern el_img_t          _jpeg;
 
+extern void (*_drv_dp_event_cb_on_frame_ready)();
+extern void (*_drv_dp_on_stop_stream)();
+
 el_err_code_t _drv_capture(uint32_t timeout);
 el_err_code_t _drv_capture_stop();
 el_img_t      _drv_get_frame();

@@ -44,6 +44,9 @@ void _reset_all_wdma_buffer() {
     memset((void*)_jpegsize_baseaddr, 0, JPEG_FILL_SIZE);
 }
 
+void (*_drv_dp_event_cb_on_frame_ready)() = NULL;
+void (*_drv_dp_on_stop_stream)() = NULL;
+
 void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
     EL_LOGD("event: %d", event);
 
@@ -51,6 +54,9 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
     case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
         _frame_ready = true;
         ++_frame_count;
+        if (_drv_dp_event_cb_on_frame_ready != NULL) {
+            _drv_dp_event_cb_on_frame_ready();
+        }
         break;
     default:
         _initiated_before = false;
@@ -65,6 +71,7 @@ el_err_code_t _drv_capture(uint32_t timeout) {
     while (!_frame_ready) {
         if (el_get_time_ms() - time >= timeout) {
             EL_LOGD("frame timeout\n");
+            _initiated_before = false;
             return EL_ETIMOUT;
         }
         el_sleep(3);
@@ -75,6 +82,10 @@ el_err_code_t _drv_capture(uint32_t timeout) {
 
 el_err_code_t _drv_capture_stop() {
     _frame_ready = false;
+
+    if (_drv_dp_on_stop_stream != NULL) {
+        _drv_dp_on_stop_stream();
+    }
 
     sensordplib_retrigger_capture();
 
