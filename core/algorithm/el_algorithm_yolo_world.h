@@ -88,13 +88,6 @@ class AlgorithmYOLOWorld final : public Algorithm {
     el_err_code_t postprocess() override;
 
    private:
-    enum {
-        INDEX_TL_X = 0,
-        INDEX_TL_Y = 1,
-        INDEX_BR_X = 2,
-        INDEX_BR_Y = 3,
-    };
-
     ImageType _input_img;
     float     _w_scale;
     float     _h_scale;
