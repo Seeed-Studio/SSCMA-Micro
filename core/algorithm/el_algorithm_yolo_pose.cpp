@@ -115,8 +115,8 @@ static decltype(auto) generate_anchor_strides(size_t input_size, std::vector<siz
 }
 
 static decltype(auto) generate_anchor_matrix(const std::vector<anchor_stride_t>& anchor_strides,
-                                      float                               shift_right = 1.f,
-                                      float                               shift_down  = 1.f) {
+                                             float                               shift_right = 1.f,
+                                             float                               shift_down  = 1.f) {
     const auto                            anchor_matrix_size = anchor_strides.size();
     std::vector<std::vector<pt_t<float>>> anchor_matrix(anchor_matrix_size);
     const float                           shift_right_init = shift_right * 0.5f;
@@ -158,10 +158,10 @@ static inline float compute_iou(const types::anchor_bbox_t& l, const types::anch
 }
 
 static inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
-                       float                                    nms_iou_thresh,
-                       float                                    nms_score_thresh,
-                       bool                                     soft_nms,
-                       float                                    epsilon = 1e-3) {
+                              float                                    nms_iou_thresh,
+                              float                                    nms_score_thresh,
+                              bool                                     soft_nms,
+                              float                                    epsilon = 1e-3) {
     bboxes.sort([](const types::anchor_bbox_t& l, const types::anchor_bbox_t& r) { return l.score > r.score; });
 
     for (auto it = bboxes.begin(); it != bboxes.end(); it++) {
