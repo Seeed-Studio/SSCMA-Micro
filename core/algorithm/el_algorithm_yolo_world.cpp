@@ -29,7 +29,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <type_traits>
 
 #include "core/el_common.h"
