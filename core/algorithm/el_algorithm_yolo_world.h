@@ -27,8 +27,11 @@
 #define _EL_ALGORITHM_YOLO_WORLD_H_
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <forward_list>
+#include <utility>
+#include <vector>
 
 #include "core/el_types.h"
 #include "el_algorithm_base.h"
@@ -44,7 +47,7 @@ namespace types {
 struct el_algorithm_yolo_world_config_t {
     static constexpr el_algorithm_info_t info{
       .type = EL_ALGO_TYPE_YOLO_WORLD, .categroy = EL_ALGO_CAT_DET, .input_from = EL_SENSOR_TYPE_CAM};
-    uint8_t score_threshold = 50;
+    uint8_t score_threshold = 30;
     uint8_t iou_threshold   = 45;
 };
 
@@ -99,7 +102,15 @@ class AlgorithmYOLOWorld final : public Algorithm {
     std::atomic<ScoreType> _score_threshold;
     std::atomic<IoUType>   _iou_threshold;
 
-    static constexpr size_t _outputs = 7;
+    std::vector<anchor_stride_t>          _anchor_strides;
+    std::vector<std::pair<float, float>>         _scaled_strides;
+    std::vector<std::vector<pt_t<float>>> _anchor_matrix;
+
+    static constexpr size_t _outputs         = 6;
+    static constexpr size_t _anchor_variants = 3;
+
+    size_t _output_scores_ids[_anchor_variants];
+    size_t _output_bboxes_ids[_anchor_variants];
 
     el_shape_t       _output_shapes[_outputs];
     el_quant_param_t _output_quant_params[_outputs];

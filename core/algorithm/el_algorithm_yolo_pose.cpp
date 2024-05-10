@@ -84,9 +84,9 @@ el_err_code_t AlgorithmYOLOPOSE::preprocess() {
 
 namespace utils {
 
-inline float sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
+static inline float sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
 
-inline void softmax(float* data, size_t size) {
+static inline void softmax(float* data, size_t size) {
     float sum{0.f};
     for (size_t i = 0; i < size; ++i) {
         data[i] = std::exp(data[i]);
@@ -97,13 +97,13 @@ inline void softmax(float* data, size_t size) {
     }
 }
 
-inline float dequant_value_i(size_t idx, const int8_t* output_array, int32_t zero_point, float scale) {
+static inline float dequant_value_i(size_t idx, const int8_t* output_array, int32_t zero_point, float scale) {
     return static_cast<float>(output_array[idx] - zero_point) * scale;
 }
 
-decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
-    std::vector<types::anchor_stride_t> anchor_strides(strides.size());
-    size_t                              nth_anchor = 0;
+static decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
+    std::vector<anchor_stride_t> anchor_strides(strides.size());
+    size_t                       nth_anchor = 0;
     for (size_t i = 0; i < strides.size(); ++i) {
         size_t stride     = strides[i];
         size_t split      = input_size / stride;
@@ -114,13 +114,13 @@ decltype(auto) generate_anchor_strides(size_t input_size, std::vector<size_t> st
     return anchor_strides;
 }
 
-decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>& anchor_strides,
-                                      float                                      shift_right = 1.f,
-                                      float                                      shift_down  = 1.f) {
-    const auto                                   anchor_matrix_size = anchor_strides.size();
-    std::vector<std::vector<types::pt_t<float>>> anchor_matrix(anchor_matrix_size);
-    const float                                  shift_right_init = shift_right * 0.5f;
-    const float                                  shift_down_init  = shift_down * 0.5f;
+static decltype(auto) generate_anchor_matrix(const std::vector<anchor_stride_t>& anchor_strides,
+                                      float                               shift_right = 1.f,
+                                      float                               shift_down  = 1.f) {
+    const auto                            anchor_matrix_size = anchor_strides.size();
+    std::vector<std::vector<pt_t<float>>> anchor_matrix(anchor_matrix_size);
+    const float                           shift_right_init = shift_right * 0.5f;
+    const float                           shift_down_init  = shift_down * 0.5f;
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
         const auto& anchor_stride   = anchor_strides[i];
@@ -140,7 +140,7 @@ decltype(auto) generate_anchor_matrix(const std::vector<types::anchor_stride_t>&
     return anchor_matrix;
 }
 
-inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r, float epsilon = 1e-3) {
+static inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox_t& r, float epsilon = 1e-3) {
     float x1         = std::max(l.x1, r.x1);
     float y1         = std::max(l.y1, r.y1);
     float x2         = std::min(l.x2, r.x2);
@@ -157,7 +157,7 @@ inline float compute_iou(const types::anchor_bbox_t& l, const types::anchor_bbox
     return inter / union_area;
 }
 
-inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
+static inline void anchor_nms(std::forward_list<types::anchor_bbox_t>& bboxes,
                        float                                    nms_iou_thresh,
                        float                                    nms_score_thresh,
                        bool                                     soft_nms,
@@ -211,22 +211,20 @@ bool AlgorithmYOLOPOSE::is_model_valid(const EngineType* engine) {
 
         switch (output_shape.dims[2]) {
         case 1: {
-            auto it = std::find_if(anchor_strides_1.begin(),
-                                   anchor_strides_1.end(),
-                                   [&output_shape](const types::anchor_stride_t& anchor_stride) {
-                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-                                   });
+            auto it = std::find_if(
+              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+              });
             if (it == anchor_strides_1.end())
                 return false;
             else
                 anchor_strides_1.erase(it);
         } break;
         case 64: {
-            auto it = std::find_if(anchor_strides_2.begin(),
-                                   anchor_strides_2.end(),
-                                   [&output_shape](const types::anchor_stride_t& anchor_stride) {
-                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-                                   });
+            auto it = std::find_if(
+              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+              });
             if (it == anchor_strides_2.end())
                 return false;
             else
