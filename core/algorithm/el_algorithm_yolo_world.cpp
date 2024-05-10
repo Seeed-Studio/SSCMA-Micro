@@ -350,20 +350,21 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
                 dist[m] = res;
             }
 
-            float w = dist[0] + dist[2];
-            float h = dist[1] + dist[3];
-
             const auto anchor = anchor_array[j];
-            el_box_t   box;
 
-            box.x      = (anchor.x + ((dist[2] - dist[0]) * 0.5f)) * scale_w;
-            box.y      = (anchor.y + ((dist[3] - dist[1]) * 0.5f)) * scale_h;
-            box.w      = w * scale_w;
-            box.h      = h * scale_h;
-            box.score  = max_score * 100.f;
-            box.target = target;
+            float w  = dist[0] + dist[2];
+            float h  = dist[1] + dist[3];
+            float cx = anchor.x + ((dist[2] - dist[0]) * 0.5f);
+            float cy = anchor.y + ((dist[3] - dist[1]) * 0.5f);
 
-            _results.emplace_front(std::move(box));
+            _results.emplace_front(el_box_t{
+              .x      = static_cast<decltype(BoxType::x)>(cx * scale_w),
+              .y      = static_cast<decltype(BoxType::y)>(cy * scale_h),
+              .w      = static_cast<decltype(BoxType::w)>(w * scale_w),
+              .h      = static_cast<decltype(BoxType::h)>(h * scale_h),
+              .score  = static_cast<decltype(BoxType::score)>(max_score * 100.f),
+              .target = static_cast<decltype(BoxType::target)>(target),
+            });
         }
     }
 

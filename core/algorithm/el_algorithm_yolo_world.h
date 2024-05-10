@@ -96,7 +96,7 @@ class AlgorithmYOLOWorld final : public Algorithm {
     std::atomic<IoUType>   _iou_threshold;
 
     std::vector<anchor_stride_t>          _anchor_strides;
-    std::vector<std::pair<float, float>>         _scaled_strides;
+    std::vector<std::pair<float, float>>  _scaled_strides;
     std::vector<std::vector<pt_t<float>>> _anchor_matrix;
 
     static constexpr size_t _outputs         = 6;
