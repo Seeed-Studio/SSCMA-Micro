@@ -321,7 +321,8 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
                                                                     output_scores_quant_parm.zero_point,
                                                                     output_scores_quant_parm.scale));
 
-                if (score < max_score) continue;
+                if (score < max_score) [[likely]]
+                    continue;
 
                 max_score = score;
                 target    = k;
@@ -352,10 +353,10 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
 
             const auto anchor = anchor_array[j];
 
-            float w  = dist[0] + dist[2];
-            float h  = dist[1] + dist[3];
             float cx = anchor.x + ((dist[2] - dist[0]) * 0.5f);
             float cy = anchor.y + ((dist[3] - dist[1]) * 0.5f);
+            float w  = dist[0] + dist[2];
+            float h  = dist[1] + dist[3];
 
             _results.emplace_front(el_box_t{
               .x      = static_cast<decltype(BoxType::x)>(cx * scale_w),
