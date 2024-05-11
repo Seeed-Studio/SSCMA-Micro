@@ -65,7 +65,38 @@ AlgorithmYOLOWorld::~AlgorithmYOLOWorld() {
 
 namespace utils {
 
-static inline float sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
+static inline float ln(float x) {
+    // Remez approximation of ln(x)
+    static_assert(sizeof(unsigned int) == sizeof(float));
+    static_assert(sizeof(float) == 4);
+
+    auto bx{*reinterpret_cast<unsigned int*>(&x)};
+    auto ex{bx >> 23};
+    auto t{static_cast<signed int>(ex) - static_cast<signed int>(127)};
+    bx = 1065353216 | (bx & 8388607);
+    x  = *reinterpret_cast<float*>(&bx);
+    return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
+}
+
+static inline float fexp(float x) {
+    // N. Schraudolph, "A Fast, Compact Approximation of the Exponential Function"
+    // https://nic.schraudolph.org/pubs/Schraudolph99.pdf
+    static_assert(sizeof(float) == 4);
+
+    x = (12102203.1608621 * x) + 1064986823.01029;
+
+    const float c{8388608.f};
+    const float d{2139095040.f};
+
+    if (x < c || x > d) x = (x < c) ? 0.0f : d;
+
+    uint32_t n = static_cast<uint32_t>(x);
+    x          = *reinterpret_cast<float*>(&n);
+
+    return x;
+}
+
+static inline float sigmoid(float x) { return 1.f / (1.f + fexp(-x)); }
 
 static inline void softmax(float* data, size_t size) {
     float sum{0.f};
@@ -287,8 +318,10 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
     }
 
     // post-process
-    const float score_threshold = static_cast<float>(_score_threshold.load()) / 100.f;
-    const float iou_threshold   = static_cast<float>(_iou_threshold.load()) / 100.f;
+    const float  score_threshold = static_cast<float>(_score_threshold.load()) / 100.f;
+    const int8_t iou_threshold   = _iou_threshold.load();
+
+    const float score_threshold_non_sigmoid = -1.f * utils::ln((1.f / score_threshold) - 1.f);
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
@@ -309,26 +342,30 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
         const auto& anchor_array      = _anchor_matrix[i];
         const auto  anchor_array_size = anchor_array.size();
 
+        const int8_t score_threshold_quan_non_sigmoid = static_cast<int8_t>(
+          static_cast<int32_t>(std::round(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
+          output_scores_quant_parm.zero_point);
+
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            float   max_score = score_threshold;
-            int32_t target    = -1;
+            int8_t  max_score_raw = score_threshold_quan_non_sigmoid;
+            int32_t target        = -1;
 
             for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
-                float score = utils::sigmoid(utils::dequant_value_i(j_mul_output_scores_shape_dims_2 + k,
-                                                                    output_scores,
-                                                                    output_scores_quant_parm.zero_point,
-                                                                    output_scores_quant_parm.scale));
+                int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
 
-                if (score < max_score) [[likely]]
+                if (score < max_score_raw) [[likely]]
                     continue;
 
-                max_score = score;
-                target    = k;
+                max_score_raw = score;
+                target        = k;
             }
 
             if (target < 0) continue;
+
+            const float real_score = utils::sigmoid(
+              static_cast<float>(max_score_raw - output_scores_quant_parm.zero_point) * output_scores_quant_parm.scale);
 
             // DFL
             float dist[4];
@@ -363,17 +400,13 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
               .y      = static_cast<decltype(BoxType::y)>(cy * scale_h),
               .w      = static_cast<decltype(BoxType::w)>(w * scale_w),
               .h      = static_cast<decltype(BoxType::h)>(h * scale_h),
-              .score  = static_cast<decltype(BoxType::score)>(max_score * 100.f),
+              .score  = static_cast<decltype(BoxType::score)>(real_score * 100.f),
               .target = static_cast<decltype(BoxType::target)>(target),
             });
         }
     }
 
-    el_nms(_results,
-           static_cast<uint8_t>(iou_threshold * 100.f),
-           static_cast<uint8_t>(score_threshold * 100.f),
-           false,
-           true);
+    el_nms(_results, iou_threshold, static_cast<uint8_t>(score_threshold * 100.f), false, true);
 
     return EL_OK;
 }
