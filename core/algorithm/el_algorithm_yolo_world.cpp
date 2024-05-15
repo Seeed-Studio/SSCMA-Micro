@@ -325,15 +325,15 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
-        const auto  output_scores_id           = _output_scores_ids[i];
-        const auto* output_scores              = output_data[output_scores_id];
-        const auto  output_scores_shape_dims_2 = _output_shapes[output_scores_id].dims[2];
-        const auto  output_scores_quant_parm   = _output_quant_params[output_scores_id];
+        const auto   output_scores_id           = _output_scores_ids[i];
+        const auto*  output_scores              = output_data[output_scores_id];
+        const size_t output_scores_shape_dims_2 = _output_shapes[output_scores_id].dims[2];
+        const auto   output_scores_quant_parm   = _output_quant_params[output_scores_id];
 
-        const auto  output_bboxes_id           = _output_bboxes_ids[i];
-        const auto* output_bboxes              = output_data[output_bboxes_id];
-        const auto  output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
-        const auto  output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
+        const auto   output_bboxes_id           = _output_bboxes_ids[i];
+        const auto*  output_bboxes              = output_data[output_bboxes_id];
+        const size_t output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
+        const auto   output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
 
         const auto  stride  = _scaled_strides[i];
         const float scale_w = stride.first;
