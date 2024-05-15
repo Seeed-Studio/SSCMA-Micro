@@ -184,9 +184,9 @@ void register_commands() {
                                             "Set a default sensor by sensor ID",
                                             "SENSOR_ID,ENABLE/DISABLE,OPT_ID",
                                             [](std::vector<std::string> argv, void* caller) {
-                                                uint8_t sensor_id = std::atoi(argv[1].c_str());
-                                                bool    enable    = std::atoi(argv[2].c_str()) ? true : false;
-                                                uint8_t opt_id    = std::atoi(argv[3].c_str());
+                                                uint8_t  sensor_id = std::atoi(argv[1].c_str());
+                                                bool     enable    = std::atoi(argv[2].c_str()) ? true : false;
+                                                uint16_t opt_id    = std::atoi(argv[3].c_str());
                                                 static_resource->executor->add_task([cmd       = std::move(argv[0]),
                                                                                      sensor_id = std::move(sensor_id),
                                                                                      enable    = std::move(enable),

@@ -119,10 +119,10 @@ typedef enum {
 } el_pixel_format_t;
 
 typedef enum el_pixel_rotate_t {
-    EL_PIXEL_ROTATE_0 = 0,
-    EL_PIXEL_ROTATE_90,
-    EL_PIXEL_ROTATE_180,
-    EL_PIXEL_ROTATE_270,
+    EL_PIXEL_ROTATE_0   = 0,
+    EL_PIXEL_ROTATE_90  = 1,
+    EL_PIXEL_ROTATE_180 = 2,
+    EL_PIXEL_ROTATE_270 = 3,
     EL_PIXEL_ROTATE_UNKNOWN,
 } el_pixel_rotate_t;
 
@@ -151,7 +151,7 @@ typedef struct EL_ATTR_PACKED el_sensor_info_t {
 } el_sensor_info_t;
 
 typedef struct el_sensor_opt_t {
-    uint8_t     id;
+    uint16_t    id;
     const char* details;
 } el_sensor_opt_t;
 

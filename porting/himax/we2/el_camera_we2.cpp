@@ -66,7 +66,27 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
         }
     }
 
-    switch (opt_id) {
+    static_assert(sizeof(opt_id) == sizeof(uint16_t));
+
+    int rotation = (opt_id & 0xF000) >> 12;
+    switch (rotation) {
+    case 0b0000:
+        _rotation_override = EL_PIXEL_ROTATE_0;
+        break;
+    case 0b0001:
+        _rotation_override = EL_PIXEL_ROTATE_270;
+        break;
+    case 0b0010:
+        _rotation_override = EL_PIXEL_ROTATE_180;
+        break;
+    case 0b0100:
+        _rotation_override = EL_PIXEL_ROTATE_90;
+        break;
+    default:
+        return EL_EINVAL;
+    }
+
+    switch (opt_id & 0x0FFF) {
     case 0:
         ret                   = _drv_cam_init(240, 240);
         this->_current_opt_id = 0;
@@ -145,7 +165,8 @@ el_err_code_t CameraWE2::get_frame(el_img_t* img) {
         return EL_EPERM;
     }
 
-    *img = _drv_get_frame();
+    *img        = _drv_get_frame();
+    img->rotate = _rotation_override;
     // just assign, not sure whether the img is valid
 
     return EL_OK;

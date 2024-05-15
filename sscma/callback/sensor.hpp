@@ -28,7 +28,7 @@ void get_available_sensors(const std::string& cmd, void* caller) {
 }
 
 void set_sensor(
-  const std::string& cmd, uint8_t sensor_id, bool enable, uint8_t opt_id, void* caller, bool called_by_event = false) {
+  const std::string& cmd, uint8_t sensor_id, bool enable, uint16_t opt_id, void* caller, bool called_by_event = false) {
     auto sensor_info = static_resource->device->get_sensor_info(sensor_id);
 
     // a valid sensor id should always > 0
