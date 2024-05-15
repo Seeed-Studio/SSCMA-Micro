@@ -321,7 +321,8 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
     const uint8_t score_threshold = _score_threshold.load();
     const uint8_t iou_threshold   = _iou_threshold.load();
 
-    const float score_threshold_non_sigmoid = -1.f * utils::fast_ln((100.f / static_cast<float>(score_threshold)) - 1.f);
+    const float score_threshold_non_sigmoid =
+      -1.f * utils::fast_ln((100.f / static_cast<float>(score_threshold)) - 1.f);
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
@@ -343,19 +344,19 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
         const auto  anchor_array_size = anchor_array.size();
 
         const int32_t score_threshold_quan_non_sigmoid =
-          static_cast<int32_t>(std::round(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
+          static_cast<int32_t>(std::floor(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
           output_scores_quant_parm.zero_point;
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            int32_t max_score_raw = score_threshold_quan_non_sigmoid;
+            auto    max_score_raw = score_threshold_quan_non_sigmoid;
             int32_t target        = -1;
 
             for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
                 int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
 
-                if (static_cast<int32_t>(score) < max_score_raw) [[likely]]
+                if (static_cast<decltype(max_score_raw)>(score) < max_score_raw) [[likely]]
                     continue;
 
                 max_score_raw = score;
@@ -364,9 +365,8 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
 
             if (target < 0) continue;
 
-            const float real_score =
-              utils::sigmoid((static_cast<float>(max_score_raw) - output_scores_quant_parm.zero_point) *
-                             output_scores_quant_parm.scale);
+            const float real_score = utils::sigmoid(
+              static_cast<float>(max_score_raw - output_scores_quant_parm.zero_point) * output_scores_quant_parm.scale);
 
             // DFL
             float dist[4];
