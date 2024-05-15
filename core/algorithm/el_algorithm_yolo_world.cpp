@@ -65,7 +65,7 @@ AlgorithmYOLOWorld::~AlgorithmYOLOWorld() {
 
 namespace utils {
 
-static inline float ln(float x) {
+static inline float fast_ln(float x) {
     // Remez approximation of ln(x)
     static_assert(sizeof(unsigned int) == sizeof(float));
     static_assert(sizeof(float) == 4);
@@ -78,7 +78,7 @@ static inline float ln(float x) {
     return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
 }
 
-static inline float fexp(float x) {
+static inline float fast_exp(float x) {
     // N. Schraudolph, "A Fast, Compact Approximation of the Exponential Function"
     // https://nic.schraudolph.org/pubs/Schraudolph99.pdf
     static_assert(sizeof(float) == 4);
@@ -96,7 +96,7 @@ static inline float fexp(float x) {
     return x;
 }
 
-static inline float sigmoid(float x) { return 1.f / (1.f + fexp(-x)); }
+static inline float sigmoid(float x) { return 1.f / (1.f + fast_exp(-x)); }
 
 static inline void softmax(float* data, size_t size) {
     float sum{0.f};
@@ -318,10 +318,10 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
     }
 
     // post-process
-    const float  score_threshold = static_cast<float>(_score_threshold.load()) / 100.f;
-    const int8_t iou_threshold   = _iou_threshold.load();
+    const uint8_t score_threshold = _score_threshold.load();
+    const uint8_t iou_threshold   = _iou_threshold.load();
 
-    const float score_threshold_non_sigmoid = -1.f * utils::ln((1.f / score_threshold) - 1.f);
+    const float score_threshold_non_sigmoid = -1.f * utils::fast_ln((100.f / static_cast<float>(score_threshold)) - 1.f);
 
     const auto anchor_matrix_size = _anchor_matrix.size();
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
@@ -342,20 +342,20 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
         const auto& anchor_array      = _anchor_matrix[i];
         const auto  anchor_array_size = anchor_array.size();
 
-        const int8_t score_threshold_quan_non_sigmoid = static_cast<int8_t>(
+        const int32_t score_threshold_quan_non_sigmoid =
           static_cast<int32_t>(std::round(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
-          output_scores_quant_parm.zero_point);
+          output_scores_quant_parm.zero_point;
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            int8_t  max_score_raw = score_threshold_quan_non_sigmoid;
+            int32_t max_score_raw = score_threshold_quan_non_sigmoid;
             int32_t target        = -1;
 
             for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
                 int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
 
-                if (score < max_score_raw) [[likely]]
+                if (static_cast<int32_t>(score) < max_score_raw) [[likely]]
                     continue;
 
                 max_score_raw = score;
@@ -364,8 +364,9 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
 
             if (target < 0) continue;
 
-            const float real_score = utils::sigmoid(
-              static_cast<float>(max_score_raw - output_scores_quant_parm.zero_point) * output_scores_quant_parm.scale);
+            const float real_score =
+              utils::sigmoid((static_cast<float>(max_score_raw) - output_scores_quant_parm.zero_point) *
+                             output_scores_quant_parm.scale);
 
             // DFL
             float dist[4];
@@ -406,7 +407,7 @@ el_err_code_t AlgorithmYOLOWorld::postprocess() {
         }
     }
 
-    el_nms(_results, iou_threshold, static_cast<uint8_t>(score_threshold * 100.f), false, true);
+    el_nms(_results, iou_threshold, score_threshold, false, true);
 
     return EL_OK;
 }
