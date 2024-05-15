@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.04.12
+# AT Protocol Specification v2023.05.15
 
 
 ## Transmission Layer
@@ -645,6 +645,17 @@ Response:
   }
 }\n
 ```
+
+Note:
+- The type of `OPT_ID` is `uint16_t` by default.
+- You can set the rotate angle by `OPT_ID` for some sensors, the rotate angle is a multiple of 90 degrees, the default value is `0`.
+- The rotate angle options table is here:
+    | Rotate Angle | Bits            | Value |
+    |--------------|-----------------|-------|
+    | `0`          | `None`          | `0`   |
+    | `90`         | `OPT_ID[12：12]` | `1`   |
+    | `180`        | `OPT_ID[13：13]` | `1`   |
+    | `270`        | `OPT_ID[14：14]` | `1`   |
 
 #### Sample data from current sensor
 
