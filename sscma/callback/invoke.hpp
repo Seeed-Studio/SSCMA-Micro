@@ -174,6 +174,8 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             }
             return;
         }
+// Depraecate PFLD to avoid firmware generation error
+#ifndef CONFIG_EL_TARGET_HIMAX
         case EL_ALGO_TYPE_PFLD: {
             using AlgorithmType = AlgorithmPFLD;
             auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
@@ -185,6 +187,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             }
             return;
         }
+#endif
         case EL_ALGO_TYPE_YOLO: {
             using AlgorithmType = AlgorithmYOLO;
             auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
