@@ -93,7 +93,6 @@ EL_ATTR_WEAK void yuv422p_to_rgb(const el_img_t* src, el_img_t* dst) {
 
     {
         int r = (int)dst->rotate - (int)src->rotate;
-        el_printf("r: %d\n", r);
         switch (r) {
         case 0:
             rotate = EL_PIXEL_ROTATE_0;
