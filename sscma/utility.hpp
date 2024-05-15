@@ -296,7 +296,8 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
     std::memset(buffer, 0, buffer_size);
     el_base64_encode(img->data, img->size, buffer);
 
-    return concat_strings("\"image\": \"", buffer, "\"");
+    int rotate = (360 - (static_cast<int>(img->rotate) * 90)) % 360;
+    return concat_strings("\"image\": \"", buffer, "\"", ", \"rotate\": ", std::to_string(rotate));
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
