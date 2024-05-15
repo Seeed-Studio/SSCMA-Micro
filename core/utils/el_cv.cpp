@@ -75,54 +75,208 @@ using namespace types;
 
 // TODO: need to be optimized
 EL_ATTR_WEAK void yuv422p_to_rgb(const el_img_t* src, el_img_t* dst) {
-    int32_t  y;
-    int32_t  cr;
-    int32_t  cb;
-    int32_t  r, g, b;
-    uint32_t init_index, cbcr_index, index;
-    uint32_t u_chunk = src->width * src->height;
-    uint32_t v_chunk = src->width * src->height + src->width * src->height / 2;
-    float    beta_h = (float)src->height / dst->height, beta_w = (float)src->width / dst->width;
+    el_pixel_rotate_t rotate;
+    int32_t           y;
+    int32_t           cr;
+    int32_t           cb;
+    int32_t           r, g, b;
+    uint32_t          init_index, cbcr_index, index;
+    uint32_t          u_chunk = src->width * src->height;
+    uint32_t          v_chunk = src->width * src->height + ((src->width * src->height) >> 1);  // >> 1 -> / 2
+    float             beta_h  = static_cast<float>(src->height) / static_cast<float>(dst->height);
+    float             beta_w  = static_cast<float>(src->width) / static_cast<float>(dst->width);
 
-    EL_ASSERT(src->format == EL_PIXEL_FORMAT_YUV422);
+    const int sw = src->width;
+    const int sh = src->height;
+    const int dw = dst->width;
+    const int dh = dst->height;
 
-    for (int i = 0; i < dst->height; i++) {
-        for (int j = 0; j < dst->width; j++) {
-            int tmph = i * beta_h, tmpw = beta_w * j;
-            index      = i * dst->width + j;
-            init_index = tmph * src->width + tmpw;
-            cbcr_index = init_index % 2 ? init_index - 1 : init_index;
+    {
+        int r = (int)dst->rotate - (int)src->rotate;
+        el_printf("r: %d\n", r);
+        switch (r) {
+        case 0:
+            rotate = EL_PIXEL_ROTATE_0;
+            break;
+        case 1:
+        case -3:
+            rotate = EL_PIXEL_ROTATE_90;
+            break;
+        case 2:
+        case -2:
+            rotate = EL_PIXEL_ROTATE_180;
+            break;
+        case 3:
+        case -1:
+            rotate = EL_PIXEL_ROTATE_270;
+            break;
+        default:
+            rotate = EL_PIXEL_ROTATE_0;
+            break;
+        };
+    }
 
-            y  = src->data[init_index];
-            cb = src->data[u_chunk + cbcr_index / 2];
-            cr = src->data[v_chunk + cbcr_index / 2];
-            r  = (int32_t)(y + (14065 * (cr - 128)) / 10000);
-            g  = (int32_t)(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
-            b  = (int32_t)(y + (17790 * (cb - 128)) / 10000);
+    if (dst->format == EL_PIXEL_FORMAT_RGB888) [[likely]] {
+        const auto sd = src->data;
+        auto       dd = dst->data;
 
-            switch (dst->rotate) {
-            case EL_PIXEL_ROTATE_90:
-                index = (index % dst->width) * (dst->height) + (dst->height - 1 - index / dst->width);
-                break;
-            case EL_PIXEL_ROTATE_180:
-                index = (dst->width - 1 - index % dst->width) + (dst->height - 1 - index / dst->width) * (dst->width);
-                break;
-            case EL_PIXEL_ROTATE_270:
-                index = (dst->width - 1 - index % dst->width) * (dst->height) + index / dst->width;
-                break;
-            default:
-                break;
+        switch (rotate) {
+        case EL_PIXEL_ROTATE_90: {
+            for (int i = 0; i < dh; ++i) {
+                const int tmph        = i * beta_h;
+                const int tmph_mul_sw = tmph * sw;
+                const int i_mul_dw    = i * dw;
+
+                for (int j = 0; j < dw; ++j) {
+                    const int tmpw = j * beta_w;
+                    index          = i_mul_dw + j;
+                    init_index     = tmph_mul_sw + tmpw;
+                    cbcr_index     = init_index - (init_index & 0b1);
+
+                    y  = sd[init_index];
+                    cb = sd[u_chunk + cbcr_index / 2];
+                    cr = sd[v_chunk + cbcr_index / 2];
+
+                    r = static_cast<int32_t>(y + (14065 * (cr - 128)) / 10000);
+                    g = static_cast<int32_t>(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
+                    b = static_cast<int32_t>(y + (17790 * (cb - 128)) / 10000);
+
+                    index = (index % dw) * (dh) + (dh - 1 - index / dw);
+
+                    auto ddi = &dd[index * 3];
+
+                    ddi[0] = static_cast<uint8_t>(EL_CLIP(r, 0, 255));
+                    ddi[1] = static_cast<uint8_t>(EL_CLIP(g, 0, 255));
+                    ddi[2] = static_cast<uint8_t>(EL_CLIP(b, 0, 255));
+                }
             }
-            if (dst->format == EL_PIXEL_FORMAT_GRAYSCALE) {
-                uint8_t gray     = (r * 299 + g * 587 + b * 114) / 1000;
-                dst->data[index] = (uint8_t)EL_CLIP(gray, 0, 255);
-            } else if (dst->format == EL_PIXEL_FORMAT_RGB565) {
-                dst->data[index * 2 + 0] = (r & 0xF8) | (g >> 5);
-                dst->data[index * 2 + 1] = ((g << 3) & 0xE0) | (b >> 3);
-            } else if (dst->format == EL_PIXEL_FORMAT_RGB888) {
-                dst->data[index * 3 + 0] = (uint8_t)EL_CLIP(r, 0, 255);
-                dst->data[index * 3 + 1] = (uint8_t)EL_CLIP(g, 0, 255);
-                dst->data[index * 3 + 2] = (uint8_t)EL_CLIP(b, 0, 255);
+        } break;
+        case EL_PIXEL_ROTATE_180: {
+            for (int i = 0; i < dh; ++i) {
+                const int tmph        = i * beta_h;
+                const int tmph_mul_sw = tmph * sw;
+                const int i_mul_dw    = i * dw;
+
+                for (int j = 0; j < dw; ++j) {
+                    const int tmpw = j * beta_w;
+                    index          = i_mul_dw + j;
+                    init_index     = tmph_mul_sw + tmpw;
+                    cbcr_index     = init_index - (init_index & 0b1);
+
+                    y  = sd[init_index];
+                    cb = sd[u_chunk + cbcr_index / 2];
+                    cr = sd[v_chunk + cbcr_index / 2];
+
+                    r = static_cast<int32_t>(y + (14065 * (cr - 128)) / 10000);
+                    g = static_cast<int32_t>(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
+                    b = static_cast<int32_t>(y + (17790 * (cb - 128)) / 10000);
+
+                    index = (dw - 1 - index % dw) + (dh - 1 - index / dw) * (dw);
+
+                    auto ddi = &dd[index * 3];
+
+                    ddi[0] = static_cast<uint8_t>(EL_CLIP(r, 0, 255));
+                    ddi[1] = static_cast<uint8_t>(EL_CLIP(g, 0, 255));
+                    ddi[2] = static_cast<uint8_t>(EL_CLIP(b, 0, 255));
+                }
+            }
+        } break;
+        case EL_PIXEL_ROTATE_270: {
+            for (int i = 0; i < dh; ++i) {
+                const int tmph        = i * beta_h;
+                const int tmph_mul_sw = tmph * sw;
+                const int i_mul_dw    = i * dw;
+
+                for (int j = 0; j < dw; ++j) {
+                    const int tmpw = j * beta_w;
+                    index          = i_mul_dw + j;
+                    init_index     = tmph_mul_sw + tmpw;
+                    cbcr_index     = init_index - (init_index & 0b1);
+
+                    y  = sd[init_index];
+                    cb = sd[u_chunk + cbcr_index / 2];
+                    cr = sd[v_chunk + cbcr_index / 2];
+
+                    r = static_cast<int32_t>(y + (14065 * (cr - 128)) / 10000);
+                    g = static_cast<int32_t>(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
+                    b = static_cast<int32_t>(y + (17790 * (cb - 128)) / 10000);
+
+                    index = (dw - 1 - index % dw) * (dh) + index / dw;
+
+                    auto ddi = &dd[index * 3];
+
+                    ddi[0] = static_cast<uint8_t>(EL_CLIP(r, 0, 255));
+                    ddi[1] = static_cast<uint8_t>(EL_CLIP(g, 0, 255));
+                    ddi[2] = static_cast<uint8_t>(EL_CLIP(b, 0, 255));
+                }
+            }
+        } break;
+        default: {
+            for (int i = 0; i < dh; ++i) {
+                const int tmph        = i * beta_h;
+                const int tmph_mul_sw = tmph * sw;
+                const int i_mul_dw    = i * dw;
+
+                for (int j = 0; j < dw; ++j) {
+                    const int tmpw = j * beta_w;
+                    index          = i_mul_dw + j;
+                    init_index     = tmph_mul_sw + tmpw;
+                    cbcr_index     = init_index - (init_index & 0b1);
+
+                    y  = sd[init_index];
+                    cb = sd[u_chunk + cbcr_index / 2];
+                    cr = sd[v_chunk + cbcr_index / 2];
+
+                    r = static_cast<int32_t>(y + (14065 * (cr - 128)) / 10000);
+                    g = static_cast<int32_t>(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
+                    b = static_cast<int32_t>(y + (17790 * (cb - 128)) / 10000);
+
+                    auto ddi = &dd[index * 3];
+
+                    ddi[0] = static_cast<uint8_t>(EL_CLIP(r, 0, 255));
+                    ddi[1] = static_cast<uint8_t>(EL_CLIP(g, 0, 255));
+                    ddi[2] = static_cast<uint8_t>(EL_CLIP(b, 0, 255));
+                }
+            }
+        } break;
+        };
+    } else {
+        for (int i = 0; i < dst->height; i++) {
+            for (int j = 0; j < dst->width; j++) {
+                int tmph = i * beta_h, tmpw = beta_w * j;
+                index      = i * dst->width + j;
+                init_index = tmph * src->width + tmpw;
+                cbcr_index = init_index % 2 ? init_index - 1 : init_index;
+
+                y  = src->data[init_index];
+                cb = src->data[u_chunk + cbcr_index / 2];
+                cr = src->data[v_chunk + cbcr_index / 2];
+                r  = (int32_t)(y + (14065 * (cr - 128)) / 10000);
+                g  = (int32_t)(y - (3455 * (cb - 128)) / 10000 - (7169 * (cr - 128)) / 10000);
+                b  = (int32_t)(y + (17790 * (cb - 128)) / 10000);
+
+                switch (rotate) {
+                case EL_PIXEL_ROTATE_90:
+                    index = (index % dst->width) * (dst->height) + (dst->height - 1 - index / dst->width);
+                    break;
+                case EL_PIXEL_ROTATE_180:
+                    index =
+                      (dst->width - 1 - index % dst->width) + (dst->height - 1 - index / dst->width) * (dst->width);
+                    break;
+                case EL_PIXEL_ROTATE_270:
+                    index = (dst->width - 1 - index % dst->width) * (dst->height) + index / dst->width;
+                    break;
+                default:
+                    break;
+                }
+
+                if (dst->format == EL_PIXEL_FORMAT_GRAYSCALE) {
+                    uint8_t gray     = (r * 299 + g * 587 + b * 114) / 1000;
+                    dst->data[index] = (uint8_t)EL_CLIP(gray, 0, 255);
+                } else if (dst->format == EL_PIXEL_FORMAT_RGB565) {
+                    dst->data[index * 2 + 0] = (r & 0xF8) | (g >> 5);
+                    dst->data[index * 2 + 1] = ((g << 3) & 0xE0) | (b >> 3);
+                }
             }
         }
     }
