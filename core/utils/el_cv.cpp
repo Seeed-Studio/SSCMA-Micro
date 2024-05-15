@@ -239,7 +239,9 @@ EL_ATTR_WEAK void yuv422p_to_rgb(const el_img_t* src, el_img_t* dst) {
             }
         } break;
         };
-    } else {
+    } 
+    // TODO: need to be optimized
+    else {
         for (int i = 0; i < dst->height; i++) {
             for (int j = 0; j < dst->width; j++) {
                 int tmph = i * beta_h, tmpw = beta_w * j;
