@@ -178,6 +178,7 @@ el_err_code_t CameraWE2::get_processed_frame(el_img_t* img) {
     }
 
     *img = _drv_get_jpeg();
+    img->rotate = _rotation_override;
     // just assign, not sure whether the img is valid
 
     return EL_OK;
