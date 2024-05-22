@@ -461,7 +461,7 @@ el_err_code_t drv_imx219_init(uint16_t width, uint16_t height) {
     hw5x5_cfg.hw5x5_path         = HW5x5_PATH_THROUGH_DEMOSAIC;
     hw5x5_cfg.demos_bndmode      = DEMOS_BNDODE_REFLECT;
     hw5x5_cfg.demos_color_mode   = DEMOS_COLORMODE_YUV422;
-    hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_BGGR;
+    hw5x5_cfg.demos_pattern_mode = DEMOS_PATTENMODE_GBRG;
     hw5x5_cfg.demoslpf_roundmode = DEMOSLPF_ROUNDMODE_ROUNDING;
     hw5x5_cfg.hw55_crop_stx      = start_x;
     hw5x5_cfg.hw55_crop_sty      = start_y;

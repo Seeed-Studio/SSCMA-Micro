@@ -25,6 +25,7 @@
 
 #include "el_algorithm_yolo_world.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -62,6 +63,98 @@ AlgorithmYOLOWorld::~AlgorithmYOLOWorld() {
     this->__p_engine = nullptr;
 }
 
+namespace utils {
+
+static inline float fast_ln(float x) {
+    // Remez approximation of ln(x)
+    static_assert(sizeof(unsigned int) == sizeof(float));
+    static_assert(sizeof(float) == 4);
+
+    auto bx{*reinterpret_cast<unsigned int*>(&x)};
+    auto ex{bx >> 23};
+    auto t{static_cast<signed int>(ex) - static_cast<signed int>(127)};
+    bx = 1065353216 | (bx & 8388607);
+    x  = *reinterpret_cast<float*>(&bx);
+    return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
+}
+
+static inline float fast_exp(float x) {
+    // N. Schraudolph, "A Fast, Compact Approximation of the Exponential Function"
+    // https://nic.schraudolph.org/pubs/Schraudolph99.pdf
+    static_assert(sizeof(float) == 4);
+
+    x = (12102203.1608621 * x) + 1064986823.01029;
+
+    const float c{8388608.f};
+    const float d{2139095040.f};
+
+    if (x < c || x > d) x = (x < c) ? 0.0f : d;
+
+    uint32_t n = static_cast<uint32_t>(x);
+    x          = *reinterpret_cast<float*>(&n);
+
+    return x;
+}
+
+static inline float sigmoid(float x) { return 1.f / (1.f + fast_exp(-x)); }
+
+static inline void softmax(float* data, size_t size) {
+    float sum{0.f};
+    for (size_t i = 0; i < size; ++i) {
+        data[i] = std::exp(data[i]);
+        sum += data[i];
+    }
+    for (size_t i = 0; i < size; ++i) {
+        data[i] /= sum;
+    }
+}
+
+static inline float dequant_value_i(size_t idx, const int8_t* output_array, int32_t zero_point, float scale) {
+    return static_cast<float>(output_array[idx] - zero_point) * scale;
+}
+
+// Unanle to generate firmware if don't use lambda
+auto generate_anchor_strides = [](size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
+    std::vector<anchor_stride_t> anchor_strides(strides.size());
+    size_t                       nth_anchor = 0;
+    for (size_t i = 0; i < strides.size(); ++i) {
+        size_t stride     = strides[i];
+        size_t split      = input_size / stride;
+        size_t size       = split * split;
+        anchor_strides[i] = {stride, split, size, nth_anchor};
+        nth_anchor += size;
+    }
+    return anchor_strides;
+};
+
+// Unanle to generate firmware if don't use lambda
+auto generate_anchor_matrix =
+  [](const std::vector<anchor_stride_t>& anchor_strides, float shift_right = 1.f, float shift_down = 1.f) {
+      const auto                            anchor_matrix_size = anchor_strides.size();
+      std::vector<std::vector<pt_t<float>>> anchor_matrix(anchor_matrix_size);
+      const float                           shift_right_init = shift_right * 0.5f;
+      const float                           shift_down_init  = shift_down * 0.5f;
+
+      for (size_t i = 0; i < anchor_matrix_size; ++i) {
+          const auto& anchor_stride   = anchor_strides[i];
+          const auto  split           = anchor_stride.split;
+          const auto  size            = anchor_stride.size;
+          auto&       anchor_matrix_i = anchor_matrix[i];
+
+          anchor_matrix[i].resize(size);
+
+          for (size_t j = 0; j < size; ++j) {
+              float x            = static_cast<float>(j % split) * shift_right + shift_right_init;
+              float y            = static_cast<float>(j / split) * shift_down + shift_down_init;
+              anchor_matrix_i[j] = {x, y};
+          }
+      }
+
+      return anchor_matrix;
+  };
+
+}  // namespace utils
+
 bool AlgorithmYOLOWorld::is_model_valid(const EngineType* engine) {
     const auto& input_shape{engine->get_input_shape(0)};
     if (input_shape.size != 4 ||                      // B, W, H, C
@@ -73,28 +166,36 @@ bool AlgorithmYOLOWorld::is_model_valid(const EngineType* engine) {
          input_shape.dims[3] != 1))
         return false;
 
-    auto ibox_len{[&]() {
-        auto r{static_cast<uint16_t>(input_shape.dims[1])};
-        auto s{r >> 5};  // r / 32
-        auto m{r >> 4};  // r / 16
-        auto l{r >> 3};  // r / 8
-        return (s * s + m * m + l * l);
-    }()};
+    auto anchor_strides_1 = utils::generate_anchor_strides(std::min(input_shape.dims[1], input_shape.dims[2]));
+    auto anchor_strides_2 = anchor_strides_1;
 
-    const auto& output_shape_0{engine->get_output_shape(0)};
-    if (output_shape_0.size != 3 ||            // B, IB, BC...
-        output_shape_0.dims[0] != 1 ||         // B = 1
-        output_shape_0.dims[1] != ibox_len ||  // IB is based on input shape
-        output_shape_0.dims[2] != 4)
-        return false;
+    // Note: would fail if the model has 64 classes
+    for (size_t i = 0; i < _outputs; ++i) {
+        const auto output_shape{engine->get_output_shape(i)};
+        if (output_shape.size != 3 || output_shape.dims[0] != 1) return false;
 
-    const auto& output_shape_1{engine->get_output_shape(1)};
-    if (output_shape_1.size != 3 ||            // B, IB, BC...
-        output_shape_1.dims[0] != 1 ||         // B = 1
-        output_shape_1.dims[1] != ibox_len ||  // IB is based on input shape
-        output_shape_1.dims[2] < 1 ||          // 0 < T <= 80 (could be larger than 80)
-        output_shape_1.dims[2] > 80)
-        return false;
+        if (output_shape.dims[2] == 64) {
+            auto it = std::find_if(
+              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+              });
+            if (it == anchor_strides_2.end())
+                return false;
+            else
+                anchor_strides_2.erase(it);
+        } else {
+            auto it = std::find_if(
+              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+              });
+            if (it == anchor_strides_1.end())
+                return false;
+            else
+                anchor_strides_1.erase(it);
+        }
+    }
+
+    if (anchor_strides_1.size() || anchor_strides_2.size()) return false;
 
     return true;
 }
@@ -121,8 +222,69 @@ inline void AlgorithmYOLOWorld::init() {
     } else if (this->__input_shape.dims[3] == 1) {
         _input_img.format = EL_PIXEL_FORMAT_GRAYSCALE;
     }
+
     EL_ASSERT(_input_img.format != EL_PIXEL_FORMAT_UNKNOWN);
     EL_ASSERT(_input_img.rotate != EL_PIXEL_ROTATE_UNKNOWN);
+
+    // inputs shape
+    const auto width{this->__input_shape.dims[1]};
+    const auto height{this->__input_shape.dims[2]};
+
+    // construct stride matrix and anchor matrix
+    // TODO: support generate anchor with non-square input
+    {
+        auto _anchor_strides  = utils::generate_anchor_strides(std::min(width, height));
+        auto _anchor_matrix   = utils::generate_anchor_matrix(_anchor_strides);
+        this->_anchor_strides = std::move(_anchor_strides);
+        this->_anchor_matrix  = std::move(_anchor_matrix);
+    }
+
+    for (size_t i = 0; i < _outputs; ++i) {
+        _output_shapes[i]       = this->__p_engine->get_output_shape(i);
+        _output_quant_params[i] = this->__p_engine->get_output_quant_param(i);
+    }
+
+    _scaled_strides.reserve(_anchor_strides.size());
+    for (const auto& anchor_stride : _anchor_strides) {
+        _scaled_strides.emplace_back(std::make_pair(static_cast<float>(anchor_stride.stride) * _w_scale,
+                                                    static_cast<float>(anchor_stride.stride) * _h_scale));
+    }
+
+    for (size_t i = 0; i < _outputs; ++i) {
+        // assuimg all outputs has 3 dims and the first dim is 1 (actual validation is done in is_model_valid)
+        auto dim_1 = _output_shapes[i].dims[1];
+        auto dim_2 = _output_shapes[i].dims[2];
+
+        if (dim_2 == 64) {
+            for (size_t j = 0; j < _anchor_variants; ++j) {
+                if (dim_1 == static_cast<int>(_anchor_strides[j].size)) {
+                    _output_bboxes_ids[j] = i;
+                    break;
+                }
+            }
+        } else {
+            for (size_t j = 0; j < _anchor_variants; ++j) {
+                if (dim_1 == static_cast<int>(_anchor_strides[j].size)) {
+                    _output_scores_ids[j] = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    // check if all outputs ids is unique and less than outputs (redandant)
+    using CheckType       = uint8_t;
+    size_t    check_bytes = sizeof(CheckType) * 8u;
+    CheckType check       = 0;
+    for (size_t i = 0; i < _anchor_variants; ++i) {
+        CheckType f_s = 1 << (_output_scores_ids[i] % check_bytes);
+        CheckType f_b = 1 << (_output_bboxes_ids[i] % check_bytes);
+        EL_ASSERT(!(f_s & f_b));
+        EL_ASSERT(!(f_s & check));
+        EL_ASSERT(!(f_b & check));
+        check |= f_s | f_b;
+    }
+    EL_ASSERT(!(check ^ 0b00111111));
 }
 
 el_err_code_t AlgorithmYOLOWorld::run(ImageType* input) {
@@ -150,76 +312,99 @@ el_err_code_t AlgorithmYOLOWorld::preprocess() {
 el_err_code_t AlgorithmYOLOWorld::postprocess() {
     _results.clear();
 
-    // get outputs
-    const auto* data_bboxes{static_cast<int8_t*>(this->__p_engine->get_output(0))};
-    const auto* data_scores{static_cast<int8_t*>(this->__p_engine->get_output(1))};
+    const int8_t* output_data[_outputs];
+    for (size_t i = 0; i < _outputs; ++i) {
+        output_data[i] = static_cast<int8_t*>(this->__p_engine->get_output(i));
+    }
 
-    const auto width{this->__input_shape.dims[1]};
-    const auto height{this->__input_shape.dims[2]};
+    // post-process
+    const uint8_t score_threshold = _score_threshold.load();
+    const uint8_t iou_threshold   = _iou_threshold.load();
 
-    float scale_scores{_output_quant_params[1].scale};
-    scale_scores = scale_scores < 0.1f ? scale_scores * 100.f : scale_scores;  // rescale
-    const int32_t zero_point_scores{_output_quant_params[1].zero_point};
+    const float score_threshold_non_sigmoid =
+      -1.f * utils::fast_ln((100.f / static_cast<float>(score_threshold)) - 1.f);
 
-    const float   scale_bboxes{_output_quant_params[0].scale};
-    const int32_t zero_point_bboxes{_output_quant_params[0].zero_point};
+    const auto anchor_matrix_size = _anchor_matrix.size();
+    for (size_t i = 0; i < anchor_matrix_size; ++i) {
+        const auto   output_scores_id           = _output_scores_ids[i];
+        const auto*  output_scores              = output_data[output_scores_id];
+        const size_t output_scores_shape_dims_2 = _output_shapes[output_scores_id].dims[2];
+        const auto   output_scores_quant_parm   = _output_quant_params[output_scores_id];
 
-    const auto num_bboxes{this->__output_shape.dims[1]};
-    const auto num_elements{this->__output_shape.dims[2]};
-    const auto num_classes{_output_shapes[1].dims[2]};
+        const auto   output_bboxes_id           = _output_bboxes_ids[i];
+        const auto*  output_bboxes              = output_data[output_bboxes_id];
+        const size_t output_bboxes_shape_dims_2 = _output_shapes[output_bboxes_id].dims[2];
+        const auto   output_bboxes_quant_parm   = _output_quant_params[output_bboxes_id];
 
-    const ScoreType score_threshold{get_score_threshold()};
-    const IoUType   iou_threshold{get_iou_threshold()};
+        const auto  stride  = _scaled_strides[i];
+        const float scale_w = stride.first;
+        const float scale_h = stride.second;
 
-    // parse output
-    for (int bbox_i = 0; bbox_i < num_bboxes; ++bbox_i) {
-        const auto score_pre = bbox_i * num_classes;
+        const auto& anchor_array      = _anchor_matrix[i];
+        const auto  anchor_array_size = anchor_array.size();
 
-        ScoreType max_score = score_threshold;
-        int       target    = -1;
+        const int32_t score_threshold_quan_non_sigmoid =
+          static_cast<int32_t>(std::floor(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
+          output_scores_quant_parm.zero_point;
 
-        for (int class_i = 0; class_i < num_classes; ++class_i) {
-            const auto score = static_cast<ScoreType>(
-              static_cast<decltype(scale_scores)>(data_scores[score_pre + class_i] - zero_point_scores) * scale_scores);
+        for (size_t j = 0; j < anchor_array_size; ++j) {
+            const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            if (score > max_score) {
-                max_score = score;
-                target    = class_i;
+            auto    max_score_raw = score_threshold_quan_non_sigmoid;
+            int32_t target        = -1;
+
+            for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
+                int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
+
+                if (static_cast<decltype(max_score_raw)>(score) < max_score_raw) [[likely]]
+                    continue;
+
+                max_score_raw = score;
+                target        = k;
             }
+
+            if (target < 0) continue;
+
+            const float real_score = utils::sigmoid(
+              static_cast<float>(max_score_raw - output_scores_quant_parm.zero_point) * output_scores_quant_parm.scale);
+
+            // DFL
+            float dist[4];
+            float matrix[16];
+
+            const auto pre = j * output_bboxes_shape_dims_2;
+            for (size_t m = 0; m < 4; ++m) {
+                const size_t offset = pre + m * 16;
+                for (size_t n = 0; n < 16; ++n) {
+                    matrix[n] = utils::dequant_value_i(
+                      offset + n, output_bboxes, output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
+                }
+
+                utils::softmax(matrix, 16);
+
+                float res = 0.f;
+                for (size_t n = 0; n < 16; ++n) {
+                    res += matrix[n] * static_cast<float>(n);
+                }
+                dist[m] = res;
+            }
+
+            const auto anchor = anchor_array[j];
+
+            float cx = anchor.x + ((dist[2] - dist[0]) * 0.5f);
+            float cy = anchor.y + ((dist[3] - dist[1]) * 0.5f);
+            float w  = dist[0] + dist[2];
+            float h  = dist[1] + dist[3];
+
+            _results.emplace_front(el_box_t{
+              .x      = static_cast<decltype(BoxType::x)>(cx * scale_w),
+              .y      = static_cast<decltype(BoxType::y)>(cy * scale_h),
+              .w      = static_cast<decltype(BoxType::w)>(w * scale_w),
+              .h      = static_cast<decltype(BoxType::h)>(h * scale_h),
+              .score  = static_cast<decltype(BoxType::score)>(real_score * 100.f),
+              .target = static_cast<decltype(BoxType::target)>(target),
+            });
         }
-
-        if (target < 0) {
-            continue;
-        }
-
-        BoxType box;
-
-        box.score  = max_score;
-        box.target = static_cast<decltype(BoxType::target)>(target);
-
-        auto bbox_idx = bbox_i * num_elements;
-
-        auto tl_x{((data_bboxes[bbox_idx + INDEX_TL_X] - zero_point_bboxes) * scale_bboxes)};
-        auto tl_y{((data_bboxes[bbox_idx + INDEX_TL_Y] - zero_point_bboxes) * scale_bboxes)};
-        auto br_x{((data_bboxes[bbox_idx + INDEX_BR_X] - zero_point_bboxes) * scale_bboxes)};
-        auto br_y{((data_bboxes[bbox_idx + INDEX_BR_Y] - zero_point_bboxes) * scale_bboxes)};
-
-        box.w = static_cast<decltype(BoxType::w)>(br_x - tl_x);
-        box.h = static_cast<decltype(BoxType::h)>(br_y - tl_y);
-
-        // if constexpr would be better (C++17)
-        static_assert(std::is_integral<decltype(box.w)>::value);
-        static_assert(std::is_integral<decltype(box.h)>::value);
-
-        box.x = tl_x + (box.w >> 1);
-        box.y = tl_y + (box.h >> 1);
-
-        box.x = EL_CLIP(box.x, 0, width) * _w_scale;
-        box.y = EL_CLIP(box.y, 0, height) * _h_scale;
-        box.w = EL_CLIP(box.w, 0, width) * _w_scale;
-        box.h = EL_CLIP(box.h, 0, height) * _h_scale;
-
-        _results.emplace_front(std::move(box));
     }
 
     el_nms(_results, iou_threshold, score_threshold, false, true);

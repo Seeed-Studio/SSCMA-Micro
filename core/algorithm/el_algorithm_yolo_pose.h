@@ -59,11 +59,6 @@ struct anchor_bbox_t {
     uint16_t anchor_index;
 };
 
-template <typename T> struct pt_t {
-    T x;
-    T y;
-};
-
 template <typename T> struct pt3_t {
     T x;
     T y;
@@ -72,13 +67,6 @@ template <typename T> struct pt3_t {
 
 template <typename T, size_t N> struct pt3_set_t {
     pt3_t<T> data[N];
-};
-
-struct anchor_stride_t {
-    size_t stride;
-    size_t split;
-    size_t size;
-    size_t start;
 };
 
 }  // namespace types
@@ -129,9 +117,9 @@ class AlgorithmYOLOPOSE final : public Algorithm {
     std::atomic<ScoreType> _score_threshold;
     std::atomic<IoUType>   _iou_threshold;
 
-    std::vector<types::anchor_stride_t>          _anchor_strides;
-    std::vector<std::pair<float, float>>         _scaled_strides;
-    std::vector<std::vector<types::pt_t<float>>> _anchor_matrix;
+    std::vector<anchor_stride_t>          _anchor_strides;
+    std::vector<std::pair<float, float>>  _scaled_strides;
+    std::vector<std::vector<pt_t<float>>> _anchor_matrix;
 
     static constexpr size_t _outputs         = 7;
     static constexpr size_t _anchor_variants = 3;

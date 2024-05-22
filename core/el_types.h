@@ -36,6 +36,11 @@
 #ifdef __cplusplus
     #include <vector>
 
+template <typename T> struct pt_t {
+    T x;
+    T y;
+};
+
 extern "C" {
 #endif
 
@@ -68,7 +73,14 @@ typedef struct EL_ATTR_PACKED el_memory_pool_t {
     size_t size;
 } el_memory_pool_t;
 
-typedef struct EL_ATTR_PACKED el_box_t {
+typedef struct anchor_stride_t {
+    size_t stride;
+    size_t split;
+    size_t size;
+    size_t start;
+} anchor_stride_t;
+
+typedef struct el_box_t {
     uint16_t x;
     uint16_t y;
     uint16_t w;
