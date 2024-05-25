@@ -1,0 +1,15 @@
+#ifndef _MA_CONFIG_H_
+#define _MA_CONFIG_H_
+
+#define CONFIG_MA_DEBUG_LEVEL         6
+#define CONFIG_MA_DEBUG_MORE_INFO     1
+
+#define CONFIG_MA_ENGINE_TFLITE       1
+#define CONFIG_MA_TFLITE_OP_ALL       1
+#define CONFIG_USE_ENGINE_TENSOR_NAME 1
+
+#define CONFIG_MA_FILESYSTEM          1
+#define CONFIG_MA_FILESYSTEM_POSIX    1
+
+
+#endif /* _EL_CONFIG_H_ */
