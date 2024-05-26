@@ -57,14 +57,18 @@ typedef enum {
     MA_TENSOR_TYPE_F16  = 9,
     MA_TENSOR_TYPE_F32  = 10,
     MA_TENSOR_TYPE_F64  = 11,
+    MA_TENSOR_TYPE_STR  = 12,
+    MA_TENSOR_TYPE_BOOL = 13,
+    MA_TENSOR_TYPE_BF16 = 14,
 } ma_tensor_type_t;
 
 typedef struct {
     ma_shape_t       shape;
     ma_quant_param_t quant_param;
     ma_tensor_type_t type;
+    size_t           size;
     union {
-        void*     ptr;
+        void*     data;
         uint8_t*  u8;
         int8_t*   s8;
         uint16_t* u16;
@@ -78,6 +82,32 @@ typedef struct {
     } data;
     bool is_variable;  // For constant tensor
 } ma_tensor_t;
+
+typedef enum {
+    MA_PIXEL_FORMAT_RGB888 = 0,
+    MA_PIXEL_FORMAT_RGB565,
+    MA_PIXEL_FORMAT_YUV422,
+    MA_PIXEL_FORMAT_GRAYSCALE,
+    MA_PIXEL_FORMAT_JPEG,
+    MA_PIXEL_FORMAT_UNKNOWN,
+} ma_pixel_format_t;
+
+typedef enum {
+    MA_PIXEL_ROTATE_0 = 0,
+    MA_PIXEL_ROTATE_90,
+    MA_PIXEL_ROTATE_180,
+    MA_PIXEL_ROTATE_270,
+    MA_PIXEL_ROTATE_UNKNOWN,
+} ma_pixel_rotate_t;
+
+typedef struct {
+    uint8_t*          data;
+    size_t            size;
+    uint16_t          width;
+    uint16_t          height;
+    ma_pixel_format_t format;
+    ma_pixel_rotate_t rotate;
+} ma_img_t;
 
 
 typedef enum {
@@ -108,7 +138,7 @@ typedef struct {
 
 typedef struct {
     float score;
-    int   label;
+    int   target;
 } ma_class_t;
 
 typedef struct {
@@ -117,8 +147,13 @@ typedef struct {
     float w;
     float h;
     float score;
-    int   label;
+    int   target;
 } ma_bbox_t;
+
+typedef struct {
+    float threshold_score;
+    float threshold_nms;
+} ma_detect_cfg_t;
 
 
 #ifdef __cplusplus

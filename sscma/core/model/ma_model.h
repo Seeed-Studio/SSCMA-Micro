@@ -3,5 +3,6 @@
 
 
 #include "core/model/ma_model_base.h"
+#include "core/model/ma_model_yolo.h"
 
 #endif  // _MA_MODEL_H_

@@ -6,23 +6,23 @@
 
 namespace ma::os {
 
-TEST(MaOs, TickCurrent) {
+TEST(OS, TickCurrent) {
     EXPECT_TRUE(Tick::current() != 0);
 }
 
-TEST(MaOs, TickFromMicroseconds) {
+TEST(OS, TickFromMicroseconds) {
     const uint32_t  us       = 1000;
     const ma_tick_t expected = Tick::fromMicroseconds(us);
     EXPECT_EQ(expected, Tick::fromMicroseconds(us));
 }
 
-TEST(MaOs, TickSleep) {
+TEST(OS, TickSleep) {
     const ma_tick_t tick = Tick::fromMicroseconds(10);
     Tick::sleep(tick);
     // sleep() doesn't return a value, so we can't assert anything about it
 }
 
-TEST(MaOs, ThreadConstructible) {
+TEST(OS, ThreadConstructible) {
     char     name[]      = "test";
     uint32_t priority    = 1;
     size_t   stacksize   = 4096;
@@ -33,7 +33,7 @@ TEST(MaOs, ThreadConstructible) {
     EXPECT_TRUE(thread);
 }
 
-TEST(MaOs, ThreadJoinable) {
+TEST(OS, ThreadJoinable) {
     char     name[]      = "test";
     uint32_t priority    = 1;
     size_t   stacksize   = 4096;
@@ -45,94 +45,94 @@ TEST(MaOs, ThreadJoinable) {
     EXPECT_FALSE(thread);
 }
 
-TEST(MaOs, MutexLockable) {
+TEST(OS, MutexLockable) {
     Mutex mutex;
     Guard guard(mutex);
     EXPECT_TRUE(guard);
 }
 
-TEST(MaOs, MutexUnlockable) {
+TEST(OS, MutexUnlockable) {
     Mutex mutex;
     Guard guard(mutex);
     guard.~Guard();
     EXPECT_TRUE(mutex);
 }
 
-TEST(MaOs, SemaphoreConstructible) {
+TEST(OS, SemaphoreConstructible) {
     Semaphore sem(1);
     EXPECT_TRUE(sem);
 }
 
-TEST(MaOs, SemaphoreSignalable) {
+TEST(OS, SemaphoreSignalable) {
     Semaphore sem(1);
     sem.signal();
     EXPECT_TRUE(sem);
 }
 
-TEST(MaOs, EventConstructible) {
+TEST(OS, EventConstructible) {
     Event event;
     EXPECT_TRUE(event);
 }
 
-TEST(MaOs, EventReadable) {
+TEST(OS, EventReadable) {
     Event    event;
     uint32_t value = 0;
     EXPECT_FALSE(event.wait(0, &value, 0));
 }
 
-TEST(MaOs, EventWrittable) {
+TEST(OS, EventWrittable) {
     Event event;
     event.set(1);
     EXPECT_TRUE(event.wait(1, nullptr, 0));
 }
 
-TEST(MaOs, MessageBoxConstructible) {
+TEST(OS, MessageBoxConstructible) {
     MessageBox mbox(1);
     EXPECT_TRUE(mbox);
 }
 
-TEST(MaOs, MessageBoxReadable) {
+TEST(OS, MessageBoxReadable) {
     MessageBox  mbox(1);
     const void* msg = nullptr;
     EXPECT_FALSE(mbox.fetch(&msg, 0));
 }
 
-TEST(MaOs, MessageBoxWriteable) {
+TEST(OS, MessageBoxWriteable) {
     MessageBox  mbox(1);
     const char* msg = "message";
     EXPECT_TRUE(mbox.post(msg, 0));
 }
 
-TEST(MaOs, TimerConstructible) {
+TEST(OS, TimerConstructible) {
     Timer timer(100, [](ma_timer_t*, void*) {}, nullptr, false);
     EXPECT_TRUE(timer);
 }
 
-TEST(MaOs, TimerStartable) {
+TEST(OS, TimerStartable) {
     Timer timer(100, [](ma_timer_t*, void*) {}, nullptr, false);
     timer.start();
     // start() doesn't return a value, so we can't assert anything about it
 }
 
-TEST(MaOs, TimerStopable) {
+TEST(OS, TimerStopable) {
     Timer timer(100, [](ma_timer_t*, void*) {}, nullptr, false);
     timer.stop();
     // stop() doesn't return a value, so we can't assert anything about it
 }
 
-TEST(MaOs, RingBufferConstructible) {
+TEST(OS, RingBufferConstructible) {
     RingBuffer rb(1);
     EXPECT_TRUE(rb);
 }
 
-TEST(MaOs, RingBufferWriteable) {
+TEST(OS, RingBufferWriteable) {
     RingBuffer rb(1);
     const char c = 'a';
     EXPECT_EQ(rb.write(&c, 1, 0), 1);
     EXPECT_EQ(rb.available(), 1);
 }
 
-TEST(MaOs, RingBufferReadable) {
+TEST(OS, RingBufferReadable) {
     RingBuffer rb(1);
     char       c = 'a';
     EXPECT_EQ(rb.write(&c, 1, 0), 1);
@@ -141,7 +141,7 @@ TEST(MaOs, RingBufferReadable) {
     EXPECT_EQ(c, 'a');
 }
 
-TEST(MaOs, RingBufferOperator) {
+TEST(OS, RingBufferOperator) {
     RingBuffer rb(1);
     char       c = 'a';
     EXPECT_EQ(rb << c, rb);

@@ -304,6 +304,15 @@ OpsResolver::OpsResolver() {
 
 namespace ma::engine {
 
+const ma_tensor_type_t mapped_tensor_types[] = {
+    MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_F32, MA_TENSOR_TYPE_S32,  MA_TENSOR_TYPE_U8,
+    MA_TENSOR_TYPE_S64,  MA_TENSOR_TYPE_STR, MA_TENSOR_TYPE_BOOL, MA_TENSOR_TYPE_S16,
+    MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_S8,  MA_TENSOR_TYPE_F16,  MA_TENSOR_TYPE_F64,
+    MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_S64, MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_NONE,
+    MA_TENSOR_TYPE_U32,  MA_TENSOR_TYPE_U64, MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_BF16,
+};
+
+
 EngineTFLite::EngineTFLite() {
     interpreter      = nullptr;
     model            = nullptr;
@@ -361,7 +370,7 @@ ma_err_t EngineTFLite::init(void* pool, size_t size) {
 
 ma_err_t EngineTFLite::run() {
     MA_ASSERT(interpreter != nullptr);
-
+    
     if (kTfLiteOk != interpreter->Invoke()) {
         return MA_ELOG;
     }
@@ -393,51 +402,52 @@ ma_err_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
     }
     return MA_OK;
 }
-
-ma_err_t EngineTFLite::set_input(size_t index, const void* input_data, size_t input_size) {
+ma_tensor_t EngineTFLite::get_input(size_t index) {
     MA_ASSERT(interpreter != nullptr);
+    ma_tensor_t tensor{0};
 
     if (index >= interpreter->inputs().size()) {
-        return MA_EINVAL;
+        return tensor;
     }
     TfLiteTensor* input = interpreter->input_tensor(index);
     if (input == nullptr) {
-        return MA_EINVAL;
+        return tensor;
     }
-    if (input_size != input->bytes) {
-        return MA_EINVAL;
-    }
-    memcpy(input->data.data, input_data, input_size);
-    return MA_OK;
+
+    tensor.data.data   = input->data.data;
+    tensor.size        = input->bytes;
+    tensor.type        = mapped_tensor_types[static_cast<int>(input->type)];
+    tensor.shape       = get_input_shape(index);
+    tensor.quant_param = get_input_quant_param(index);
+    tensor.is_variable = true;
+
+
+    return tensor;
 }
 
-void* EngineTFLite::get_input(size_t index) {
+ma_tensor_t EngineTFLite::get_output(size_t index) {
     MA_ASSERT(interpreter != nullptr);
-
-    if (index >= interpreter->inputs().size()) {
-        return nullptr;
-    }
-    TfLiteTensor* input = interpreter->input_tensor(index);
-    if (input == nullptr) {
-        return nullptr;
-    }
-    return input->data.data;
-}
-
-void* EngineTFLite::get_output(size_t index) {
-    MA_ASSERT(interpreter != nullptr);
+    ma_tensor_t tensor{0};
 
     if (index >= interpreter->outputs().size()) {
-        return nullptr;
+        return tensor;
     }
     TfLiteTensor* output = interpreter->output_tensor(index);
     if (output == nullptr) {
-        return nullptr;
+        return tensor;
     }
-    return output->data.data;
+
+    tensor.data.data   = output->data.data;
+    tensor.size        = output->bytes;
+    tensor.type        = mapped_tensor_types[static_cast<int>(output->type)];
+    tensor.shape       = get_output_shape(index);
+    tensor.quant_param = get_output_quant_param(index);
+    tensor.is_variable = false;
+
+    return tensor;
 }
 
-ma_shape_t EngineTFLite::get_input_shape(size_t index) const {
+ma_shape_t EngineTFLite::get_input_shape(size_t index) {
     ma_shape_t shape;
 
     MA_ASSERT(interpreter != nullptr);
@@ -451,6 +461,7 @@ ma_shape_t EngineTFLite::get_input_shape(size_t index) const {
         return shape;
     }
     shape.size = input->dims->size;
+    MA_ASSERT(shape.size < MA_ENGINE_SHAPE_MAX_DIM);
     for (int i = 0; i < shape.size; i++) {
         shape.dims[i] = input->dims->data[i];
     }
@@ -458,7 +469,7 @@ ma_shape_t EngineTFLite::get_input_shape(size_t index) const {
     return shape;
 }
 
-ma_shape_t EngineTFLite::get_output_shape(size_t index) const {
+ma_shape_t EngineTFLite::get_output_shape(size_t index) {
     ma_shape_t shape;
     shape.size = 0;
 
@@ -472,6 +483,9 @@ ma_shape_t EngineTFLite::get_output_shape(size_t index) const {
         return shape;
     }
     shape.size = output->dims->size;
+
+    MA_ASSERT(shape.size < MA_ENGINE_SHAPE_MAX_DIM);
+
     for (int i = 0; i < shape.size; i++) {
         shape.dims[i] = output->dims->data[i];
     }
@@ -479,7 +493,7 @@ ma_shape_t EngineTFLite::get_output_shape(size_t index) const {
     return shape;
 }
 
-ma_quant_param_t EngineTFLite::get_input_quant_param(size_t index) const {
+ma_quant_param_t EngineTFLite::get_input_quant_param(size_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;
@@ -498,7 +512,7 @@ ma_quant_param_t EngineTFLite::get_input_quant_param(size_t index) const {
     return quant_param;
 }
 
-ma_quant_param_t EngineTFLite::get_output_quant_param(size_t index) const {
+ma_quant_param_t EngineTFLite::get_output_quant_param(size_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;

@@ -1,4 +1,4 @@
-const unsigned char gImage_meter[172800] = {
+const static unsigned char gImage_meter[172800] = {
     /* 0X00,0X18,0XF0,0X00,0XF0,0X00,0X00,0X1B, */
     0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9,
     0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XE9, 0XEB, 0XE9, 0XE9, 0XEB, 0XE9, 0XE9,

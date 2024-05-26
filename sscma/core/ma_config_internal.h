@@ -77,8 +77,15 @@
 #error "Only one engine can be enabled"
 #endif
 
+#ifdef CONFIG_MA_ENGINE_TENSOR_NAME
+#define MA_USE_ENGINE_TENSOR_NAME 1
+#endif
+
 #ifdef CONFIG_MA_ENGINE_TFLITE
 #define MA_USE_ENGINE_TFLITE 1
+#if MA_USE_ENGINE_TENSOR_NAME
+#error "TensorFlow Lite engine does not support tensor name"
+#endif
 #ifndef CONFIG_MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE
 #define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE 1024 * 1024
 #else
