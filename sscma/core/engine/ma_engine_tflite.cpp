@@ -370,7 +370,7 @@ ma_err_t EngineTFLite::init(void* pool, size_t size) {
 
 ma_err_t EngineTFLite::run() {
     MA_ASSERT(interpreter != nullptr);
-    
+
     if (kTfLiteOk != interpreter->Invoke()) {
         return MA_ELOG;
     }

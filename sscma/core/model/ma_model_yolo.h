@@ -4,15 +4,13 @@
 #include <vector>
 
 #include "core/model/ma_model_base.h"
+#include "core/model/ma_model_detector.h"
 
 
 namespace ma::model {
-class Yolo : public Model {
+class Yolo : public Detector {
 private:
-    ma_tensor_t            input_;
-    ma_tensor_t            output_;
-    ma_img_t               input_img_;
-    std::vector<ma_bbox_t> results_;
+    ma_tensor_t output_;
     enum {
         INDEX_X = 0,
         INDEX_Y = 1,
@@ -23,15 +21,12 @@ private:
     };
 
 protected:
-    bool     is_valid() override;
-    ma_err_t preprocess(const void* input) override;
     ma_err_t postprocess() override;
 
 public:
     Yolo(Engine* engine);
     ~Yolo();
-    ma_err_t                      run(const void* input) override;
-    std::vector<ma_bbox_t>& get_results();
+    bool is_valid(Engine *engine) override;
 };
 
 }  // namespace ma::model

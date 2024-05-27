@@ -137,8 +137,8 @@ typedef struct {
 } ma_point_t;
 
 typedef struct {
-    float score;
     int   target;
+    float score;
 } ma_class_t;
 
 typedef struct {
@@ -146,8 +146,8 @@ typedef struct {
     float y;
     float w;
     float h;
-    float score;
     int   target;
+    float score;
 } ma_bbox_t;
 
 typedef struct {
