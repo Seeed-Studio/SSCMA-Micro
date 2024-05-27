@@ -34,6 +34,7 @@ message(STATUS "include_dirs: ${include_dirs}")
 message(STATUS "srcs: ${srcs}")
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/yolo_meter.tflite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/meter.bmp DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(${PROJECT_NAME} ${srcs})
 target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
