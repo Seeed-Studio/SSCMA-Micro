@@ -75,8 +75,7 @@ ma_err_t Yolo::preprocess(const void* input) {
     }
     if (input_.type == MA_TENSOR_TYPE_S8) {
         for (int i = 0; i < input_.size; i++) {
-            printf("%d %c", input_.data.s8[i], i % 63 == 0 ? '\n' : ' ');
-            input_.data.s8[i] = input_.data.s8[i] - 128;
+            input_.data.u8[i] -= 128;
         }
     }
 
@@ -86,21 +85,19 @@ ma_err_t Yolo::preprocess(const void* input) {
 
 
 ma_err_t Yolo::postprocess() {
-    results_.clear();
 
     std::forward_list<ma_bbox_t> result;
+    results_.clear();
 
-    auto                         width{input_.shape.dims[1]};
-    auto                         height{input_.shape.dims[2]};
 
-    auto                         scale{output_.quant_param.scale};
-    auto                         zero_point{output_.quant_param.zero_point};
-
-    bool                         rescale{scale < 0.1f ? true : false};
-
-    auto                         num_record{output_.shape.dims[1]};
-    auto                         num_element{output_.shape.dims[2]};
-    auto                         num_class{num_element - 5};
+    auto width{input_.shape.dims[1]};
+    auto height{input_.shape.dims[2]};
+    auto scale{output_.quant_param.scale};
+    auto zero_point{output_.quant_param.zero_point};
+    bool rescale{scale < 0.1f ? true : false};
+    auto num_record{output_.shape.dims[1]};
+    auto num_element{output_.shape.dims[2]};
+    auto num_class{num_element - 5};
 
     MA_LOGI(
         TAG, "num_record: %d, num_element: %d, num_class: %d", num_record, num_element, num_class);
@@ -108,13 +105,12 @@ ma_err_t Yolo::postprocess() {
 
     // parse output
     if (output_.type == MA_TENSOR_TYPE_S8) {
-        auto data = output_.data.s8;
+        auto* data = output_.data.s8;
         for (decltype(num_record) i{0}; i < num_record; ++i) {
             auto idx{i * num_element};
             auto score{static_cast<decltype(scale)>(data[idx + INDEX_S] - zero_point) * scale};
             score = rescale ? score : score / 100.0f;
-            MA_LOGW(TAG, "score: %d=%f", data[idx + INDEX_S], score);
-            if (score > 0.5f) {
+            if (score > 0.6f) {
                 ma_bbox_t box{
                     .x      = 0,
                     .y      = 0,
@@ -156,9 +152,9 @@ ma_err_t Yolo::postprocess() {
         }
     }
 
-    ma::utils::nms(result, 0.5f, 0.5f);
+    ma::utils::nms(result, 0.4f, 0.6f);
 
-    result.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x > b.x; });  // left to right
+    result.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });  // left to right
 
     std::copy(result.begin(), result.end(), std::back_inserter(results_));
 
