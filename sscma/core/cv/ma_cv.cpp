@@ -145,7 +145,18 @@ MA_ATTR_WEAK void rgb888_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
             break;
 
         default:
-            memcpy(dst_p, src_p, dst->size < src->size ? dst->size : src->size);
+            for (uint16_t i = 0; i < dh; ++i) {
+                i_mul_bh_sw = ((i * beta_h) >> 16) * sw;
+
+                for (uint16_t j = 0; j < dw; ++j) {
+                    init_index = ((j * beta_w) >> 16) + i_mul_bh_sw;
+                    index      = j + i * dw;
+
+                    *reinterpret_cast<b24_t*>(dst_p + (index * 3)) =
+                        *reinterpret_cast<const b24_t*>(src_p + (init_index * 3));
+                }
+            }
+            break;
     }
 }
 
@@ -993,4 +1004,4 @@ MA_ATTR_WEAK ma_err_t convert(const ma_img_t* src, ma_img_t* dst) {
     return MA_ENOTSUP;
 }
 
-}
+}  // namespace ma::cv

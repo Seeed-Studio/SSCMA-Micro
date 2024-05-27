@@ -9,7 +9,7 @@ bool box_comparator_sort(const ma_bbox_t& box1, const ma_bbox_t& box2) {
     return box1.score > box2.score;
 }
 
-uint8_t compute_iou(const ma_bbox_t& box1, const ma_bbox_t& box2) {
+float compute_iou(const ma_bbox_t& box1, const ma_bbox_t& box2) {
     float x1    = std::max(box1.x, box2.x);
     float y1    = std::max(box1.y, box2.y);
     float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
@@ -18,7 +18,7 @@ uint8_t compute_iou(const ma_bbox_t& box1, const ma_bbox_t& box2) {
     float h     = std::max(0.0f, y2 - y1);
     float inter = w * h;
     float iou   = inter / (box1.w * box1.h + box2.w * box2.h - inter);
-    return std::round(iou * 100.f);
+    return iou;
 }
 
 
@@ -37,10 +37,10 @@ int nms(std::forward_list<ma_bbox_t>& boxes,
                 continue;
             if (multi_target && it->target != it2->target)
                 continue;
-            uint8_t iou = compute_iou(*it, *it2);
+            auto iou = compute_iou(*it, *it2);
             if (iou > threshold_iou) {
                 if (soft_nms) {  // soft-nms
-                    it2->score = it2->score * (1 - iou / 100.0f);
+                    it2->score = it2->score * (1 - iou);
                     if (it2->score < threshold_score)
                         it2->score = 0;
                 } else {
