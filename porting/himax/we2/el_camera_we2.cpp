@@ -42,7 +42,30 @@ namespace edgelab {
 static el_err_code_t (*_drv_cam_init)(uint16_t, uint16_t) = nullptr;
 static el_err_code_t (*_drv_cam_deinit)()                 = nullptr;
 
+#ifdef CONFIG_EL_BOARD_SENSECAP_WATCHER
+CameraWE2::CameraWE2() : Camera(0b00001111) {
+    static const char* _opt_1_416_x_416_detail = "416x416 Auto";
+    static const char* _opt_2_480_x_480_detail = "480x480 Auto";
+    static const char* _opt_3_640_x_480_detail = "640x480 Auto";
+    for (auto& opt : this->_supported_opts) {
+        switch (opt.id) {
+        case 1:
+            opt.details = _opt_1_416_x_416_detail;
+            break;
+        case 2:
+            opt.details = _opt_2_480_x_480_detail;
+            break;
+        case 3:
+            opt.details = _opt_3_640_x_480_detail;
+            break;
+        }
+    }
+}
+#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_WE2)
 CameraWE2::CameraWE2() : Camera(0b00000111) {}
+#else
+    #error "Camera moudle does not find supported board."
+#endif
 
 el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
     if (this->_is_present) [[unlikely]] {
@@ -86,6 +109,28 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
         return EL_EINVAL;
     }
 
+#ifdef CONFIG_EL_BOARD_SENSECAP_WATCHER
+    switch (opt_id & 0x0FFF) {
+    case 0:
+        ret                   = _drv_cam_init(240, 240);
+        this->_current_opt_id = 0;
+        break;
+    case 1:
+        ret                   = _drv_cam_init(416, 416);
+        this->_current_opt_id = 1;
+        break;
+    case 2:
+        ret                   = _drv_cam_init(480, 480);
+        this->_current_opt_id = 2;
+        break;
+    case 3:
+        ret                   = _drv_cam_init(640, 480);
+        this->_current_opt_id = 3;
+        break;
+    default:
+        ret = EL_EINVAL;
+    }
+#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_WE2)
     switch (opt_id & 0x0FFF) {
     case 0:
         ret                   = _drv_cam_init(240, 240);
@@ -102,6 +147,9 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
     default:
         ret = EL_EINVAL;
     }
+#else
+    #error "Camera moudle does not find supported board."
+#endif
 
     if (ret == EL_OK) [[likely]] {
         this->_is_present = true;

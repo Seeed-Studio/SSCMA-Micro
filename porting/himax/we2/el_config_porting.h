@@ -37,8 +37,8 @@
 #else
     #if defined(CONFIG_EL_BOARD_GROVE_VISION_AI_WE2)
         #include "boards/grove_vision_ai_we2/board.h"
-    #elif defined(CONFIG_EL_BOARD_DEV_BOARD_WE2)
-        #include "boards/dev_board/board.h"
+    #elif defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
+        #include "boards/sensecap_watcher/board.h"
     #else
         #error "Please specify porting board"
     #endif
@@ -63,6 +63,7 @@
 #define CONFIG_EL_TFLITE_OP_MAX_POOL_2D
 #define CONFIG_EL_TFLITE_OP_MUL
 #define CONFIG_EL_TFLITE_OP_BROADCAST_TO
+#define CONFIG_EL_TFLITE_OP_MEAN
 
 #define CONFIG_EL_NETWORK_PRIO                  4
 #define CONFIG_EL_NETWORK_STACK_SIZE            512

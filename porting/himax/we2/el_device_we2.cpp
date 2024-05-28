@@ -102,7 +102,7 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
     _arm_npu_irq_init();
 
     /* Initialise Ethos-U55 device */
-    const void* ethosu_base_address = (void*)(U55_BASE);
+     void* const ethosu_base_address = (void*)(U55_BASE);
 
     if (0 != (err = ethosu_init(&_ethosu_drv,         /* Ethos-U driver device pointer */
                                 ethosu_base_address,  /* Ethos-U NPU's base address. */

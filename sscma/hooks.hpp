@@ -47,6 +47,7 @@ void init_sensor_hook(std::string cmd) {
           cmd + "@SENSOR", static_resource->current_sensor_id, true, 0, static_cast<void*>(default_transport()), true);
 }
 
+#if SSCMA_CFG_ENABLE_ACTION
 void init_action_hook(std::string cmd) {
     if (static_resource->storage->contains(SSCMA_STORAGE_KEY_ACTION)) [[likely]] {
         char action[SSCMA_CMD_MAX_LENGTH]{};
@@ -54,6 +55,7 @@ void init_action_hook(std::string cmd) {
         set_action({cmd + "@ACTION", action}, static_cast<void*>(default_transport()), true);
     }
 }
+#endif
 
 #if SSCMA_HAS_NATIVE_NETWORKING
 void init_wifi_hook(std::string cmd) {

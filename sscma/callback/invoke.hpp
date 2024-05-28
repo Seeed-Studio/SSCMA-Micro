@@ -50,10 +50,17 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
           _model_info{},
           _algorithm_info{},
           _times{0},
-          _ret{EL_OK},
-          _action_hash{0},
+          _ret{EL_OK}
+#if SSCMA_CFG_ENABLE_ACTION
+          ,
+          _action_hash{0}
+#endif
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+          ,
           _contents_export{false},
-          _exporter{std::make_shared<ContentsExport>()} {
+          _exporter{std::make_shared<ContentsExport>()}
+#endif
+    {
         static_resource->is_invoke = true;
     }
 
@@ -79,7 +86,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         direct_reply(algorithm_info_2_json_str(&_algorithm_info));
     }
 
-    inline void reset_action_hash() { _action_hash = 0; }
+    inline void reset_action_hash() {
+#if SSCMA_CFG_ENABLE_ACTION
+        _action_hash = 0;
+#endif
+    }
 
     inline void reset_config_cmds() {
         for (const auto& cmd : _config_cmds) static_resource->instance->unregister_cmd(cmd);
@@ -379,11 +390,12 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         auto frame             = el_img_t{};
         auto processed_frame   = el_img_t{};
         auto encoded_frame_str = std::string{};
-
+#if SSCMA_CFG_ENABLE_ACTION
         if (_action_hash != static_resource->action->get_condition_hash()) [[unlikely]] {
             _action_hash = static_resource->action->get_condition_hash();
             action_injection(algorithm);
         }
+#endif
 
         _ret = camera->start_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -393,7 +405,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        if (!_results_only || _contents_export) {
+        if (!_results_only
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+            || _contents_export
+#endif
+        ) {
 #if CONFIG_EL_HAS_ACCELERATED_JPEG_CODEC
             _ret = camera->get_processed_frame(&processed_frame);
             if (!is_everything_ok()) [[unlikely]]
@@ -402,15 +418,18 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 #else
             encoded_frame_str = std::move(img_2_jpeg_json_str(&frame, &processed_frame));
 #endif
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
             if (_contents_export && _exporter) [[likely]]
                 _exporter->cache(processed_frame.data, processed_frame.size);
+#endif
         }
 
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
-
+#if SSCMA_CFG_ENABLE_ACTION
         static_resource->action->evalute(_caller);
+#endif
 
         _ret = camera->stop_stream();
         if (!is_everything_ok()) [[unlikely]]
@@ -443,9 +462,12 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         event_reply("");
     }
 
+#if SSCMA_CFG_ENABLE_ACTION
     template <typename AlgorithmType> void action_injection(std::shared_ptr<AlgorithmType> algorithm) {
+    #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
         // reset action related flags
         _contents_export = false;
+    #endif
 
         auto mutable_map = static_resource->action->get_mutable_map();
         for (auto& kv : mutable_map) {
@@ -498,6 +520,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 continue;
             }
 
+    #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
             if (argv[0] == "save_jpeg") {
                 // save jpeg
                 if (argv.size() == 1) {
@@ -528,9 +551,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 }
                 continue;
             }
+    #endif
         }
         static_resource->action->set_mutable_map(mutable_map);
     }
+#endif
 
     inline bool is_everything_ok() const { return _ret == EL_OK; }
 
@@ -548,10 +573,15 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     int32_t       _times;
     el_err_code_t _ret;
-    uint16_t      _action_hash;
 
+#if SSCMA_CFG_ENABLE_ACTION
+    uint16_t _action_hash;
+#endif
+
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
     bool                            _contents_export;
     std::shared_ptr<ContentsExport> _exporter;
+#endif
 
     std::forward_list<std::string> _config_cmds;
 };

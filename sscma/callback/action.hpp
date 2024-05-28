@@ -1,13 +1,14 @@
 #pragma once
 
-#include <cstdint>
-#include <cstring>
-#include <string>
+#if SSCMA_CFG_ENABLE_ACTION
+    #include <cstdint>
+    #include <cstring>
+    #include <string>
 
-#include "core/utils/el_hash.h"
-#include "sscma/definations.hpp"
-#include "sscma/static_resource.hpp"
-#include "sscma/utility.hpp"
+    #include "core/utils/el_hash.h"
+    #include "sscma/definations.hpp"
+    #include "sscma/static_resource.hpp"
+    #include "sscma/utility.hpp"
 
 namespace sscma::callback {
 
@@ -112,3 +113,5 @@ void get_action(const std::string& cmd, void* caller) {
 }
 
 }  // namespace sscma::callback
+
+#endif
