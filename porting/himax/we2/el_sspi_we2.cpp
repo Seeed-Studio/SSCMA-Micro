@@ -185,7 +185,7 @@ size_t sspiWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) {
         return 0;
     }
-    el_printf("buf %d, put %d\n", this->tx_ring_buffer->size(), size);
+    // el_printf("buf %d, put %d\n", this->tx_ring_buffer->size(), size);
     // if (this->tx_ring_buffer->free() < size) {
     //     EL_LOGW("TX ring buffer full, cannot send data\n");
     //     return 0;
