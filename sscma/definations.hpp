@@ -59,6 +59,7 @@
 #define SSCMA_STORAGE_KEY_BOOT_COUNT         "sscma#boot_count"
 #define SSCMA_STORAGE_KEY_CONF_MODEL_ID      "sscma#conf#model_id"
 #define SSCMA_STORAGE_KEY_CONF_SENSOR_ID     "sscma#conf#sensor_id"
+#define SSCMA_STORAGE_KEY_CONF_SENSOR_OPT    "sscma#conf#sensor_opt"
 
 #define SSCMA_WIRELESS_NETWORK_NAME_LEN      32
 #define SSCMA_WIRELESS_NETWORK_PASSWD_LEN    64

@@ -53,6 +53,8 @@ void set_sensor(
             ret = camera->init(opt_id);  // TODO: custom resolution
             if (ret != EL_OK) [[unlikely]]
                 goto SensorError;
+
+            static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, opt_id));
         }
 
         // set the sensor state to available

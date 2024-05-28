@@ -55,6 +55,7 @@ class StaticResource final {
     int32_t             boot_count;
     uint8_t             current_model_id;
     uint8_t             current_sensor_id;
+    uint16_t            current_sensor_opt;
     el_algorithm_type_t current_algorithm_type;
 
     // internal states
@@ -132,6 +133,7 @@ class StaticResource final {
         boot_count             = 0;
         current_model_id       = 1;
         current_sensor_id      = 1;
+        current_sensor_opt     = 0;
         current_algorithm_type = EL_ALGO_TYPE_UNDEFINED;
 
         current_task_id = 0;
@@ -181,12 +183,14 @@ class StaticResource final {
         if (storage->get(kv) && std::strcmp(kv.value, SSCMA_STORAGE_VERSION) == 0) [[likely]]
             *storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id) >>
+              el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, current_sensor_opt) >>
               el_make_storage_kv_from_type(current_algorithm_type) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         else {  // else init flash storage
             std::strncpy(version, SSCMA_STORAGE_VERSION, sizeof(version));
             *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
+                     << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, current_sensor_opt)
                      << el_make_storage_kv_from_type(current_algorithm_type)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         }

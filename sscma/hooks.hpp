@@ -43,8 +43,12 @@ void init_model_hook(std::string cmd) {
 
 void init_sensor_hook(std::string cmd) {
     if (static_resource->current_sensor_id) [[likely]]
-        set_sensor(
-          cmd + "@SENSOR", static_resource->current_sensor_id, true, 0, static_cast<void*>(default_transport()), true);
+        set_sensor(cmd + "@SENSOR",
+                   static_resource->current_sensor_id,
+                   true,
+                   static_resource->current_sensor_opt,
+                   static_cast<void*>(default_transport()),
+                   true);
 }
 
 #if SSCMA_CFG_ENABLE_ACTION
