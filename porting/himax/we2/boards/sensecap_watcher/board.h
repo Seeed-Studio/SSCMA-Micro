@@ -23,13 +23,17 @@
  *
  */
 
-#ifndef _BOARD_DEV_BOARD_WE2_H_
-#define _BOARD_DEV_BOARD_WE2_H_
+#ifndef _BOARD_SENSECAP_WATCHER_H_
+#define _BOARD_SENSECAP_WATCHER_H_
 
-#define PRODUCT_NAME_PREFIX "dev_board"
-#define PRODUCT_NAME_SUFFIX "v1"
-#define DEVICE_NAME         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
-#define PORT_DEVICE_NAME    "Dev Board"
+#define PRODUCT_NAME_PREFIX                 "sensecap_watcher"
+#define PRODUCT_NAME_SUFFIX                 "v1"
+#define DEVICE_NAME                         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
+#define PORT_DEVICE_NAME                    "SenseCAP Watcher"
+
+#define SSCMA_CFG_ENABLE_ACTION             0
+#define SSCMA_CFG_ENABLE_CONTENTS_EXPORT    0
+#define SSCMA_STORAGE_CFG_UPDATE_BOOT_COUNT 0
 
 #ifdef __cplusplus
 extern "C" {

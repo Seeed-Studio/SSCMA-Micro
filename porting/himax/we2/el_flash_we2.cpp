@@ -75,7 +75,11 @@ bool _el_flash_enable_xip() {
 
 bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mmap, uint32_t* handler) {
     *flash_addr = 0x00400000;
-    *size       = 0x00400000;
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
+    *size = 0x00400000;
+#else
+    *size = 0x00A00000;
+#endif
 
     if (!_el_flash_init()) [[unlikely]]
         return false;
@@ -101,7 +105,6 @@ void el_flash_mmap_deinit(uint32_t*) { _el_flash_deinit(); }
 const static size_t _el_flash_db_partition_begin = 0x00300000;
 const static size_t _el_flash_db_partition_end   = 0x00300000 + CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0;
 
-
 static int _el_flash_db_init(void) {
     if (!_el_flash_init()) [[unlikely]]
         return -1;
@@ -111,7 +114,7 @@ static int _el_flash_db_init(void) {
 
 static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-    
+
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
@@ -156,10 +159,9 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
     return ret;
 }
 
-
 static int _el_flash_db_erase(long offset, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
-    
+
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
 
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]

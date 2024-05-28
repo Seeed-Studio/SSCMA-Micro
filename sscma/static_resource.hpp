@@ -47,7 +47,9 @@ class StaticResource final {
     Server*     instance;
     Executor*   executor;
     Supervisor* supervisor;
-    Condition*  action;
+#if SSCMA_CFG_ENABLE_ACTION
+    Condition* action;
+#endif
 
     // internal configs that stored in flash
     int32_t             boot_count;
@@ -114,9 +116,10 @@ class StaticResource final {
 
         supervisor = Supervisor::get_ptr();
 
+#if SSCMA_CFG_ENABLE_ACTION
         static auto v_action{Condition()};
         action = &v_action;
-
+#endif
         inter_init();
 
         if (post_init) post_init();
@@ -174,17 +177,17 @@ class StaticResource final {
         models->init();
         storage->init();
 
-        char version[EL_VERSION_LENTH_MAX]{};
+        char version[SSCMA_STORAGE_VERSION_LENGTH_MAX]{};
         auto kv = el_make_storage_kv(SSCMA_STORAGE_KEY_VERSION, version);
         // if version match, load other configs from storage
-        if (storage->get(kv) && std::strcmp(kv.value, EL_VERSION) == 0) [[likely]]
+        if (storage->get(kv) && std::strcmp(kv.value, SSCMA_STORAGE_VERSION) == 0) [[likely]]
             *storage >> el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, current_sensor_opt) >>
               el_make_storage_kv_from_type(current_algorithm_type) >>
               el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         else {  // else init flash storage
-            std::strncpy(version, EL_VERSION, sizeof(version));
+            std::strncpy(version, SSCMA_STORAGE_VERSION, sizeof(version));
             *storage << kv << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_MODEL_ID, current_model_id)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, current_sensor_id)
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, current_sensor_opt)
@@ -192,8 +195,10 @@ class StaticResource final {
                      << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, boot_count);
         }
 
+#if SSCMA_STORAGE_CFG_UPDATE_BOOT_COUNT
         // increment boot count
         *storage << el_make_storage_kv(SSCMA_STORAGE_KEY_BOOT_COUNT, ++boot_count);
+#endif
     }
 
     inline void init_frontend() {

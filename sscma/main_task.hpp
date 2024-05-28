@@ -42,7 +42,9 @@ void init_static_resource() {
             init_algorithm_hook(caller);
             init_model_hook(caller);
             init_sensor_hook(caller);
+#if SSCMA_CFG_ENABLE_ACTION
             init_action_hook(caller);
+#endif
 #if SSCMA_HAS_NATIVE_NETWORKING
             init_wifi_hook(caller);
             init_mqtt_hook(caller);
@@ -250,6 +252,7 @@ void register_commands() {
           return EL_OK;
       });
 
+#if SSCMA_CFG_ENABLE_ACTION
     // Note:
     //    AT+ACTION="((count(target,0)>=3)&&led(1))||led(0)"
     //    AT+ACTION="((max_score(target,0)>=80)&&led(1))||led(0)"
@@ -267,6 +270,7 @@ void register_commands() {
             [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_action(cmd, caller); });
           return EL_OK;
       });
+#endif
 
     static_resource->instance->register_cmd(
       "INFO", "Store info string to device flash", "\"INFO_STRING\"", [](std::vector<std::string> argv, void* caller) {

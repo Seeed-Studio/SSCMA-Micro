@@ -2,6 +2,14 @@
 
 #include "core/el_config_internal.h"
 
+#ifndef SSCMA_CFG_ENABLE_ACTION
+    #define SSCMA_CFG_ENABLE_ACTION 1
+#endif
+
+#ifndef SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+    #define SSCMA_CFG_ENABLE_CONTENTS_EXPORT 1
+#endif
+
 #ifndef CONFIG_SSCMA_TENSOR_ARENA_SIZE
     #define CONFIG_SSCMA_TENSOR_ARENA_SIZE (1024U * 1024U)
 #endif
@@ -32,11 +40,18 @@
     #endif
 #endif
 
-#define SSCMA_REPL_HISTORY_MAX               8
+#define SSCMA_REPL_HISTORY_MAX           8
 
-#define SSCMA_AT_API_MAJOR_VERSION           "v0"
+#define SSCMA_AT_API_MAJOR_VERSION       "v0"
 
-#define SSCMA_CMD_MAX_LENGTH                 4096U
+#define SSCMA_CMD_MAX_LENGTH             4096U
+
+#define SSCMA_STORAGE_VERSION_LENGTH_MAX 32
+#define SSCMA_STORAGE_VERSION            "1.0.0"
+
+#ifndef SSCMA_STORAGE_CFG_UPDATE_BOOT_COUNT
+    #define SSCMA_STORAGE_CFG_UPDATE_BOOT_COUNT 1
+#endif
 
 #define SSCMA_STORAGE_KEY_VERSION            "sscma#version"
 #define SSCMA_STORAGE_KEY_ACTION             "sscma#action"

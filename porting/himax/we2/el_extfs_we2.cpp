@@ -242,8 +242,12 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
 }
 
 Extfs* Extfs::get_ptr() {
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
     static ExtfsWE2 extfs{};
     return &extfs;
+#else
+    return nullptr;
+#endif
 }
 
 }  // namespace edgelab
