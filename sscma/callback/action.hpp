@@ -1,6 +1,6 @@
 #pragma once
 
-#if SSCMA_CFG_ENABLE_ACTION
+
     #include <cstdint>
     #include <cstring>
     #include <string>
@@ -15,6 +15,8 @@ namespace sscma::callback {
 using namespace edgelab;
 
 using namespace sscma::utility;
+
+#if SSCMA_CFG_ENABLE_ACTION
 
 void set_action(const std::vector<std::string>& argv, void* caller, bool called_by_event = false) {
     // get last condition expr string hash
@@ -112,6 +114,8 @@ void get_action(const std::string& cmd, void* caller) {
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
 
+#endif
+
 }  // namespace sscma::callback
 
-#endif
+
