@@ -21,8 +21,10 @@ Yolo::~Yolo() {}
 
 bool Yolo::is_valid(Engine* engine) {
     const auto& input_shape{engine->get_input_shape(0)};
-    if (input_shape.size != 4 ||                      // B, W, H, C
-        input_shape.dims[0] != 1 ||                   // B = 1
+
+#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC
+    if (input_shape.size != 4 ||                      // N, H, W, C
+        input_shape.dims[0] != 1 ||                   // H = 1
         input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
         input_shape.dims[1] < 32 ||                   // W, H >= 32
         input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
@@ -30,13 +32,32 @@ bool Yolo::is_valid(Engine* engine) {
          input_shape.dims[3] != 1))
         return false;
 
-    auto        ibox_len{[&]() {
+    auto ibox_len{[&]() {
         auto r{static_cast<uint16_t>(input_shape.dims[1])};
         auto s{r >> 5};  // r / 32
         auto m{r >> 4};  // r / 16
         auto l{r >> 3};  // r / 8
         return (s * s + m * m + l * l) * input_shape.dims[3];
     }()};
+#endif
+#if MA_ENGINE_TENSOR_SHAPE_ODER_NCHW
+    if (input_shape.size != 4 ||                      // N, C, H, W
+        input_shape.dims[0] != 1 ||                   // H = 1
+        input_shape.dims[2] ^ input_shape.dims[3] ||  // W = H
+        input_shape.dims[2] < 32 ||                   // W, H >= 32
+        input_shape.dims[2] % 32 ||                   // W or H is multiply of 32
+        (input_shape.dims[1] != 3 &&                  // C = RGB or Gray
+         input_shape.dims[1] != 1))
+        return false;
+
+    auto ibox_len{[&]() {
+        auto r{static_cast<uint16_t>(input_shape.dims[2])};
+        auto s{r >> 5};  // r / 32
+        auto m{r >> 4};  // r / 16
+        auto l{r >> 3};  // r / 8
+        return (s * s + m * m + l * l) * input_shape.dims[1];
+    }()};
+#endif
 
     const auto& output_shape{engine->get_output_shape(0)};
     if (output_shape.size != 3 ||            // B, IB, BC...

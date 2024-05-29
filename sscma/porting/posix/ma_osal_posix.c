@@ -68,7 +68,8 @@ ma_mutex_t* ma_mutex_create(void) {
         return NULL;
     }
 
-    MA_STATIC_ASSERT(_POSIX_THREAD_PRIO_PROTECT > 0, "POSIX_THREAD_PRIO_PROTECT is not defined");
+    // MA_STATIC_ASSERT(_POSIX_THREAD_PRIO_PROTECT > 0, "POSIX_THREAD_PRIO_PROTECT is not defined");
+
     pthread_mutexattr_init(&mattr);
     pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
 
@@ -443,10 +444,16 @@ ma_timer_t* ma_timer_create(uint32_t us,
         sched_yield();
     } while (timer->thread_id == 0);
 
+
+
     /* Create timer */
     sev.sigev_notify            = SIGEV_THREAD_ID;
     sev.sigev_value.sival_ptr   = timer;
-    sev._sigev_un._tid          = timer->thread_id;
+    #ifdef __x86_64__
+    sev._sigev_un._tid           = timer->thread_id;
+    #else
+    sev.sigev_notify_thread_id  = timer->thread_id;
+    #endif
     sev.sigev_signo             = SIGALRM;
     sev.sigev_notify_attributes = NULL;
 

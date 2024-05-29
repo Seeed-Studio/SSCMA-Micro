@@ -9,6 +9,7 @@
 
 
 namespace ma::model {
+
 class Classifier : public Model {
 protected:
     ma_tensor_t             input_;

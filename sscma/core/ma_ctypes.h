@@ -67,6 +67,12 @@ typedef struct {
     ma_quant_param_t quant_param;
     ma_tensor_type_t type;
     size_t           size;
+#if MA_USE_ENGINE_TENSOR_INDEX
+    size_t index;
+#endif
+#if MA_USE_ENGINE_TENSOR_NAME
+    const char* name;
+#endif
     union {
         void*     data;
         uint8_t*  u8;

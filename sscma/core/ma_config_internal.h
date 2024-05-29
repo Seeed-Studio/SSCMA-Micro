@@ -2,7 +2,9 @@
 #define _MA_CONFIG_INTERNAL_H_
 
 
-#include "ma_config.h"
+#if __has_include(<ma_config.h>)
+#include <ma_config.h>
+#endif
 
 /* debug config check */
 #ifndef CONFIG_MA_DEBUG_LEVEL
@@ -77,14 +79,23 @@
 #error "Only one engine can be enabled"
 #endif
 
+#if CONFIG_MA_ENGINE_TENSOR_INDEX
+#define MA_USE_ENGINE_TENSOR_INDEX 1
+#endif
+
 #ifdef CONFIG_MA_ENGINE_TENSOR_NAME
 #define MA_USE_ENGINE_TENSOR_NAME 1
 #endif
 
 #ifdef CONFIG_MA_ENGINE_TFLITE
-#define MA_USE_ENGINE_TFLITE 1
+#define MA_USE_ENGINE_TFLITE             1
+#define MA_ENGINE_TENSOR_SHAPE_ODER_NHWC 1
 #if MA_USE_ENGINE_TENSOR_NAME
 #error "TensorFlow Lite engine does not support tensor name"
+#endif
+#if MA_USE_ENGINE_TENSOR_INDEX != 1
+#undef MA_USE_ENGINE_TENSOR_INDEX
+#define MA_USE_ENGINE_TENSOR_INDEX 1
 #endif
 #ifndef CONFIG_MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE
 #define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE 1024 * 1024
@@ -390,6 +401,23 @@
 
 #ifndef CONFIG_MA_ENGINE_SHAPE_MAX_DIM
 #define MA_ENGINE_SHAPE_MAX_DIM 6
+#endif
+
+#ifdef CONFIG_MA_ENGINE_CVINN
+#define MA_USE_ENGINE_CVINN 1
+#if MA_USE_ENGINE_TENSOR_NAME != 1
+#undef MA_USE_ENGINE_TENSOR_NAME
+#define MA_USE_ENGINE_TENSOR_NAME 1
+#endif
+#define MA_ENGINE_TENSOR_SHAPE_ODER_NCHW 1
+#endif
+
+#if MA_USE_ENGINE_TENSOR_INDEX + MA_USE_ENGINE_TENSOR_NAME > 1
+#error "Only one engine tensor type can be enabled"
+#endif
+
+#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC + MA_ENGINE_TENSOR_SHAPE_ODER_NCHW > 1
+#error "Only one engine tensor shape oder can be enabled"
 #endif
 
 #endif

@@ -10,9 +10,8 @@ using Engine = ma::engine::EngineTFLite;
 
 #ifdef MA_USE_ENGINE_CVINN
 #include "core/engine/ma_engine_cvinn.h"
-#define ENGINE ma::engine::EngineCVInn
-using Engine = ma::engine::EngineCVInn;
+#define ENGINE ma::engine::EngineCVINN
+using Engine = ma::engine::EngineCVINN;
 #endif
-
 
 #endif  // _MA_ENGINE_H_

@@ -1,9 +1,10 @@
+#include <algorithm>
+
 #include "ma_model_classifier.h"
 
 namespace ma::model {
 
 const static char* TAG = "ma::model::classifier";
-
 
 Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
     input_            = p_engine_->get_input(0);
@@ -23,18 +24,32 @@ Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
 Classifier::~Classifier() {}
 
 bool Classifier::is_valid(Engine* engine) {
-    const auto& input_shape{engine->get_input_shape(0)};
-    if (input_shape.size != 4 ||      // B, W, H, C
-        input_shape.dims[0] != 1 ||   // B = 1
-        input_shape.dims[1] < 16 ||   // W >= 16
-        input_shape.dims[2] < 16 ||   // H >= 16
+
+    const auto& input_shape = engine->get_input_shape(0);
+
+#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC
+    if (input_shape.size != 4 ||      // N, H, W, C
+        input_shape.dims[0] != 1 ||   // N = 1
+        input_shape.dims[1] < 16 ||   // H >= 16
+        input_shape.dims[2] < 16 ||   // W >= 16
         (input_shape.dims[3] != 3 &&  // C = RGB or Gray
          input_shape.dims[3] != 1))
         return false;
+#endif
+#if MA_ENGINE_TENSOR_SHAPE_ODER_NCHW
+    if (input_shape.size != 4 ||      // N, C, H, W
+        input_shape.dims[0] != 1 ||   // N = 1
+        input_shape.dims[2] < 16 ||   // H >= 16
+        input_shape.dims[3] < 16 ||   // W >= 16
+        (input_shape.dims[1] != 3 &&  // C = RGB or Gray
+         input_shape.dims[1] != 1))
+        return false;
+#endif
+
 
     const auto& output_shape{engine->get_output_shape(0)};
-    if (output_shape.size != 2 ||     // B, C
-        output_shape.dims[0] != 1 ||  // B = 1
+    if (output_shape.size != 2 ||     // N, C
+        output_shape.dims[0] != 1 ||  // N = 1
         output_shape.dims[1] < 2      // C >= 2
     )
         return false;

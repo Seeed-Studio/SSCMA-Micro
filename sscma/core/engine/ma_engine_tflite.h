@@ -343,7 +343,8 @@ public:
 #if MA_USE_FILESYSTEM
     ma_err_t load_model(const char* model_path) override;
 #endif
-
+    size_t           get_input_size() override;
+    size_t           get_output_size() override;
     ma_tensor_t      get_input(size_t index) override;
     ma_tensor_t      get_output(size_t index) override;
     ma_shape_t       get_input_shape(size_t index) override;

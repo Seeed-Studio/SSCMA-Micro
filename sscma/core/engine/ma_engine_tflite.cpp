@@ -416,6 +416,7 @@ ma_tensor_t EngineTFLite::get_input(size_t index) {
 
     tensor.data.data   = input->data.data;
     tensor.size        = input->bytes;
+    tensor.index       = index;
     tensor.type        = mapped_tensor_types[static_cast<int>(input->type)];
     tensor.shape       = get_input_shape(index);
     tensor.quant_param = get_input_quant_param(index);
@@ -439,6 +440,7 @@ ma_tensor_t EngineTFLite::get_output(size_t index) {
 
     tensor.data.data   = output->data.data;
     tensor.size        = output->bytes;
+    tensor.index       = index;
     tensor.type        = mapped_tensor_types[static_cast<int>(output->type)];
     tensor.shape       = get_output_shape(index);
     tensor.quant_param = get_output_quant_param(index);
@@ -560,6 +562,15 @@ ma_err_t EngineTFLite::load_model(const char* model_path) {
 #endif
 }
 #endif
+
+size_t EngineTFLite::get_input_size() {
+    MA_ASSERT(interpreter != nullptr);
+    return interpreter->inputs().size();
+}
+size_t EngineTFLite::get_output_size() {
+    MA_ASSERT(model != nullptr);
+    return interpreter->outputs().size();
+}
 
 }  // namespace ma::engine
 
