@@ -54,6 +54,8 @@ ma_err_t EngineCVINN::load_model(const char* model_path) {
     _ret = CVI_NN_GetInputOutputTensors(
         model, &input_tensors, &input_num, &output_tensors, &output_num);
 
+    printf("input_num: %d, output_num: %d\n", input_num, output_num);
+
     if (_ret != CVI_RC_SUCCESS) {
         return MA_EINVAL;
     }
@@ -94,47 +96,49 @@ ma_err_t EngineCVINN::run() {
 }
 
 
-ma_tensor_t EngineCVINN::get_input(const char* name) {
+ma_tensor_t EngineCVINN::get_input(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_tensor_t tensor{0};
-    CVI_TENSOR* input_tensor = CVI_NN_GetTensorByName(name, input_tensors, input_num);
-    if (input_tensor != nullptr) {
-        tensor.data.data   = CVI_NN_TensorPtr(input_tensor);
-        tensor.type        = mapped_tensor_types[input_tensor->fmt];
-        tensor.size        = CVI_NN_TensorSize(input_tensor);
-        tensor.name        = CVI_NN_TensorName(input_tensor);
-        tensor.shape       = get_input_shape(name);
-        tensor.quant_param = get_input_quant_param(name);
-        tensor.is_variable = true;
+    if (index >= input_num) {
+        return tensor;
     }
+    tensor.data.data   = CVI_NN_TensorPtr(&input_tensors[index]);
+    tensor.type        = mapped_tensor_types[input_tensors[index].fmt];
+    tensor.size        = CVI_NN_TensorSize(&input_tensors[index]);
+    tensor.name        = CVI_NN_TensorName(&input_tensors[index]);
+    tensor.shape       = get_input_shape(index);
+    tensor.quant_param = get_input_quant_param(index);
+    tensor.is_variable = true;
+
     return tensor;
 }
 
 
-ma_tensor_t EngineCVINN::get_output(const char* name) {
+ma_tensor_t EngineCVINN::get_output(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_tensor_t tensor{0};
-    CVI_TENSOR* output_tensor = CVI_NN_GetTensorByName(name, output_tensors, output_num);
-    if (output_tensor != nullptr) {
-        tensor.data.data   = CVI_NN_TensorPtr(output_tensor);
-        tensor.type        = mapped_tensor_types[output_tensor->fmt];
-        tensor.size        = CVI_NN_TensorSize(output_tensor);
-        tensor.name        = CVI_NN_TensorName(output_tensor);
-        tensor.shape       = get_output_shape(name);
-        tensor.quant_param = get_output_quant_param(name);
-        tensor.is_variable = false;
+    if (index >= output_num) {
+        return tensor;
     }
+    tensor.data.data   = CVI_NN_TensorPtr(&output_tensors[index]);
+    tensor.type        = mapped_tensor_types[output_tensors[index].fmt];
+    tensor.size        = CVI_NN_TensorSize(&output_tensors[index]);
+    tensor.name        = CVI_NN_TensorName(&output_tensors[index]);
+    tensor.shape       = get_output_shape(index);
+    tensor.quant_param = get_output_quant_param(index);
+    tensor.is_variable = false;
+
     return tensor;
 }
 
-ma_shape_t EngineCVINN::get_input_shape(const char* name) {
+ma_shape_t EngineCVINN::get_input_shape(int32_t index) {
     MA_ASSERT(model != nullptr);
-    ma_shape_t  shape{0};
-    CVI_TENSOR* input_tensor = CVI_NN_GetTensorByName(name, input_tensors, input_num);
-    if (input_tensor == nullptr) {
+    ma_shape_t shape{0};
+    if (index >= input_num) {
         return shape;
     }
-    CVI_SHAPE input_shape = CVI_NN_TensorShape(input_tensors);
+
+    CVI_SHAPE input_shape = CVI_NN_TensorShape(&input_tensors[index]);
     shape.size            = input_shape.dim_size;
     MA_ASSERT(shape.size < MA_ENGINE_SHAPE_MAX_DIM);
     for (int i = 0; i < shape.size; i++) {
@@ -144,14 +148,13 @@ ma_shape_t EngineCVINN::get_input_shape(const char* name) {
 }
 
 
-ma_shape_t EngineCVINN::get_output_shape(const char* name) {
+ma_shape_t EngineCVINN::get_output_shape(int32_t index) {
     MA_ASSERT(model != nullptr);
-    ma_shape_t  shape{0};
-    CVI_TENSOR* output_tensor = CVI_NN_GetTensorByName(name, output_tensors, output_num);
-    if (output_tensor == nullptr) {
+    ma_shape_t shape{0};
+    if (index >= output_num) {
         return shape;
     }
-    CVI_SHAPE output_shape = CVI_NN_TensorShape(output_tensors);
+    CVI_SHAPE output_shape = CVI_NN_TensorShape(&output_tensors[index]);
     shape.size             = output_shape.dim_size;
     MA_ASSERT(shape.size < MA_ENGINE_SHAPE_MAX_DIM);
     for (int i = 0; i < shape.size; i++) {
@@ -161,38 +164,55 @@ ma_shape_t EngineCVINN::get_output_shape(const char* name) {
 }
 
 
-ma_quant_param_t EngineCVINN::get_input_quant_param(const char* name) {
+ma_quant_param_t EngineCVINN::get_input_quant_param(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_quant_param_t quant_param{0};
-    CVI_TENSOR*      input_tensor = CVI_NN_GetTensorByName(name, input_tensors, input_num);
-    if (input_tensor == nullptr) {
+    if (index >= input_num) {
         return quant_param;
     }
-    quant_param.scale      = CVI_NN_TensorQuantScale(input_tensor);
-    quant_param.zero_point = CVI_NN_TensorQuantZeroPoint(input_tensor);
+    quant_param.scale      = CVI_NN_TensorQuantScale(&input_tensors[index]);
+    quant_param.zero_point = CVI_NN_TensorQuantZeroPoint(&input_tensors[index]);
     return quant_param;
 }
 
 
-ma_quant_param_t EngineCVINN::get_output_quant_param(const char* name) {
+ma_quant_param_t EngineCVINN::get_output_quant_param(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_quant_param_t quant_param{0};
-    CVI_TENSOR*      output_tensor = CVI_NN_GetTensorByName(name, output_tensors, output_num);
-    if (output_tensor == nullptr) {
+    if (index >= output_num) {
         return quant_param;
     }
-    quant_param.scale      = CVI_NN_TensorQuantScale(output_tensor);
-    quant_param.zero_point = CVI_NN_TensorQuantZeroPoint(output_tensor);
+    quant_param.scale      = CVI_NN_TensorQuantScale(&output_tensors[index]);
+    quant_param.zero_point = CVI_NN_TensorQuantZeroPoint(&output_tensors[index]);
     return quant_param;
 }
 
-size_t EngineCVINN::get_input_size() {
-
+int32_t EngineCVINN::get_input_size() {
     return input_num;
 }
-size_t EngineCVINN::get_output_size() {
+int32_t EngineCVINN::get_output_size() {
     return output_num;
 }
+
+int32_t EngineCVINN::get_input_num(const char* name) {
+    MA_ASSERT(model != nullptr);
+    for (int32_t i = 0; i < input_num; i++) {
+        if (strcmp(CVI_NN_TensorName(&input_tensors[i]), name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+int32_t EngineCVINN::get_output_num(const char* name) {
+    MA_ASSERT(model != nullptr);
+    for (int32_t i = 0; i < output_num; i++) {
+        if (strcmp(CVI_NN_TensorName(&output_tensors[i]), name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 
 }  // namespace ma::engine
 

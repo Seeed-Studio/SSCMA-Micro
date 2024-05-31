@@ -402,7 +402,7 @@ ma_err_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
     }
     return MA_OK;
 }
-ma_tensor_t EngineTFLite::get_input(size_t index) {
+ma_tensor_t EngineTFLite::get_input(int32_t index) {
     MA_ASSERT(interpreter != nullptr);
     ma_tensor_t tensor{0};
 
@@ -426,7 +426,7 @@ ma_tensor_t EngineTFLite::get_input(size_t index) {
     return tensor;
 }
 
-ma_tensor_t EngineTFLite::get_output(size_t index) {
+ma_tensor_t EngineTFLite::get_output(int32_t index) {
     MA_ASSERT(interpreter != nullptr);
     ma_tensor_t tensor{0};
 
@@ -449,7 +449,7 @@ ma_tensor_t EngineTFLite::get_output(size_t index) {
     return tensor;
 }
 
-ma_shape_t EngineTFLite::get_input_shape(size_t index) {
+ma_shape_t EngineTFLite::get_input_shape(int32_t index) {
     ma_shape_t shape;
 
     MA_ASSERT(interpreter != nullptr);
@@ -471,7 +471,7 @@ ma_shape_t EngineTFLite::get_input_shape(size_t index) {
     return shape;
 }
 
-ma_shape_t EngineTFLite::get_output_shape(size_t index) {
+ma_shape_t EngineTFLite::get_output_shape(int32_t index) {
     ma_shape_t shape;
     shape.size = 0;
 
@@ -495,7 +495,7 @@ ma_shape_t EngineTFLite::get_output_shape(size_t index) {
     return shape;
 }
 
-ma_quant_param_t EngineTFLite::get_input_quant_param(size_t index) {
+ma_quant_param_t EngineTFLite::get_input_quant_param(int32_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;
@@ -514,7 +514,7 @@ ma_quant_param_t EngineTFLite::get_input_quant_param(size_t index) {
     return quant_param;
 }
 
-ma_quant_param_t EngineTFLite::get_output_quant_param(size_t index) {
+ma_quant_param_t EngineTFLite::get_output_quant_param(int32_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;
@@ -563,11 +563,11 @@ ma_err_t EngineTFLite::load_model(const char* model_path) {
 }
 #endif
 
-size_t EngineTFLite::get_input_size() {
+int32_t EngineTFLite::get_input_size() {
     MA_ASSERT(interpreter != nullptr);
     return interpreter->inputs().size();
 }
-size_t EngineTFLite::get_output_size() {
+int32_t EngineTFLite::get_output_size() {
     MA_ASSERT(model != nullptr);
     return interpreter->outputs().size();
 }

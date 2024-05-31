@@ -15,7 +15,7 @@
 //      3: print info
 //      4: print debug
 //      5: print verbose
-#define MA_DEBUG_LEVEL 3
+#define MA_DEBUG_LEVEL 6
 #else
 #define MA_DEBUG_LEVEL CONFIG_MA_DEBUG_LEVEL
 #endif
@@ -89,7 +89,7 @@
 
 #ifdef CONFIG_MA_ENGINE_TFLITE
 #define MA_USE_ENGINE_TFLITE             1
-#define MA_ENGINE_TENSOR_SHAPE_ODER_NHWC 1
+#define MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC 1
 #if MA_USE_ENGINE_TENSOR_NAME
 #error "TensorFlow Lite engine does not support tensor name"
 #endif
@@ -409,14 +409,14 @@
 #undef MA_USE_ENGINE_TENSOR_NAME
 #define MA_USE_ENGINE_TENSOR_NAME 1
 #endif
-#define MA_ENGINE_TENSOR_SHAPE_ODER_NCHW 1
+#define MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW 1
 #endif
 
 #if MA_USE_ENGINE_TENSOR_INDEX + MA_USE_ENGINE_TENSOR_NAME > 1
 #error "Only one engine tensor type can be enabled"
 #endif
 
-#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC + MA_ENGINE_TENSOR_SHAPE_ODER_NCHW > 1
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC + MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW > 1
 #error "Only one engine tensor shape oder can be enabled"
 #endif
 

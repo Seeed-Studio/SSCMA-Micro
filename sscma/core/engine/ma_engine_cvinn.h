@@ -32,14 +32,17 @@ public:
     ma_err_t load_model(const char* model_path) override;
 #endif
 
-    size_t           get_input_size() override;
-    size_t           get_output_size() override;
-    ma_tensor_t      get_input(const char* name) override;
-    ma_tensor_t      get_output(const char* name) override;
-    ma_shape_t       get_input_shape(const char* name) override;
-    ma_shape_t       get_output_shape(const char* name) override;
-    ma_quant_param_t get_input_quant_param(const char* name) override;
-    ma_quant_param_t get_output_quant_param(const char* name) override;
+    int32_t          get_input_size() override;
+    int32_t          get_output_size() override;
+    ma_tensor_t      get_input(int32_t index) override;
+    ma_tensor_t      get_output(int32_t index) override;
+    ma_shape_t       get_input_shape(int32_t index) override;
+    ma_shape_t       get_output_shape(int32_t index) override;
+    ma_quant_param_t get_input_quant_param(int32_t index) override;
+    ma_quant_param_t get_output_quant_param(int32_t index) override;
+
+    int32_t          get_input_num(const char* name) override;
+    int32_t          get_output_num(const char* name) override;
 
 private:
     CVI_MODEL_HANDLE model;

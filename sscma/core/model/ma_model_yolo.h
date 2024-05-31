@@ -11,6 +11,9 @@ namespace ma::model {
 class Yolo : public Detector {
 private:
     ma_tensor_t output_;
+    int32_t     num_record_;
+    int32_t     num_element_;
+    int32_t     num_class_;
     enum {
         INDEX_X = 0,
         INDEX_Y = 1,
@@ -26,7 +29,7 @@ protected:
 public:
     Yolo(Engine* engine);
     ~Yolo();
-    bool is_valid(Engine *engine) override;
+    bool is_valid(Engine* engine) override;
 };
 
 }  // namespace ma::model

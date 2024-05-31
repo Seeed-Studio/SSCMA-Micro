@@ -38,7 +38,7 @@ TEST(Model, YOLO) {
     auto* engine = new Engine();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
     EXPECT_EQ(MA_OK, engine->load_model("yolo_meter.tflite"));
-    Detector* classifier = static_cast<Detector*>(new ma::model::Yolo(engine));
+    Detector* detector = static_cast<Detector*>(new ma::model::Yolo(engine));
     ma_img_t  img;
     img.data   = (uint8_t*)gImage_meter;
     img.size   = sizeof(gImage_meter);
@@ -47,26 +47,28 @@ TEST(Model, YOLO) {
     img.format = MA_PIXEL_FORMAT_RGB888;
     img.rotate = MA_PIXEL_ROTATE_0;
 
-    classifier->set_postprocess_done(postprocess_done);
-    classifier->set_run_done(inference_done);
-    classifier->set_preprocess_done(preprocess_done);
-    const ma_detect_cfg_t cfg = {0.6f, 0.5f};
-    classifier->configure(cfg);
-    ma_detect_cfg_t cfg2 = classifier->get_config();
+    detector->set_postprocess_done(postprocess_done);
+    detector->set_run_done(inference_done);
+    detector->set_preprocess_done(preprocess_done);
+    detector->set_config(MODEL_CONFIG_OPTION_THRESHOLD, 0.6f);
+    detector->set_config(MODEL_CONFIG_OPTION_NMS, 0.45f);
+    double threshold_nms   = 0;
+    double threshold_score = 0;
+    detector->get_config(MODEL_CONFIG_OPTION_NMS, &threshold_nms);
+    detector->get_config(MODEL_CONFIG_OPTION_THRESHOLD, &threshold_score);
+    EXPECT_EQ(threshold_nms, 0.45f);
+    EXPECT_EQ(threshold_score, 0.6f);
 
-    EXPECT_EQ(cfg.threshold_nms, cfg2.threshold_nms);
-    EXPECT_EQ(cfg.threshold_score, cfg2.threshold_score);
-
-    EXPECT_EQ(MA_OK, classifier->run(&img));
+    EXPECT_EQ(MA_OK, detector->run(&img));
 
     EXPECT_EQ(true, preprocess_done_flag);
     EXPECT_EQ(true, inference_done_flag);
     EXPECT_EQ(true, postprocess_done_flag);
 
-    auto perf = classifier->get_perf();
+    auto perf = detector->get_perf();
     MA_LOGI(
         TAG, "pre: %ldms, infer: %ldms, post: %ldms", perf.preprocess, perf.run, perf.postprocess);
-    auto _results = classifier->get_results();
+    auto _results = detector->get_results();
     int  value    = 0;
     for (int i = 0; i < _results.size(); i++) {
         auto result = _results[i];
@@ -100,8 +102,9 @@ TEST(Model, Classifier) {
     img.rotate = MA_PIXEL_ROTATE_0;
 
 
-    classifier->configure(0.6);
-    float cfg2 = classifier->get_config();
+    classifier->set_config(MODEL_CONFIG_OPTION_THRESHOLD, 0.6f);
+    double cfg2 = 0;
+    classifier->get_config(MODEL_CONFIG_OPTION_THRESHOLD, &cfg2);
 
     EXPECT_EQ(cfg2, 0.6f);
 
@@ -117,7 +120,7 @@ TEST(Model, Classifier) {
         MA_LOGI(TAG, "class: %d, score: %f", result.target, result.score);
     }
 
-    EXPECT_EQ(7, _results[0].target - 1); // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+    EXPECT_EQ(7, _results[0].target - 1);  // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     delete engine;
 }

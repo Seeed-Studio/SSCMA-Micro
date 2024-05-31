@@ -15,6 +15,10 @@ Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->get_output(0);
+
+    num_record_  = output_.shape.dims[1];
+    num_element_ = output_.shape.dims[2];
+    num_class_   = num_element_ - INDEX_T;
 }
 
 Yolo::~Yolo() {}
@@ -22,7 +26,7 @@ Yolo::~Yolo() {}
 bool Yolo::is_valid(Engine* engine) {
     const auto& input_shape{engine->get_input_shape(0)};
 
-#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
     if (input_shape.size != 4 ||                      // N, H, W, C
         input_shape.dims[0] != 1 ||                   // H = 1
         input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
@@ -40,7 +44,7 @@ bool Yolo::is_valid(Engine* engine) {
         return (s * s + m * m + l * l) * input_shape.dims[3];
     }()};
 #endif
-#if MA_ENGINE_TENSOR_SHAPE_ODER_NCHW
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
     if (input_shape.size != 4 ||                      // N, C, H, W
         input_shape.dims[0] != 1 ||                   // H = 1
         input_shape.dims[2] ^ input_shape.dims[3] ||  // W = H
@@ -76,68 +80,109 @@ ma_err_t Yolo::postprocess() {
     std::forward_list<ma_bbox_t> result;
     results_.clear();
 
+    MA_LOGD(TAG,
+            "num record: %d, num element: %d, num class: %d",
+            num_record_,
+            num_element_,
+            num_class_);
 
-    auto width{input_.shape.dims[1]};
-    auto height{input_.shape.dims[2]};
-    auto num_record{output_.shape.dims[1]};
-    auto num_element{output_.shape.dims[2]};
-    auto num_class{num_element - 5};
+    auto* data = output_.data.s8;
 
-    // parse output
     if (output_.type == MA_TENSOR_TYPE_S8) {
-        auto  scale{output_.quant_param.scale};
-        auto  zero_point{output_.quant_param.zero_point};
-        bool  rescale{scale < 0.1f ? true : false};
-        auto* data = output_.data.s8;
-        for (decltype(num_record) i{0}; i < num_record; ++i) {
-            auto idx{i * num_element};
+        auto scale{output_.quant_param.scale};
+        auto zero_point{output_.quant_param.zero_point};
+        bool normalized{scale < 0.1f ? true : false};
+        for (decltype(num_record_) i{0}; i < num_record_; ++i) {
+            auto idx{i * num_element_};
             auto score{static_cast<decltype(scale)>(data[idx + INDEX_S] - zero_point) * scale};
-            score = rescale ? score : score / 100.0f;
-            if (score > config_.threshold_score) {
-                ma_bbox_t box{
-                    .x      = 0,
-                    .y      = 0,
-                    .w      = 0,
-                    .h      = 0,
-                    .target = 0,
-                    .score  = score,
-                };
+            score = normalized ? score : score / 100.0f;
+            if (score <= threshold_score_)
+                continue;
 
-                // get box target
-                int8_t max{-128};
-                for (decltype(num_class) t{0}; t < num_class; ++t) {
-                    if (max < data[idx + INDEX_T + t]) {
-                        max        = data[idx + INDEX_T + t];
-                        box.target = t;
-                    }
+            ma_bbox_t box{
+                .x      = 0,
+                .y      = 0,
+                .w      = 0,
+                .h      = 0,
+                .target = 0,
+                .score  = score,
+            };
+
+            // get box target
+            int8_t max{-128};
+            for (decltype(num_class_) t{0}; t < num_class_; ++t) {
+                if (max < data[idx + INDEX_T + t]) {
+                    max        = data[idx + INDEX_T + t];
+                    box.target = t;
                 }
-
-                // get box position, int8_t - int32_t (narrowing)
-                auto x{((data[idx + INDEX_X] - zero_point) * scale)};
-                auto y{((data[idx + INDEX_Y] - zero_point) * scale)};
-                auto w{((data[idx + INDEX_W] - zero_point) * scale)};
-                auto h{((data[idx + INDEX_H] - zero_point) * scale)};
-
-                if (!rescale) {
-                    x = x / width;
-                    y = y / height;
-                    w = w / width;
-                    h = h / height;
-                }
-
-                box.x = MA_CLIP(x, 0, 1.0f);
-                box.y = MA_CLIP(y, 0, 1.0f);
-                box.w = MA_CLIP(w, 0, 1.0f);
-                box.h = MA_CLIP(h, 0, 1.0f);
-
-                result.emplace_front(std::move(box));
             }
+
+            // get box position, int8_t - int32_t (narrowing)
+            auto x{((data[idx + INDEX_X] - zero_point) * scale)};
+            auto y{((data[idx + INDEX_Y] - zero_point) * scale)};
+            auto w{((data[idx + INDEX_W] - zero_point) * scale)};
+            auto h{((data[idx + INDEX_H] - zero_point) * scale)};
+
+            if (!normalized) {
+                x = x / img_.width;
+                y = y / img_.height;
+                w = w / img_.width;
+                h = h / img_.height;
+            }
+
+            box.x = MA_CLIP(x, 0, 1.0f);
+            box.y = MA_CLIP(y, 0, 1.0f);
+            box.w = MA_CLIP(w, 0, 1.0f);
+            box.h = MA_CLIP(h, 0, 1.0f);
+            result.emplace_front(std::move(box));
+        }
+    } else if (output_.type == MA_TENSOR_TYPE_F32) {
+        auto* data       = output_.data.f32;
+        bool  normalized = data[0] < 1.0f ? true : false;
+        for (decltype(num_record_) i{0}; i < num_record_; ++i) {
+            auto idx{i * num_element_};
+            auto score = normalized ? data[idx + INDEX_S] : data[idx + INDEX_S] / 100.0f;
+            if (score <= threshold_score_)
+                continue;
+
+            ma_bbox_t box{
+                .x      = 0,
+                .y      = 0,
+                .w      = 0,
+                .h      = 0,
+                .target = 0,
+                .score  = score,
+            };
+            // get box target
+            float max{-1.0f};
+            for (decltype(num_class_) t{0}; t < num_class_; ++t) {
+                if (max < data[idx + INDEX_T + t]) {
+                    max        = data[idx + INDEX_T + t];
+                    box.target = t;
+                }
+            }
+            auto x{data[idx + INDEX_X]};
+            auto y{data[idx + INDEX_Y]};
+            auto w{data[idx + INDEX_W]};
+            auto h{data[idx + INDEX_H]};
+
+            if (!normalized) {
+                x = x / img_.width;
+                y = y / img_.height;
+                w = w / img_.width;
+                h = h / img_.height;
+            }
+            box.x = MA_CLIP(x, 0, 1.0f);
+            box.y = MA_CLIP(y, 0, 1.0f);
+            box.w = MA_CLIP(w, 0, 1.0f);
+            box.h = MA_CLIP(h, 0, 1.0f);
+            result.emplace_front(std::move(box));
         }
     } else {
         return MA_ENOTSUP;
     }
 
-    ma::utils::nms(result, config_.threshold_nms, config_.threshold_score, false, false);
+    ma::utils::nms(result, threshold_nms_, threshold_scsore_, false, false);
 
     result.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });  // left to right
 

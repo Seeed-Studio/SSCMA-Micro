@@ -130,12 +130,6 @@ typedef struct {
     int64_t run;
 } ma_pref_t;
 
-typedef struct {
-    float x;
-    float y;
-    float w;
-    float h;
-} ma_rect_t;
 
 typedef struct {
     float x;
@@ -156,10 +150,11 @@ typedef struct {
     float score;
 } ma_bbox_t;
 
-typedef struct {
-    float threshold_score;
-    float threshold_nms;
-} ma_detect_cfg_t;
+typedef enum {
+    MODEL_CONFIG_OPTION_THRESHOLD = 0,
+    MODEL_CONFIG_OPTION_NMS       = 1,
+    MODEL_CONFIG_OPTION_TOPK      = 2,
+} ma_model_cfg_opt_t;
 
 
 #ifdef __cplusplus

@@ -29,25 +29,25 @@ public:
     virtual ma_err_t load_model(const char* model_path) = 0;
 #endif
 
-    virtual size_t           get_input_size()                     = 0;
-    virtual size_t           get_output_size()                    = 0;
+    virtual int32_t          get_input_size()  = 0;
+    virtual int32_t          get_output_size() = 0;
 
-#if MA_USE_ENGINE_TENSOR_INDEX
-    virtual ma_tensor_t      get_input(size_t index)              = 0;
-    virtual ma_tensor_t      get_output(size_t index)             = 0;
-    virtual ma_shape_t       get_input_shape(size_t index)        = 0;
-    virtual ma_shape_t       get_output_shape(size_t index)       = 0;
-    virtual ma_quant_param_t get_input_quant_param(size_t index)  = 0;
-    virtual ma_quant_param_t get_output_quant_param(size_t index) = 0;
-#endif
+    virtual ma_tensor_t      get_input(int32_t index)              = 0;
+    virtual ma_tensor_t      get_output(int32_t index)             = 0;
+    virtual ma_shape_t       get_input_shape(int32_t index)        = 0;
+    virtual ma_shape_t       get_output_shape(int32_t index)       = 0;
+    virtual ma_quant_param_t get_input_quant_param(int32_t index)  = 0;
+    virtual ma_quant_param_t get_output_quant_param(int32_t index) = 0;
 
 #if MA_USE_ENGINE_TENSOR_NAME
-    virtual ma_tensor_t      get_input(const char* name)              = 0;
-    virtual ma_tensor_t      get_output(const char* name)             = 0;
-    virtual ma_shape_t       get_input_shape(const char* name)        = 0;
-    virtual ma_shape_t       get_output_shape(const char* name)       = 0;
-    virtual ma_quant_param_t get_input_quant_param(const char* name)  = 0;
-    virtual ma_quant_param_t get_output_quant_param(const char* name) = 0;
+    virtual int32_t get_input_num(const char* name)  = 0;
+    virtual int32_t get_output_num(const char* name) = 0;
+    // virtual ma_tensor_t      get_input(const char* name)              = 0;
+    // virtual ma_tensor_t      get_output(const char* name)             = 0;
+    // virtual ma_shape_t       get_input_shape(const char* name)        = 0;
+    // virtual ma_shape_t       get_output_shape(const char* name)       = 0;
+    // virtual ma_quant_param_t get_input_quant_param(const char* name)  = 0;
+    // virtual ma_quant_param_t get_output_quant_param(const char* name) = 0;
 #endif
 };
 

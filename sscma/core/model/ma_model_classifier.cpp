@@ -7,17 +7,17 @@ namespace ma::model {
 const static char* TAG = "ma::model::classifier";
 
 Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
-    input_            = p_engine_->get_input(0);
-    output_           = p_engine_->get_output(0);
-    threshold_score_  = 0.5f;
-    input_img_.width  = input_.shape.dims[1];
-    input_img_.height = input_.shape.dims[2];
-    input_img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
-    input_img_.data   = input_.data.u8;
+    input_           = p_engine_->get_input(0);
+    output_          = p_engine_->get_output(0);
+    threshold_score_ = 0.5f;
+    img_.width       = input_.shape.dims[1];
+    img_.height      = input_.shape.dims[2];
+    img_.size        = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
+    img_.data        = input_.data.u8;
     if (input_.shape.dims[3] == 3) {
-        input_img_.format = MA_PIXEL_FORMAT_RGB888;
+        img_.format = MA_PIXEL_FORMAT_RGB888;
     } else if (input_.shape.dims[3] == 1) {
-        input_img_.format = MA_PIXEL_FORMAT_GRAYSCALE;
+        img_.format = MA_PIXEL_FORMAT_GRAYSCALE;
     }
 };
 
@@ -27,7 +27,7 @@ bool Classifier::is_valid(Engine* engine) {
 
     const auto& input_shape = engine->get_input_shape(0);
 
-#if MA_ENGINE_TENSOR_SHAPE_ODER_NHWC
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
     if (input_shape.size != 4 ||      // N, H, W, C
         input_shape.dims[0] != 1 ||   // N = 1
         input_shape.dims[1] < 16 ||   // H >= 16
@@ -36,7 +36,7 @@ bool Classifier::is_valid(Engine* engine) {
          input_shape.dims[3] != 1))
         return false;
 #endif
-#if MA_ENGINE_TENSOR_SHAPE_ODER_NCHW
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
     if (input_shape.size != 4 ||      // N, C, H, W
         input_shape.dims[0] != 1 ||   // N = 1
         input_shape.dims[2] < 16 ||   // H >= 16
@@ -58,22 +58,39 @@ bool Classifier::is_valid(Engine* engine) {
 }
 
 
-ma_err_t Classifier::preprocess(const void* input) {
+ma_err_t Classifier::preprocess() {
+    ma_err_t ret = MA_OK;
 
-    MA_ASSERT(input != nullptr);
-
-    ma_err_t        ret     = MA_OK;
-    const ma_img_t* src_img = static_cast<const ma_img_t*>(input);
-
-    ret = ma::cv::convert(src_img, &input_img_);
+    ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
         return ret;
     }
+
     if (input_.type == MA_TENSOR_TYPE_S8) {
         for (int i = 0; i < input_.size; i++) {
             input_.data.u8[i] -= 128;
         }
     }
+
+#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
+    // TODO: use opencv
+    if (input_.shape.dims[1] == 3) {
+        char* r_channel = new char[img_.width * img_.height];
+        char* g_channel = new char[img_.width * img_.height];
+        char* b_channel = new char[img_.width * img_.height];
+        for (int i = 0; i < img_.width * img_.height; i++) {
+            r_channel[i] = img_.data[3 * i];
+            g_channel[i] = img_.data[3 * i + 1];
+            b_channel[i] = img_.data[3 * i + 2];
+        }
+        memcpy(img_.data, r_channel, img_.width * img_.height);
+        memcpy(img_.data + img_.width * img_.height, g_channel, img_.width * img_.height);
+        memcpy(img_.data + 2 * img_.width * img_.height, b_channel, img_.width * img_.height);
+        delete[] r_channel;
+        delete[] g_channel;
+        delete[] b_channel;
+    }
+#endif
 
     return ret;
 }
@@ -111,19 +128,46 @@ const std::vector<ma_class_t>& Classifier::get_results() {
     return results_;
 }
 
-float Classifier::get_config() {
-
-    return threshold_score_;
-}
-
 
 ma_err_t Classifier::run(const ma_img_t* img) {
-
-    return underlying_run(img);
+    MA_ASSERT(img != nullptr);
+    input_img_ = img;
+    return underlying_run();
 }
-ma_err_t Classifier::configure(float config) {
-    threshold_score_ = config;
-    return MA_OK;
+
+
+ma_err_t Classifier::set_config(ma_model_cfg_opt_t opt, ...) {
+    ma_err_t ret = MA_OK;
+    va_list  args;
+    va_start(args, opt);
+    switch (opt) {
+        case MODEL_CONFIG_OPTION_THRESHOLD:
+            threshold_score_ = va_arg(args, double);
+            ret              = MA_OK;
+            break;
+        default:
+            ret = MA_EINVAL;
+            break;
+    }
+    va_end(args);
+    return ret;
+}
+ma_err_t Classifier::get_config(ma_model_cfg_opt_t opt, ...) {
+    ma_err_t ret = MA_OK;
+    va_list  args;
+    void*    p_arg = nullptr;
+    va_start(args, opt);
+    switch (opt) {
+        case MODEL_CONFIG_OPTION_THRESHOLD:
+            p_arg                          = va_arg(args, void*);
+            *(static_cast<double*>(p_arg)) = threshold_score_;
+            break;
+        default:
+            ret = MA_EINVAL;
+            break;
+    }
+    va_end(args);
+    return ret;
 }
 
 }  // namespace ma::model

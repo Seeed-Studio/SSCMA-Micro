@@ -18,20 +18,22 @@ private:
 
 protected:
     Engine*          p_engine_;
-    virtual ma_err_t preprocess(const void* input) = 0;
-    virtual ma_err_t postprocess()                 = 0;
-    ma_err_t         underlying_run(const void* input);
+    virtual ma_err_t preprocess()  = 0;
+    virtual ma_err_t postprocess() = 0;
+    ma_err_t         underlying_run();
 
 public:
     Model(Engine* engine, const char* name);
     virtual ~Model();
-    virtual bool    is_valid(Engine *engine) = 0;
-    const ma_pref_t get_perf() const;
-    const char*     get_name() const;
-    void            set_preprocess_done(void (*fn)(void* ctx));
-    void            set_postprocess_done(void (*fn)(void* ctx));
-    void            set_run_done(void (*fn)(void* ctx));
-    void            set_user_ctx(void* ctx);
+    virtual bool     is_valid(Engine* engine) = 0;
+    const ma_pref_t  get_perf() const;
+    const char*      get_name() const;
+    virtual ma_err_t set_config(ma_model_cfg_opt_t opt, ...) = 0;
+    virtual ma_err_t get_config(ma_model_cfg_opt_t opt, ...) = 0;
+    void             set_preprocess_done(void (*fn)(void* ctx));
+    void             set_postprocess_done(void (*fn)(void* ctx));
+    void             set_run_done(void (*fn)(void* ctx));
+    void             set_user_ctx(void* ctx);
 };
 
 }  // namespace ma::model

@@ -343,14 +343,14 @@ public:
 #if MA_USE_FILESYSTEM
     ma_err_t load_model(const char* model_path) override;
 #endif
-    size_t           get_input_size() override;
-    size_t           get_output_size() override;
-    ma_tensor_t      get_input(size_t index) override;
-    ma_tensor_t      get_output(size_t index) override;
-    ma_shape_t       get_input_shape(size_t index) override;
-    ma_shape_t       get_output_shape(size_t index) override;
-    ma_quant_param_t get_input_quant_param(size_t index) override;
-    ma_quant_param_t get_output_quant_param(size_t index) override;
+    int32_t          get_input_size() override;
+    int32_t          get_output_size() override;
+    ma_tensor_t      get_input(int32_t index) override;
+    ma_tensor_t      get_output(int32_t index) override;
+    ma_shape_t       get_input_shape(int32_t index) override;
+    ma_shape_t       get_output_shape(int32_t index) override;
+    ma_quant_param_t get_input_quant_param(int32_t index) override;
+    ma_quant_param_t get_output_quant_param(int32_t index) override;
 
 private:
     tflite::MicroInterpreter* interpreter;

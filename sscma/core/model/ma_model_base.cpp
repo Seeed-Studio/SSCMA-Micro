@@ -19,13 +19,13 @@ Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name
 Model::~Model() {}
 
 
-ma_err_t Model::underlying_run(const void* input) {
+ma_err_t Model::underlying_run() {
 
     ma_err_t err        = MA_OK;
     uint32_t start_time = 0;
 
     start_time = ma_get_time_ms();
-    err        = preprocess(input);
+    err        = preprocess();
     if (p_preprocess_done_ != nullptr) {
         p_preprocess_done_(p_user_ctx_);
     }
