@@ -1,6 +1,11 @@
 #ifndef _MA_OSAL_POSIX_H_
 #define _MA_OSAL_POSIX_H_
 
+#include "core/ma_common.h"
+
+
+#if MA_PORTING_POSIX == 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,20 +53,12 @@ typedef struct ma_timer {
     bool     oneshot;
 } ma_timer_t;
 
-typedef struct ma_ringbuf {
-    pthread_mutex_t mutex;
-    pthread_cond_t  cond;
-    size_t          size;
-    size_t          tail;
-    size_t          head;
-    size_t          count;
-    void*           data;
-} ma_ringbuf_t;
-
 typedef uint64_t ma_tick_t;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* OSAL_SYS_H */
+#endif
+
+#endif /* OSAL_POSIX_H */

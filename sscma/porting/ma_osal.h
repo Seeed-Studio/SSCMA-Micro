@@ -10,6 +10,10 @@ extern "C" {
 #include "core/ma_config_internal.h"
 #if MA_PORTING_POSIX == 1
 #include "porting/posix/ma_osal_posix.h"
+#elif MA_PORTING_FREERTOS == 1
+#include "porting/freertos/ma_osal_freertos.h"
+#else
+#error "Unsupported platform"
 #endif
 
 
@@ -243,97 +247,6 @@ void ma_timer_stop(ma_timer_t* timer);
  */
 void ma_timer_delete(ma_timer_t* timer);
 
-/**
- * @brief Create a ring buffer
- *
- * @param size Size of the ring buffer
- *
- * @return Pointer to the ring buffer
- *
- */
-ma_ringbuf_t* ma_ringbuf_create(size_t size);
-
-/**
- * @brief Get the size of a ring buffer
- *
- * @param rb Pointer to the ring buffer
- *
- * @return Size of the ring buffer
- */
-size_t ma_ringbuf_size(ma_ringbuf_t* rb);
-
-/**
- * @brief Clear a ring buffer
- *
- * @param rb Pointer to the ring buffer
- *
- */
-void ma_ringbuf_clear(ma_ringbuf_t* rb);
-
-/**
- * @brief Get the number of available bytes in a ring buffer
- *
- * @param rb Pointer to the ring buffer
- *
- * @return Number of available bytes
- */
-size_t ma_ringbuf_available(ma_ringbuf_t* rb);
-
-/**
- * @brief Get the number of free bytes in a ring buffer
- *
- * @param rb Pointer to the ring buffer
- *
- * @return Number of free bytes
- *
- */
-size_t ma_ringbuf_free(ma_ringbuf_t* rb);
-
-/**
- * @brief Write data to a ring buffer
- *
- * @param rb Pointer to the ring buffer
- * @param data Pointer to the data
- * @param size Size of the data
- * @param timeout Timeout in milliseconds
- *
- * @return written size
- *
- */
-size_t ma_ringbuf_write(ma_ringbuf_t* rb, const void* data, size_t size, uint32_t timeout);
-
-/**
- * @brief Read data from a ring buffer
- *
- * @param rb Pointer to the ring buffer
- * @param data Pointer to the data
- * @param size Size of the data
- * @param timeout Timeout in milliseconds
- *
- * @return read size
- *
- */
-size_t ma_ringbuf_read(ma_ringbuf_t* rb, void* data, size_t size, uint32_t timeout);
-
-/**
- * @brief Peek data from a ring buffer
- *
- * @param rb Pointer to the ring buffer
- * @param data Pointer to the data
- * @param size Size of the data
- * @param timeout Timeout in milliseconds
- *
- * @return read size
- */
-size_t ma_ringbuf_peek(ma_ringbuf_t* rb, void* data, size_t size, uint32_t timeout);
-
-/**
- * @brief Delete a ring buffer
- *
- * @param rb Pointer to the ring buffer
- *
- */
-void ma_ringbuf_delete(ma_ringbuf_t* rb);
 
 #ifdef __cplusplus
 }

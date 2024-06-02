@@ -1,3 +1,6 @@
+#include "core/ma_common.h"
+
+#if MA_PORTING_POSIX == 1
 
 #include <stdint.h>
 #include <time.h>
@@ -33,3 +36,5 @@ MA_ATTR_WEAK int64_t ma_get_time_ms(void) {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
+
+#endif

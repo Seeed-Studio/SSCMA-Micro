@@ -31,8 +31,7 @@ Detector::Detector(Engine* p_engine, const char* name) : Model(p_engine, name) {
 ma_err_t Detector::preprocess() {
 
     ma_err_t ret = MA_OK;
-    MA_LOGI(TAG, "preprocess");
-
+    
     ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
         return ret;

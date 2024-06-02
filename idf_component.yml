@@ -7,3 +7,8 @@ repository_info:
   path: .
 url: https://sensecraftma.seeed.cc/
 version: 1.0.0
+dependencies:
+  idf: ">=4.4.2"
+  espressif/esp-tflite-micro:
+    version: "^1.3.0"
+    public: true

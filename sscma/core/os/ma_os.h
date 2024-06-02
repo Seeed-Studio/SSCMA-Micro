@@ -107,24 +107,6 @@ private:
     mutable ma_timer_t* timer_;
 };
 
-class RingBuffer {
-public:
-    explicit RingBuffer(size_t size) noexcept;
-    ~RingBuffer() noexcept;
-    operator bool() const;
-    size_t             size() const;
-    void               clear();
-    size_t             available() const;
-    size_t             free() const;
-    size_t             write(const void* data, size_t size, uint32_t timeout = Tick::waitForever);
-    size_t             read(void* data, size_t size, uint32_t timeout = Tick::waitForever);
-    friend RingBuffer& operator<<(RingBuffer& rb, char data);
-    friend RingBuffer& operator>>(RingBuffer& rb, char& data);
-    char               operator[](size_t index);
-
-private:
-    mutable ma_ringbuf_t* rb_;
-};
 
 }  // namespace ma::os
 

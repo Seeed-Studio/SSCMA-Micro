@@ -1,15 +1,14 @@
-#ifndef _MA_MISC_POSIX_
-#define _MA_MISC_POSIX_
+#ifndef _MA_MISC_ESPRESSIF_
+#define _MA_MISC_ESPRESSIF_
 
 #include "core/ma_common.h"
 
-#if MA_PORTING_POSIX == 1
+#if MA_PORTING_ESPRESSIF == 1
 
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 #define ma_malloc  malloc
 #define ma_calloc  calloc
@@ -17,8 +16,8 @@
 #define ma_free    free
 #define ma_printf  printf
 #define ma_abort   abort
-#define ma_reset   abort
+#define ma_reset   esp_restart
 
 #endif
 
-#endif  // _MA_MISC_POSIX_
+#endif  // _MA_MISC_ESPRESSIF_

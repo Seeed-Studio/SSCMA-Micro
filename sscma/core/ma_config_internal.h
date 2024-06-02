@@ -41,6 +41,17 @@
 #define MA_USE_STATIC_ASSERT CONFIG_MA_STATIC_ASSERT
 #endif
 
+// porting config check
+#ifdef CONFIG_MA_PORTING_ESPRESSIF
+#define MA_PORTING_ESPRESSIF 1
+#ifndef CONFIG_MA_PORTING_FREERTOS
+#define CONFIG_MA_PORTING_FREERTOS 1
+#endif
+#ifndef CONFIG_MA_ENGINE_TFLITE
+#define CONFIG_MA_ENGINE_TFLITE 1
+#endif
+#endif
+
 /* filesystem config check */
 #ifdef CONFIG_MA_FILESYSTEM
 #define MA_USE_FILESYSTEM 1
@@ -73,6 +84,11 @@
 #define MA_TIMER_PRIO CONFIG_MA_TIMER_PRIO
 #endif
 
+#ifdef CONFIG_MA_PORTING_FREERTOS
+#define MA_PORTING_FREERTOS 1
+#endif
+
+
 /* engine config check */
 
 #if CONFIG_MA_ENGINE_TFLITE + CONFIG_MA_ENGINE_CVINN > 1
@@ -88,7 +104,7 @@
 #endif
 
 #ifdef CONFIG_MA_ENGINE_TFLITE
-#define MA_USE_ENGINE_TFLITE             1
+#define MA_USE_ENGINE_TFLITE              1
 #define MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC 1
 #if MA_USE_ENGINE_TENSOR_NAME
 #error "TensorFlow Lite engine does not support tensor name"

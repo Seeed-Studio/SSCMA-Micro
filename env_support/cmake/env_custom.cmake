@@ -14,7 +14,6 @@ add_library(sscma STATIC ${SOURCES})
 endif()
 
 target_include_directories(sscma PUBLIC ${SSCMA_ROOT_DIR}/sscma)
-target_include_directories(sscma PUBLIC ${SSCMA_ROOT_DIR}/porting)
 
 if(SSCMA_CONF_PATH)
   target_include_directories(sscma PUBLIC ${SSCMA_CONF_DIR})

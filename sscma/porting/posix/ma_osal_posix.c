@@ -1,4 +1,9 @@
+
 #define _GNU_SOURCE /* For pthread_setname_mp() */
+
+#include "core/ma_common.h"
+
+#if MA_PORTING_POSIX == 1
 
 
 #include <limits.h>
@@ -20,6 +25,7 @@
 #include "porting/posix/ma_osal_posix.h"
 
 #define TAG "ma.os.posix"
+
 
 ma_thread_t* ma_thread_create(
     const char* name, uint32_t priority, size_t stacksize, void (*entry)(void* arg), void* arg) {
@@ -445,15 +451,14 @@ ma_timer_t* ma_timer_create(uint32_t us,
     } while (timer->thread_id == 0);
 
 
-
     /* Create timer */
-    sev.sigev_notify            = SIGEV_THREAD_ID;
-    sev.sigev_value.sival_ptr   = timer;
-    #ifdef __x86_64__
-    sev._sigev_un._tid           = timer->thread_id;
-    #else
-    sev.sigev_notify_thread_id  = timer->thread_id;
-    #endif
+    sev.sigev_notify          = SIGEV_THREAD_ID;
+    sev.sigev_value.sival_ptr = timer;
+#ifdef __x86_64__
+    sev._sigev_un._tid = timer->thread_id;
+#else
+    sev.sigev_notify_thread_id = timer->thread_id;
+#endif
     sev.sigev_signo             = SIGALRM;
     sev.sigev_notify_attributes = NULL;
 
@@ -498,197 +503,4 @@ void ma_timer_delete(ma_timer_t* timer) {
     ma_free(timer);
 }
 
-
-ma_ringbuf_t* ma_ringbuf_create(size_t size) {
-    ma_ringbuf_t*       rb;
-    pthread_mutexattr_t mattr;
-    pthread_condattr_t  cattr;
-
-
-    rb = (ma_ringbuf_t*)ma_malloc(sizeof(ma_ringbuf_t) + size);
-
-    if (rb == NULL) {
-        return NULL;
-    }
-
-    pthread_condattr_init(&cattr);
-    pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
-    pthread_cond_init(&rb->cond, &cattr);
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
-    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);  // Recursive mutex
-    pthread_mutex_init(&rb->mutex, &mattr);
-
-
-    rb->size  = size;
-    rb->head  = 0;
-    rb->tail  = 0;
-    rb->count = 0;
-    rb->data  = (char*)(rb + sizeof(ma_ringbuf_t));
-
-    return rb;
-}
-
-size_t ma_ringbuf_size(ma_ringbuf_t* rb) {
-
-    return rb->size;
-}
-
-size_t ma_ringbuf_available(ma_ringbuf_t* rb) {
-
-    return rb->count;
-}
-
-size_t ma_ringbuf_free(ma_ringbuf_t* rb) {
-
-
-    return rb->count - rb->size;
-}
-
-void ma_ringbuf_clear(ma_ringbuf_t* rb) {
-
-    pthread_mutex_lock(&rb->mutex);
-    rb->head = 0;
-    rb->tail = 0;
-    pthread_mutex_unlock(&rb->mutex);
-}
-
-size_t ma_ringbuf_write(ma_ringbuf_t* rb, const void* data, size_t size, uint32_t timeout) {
-    struct timespec ts;
-    int             error = 0;
-    uint64_t        nsec  = (uint64_t)timeout * 1000000;
-
-    if (timeout != MA_WAIT_FOREVER) {
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-
-        ts.tv_sec += nsec / 1000000000;
-        ts.tv_nsec = nsec % 1000000000;
-    }
-
-    pthread_mutex_lock(&rb->mutex);
-
-    while ((rb->size - rb->count) < size) {
-        if (timeout != MA_WAIT_FOREVER) {
-            error = pthread_cond_timedwait(&rb->cond, &rb->mutex, &ts);
-            MA_ASSERT(error != EINVAL);
-            if (error) {
-                size = 0;
-                goto timeout;
-            }
-        } else {
-            error = pthread_cond_wait(&rb->cond, &rb->mutex);
-            MA_ASSERT(error != EINVAL);
-        }
-    }
-
-    if (size > rb->size - rb->tail) {
-        memcpy(rb->data + rb->tail, data, rb->size - rb->tail);
-        memcpy(rb->data, (char*)data + (rb->size - rb->tail), size - (rb->size - rb->tail));
-    } else {
-        memcpy(rb->data + rb->tail, data, size);
-    }
-
-    rb->tail = (rb->tail + size) % rb->size;
-    rb->count += size;
-
-timeout:
-    pthread_mutex_unlock(&rb->mutex);
-    pthread_cond_signal(&rb->cond);
-
-    return size;
-}
-
-size_t ma_ringbuf_read(ma_ringbuf_t* rb, void* data, size_t size, uint32_t timeout) {
-    struct timespec ts;
-    int             error = 0;
-    uint64_t        nsec  = (uint64_t)timeout * 1000000;
-
-    if (timeout != MA_WAIT_FOREVER) {
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-
-        ts.tv_sec += nsec / 1000000000;
-        ts.tv_nsec = nsec % 1000000000;
-    }
-    pthread_mutex_lock(&rb->mutex);
-
-    while (rb->count < size) {
-        if (timeout != MA_WAIT_FOREVER) {
-            error = pthread_cond_timedwait(&rb->cond, &rb->mutex, &ts);
-            MA_ASSERT(error != EINVAL);
-            if (error) {
-                size = 0;
-                goto timeout;
-            }
-        } else {
-            error = pthread_cond_wait(&rb->cond, &rb->mutex);
-            MA_ASSERT(error != EINVAL);
-        }
-    }
-
-    if (size > rb->size - rb->head) {
-        memcpy(data, rb->data + rb->head, rb->size - rb->head);
-        memcpy((char*)data + (rb->size - rb->head), rb->data, size - (rb->size - rb->head));
-    } else {
-        memcpy(data, rb->data + rb->head, size);
-    }
-
-    rb->head = (rb->head + size) % rb->size;
-    rb->count -= size;
-
-timeout:
-    pthread_mutex_unlock(&rb->mutex);
-    pthread_cond_signal(&rb->cond);
-
-    return size;
-}
-
-size_t ma_ringbuf_peek(ma_ringbuf_t* rb, void* data, size_t size, uint32_t timeout) {
-    struct timespec ts;
-    int             error = 0;
-    uint64_t        nsec  = (uint64_t)timeout * 1000000;
-
-    if (timeout != MA_WAIT_FOREVER) {
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-
-        ts.tv_sec += nsec / 1000000000;
-        ts.tv_nsec = nsec % 1000000000;
-    }
-
-    pthread_mutex_lock(&rb->mutex);
-
-    while (rb->count < size) {
-        if (timeout != MA_WAIT_FOREVER) {
-            error = pthread_cond_timedwait(&rb->cond, &rb->mutex, &ts);
-            MA_ASSERT(error != EINVAL);
-            if (error) {
-                size = 0;
-                goto timeout;
-            }
-        } else {
-            error = pthread_cond_wait(&rb->cond, &rb->mutex);
-            MA_ASSERT(error != EINVAL);
-        }
-    }
-
-    if (size > rb->size - rb->head) {
-        memcpy(data, rb->data + rb->head, rb->size - rb->head);
-        memcpy((char*)data + (rb->size - rb->head), rb->data, size - (rb->size - rb->head));
-    } else {
-        memcpy(data, rb->data + rb->head, size);
-    }
-
-timeout:
-    pthread_mutex_unlock(&rb->mutex);
-    pthread_cond_signal(&rb->cond);
-
-    return size;
-}
-
-void ma_ringbuf_delete(ma_ringbuf_t* rb) {
-    pthread_mutex_destroy(&rb->mutex);
-    pthread_cond_destroy(&rb->cond);
-    ma_free(rb);
-}
+#endif

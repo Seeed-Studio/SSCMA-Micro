@@ -120,32 +120,4 @@ TEST(OS, TimerStopable) {
     // stop() doesn't return a value, so we can't assert anything about it
 }
 
-TEST(OS, RingBufferConstructible) {
-    RingBuffer rb(1);
-    EXPECT_TRUE(rb);
-}
-
-TEST(OS, RingBufferWriteable) {
-    RingBuffer rb(1);
-    const char c = 'a';
-    EXPECT_EQ(rb.write(&c, 1, 0), 1);
-    EXPECT_EQ(rb.available(), 1);
-}
-
-TEST(OS, RingBufferReadable) {
-    RingBuffer rb(1);
-    char       c = 'a';
-    EXPECT_EQ(rb.write(&c, 1, 0), 1);
-    EXPECT_EQ(rb.read(&c, 1, 0), 1);
-    EXPECT_EQ(rb.available(), 0);
-    EXPECT_EQ(c, 'a');
-}
-
-TEST(OS, RingBufferOperator) {
-    RingBuffer rb(1);
-    char       c = 'a';
-    EXPECT_EQ(rb << c, rb);
-    EXPECT_EQ(rb[0], 'a');
-}
-
 }  // namespace ma::os

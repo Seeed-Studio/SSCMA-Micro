@@ -9,8 +9,7 @@ namespace ma::model {
 
 class Model {
 private:
-    ma_pref_t   perf_;
-    const char* p_name_;
+    ma_pref_t perf_;
     void (*p_preprocess_done_)(void* ctx);
     void (*p_postprocess_done_)(void* ctx);
     void (*p_underlying_run_done_)(void* ctx);
@@ -18,6 +17,7 @@ private:
 
 protected:
     Engine*          p_engine_;
+    const char*      p_name_;
     virtual ma_err_t preprocess()  = 0;
     virtual ma_err_t postprocess() = 0;
     ma_err_t         underlying_run();

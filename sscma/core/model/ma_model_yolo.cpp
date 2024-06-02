@@ -182,7 +182,7 @@ ma_err_t Yolo::postprocess() {
         return MA_ENOTSUP;
     }
 
-    ma::utils::nms(result, threshold_nms_, threshold_scsore_, false, false);
+    ma::utils::nms(result, threshold_nms_, threshold_score_, false, false);
 
     result.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });  // left to right
 

@@ -15,6 +15,10 @@ extern "C" {
 
 #if MA_PORTING_POSIX
 #include "porting/posix/ma_misc_posix.h"
+#elif MA_PORTING_ESPRESSIF
+#include "porting/espressif/ma_misc_espressif.h"
+#else
+#error "Unsupported platform"
 #endif
 
 #ifndef ma_malloc

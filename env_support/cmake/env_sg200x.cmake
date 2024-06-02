@@ -6,6 +6,6 @@ add_compile_options(-DCONFIG_MA_ENGINE_CVINN=1)
 component_register(
     COMPONENT_NAME sscma
     SRCS ${SOURCES}
-    PRIVATE_INCLUDE_DIRS ${SSCMA_ROOT_DIR}/sscma ${SSCMA_ROOT_DIR}/porting
+    PRIVATE_INCLUDE_DIRS ${SSCMA_ROOT_DIR}/sscma
     PRIVATE_REQUIREDS cviruntime
 )
