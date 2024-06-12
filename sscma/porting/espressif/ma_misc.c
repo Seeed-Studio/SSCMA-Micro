@@ -1,7 +1,5 @@
 
-#include "porting/posix/ma_misc_posix.h"
-
-#if MA_PORTING_ESPRESSIF == 1
+#include "core/ma_common.h"
 
 #include <stdint.h>
 #include <time.h>
@@ -26,5 +24,3 @@ MA_ATTR_WEAK int64_t ma_get_time_us(void) {
 MA_ATTR_WEAK int64_t ma_get_time_ms(void) {
     return (int64_t)esp_timer_get_time() / 1000;
 }
-
-#endif

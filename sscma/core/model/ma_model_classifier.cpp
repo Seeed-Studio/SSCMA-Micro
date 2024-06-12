@@ -7,8 +7,8 @@ namespace ma::model {
 const static char* TAG = "ma::model::classifier";
 
 Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
-    input_           = p_engine_->get_input(0);
-    output_          = p_engine_->get_output(0);
+    input_           = p_engine_->getInput(0);
+    output_          = p_engine_->getOutput(0);
     threshold_score_ = 0.5f;
     img_.width       = input_.shape.dims[1];
     img_.height      = input_.shape.dims[2];
@@ -23,9 +23,9 @@ Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
 
 Classifier::~Classifier() {}
 
-bool Classifier::is_valid(Engine* engine) {
+bool Classifier::isValid(Engine* engine) {
 
-    const auto& input_shape = engine->get_input_shape(0);
+    const auto& input_shape = engine->getInputShape(0);
 
 #if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
     if (input_shape.size != 4 ||      // N, H, W, C
@@ -47,7 +47,7 @@ bool Classifier::is_valid(Engine* engine) {
 #endif
 
 
-    const auto& output_shape{engine->get_output_shape(0)};
+    const auto& output_shape{engine->getOutputShape(0)};
     if (output_shape.size != 2 ||     // N, C
         output_shape.dims[0] != 1 ||  // N = 1
         output_shape.dims[1] < 2      // C >= 2
@@ -110,7 +110,7 @@ ma_err_t Classifier::postprocess() {
             auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
             score = rescale ? score : score / 100.f;
             if (score > threshold_score_)
-                results_.push_back({i, score});
+                results_.push_back({score, i});
         }
     } else {
         return MA_ENOTSUP;
@@ -124,7 +124,7 @@ ma_err_t Classifier::postprocess() {
 }
 
 
-const std::vector<ma_class_t>& Classifier::get_results() {
+const std::vector<ma_class_t>& Classifier::getResults() {
     return results_;
 }
 
@@ -132,16 +132,16 @@ const std::vector<ma_class_t>& Classifier::get_results() {
 ma_err_t Classifier::run(const ma_img_t* img) {
     MA_ASSERT(img != nullptr);
     input_img_ = img;
-    return underlying_run();
+    return underlyingRun();
 }
 
 
-ma_err_t Classifier::set_config(ma_model_cfg_opt_t opt, ...) {
+ma_err_t Classifier::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
     va_list  args;
     va_start(args, opt);
     switch (opt) {
-        case MODEL_CONFIG_OPTION_THRESHOLD:
+        case MA_MODEL_CFG_OPT_THRESHOLD:
             threshold_score_ = va_arg(args, double);
             ret              = MA_OK;
             break;
@@ -152,13 +152,13 @@ ma_err_t Classifier::set_config(ma_model_cfg_opt_t opt, ...) {
     va_end(args);
     return ret;
 }
-ma_err_t Classifier::get_config(ma_model_cfg_opt_t opt, ...) {
+ma_err_t Classifier::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
     va_list  args;
     void*    p_arg = nullptr;
     va_start(args, opt);
     switch (opt) {
-        case MODEL_CONFIG_OPTION_THRESHOLD:
+        case MA_MODEL_CFG_OPT_THRESHOLD:
             p_arg                          = va_arg(args, void*);
             *(static_cast<double*>(p_arg)) = threshold_score_;
             break;

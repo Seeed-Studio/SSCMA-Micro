@@ -1,12 +1,10 @@
-#include "ma_engine_cvinn.h"
+#include "ma_engine_cvi.h"
 
-#include "core/ma_debug.h"
+#if MA_USE_ENGINE_CVI
 
-#if MA_USE_ENGINE_CVINN
+namespace ma {
 
-namespace ma::engine {
-
-const static char*     TAG = "ma::engine::cvinn";
+const static char* TAG = "ma::engine::cvinn";
 
 const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_F32,
@@ -19,32 +17,32 @@ const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_U8,
 };
 
-EngineCVINN::EngineCVINN() {
+EngineCVI::EngineCVI() {
     model = nullptr;
 }
 
-EngineCVINN::~EngineCVINN() {
+EngineCVI::~EngineCVI() {
     CVI_NN_CleanupModel(model);
 }
 
-ma_err_t EngineCVINN::init() {
+ma_err_t EngineCVI::init() {
 
     return MA_OK;
 }
 
-ma_err_t EngineCVINN::init(size_t size) {
+ma_err_t EngineCVI::init(size_t size) {
 
     return MA_OK;
 }
 
-ma_err_t EngineCVINN::init(void* pool, size_t size) {
+ma_err_t EngineCVI::init(void* pool, size_t size) {
 
     return MA_OK;
 }
 
-ma_err_t EngineCVINN::load_model(const char* model_path) {
-    ma_err_t ret  = MA_OK;
-    CVI_RC   _ret = CVI_RC_SUCCESS;
+ma_err_t EngineCVI::loadModel(const char* model_path) {
+    ma_err_t ret = MA_OK;
+    CVI_RC _ret  = CVI_RC_SUCCESS;
     _ret == CVI_NN_RegisterModel(model_path, &model);
 
     if (_ret != CVI_RC_SUCCESS) {
@@ -62,9 +60,9 @@ ma_err_t EngineCVINN::load_model(const char* model_path) {
     return MA_OK;
 }
 
-ma_err_t EngineCVINN::load_model(const void* model_data, size_t model_size) {
-    ma_err_t ret  = MA_OK;
-    CVI_RC   _ret = CVI_RC_SUCCESS;
+ma_err_t EngineCVI::loadModel(const void* model_data, size_t model_size) {
+    ma_err_t ret = MA_OK;
+    CVI_RC _ret  = CVI_RC_SUCCESS;
 
     _ret ==
         CVI_NN_RegisterModelFromBuffer(static_cast<const int8_t*>(model_data), model_size, &model);
@@ -83,7 +81,7 @@ ma_err_t EngineCVINN::load_model(const void* model_data, size_t model_size) {
 }
 
 
-ma_err_t EngineCVINN::run() {
+ma_err_t EngineCVI::run() {
     MA_ASSERT(model != nullptr);
     ma_err_t ret = MA_OK;
 
@@ -96,7 +94,7 @@ ma_err_t EngineCVINN::run() {
 }
 
 
-ma_tensor_t EngineCVINN::get_input(int32_t index) {
+ma_tensor_t EngineCVI::getInput(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_tensor_t tensor{0};
     if (index >= input_num) {
@@ -106,15 +104,15 @@ ma_tensor_t EngineCVINN::get_input(int32_t index) {
     tensor.type        = mapped_tensor_types[input_tensors[index].fmt];
     tensor.size        = CVI_NN_TensorSize(&input_tensors[index]);
     tensor.name        = CVI_NN_TensorName(&input_tensors[index]);
-    tensor.shape       = get_input_shape(index);
-    tensor.quant_param = get_input_quant_param(index);
+    tensor.shape       = getInputShape(index);
+    tensor.quant_param = getInputQuantParam(index);
     tensor.is_variable = true;
 
     return tensor;
 }
 
 
-ma_tensor_t EngineCVINN::get_output(int32_t index) {
+ma_tensor_t EngineCVI::getOutput(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_tensor_t tensor{0};
     if (index >= output_num) {
@@ -124,14 +122,14 @@ ma_tensor_t EngineCVINN::get_output(int32_t index) {
     tensor.type        = mapped_tensor_types[output_tensors[index].fmt];
     tensor.size        = CVI_NN_TensorSize(&output_tensors[index]);
     tensor.name        = CVI_NN_TensorName(&output_tensors[index]);
-    tensor.shape       = get_output_shape(index);
-    tensor.quant_param = get_output_quant_param(index);
+    tensor.shape       = getOutputShape(index);
+    tensor.quant_param = getOutputQuantParam(index);
     tensor.is_variable = false;
 
     return tensor;
 }
 
-ma_shape_t EngineCVINN::get_input_shape(int32_t index) {
+ma_shape_t EngineCVI::getInputShape(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_shape_t shape{0};
     if (index >= input_num) {
@@ -148,7 +146,7 @@ ma_shape_t EngineCVINN::get_input_shape(int32_t index) {
 }
 
 
-ma_shape_t EngineCVINN::get_output_shape(int32_t index) {
+ma_shape_t EngineCVI::getOutputShape(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_shape_t shape{0};
     if (index >= output_num) {
@@ -164,7 +162,7 @@ ma_shape_t EngineCVINN::get_output_shape(int32_t index) {
 }
 
 
-ma_quant_param_t EngineCVINN::get_input_quant_param(int32_t index) {
+ma_quant_param_t EngineCVI::getInputQuantParam(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_quant_param_t quant_param{0};
     if (index >= input_num) {
@@ -176,7 +174,7 @@ ma_quant_param_t EngineCVINN::get_input_quant_param(int32_t index) {
 }
 
 
-ma_quant_param_t EngineCVINN::get_output_quant_param(int32_t index) {
+ma_quant_param_t EngineCVI::getOutputQuantParam(int32_t index) {
     MA_ASSERT(model != nullptr);
     ma_quant_param_t quant_param{0};
     if (index >= output_num) {
@@ -187,14 +185,14 @@ ma_quant_param_t EngineCVINN::get_output_quant_param(int32_t index) {
     return quant_param;
 }
 
-int32_t EngineCVINN::get_input_size() {
+int32_t EngineCVI::getInputSize() {
     return input_num;
 }
-int32_t EngineCVINN::get_output_size() {
+int32_t EngineCVI::getOutputSize() {
     return output_num;
 }
 
-int32_t EngineCVINN::get_input_num(const char* name) {
+int32_t EngineCVI::getInputNum(const char* name) {
     MA_ASSERT(model != nullptr);
     for (int32_t i = 0; i < input_num; i++) {
         if (strcmp(CVI_NN_TensorName(&input_tensors[i]), name) == 0) {
@@ -203,7 +201,7 @@ int32_t EngineCVINN::get_input_num(const char* name) {
     }
     return -1;
 }
-int32_t EngineCVINN::get_output_num(const char* name) {
+int32_t EngineCVI::getOutputNum(const char* name) {
     MA_ASSERT(model != nullptr);
     for (int32_t i = 0; i < output_num; i++) {
         if (strcmp(CVI_NN_TensorName(&output_tensors[i]), name) == 0) {
@@ -214,6 +212,6 @@ int32_t EngineCVINN::get_output_num(const char* name) {
 }
 
 
-}  // namespace ma::engine
+}  // namespace ma
 
 #endif

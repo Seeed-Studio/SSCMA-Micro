@@ -11,7 +11,7 @@ Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name
     p_postprocess_done_    = nullptr;
     p_underlying_run_done_ = nullptr;
     perf_.preprocess       = 0;
-    perf_.run              = 0;
+    perf_.inference        = 0;
     perf_.postprocess      = 0;
 }
 
@@ -19,13 +19,14 @@ Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name
 Model::~Model() {}
 
 
-ma_err_t Model::underlying_run() {
+ma_err_t Model::underlyingRun() {
 
-    ma_err_t err        = MA_OK;
-    uint32_t start_time = 0;
+    ma_err_t err       = MA_OK;
+    int64_t start_time = 0;
 
     start_time = ma_get_time_ms();
-    err        = preprocess();
+
+    err = preprocess();
     if (p_preprocess_done_ != nullptr) {
         p_preprocess_done_(p_user_ctx_);
     }
@@ -33,32 +34,27 @@ ma_err_t Model::underlying_run() {
     if (err != MA_OK) {
         return err;
     }
-    start_time = ma_get_time_ms();
 
 
     start_time = ma_get_time_ms();
     err        = p_engine_->run();
-
     if (p_underlying_run_done_ != nullptr) {
         p_underlying_run_done_(p_user_ctx_);
     }
 
+    perf_.inference = ma_get_time_ms() - start_time;
 
-    perf_.run = ma_get_time_ms() - start_time;
 
     if (err != MA_OK) {
         return err;
     }
-
-
     start_time = ma_get_time_ms();
     err        = postprocess();
-
     if (p_postprocess_done_ != nullptr) {
         p_postprocess_done_(p_user_ctx_);
     }
-
     perf_.postprocess = ma_get_time_ms() - start_time;
+
     if (err != MA_OK) {
         return err;
     }
@@ -67,17 +63,17 @@ ma_err_t Model::underlying_run() {
 }
 
 
-const ma_pref_t Model::get_perf() const {
+const ma_perf_t Model::getPerf() const {
     return perf_;
 }
 
 
-const char* Model::get_name() const {
+const char* Model::getName() const {
     return p_name_;
 }
 
 
-void Model::set_preprocess_done(void (*fn)(void* ctx)) {
+void Model::setPreprocessDone(void (*fn)(void* ctx)) {
     if (p_preprocess_done_ != nullptr) {
         p_preprocess_done_ = nullptr;
         MA_LOGW(TAG, "preprocess done function already set, overwrite it");
@@ -86,7 +82,7 @@ void Model::set_preprocess_done(void (*fn)(void* ctx)) {
 }
 
 
-void Model::set_postprocess_done(void (*fn)(void* ctx)) {
+void Model::setPostprocessDone(void (*fn)(void* ctx)) {
     if (p_postprocess_done_ != nullptr) {
         p_postprocess_done_ = nullptr;
         MA_LOGW(TAG, "postprocess done function already set, overwrite it");
@@ -95,7 +91,7 @@ void Model::set_postprocess_done(void (*fn)(void* ctx)) {
 }
 
 
-void Model::set_run_done(void (*fn)(void* ctx)) {
+void Model::setRunDone(void (*fn)(void* ctx)) {
     if (p_underlying_run_done_ != nullptr) {
         p_underlying_run_done_ = nullptr;
         MA_LOGW(TAG, "underlying run done function already set, overwrite it");
@@ -103,7 +99,7 @@ void Model::set_run_done(void (*fn)(void* ctx)) {
     p_underlying_run_done_ = fn;
 }
 
-void Model::set_user_ctx(void* ctx) {
+void Model::setUserCtx(void* ctx) {
     if (p_user_ctx_ != nullptr) {
         p_user_ctx_ = nullptr;
         MA_LOGW(TAG, "user ctx already set, overwrite it");

@@ -1,8 +1,22 @@
 
 message(STATUS "Building for ESP environment")
-file(GLOB_RECURSE srcs ${SSCMA_ROOT_DIR}/sscma/*.c ${SSCMA_ROOT_DIR}/sscma/*.cpp ${LVGL_ROOT_DIR}/sscma/*.S)
 
-set(includes ${SSCMA_ROOT_DIR}/sscma)
+
+file(GLOB_RECURSE CORE_SOURCES ${SSCMA_ROOT_DIR}/sscma/core/*.c ${SSCMA_ROOT_DIR}/sscma/core/*.cpp)
+
+file(GLOB_RECURSE SREVER_SOURCES ${SSCMA_ROOT_DIR}/sscma/server/*.c ${SSCMA_ROOT_DIR}/sscma/server/*.cpp)
+
+file(GLOB_RECURSE CLIENT_SOURCES ${SSCMA_ROOT_DIR}/sscma/client/*.c ${SSCMA_ROOT_DIR}/sscma/client/*.cpp)
+
+file(GLOB_RECURSE PORT_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/espressif/*.c ${SSCMA_ROOT_DIR}/sscma/porting/espressif/*.cpp)
+
+set(srcs ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES})
+
+set(includes 
+        ${SSCMA_ROOT_DIR}/sscma
+        ${SSCMA_ROOT_DIR}/sscma/porting/espressif
+)
+
 set(require "json" "mbedtls" "esp_timer")
 set(priv_requires "driver")
 

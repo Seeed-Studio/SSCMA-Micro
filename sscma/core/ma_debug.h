@@ -2,7 +2,7 @@
 #define _MA_DEBUG_H_
 
 #include "core/ma_config_internal.h"
-#include "porting/ma_misc.h"
+#include "porting/ma_porting.h"
 
 #if MA_DEBUG_LEVEL
 

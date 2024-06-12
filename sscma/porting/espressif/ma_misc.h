@@ -3,7 +3,6 @@
 
 #include "core/ma_common.h"
 
-#if MA_PORTING_ESPRESSIF == 1
 
 #include <stddef.h>
 #include <stdio.h>
@@ -17,7 +16,5 @@
 #define ma_printf  printf
 #define ma_abort   abort
 #define ma_reset   esp_restart
-
-#endif
 
 #endif  // _MA_MISC_ESPRESSIF_

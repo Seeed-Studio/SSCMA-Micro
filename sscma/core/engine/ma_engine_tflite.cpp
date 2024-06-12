@@ -1,7 +1,5 @@
 #include "ma_engine_tflite.h"
 
-#include "core/ma_debug.h"
-
 #if MA_USE_ENGINE_TFLITE
 
 namespace tflite {
@@ -302,7 +300,7 @@ OpsResolver::OpsResolver() {
 
 }  // namespace tflite
 
-namespace ma::engine {
+namespace ma {
 
 const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_F32, MA_TENSOR_TYPE_S32,  MA_TENSOR_TYPE_U8,
@@ -377,7 +375,7 @@ ma_err_t EngineTFLite::run() {
     return MA_OK;
 }
 
-ma_err_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
+ma_err_t EngineTFLite::loadModel(const void* model_data, size_t model_size) {
     model = tflite::GetModel(model_data);
 
     if (interpreter != nullptr) {
@@ -402,7 +400,7 @@ ma_err_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
     }
     return MA_OK;
 }
-ma_tensor_t EngineTFLite::get_input(int32_t index) {
+ma_tensor_t EngineTFLite::getInput(int32_t index) {
     MA_ASSERT(interpreter != nullptr);
     ma_tensor_t tensor{0};
 
@@ -418,15 +416,15 @@ ma_tensor_t EngineTFLite::get_input(int32_t index) {
     tensor.size        = input->bytes;
     tensor.index       = index;
     tensor.type        = mapped_tensor_types[static_cast<int>(input->type)];
-    tensor.shape       = get_input_shape(index);
-    tensor.quant_param = get_input_quant_param(index);
+    tensor.shape       = getInputShape(index);
+    tensor.quant_param = getInputQuantParam(index);
     tensor.is_variable = true;
 
 
     return tensor;
 }
 
-ma_tensor_t EngineTFLite::get_output(int32_t index) {
+ma_tensor_t EngineTFLite::getOutput(int32_t index) {
     MA_ASSERT(interpreter != nullptr);
     ma_tensor_t tensor{0};
 
@@ -442,14 +440,14 @@ ma_tensor_t EngineTFLite::get_output(int32_t index) {
     tensor.size        = output->bytes;
     tensor.index       = index;
     tensor.type        = mapped_tensor_types[static_cast<int>(output->type)];
-    tensor.shape       = get_output_shape(index);
-    tensor.quant_param = get_output_quant_param(index);
+    tensor.shape       = getOutputShape(index);
+    tensor.quant_param = getOutputQuantParam(index);
     tensor.is_variable = false;
 
     return tensor;
 }
 
-ma_shape_t EngineTFLite::get_input_shape(int32_t index) {
+ma_shape_t EngineTFLite::getInputShape(int32_t index) {
     ma_shape_t shape;
 
     MA_ASSERT(interpreter != nullptr);
@@ -471,7 +469,7 @@ ma_shape_t EngineTFLite::get_input_shape(int32_t index) {
     return shape;
 }
 
-ma_shape_t EngineTFLite::get_output_shape(int32_t index) {
+ma_shape_t EngineTFLite::getOutputShape(int32_t index) {
     ma_shape_t shape;
     shape.size = 0;
 
@@ -495,7 +493,7 @@ ma_shape_t EngineTFLite::get_output_shape(int32_t index) {
     return shape;
 }
 
-ma_quant_param_t EngineTFLite::get_input_quant_param(int32_t index) {
+ma_quant_param_t EngineTFLite::getInputQuantParam(int32_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;
@@ -514,7 +512,7 @@ ma_quant_param_t EngineTFLite::get_input_quant_param(int32_t index) {
     return quant_param;
 }
 
-ma_quant_param_t EngineTFLite::get_output_quant_param(int32_t index) {
+ma_quant_param_t EngineTFLite::getOutputQuantParam(int32_t index) {
     ma_quant_param_t quant_param;
     quant_param.scale      = 0;
     quant_param.zero_point = 0;
@@ -534,9 +532,9 @@ ma_quant_param_t EngineTFLite::get_output_quant_param(int32_t index) {
 }
 
 #if MA_USE_FILESYSTEM
-ma_err_t EngineTFLite::load_model(const char* model_path) {
-    ma_err_t ret  = MA_OK;
-    size_t   size = 0;
+ma_err_t EngineTFLite::loadModel(const char* model_path) {
+    ma_err_t ret = MA_OK;
+    size_t size  = 0;
 #ifdef MA_USE_FILESYSTEM_POSIX
     std::ifstream file(model_path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -550,7 +548,7 @@ ma_err_t EngineTFLite::load_model(const char* model_path) {
     file.seekg(0, std::ios::beg);
     file.read(model_file, size);
     file.close();
-    ret = load_model(model_file, size);
+    ret = loadModel(model_file, size);
     if (ret != MA_OK) {
         delete model_file;
         model_file = nullptr;
@@ -563,15 +561,15 @@ ma_err_t EngineTFLite::load_model(const char* model_path) {
 }
 #endif
 
-int32_t EngineTFLite::get_input_size() {
+int32_t EngineTFLite::getInputSize() {
     MA_ASSERT(interpreter != nullptr);
     return interpreter->inputs().size();
 }
-int32_t EngineTFLite::get_output_size() {
+int32_t EngineTFLite::getOutputSize() {
     MA_ASSERT(model != nullptr);
     return interpreter->outputs().size();
 }
 
-}  // namespace ma::engine
+}  // namespace ma
 
 #endif

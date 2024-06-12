@@ -14,7 +14,7 @@ const static char* TAG = "ma::model::yolo";
 Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
     MA_ASSERT(p_engine_ != nullptr);
 
-    output_ = p_engine_->get_output(0);
+    output_ = p_engine_->getOutput(0);
 
     num_record_  = output_.shape.dims[1];
     num_element_ = output_.shape.dims[2];
@@ -23,8 +23,8 @@ Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
 
 Yolo::~Yolo() {}
 
-bool Yolo::is_valid(Engine* engine) {
-    const auto& input_shape{engine->get_input_shape(0)};
+bool Yolo::isValid(Engine* engine) {
+    const auto& input_shape{engine->getInputShape(0)};
 
 #if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
     if (input_shape.size != 4 ||                      // N, H, W, C
@@ -63,7 +63,7 @@ bool Yolo::is_valid(Engine* engine) {
     }()};
 #endif
 
-    const auto& output_shape{engine->get_output_shape(0)};
+    const auto& output_shape{engine->getOutputShape(0)};
     if (output_shape.size != 3 ||            // B, IB, BC...
         output_shape.dims[0] != 1 ||         // B = 1
         output_shape.dims[1] != ibox_len ||  // IB is based on input shape
@@ -79,12 +79,6 @@ ma_err_t Yolo::postprocess() {
 
     std::forward_list<ma_bbox_t> result;
     results_.clear();
-
-    MA_LOGD(TAG,
-            "num record: %d, num element: %d, num class: %d",
-            num_record_,
-            num_element_,
-            num_class_);
 
     auto* data = output_.data.s8;
 
@@ -104,8 +98,8 @@ ma_err_t Yolo::postprocess() {
                 .y      = 0,
                 .w      = 0,
                 .h      = 0,
-                .target = 0,
                 .score  = score,
+                .target = 0,
             };
 
             // get box target
@@ -137,8 +131,8 @@ ma_err_t Yolo::postprocess() {
             result.emplace_front(std::move(box));
         }
     } else if (output_.type == MA_TENSOR_TYPE_F32) {
-        auto* data       = output_.data.f32;
-        bool  normalized = data[0] < 1.0f ? true : false;
+        auto* data      = output_.data.f32;
+        bool normalized = data[0] < 1.0f ? true : false;
         for (decltype(num_record_) i{0}; i < num_record_; ++i) {
             auto idx{i * num_element_};
             auto score = normalized ? data[idx + INDEX_S] : data[idx + INDEX_S] / 100.0f;
@@ -150,8 +144,8 @@ ma_err_t Yolo::postprocess() {
                 .y      = 0,
                 .w      = 0,
                 .h      = 0,
-                .target = 0,
                 .score  = score,
+                .target = 0,
             };
             // get box target
             float max{-1.0f};

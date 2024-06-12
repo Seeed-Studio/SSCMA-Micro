@@ -4,3 +4,4 @@ build/
 3rdparty/tflite-micro/signal
 3rdparty/tflite-micro/tensorflow
 3rdparty/tflite-micro/third_party
+3rdparty/json/cJSON

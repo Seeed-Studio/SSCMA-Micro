@@ -29,7 +29,7 @@ protected:
 public:
     Yolo(Engine* engine);
     ~Yolo();
-    bool is_valid(Engine* engine) override;
+    bool isValid(Engine* engine) override;
 };
 
 }  // namespace ma::model

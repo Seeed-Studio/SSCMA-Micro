@@ -7,4 +7,5 @@
 
 #define __MA_VERSION__   MA_MAJOR_VERSION "." MA_MINOR_VERSION "." MA_PATCH_VERSION
 
+
 #endif

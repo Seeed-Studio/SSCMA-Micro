@@ -3,20 +3,19 @@
 
 #include <cstdint>
 
-#include "core/ma_config_internal.h"
-#include "core/ma_ctypes.h"
+#include "core/ma_common.h"
 
 #if MA_USE_FILESYSTEM
 #include <fstream>
 #include <iostream>
 #endif
 
-namespace ma::engine {
+namespace ma {
 
-class BaseEngine {
+class Engine {
 public:
-    BaseEngine()          = default;
-    virtual ~BaseEngine() = default;
+    Engine()          = default;
+    virtual ~Engine() = default;
 
     virtual ma_err_t init()                        = 0;
     virtual ma_err_t init(size_t size)             = 0;
@@ -24,33 +23,33 @@ public:
 
     virtual ma_err_t run() = 0;
 
-    virtual ma_err_t load_model(const void* model_data, size_t model_size) = 0;
+    virtual ma_err_t loadModel(const void* model_data, size_t model_size) = 0;
 #if MA_USE_FILESYSTEM
-    virtual ma_err_t load_model(const char* model_path) = 0;
+    virtual ma_err_t loadModel(const char* model_path) = 0;
 #endif
 
-    virtual int32_t          get_input_size()  = 0;
-    virtual int32_t          get_output_size() = 0;
+    virtual int32_t getInputSize()  = 0;
+    virtual int32_t getOutputSize() = 0;
 
-    virtual ma_tensor_t      get_input(int32_t index)              = 0;
-    virtual ma_tensor_t      get_output(int32_t index)             = 0;
-    virtual ma_shape_t       get_input_shape(int32_t index)        = 0;
-    virtual ma_shape_t       get_output_shape(int32_t index)       = 0;
-    virtual ma_quant_param_t get_input_quant_param(int32_t index)  = 0;
-    virtual ma_quant_param_t get_output_quant_param(int32_t index) = 0;
+    virtual ma_tensor_t getInput(int32_t index)                 = 0;
+    virtual ma_tensor_t getOutput(int32_t index)                = 0;
+    virtual ma_shape_t getInputShape(int32_t index)             = 0;
+    virtual ma_shape_t getOutputShape(int32_t index)            = 0;
+    virtual ma_quant_param_t getInputQuantParam(int32_t index)  = 0;
+    virtual ma_quant_param_t getOutputQuantParam(int32_t index) = 0;
 
 #if MA_USE_ENGINE_TENSOR_NAME
-    virtual int32_t get_input_num(const char* name)  = 0;
-    virtual int32_t get_output_num(const char* name) = 0;
-    // virtual ma_tensor_t      get_input(const char* name)              = 0;
-    // virtual ma_tensor_t      get_output(const char* name)             = 0;
-    // virtual ma_shape_t       get_input_shape(const char* name)        = 0;
-    // virtual ma_shape_t       get_output_shape(const char* name)       = 0;
-    // virtual ma_quant_param_t get_input_quant_param(const char* name)  = 0;
-    // virtual ma_quant_param_t get_output_quant_param(const char* name) = 0;
+    virtual int32_t getInputNum(const char* name)  = 0;
+    virtual int32_t getOutputNum(const char* name) = 0;
+    // virtual ma_tensor_t      getInput(const char* name)              = 0;
+    // virtual ma_tensor_t      getOutput(const char* name)             = 0;
+    // virtual ma_shape_t       getInputShape(const char* name)        = 0;
+    // virtual ma_shape_t       getOutputShape(const char* name)       = 0;
+    // virtual ma_quant_param_t getInputQuantParam(const char* name)  = 0;
+    // virtual ma_quant_param_t getOutputQuantParam(const char* name) = 0;
 #endif
 };
 
-}  // namespace ma::engine
+}  // namespace ma
 
 #endif

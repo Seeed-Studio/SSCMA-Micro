@@ -6,6 +6,10 @@
 #include <ma_config.h>
 #endif
 
+#if __has_include(<ma_config_board.h>)
+#include <ma_config_board.h>
+#endif
+
 /* debug config check */
 #ifndef CONFIG_MA_DEBUG_LEVEL
 // Level:
@@ -420,7 +424,7 @@
 #endif
 
 #ifdef CONFIG_MA_ENGINE_CVINN
-#define MA_USE_ENGINE_CVINN 1
+#define MA_USE_ENGINE_CVI 1
 #if MA_USE_ENGINE_TENSOR_NAME != 1
 #undef MA_USE_ENGINE_TENSOR_NAME
 #define MA_USE_ENGINE_TENSOR_NAME 1

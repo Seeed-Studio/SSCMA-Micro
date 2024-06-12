@@ -15,7 +15,7 @@
 #include <tensorflow/lite/micro/system_setup.h>
 #include <tensorflow/lite/schema/schema_generated.h>
 
-#include "core/engine/ma_engine_base.h"
+#include "ma_engine_base.h"
 
 namespace tflite {
 
@@ -326,12 +326,12 @@ private:
 }  // namespace tflite
 
 
-namespace ma::engine {
+namespace ma {
 
-class EngineTFLite final : public BaseEngine {
+class EngineTFLite final : public Engine {
 public:
     EngineTFLite();
-    ~EngineTFLite();
+    ~EngineTFLite() override;
 
     ma_err_t init() override;
     ma_err_t init(size_t size) override;
@@ -339,30 +339,30 @@ public:
 
     ma_err_t run() override;
 
-    ma_err_t load_model(const void* model_data, size_t model_size) override;
+    ma_err_t loadModel(const void* model_data, size_t model_size) override;
 #if MA_USE_FILESYSTEM
-    ma_err_t load_model(const char* model_path) override;
+    ma_err_t loadModel(const char* model_path) override;
 #endif
-    int32_t          get_input_size() override;
-    int32_t          get_output_size() override;
-    ma_tensor_t      get_input(int32_t index) override;
-    ma_tensor_t      get_output(int32_t index) override;
-    ma_shape_t       get_input_shape(int32_t index) override;
-    ma_shape_t       get_output_shape(int32_t index) override;
-    ma_quant_param_t get_input_quant_param(int32_t index) override;
-    ma_quant_param_t get_output_quant_param(int32_t index) override;
+    int32_t getInputSize() override;
+    int32_t getOutputSize() override;
+    ma_tensor_t getInput(int32_t index) override;
+    ma_tensor_t getOutput(int32_t index) override;
+    ma_shape_t getInputShape(int32_t index) override;
+    ma_shape_t getOutputShape(int32_t index) override;
+    ma_quant_param_t getInputQuantParam(int32_t index) override;
+    ma_quant_param_t getOutputQuantParam(int32_t index) override;
 
 private:
     tflite::MicroInterpreter* interpreter;
-    const tflite::Model*      model;
-    ma_memory_pool_t          memory_pool;
+    const tflite::Model* model;
+    ma_memory_pool_t memory_pool;
 
 #if MA_USE_FILESYSTEM
     char* model_file;
 #endif
 };
 
-}  // namespace ma::engine
+}  // namespace ma
 #endif
 
 #endif

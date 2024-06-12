@@ -35,11 +35,11 @@ void inference_done(void* ctx) {
 
 
 TEST(Model, YOLO) {
-    auto* engine = new Engine();
+    auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->load_model("yolo_meter.tflite"));
+    EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
     Detector* detector = static_cast<Detector*>(new ma::model::Yolo(engine));
-    ma_img_t  img;
+    ma_img_t img;
     img.data   = (uint8_t*)gImage_meter;
     img.size   = sizeof(gImage_meter);
     img.width  = 240;
@@ -47,15 +47,15 @@ TEST(Model, YOLO) {
     img.format = MA_PIXEL_FORMAT_RGB888;
     img.rotate = MA_PIXEL_ROTATE_0;
 
-    detector->set_postprocess_done(postprocess_done);
-    detector->set_run_done(inference_done);
-    detector->set_preprocess_done(preprocess_done);
-    detector->set_config(MODEL_CONFIG_OPTION_THRESHOLD, 0.6f);
-    detector->set_config(MODEL_CONFIG_OPTION_NMS, 0.45f);
+    detector->setPostprocessDone(postprocess_done);
+    detector->setRunDone(inference_done);
+    detector->setPreprocessDone(preprocess_done);
+    detector->setConfig(MA_MODEL_CFG_OPT_THRESHOLD, 0.6f);
+    detector->setConfig(MA_MODEL_CFG_OPT_NMS, 0.45f);
     double threshold_nms   = 0;
     double threshold_score = 0;
-    detector->get_config(MODEL_CONFIG_OPTION_NMS, &threshold_nms);
-    detector->get_config(MODEL_CONFIG_OPTION_THRESHOLD, &threshold_score);
+    detector->getConfig(MA_MODEL_CFG_OPT_NMS, &threshold_nms);
+    detector->getConfig(MA_MODEL_CFG_OPT_THRESHOLD, &threshold_score);
     EXPECT_EQ(threshold_nms, 0.45f);
     EXPECT_EQ(threshold_score, 0.6f);
 
@@ -65,11 +65,14 @@ TEST(Model, YOLO) {
     EXPECT_EQ(true, inference_done_flag);
     EXPECT_EQ(true, postprocess_done_flag);
 
-    auto perf = detector->get_perf();
-    MA_LOGI(
-        TAG, "pre: %ldms, infer: %ldms, post: %ldms", perf.preprocess, perf.run, perf.postprocess);
-    auto _results = detector->get_results();
-    int  value    = 0;
+    auto perf = detector->getPerf();
+    MA_LOGI(TAG,
+            "pre: %ldms, infer: %ldms, post: %ldms",
+            perf.preprocess,
+            perf.inference,
+            perf.postprocess);
+    auto _results = detector->getResults();
+    int value     = 0;
     for (int i = 0; i < _results.size(); i++) {
         auto result = _results[i];
         MA_LOGI(TAG,
@@ -89,11 +92,11 @@ TEST(Model, YOLO) {
 }
 
 TEST(Model, Classifier) {
-    auto* engine = new Engine();
+    auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->load_model("mnist.tflite"));
+    EXPECT_EQ(MA_OK, engine->loadModel("mnist.tflite"));
     Classifier* classifier = static_cast<Classifier*>(new ma::model::Classifier(engine));
-    ma_img_t    img;
+    ma_img_t img;
     img.data   = (uint8_t*)gImage_mnist_7;
     img.size   = sizeof(gImage_mnist_7);
     img.width  = 64;
@@ -102,19 +105,22 @@ TEST(Model, Classifier) {
     img.rotate = MA_PIXEL_ROTATE_0;
 
 
-    classifier->set_config(MODEL_CONFIG_OPTION_THRESHOLD, 0.6f);
+    classifier->setConfig(MA_MODEL_CFG_OPT_THRESHOLD, 0.6f);
     double cfg2 = 0;
-    classifier->get_config(MODEL_CONFIG_OPTION_THRESHOLD, &cfg2);
+    classifier->getConfig(MA_MODEL_CFG_OPT_THRESHOLD, &cfg2);
 
     EXPECT_EQ(cfg2, 0.6f);
 
     EXPECT_EQ(MA_OK, classifier->run(&img));
 
-    auto perf = classifier->get_perf();
-    MA_LOGI(
-        TAG, "pre: %ldms, infer: %ldms, post: %ldms", perf.preprocess, perf.run, perf.postprocess);
-    auto _results = classifier->get_results();
-    int  value    = 0;
+    auto perf = classifier->getPerf();
+    MA_LOGI(TAG,
+            "pre: %ldms, infer: %ldms, post: %ldms",
+            perf.preprocess,
+            perf.inference,
+            perf.postprocess);
+    auto _results = classifier->getResults();
+    int value     = 0;
     for (int i = 0; i < _results.size(); i++) {
         auto result = _results[i];
         MA_LOGI(TAG, "class: %d, score: %f", result.target, result.score);

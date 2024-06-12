@@ -24,10 +24,10 @@ protected:
 public:
     Detector(Engine* engine, const char* name);
     virtual ~Detector();
-    const std::vector<ma_bbox_t>& get_results();
+    const std::vector<ma_bbox_t>& getResults();
     ma_err_t                      run(const ma_img_t* img);
-    ma_err_t                      set_config(ma_model_cfg_opt_t opt, ...) override;
-    ma_err_t                      get_config(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t                      setConfig(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t                      getConfig(ma_model_cfg_opt_t opt, ...) override;
 };
 
 }  // namespace ma::model

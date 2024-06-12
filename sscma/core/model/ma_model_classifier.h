@@ -26,11 +26,11 @@ protected:
 public:
     Classifier(Engine* engine);
     virtual ~Classifier();
-    bool                           is_valid(Engine* engine) override;
-    const std::vector<ma_class_t>& get_results();
+    bool                           isValid(Engine* engine) override;
+    const std::vector<ma_class_t>& getResults();
     ma_err_t                       run(const ma_img_t* img);
-    ma_err_t                       set_config(ma_model_cfg_opt_t opt, ...) override;
-    ma_err_t                       get_config(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t                       setConfig(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t                       getConfig(ma_model_cfg_opt_t opt, ...) override;
 };
 
 }  // namespace ma::model
