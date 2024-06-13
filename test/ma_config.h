@@ -9,7 +9,7 @@
 #define CONFIG_USE_ENGINE_TENSOR_NAME 1
 
 #define CONFIG_MA_FILESYSTEM          1
-#define CONFIG_MA_FILESYSTEM_POSIX    1
+#define CONFIG_MA_FILESYSTEM_PTHREAD    1
 
 
 #endif /* _EL_CONFIG_H_ */

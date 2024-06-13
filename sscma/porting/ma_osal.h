@@ -1,0 +1,159 @@
+#ifndef _MA_OSAL_H_
+#define _MA_OSAL_H_
+
+#include <cstddef>
+#include <cstdint>
+
+#include "core/ma_common.h"
+
+#include "osal/ma_osal_pthread.h"
+
+namespace ma {
+
+class Tick {
+public:
+    static ma_tick_t current();
+    static ma_tick_t fromMilliseconds(uint32_t ms);
+    static ma_tick_t fromMicroseconds(uint32_t us);
+    static void sleep(ma_tick_t tick);
+    static const uint32_t waitForever = MA_WAIT_FOREVER;
+};
+
+class Thread {
+public:
+    Thread(const char* name,
+           void (*entry)(void*),
+           uint32_t priority = 0,
+           size_t stacksize  = 0,
+           ma_stack_t* stack = nullptr) noexcept;
+    ~Thread() noexcept;
+    operator bool() const;
+    void start(void* arg = nullptr);
+    bool operator==(const Thread& other) const;
+
+public:
+    static void yield();
+    static ma_thread_t* self();
+
+protected:
+    virtual void threadEntryPoint(void);
+
+private:
+    Thread(const Thread&)            = delete;
+    Thread& operator=(const Thread&) = delete;
+
+private:
+    static void* threadEntryPointStub(void* arg);
+    mutable ma_thread_t m_thread;
+    const char* m_name;
+    uint32_t m_priority;
+    size_t m_stacksize;
+    ma_stack_t* m_stack;
+    void* m_arg;
+    void (*m_entry)(void*);
+};
+
+class Mutex {
+public:
+    Mutex() noexcept;
+    ~Mutex() noexcept;
+    operator bool() const;
+    bool tryLock(uint32_t timeout = Tick::waitForever);
+    bool lock() const;
+    bool unlock() const;
+    operator ma_mutex_t*() const;
+
+private:
+    Mutex(const Mutex&)            = delete;
+    Mutex& operator=(const Mutex&) = delete;
+
+private:
+    mutable ma_mutex_t m_mutex;
+};
+
+class Guard {
+public:
+    explicit Guard(const Mutex& mutex) noexcept;
+    ~Guard() noexcept;
+
+    operator bool() const;
+
+private:
+    const Mutex& m_mutex;
+};
+
+class Semaphore {
+public:
+    explicit Semaphore(size_t count = 0) noexcept;
+    ~Semaphore() noexcept;
+    operator bool() const;
+    bool wait(uint32_t timeout = Tick::waitForever);
+    uint32_t getCount() const;
+    void signal();
+
+private:
+    Semaphore(const Semaphore&)            = delete;
+    Semaphore& operator=(const Semaphore&) = delete;
+
+private:
+    Mutex m_mutex;
+    ma_sem_t m_sem;
+};
+
+class Event {
+public:
+    Event() noexcept;
+    ~Event() noexcept;
+    operator bool() const;
+    bool wait(uint32_t mask, uint32_t* value, uint32_t timeout = Tick::waitForever);
+    void clear(uint32_t value);
+    void set(uint32_t value);
+    uint32_t get() const;
+
+private:
+    Event(const Event&)            = delete;
+    Event& operator=(const Event&) = delete;
+
+private:
+    Mutex m_mutex;
+    ma_event_t m_event;
+};
+
+class MessageBox {
+public:
+    explicit MessageBox(size_t size = 1) noexcept;
+    ~MessageBox() noexcept;
+    operator bool() const;
+    bool fetch(const void** msg, uint32_t timeout = Tick::waitForever);
+    bool post(const void* msg, uint32_t timeout = Tick::waitForever);
+
+private:
+    MessageBox(const MessageBox&)            = delete;
+    MessageBox& operator=(const MessageBox&) = delete;
+
+private:
+    Mutex m_mutex;
+    ma_mbox_t m_mbox;
+};
+
+class Timer {
+public:
+    Timer(uint32_t ms, void (*fn)(ma_timer_t*, void*), void* arg, bool oneshot = false) noexcept;
+    ~Timer() noexcept;
+    operator bool() const;
+    void set(uint32_t ms = Tick::waitForever);
+    void start();
+    void stop();
+
+private:
+    Timer(const Timer&)            = delete;
+    Timer& operator=(const Timer&) = delete;
+
+private:
+    ma_timer_t m_timer;
+};
+
+
+}  // namespace ma
+
+#endif  // _MA_OSAL_H_

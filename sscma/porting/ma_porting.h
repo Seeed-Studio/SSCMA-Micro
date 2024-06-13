@@ -64,4 +64,4 @@ int64_t ma_get_time_ms(void);
 }
 #endif
 
-#endif  // _MA_PORTING_H_
+#endif  // MA_PORTING_H_

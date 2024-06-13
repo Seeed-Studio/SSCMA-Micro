@@ -535,7 +535,7 @@ ma_quant_param_t EngineTFLite::getOutputQuantParam(int32_t index) {
 ma_err_t EngineTFLite::loadModel(const char* model_path) {
     ma_err_t ret = MA_OK;
     size_t size  = 0;
-#ifdef MA_USE_FILESYSTEM_POSIX
+#ifdef MA_USE_FILESYSTEM_PTHREAD
     std::ifstream file(model_path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         return MA_ELOG;

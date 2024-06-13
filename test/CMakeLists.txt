@@ -20,6 +20,7 @@ include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
 list(APPEND srcs 
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_os.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_codec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_engine.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp

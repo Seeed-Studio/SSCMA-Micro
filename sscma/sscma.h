@@ -2,6 +2,7 @@
 #include "core/ma_common.h"
 
 #include "porting/ma_porting.h"
+#include "porting/ma_osal.h"
 
 #include "core/codec/ma_codec.h"
 #include "core/cv/ma_cv.h"
