@@ -51,9 +51,14 @@ void Tick::sleep(ma_tick_t tick) {
 Thread::Thread(const char* name,
                void (*entry)(void*),
                uint32_t priority,
-               size_t stacksize,
+               size_t stackSize,
                ma_stack_t* stack) noexcept
-    : m_name(name), m_entry(entry), m_priority(priority), m_stacksize(stacksize), m_stack(stack) {}
+    : m_arg(nullptr),
+      m_name(name),
+      m_entry(entry),
+      m_priority(priority),
+      m_stackSize(stackSize),
+      m_stack(stack) {}
 
 
 void Thread::threadEntryPoint(void) {
@@ -65,7 +70,6 @@ void Thread::threadEntryPoint(void) {
 void* Thread::threadEntryPointStub(void* arg) {
     Thread* thread = static_cast<Thread*>(arg);
     if (thread != nullptr) {
-        MA_LOGI("asdf", "Thread %s started", thread->m_name);
         thread->threadEntryPoint();
     }
     return nullptr;

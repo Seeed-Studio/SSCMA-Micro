@@ -10,7 +10,7 @@ file(GLOB_RECURSE CLIENT_SOURCES ${SSCMA_ROOT_DIR}/sscma/client/*.c ${SSCMA_ROOT
 
 file(GLOB_RECURSE PORT_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/espressif/*.c ${SSCMA_ROOT_DIR}/sscma/porting/espressif/*.cpp)
 
-set(srcs ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES})
+set(srcs ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES} ${SSCMA_ROOT_DIR}/sscma/porting/osal/ma_osal_freertos.cpp)
 
 set(includes 
         ${SSCMA_ROOT_DIR}/sscma

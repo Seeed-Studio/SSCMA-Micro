@@ -46,8 +46,8 @@
 #endif
 
 // porting config check
-#ifdef CONFIG_MA_OSAL_ESPRESSIF
-#define MA_OSAL_ESPRESSIF 1
+#ifdef CONFIG_MA_PORTING_ESPRESSIF
+#define MA_PORTING_ESPRESSIF 1
 #ifndef CONFIG_MA_OSAL_FREERTOS
 #define CONFIG_MA_OSAL_FREERTOS 1
 #endif
@@ -61,8 +61,8 @@
 #define MA_USE_FILESYSTEM 1
 #endif
 
-#ifdef CONFIG_MA_FILESYSTEM_PTHREAD
-#define MA_USE_FILESYSTEM_PTHREAD 1
+#ifdef CONFIG_MA_FILESYSTEM_POSIX
+#define MA_USE_FILESYSTEM_POSIX 1
 #endif
 
 /* porting config check */
@@ -72,8 +72,8 @@
 #ifndef MA_USE_FILESYSTEM
 #define MA_USE_FILESYSTEM 1
 #endif
-#ifndef MA_USE_FILESYSTEM_PTHREAD
-#define MA_USE_FILESYSTEM_PTHREAD 1
+#ifndef MA_USE_FILESYSTEM_POSIX
+#define MA_USE_FILESYSTEM_POSIX 1
 #endif
 #else
 #define MA_OSAL_PTHREAD 0

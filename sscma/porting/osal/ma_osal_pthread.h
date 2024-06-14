@@ -1,5 +1,5 @@
-#ifndef _MA_OSAL_TYPES_H_
-#define _MA_OSAL_TYPES_H_
+#ifndef _MA_OSAL_PTHREAD_H_
+#define _MA_OSAL_PTHREAD_H_
 
 #include "core/ma_common.h"
 
@@ -50,4 +50,4 @@ typedef struct ma_timer {
 }
 #endif
 
-#endif  // _MA_OSAL_TYPES_H_
+#endif  // _MA_OSAL_PTHREAD_H_

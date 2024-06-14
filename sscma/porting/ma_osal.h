@@ -6,7 +6,11 @@
 
 #include "core/ma_common.h"
 
+#if MA_OSAL_PTHREAD
 #include "osal/ma_osal_pthread.h"
+#elif MA_OSAL_FREERTOS
+#include "osal/ma_osal_freertos.h"
+#endif
 
 namespace ma {
 
@@ -43,14 +47,18 @@ private:
     Thread& operator=(const Thread&) = delete;
 
 private:
+#if MA_OSAL_PTHREAD
     static void* threadEntryPointStub(void* arg);
+#elif MA_OSAL_FREERTOS
+    static void threadEntryPointStub(void* arg);
+#endif
     mutable ma_thread_t m_thread;
-    const char* m_name;
-    uint32_t m_priority;
-    size_t m_stacksize;
-    ma_stack_t* m_stack;
     void* m_arg;
+    const char* m_name;
     void (*m_entry)(void*);
+    uint32_t m_priority;
+    size_t m_stackSize;
+    ma_stack_t* m_stack;
 };
 
 class Mutex {
