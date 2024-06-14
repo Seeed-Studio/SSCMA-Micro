@@ -102,7 +102,7 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
     _arm_npu_irq_init();
 
     /* Initialise Ethos-U55 device */
-     void* const ethosu_base_address = (void*)(U55_BASE);
+    void* const ethosu_base_address = (void*)(U55_BASE);
 
     if (0 != (err = ethosu_init(&_ethosu_drv,         /* Ethos-U driver device pointer */
                                 ethosu_base_address,  /* Ethos-U NPU's base address. */
@@ -170,6 +170,15 @@ void DeviceWE2::init() {
 }
 
 void DeviceWE2::reset() { __NVIC_SystemReset(); }
+
+void DeviceWE2::enter_bootloader() {
+    el_printf("Enter bootloader\r\n");
+    hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
+    hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI2AHB_DO, 1);
+    hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI2AHB_DI, 1);
+    hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI2AHB_SCLK, 1);
+    hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI2AHB_CS, 1); 
+}
 
 Device* Device::get_device() {
     static DeviceWE2 device{};

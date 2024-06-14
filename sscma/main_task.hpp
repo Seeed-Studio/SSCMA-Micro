@@ -406,6 +406,11 @@ void register_commands() {
             [cmd = std::move(argv[0]), caller](const std::atomic<bool>&) { get_mqtt_pubsub(cmd, caller); });
           return EL_OK;
       });
+
+    static_resource->instance->register_cmd("OTA", "Enter OTA mode", "", [](std::vector<std::string>, void*) {
+        static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->device->enter_bootloader(); });
+        return EL_OK;
+    });
 }
 
 void wait_for_inputs() {

@@ -39,6 +39,8 @@ class DeviceWE2 final : public Device {
     void init();
 
     void reset() override;
+
+    void enter_bootloader() override;
 };
 
 }  // namespace edgelab
