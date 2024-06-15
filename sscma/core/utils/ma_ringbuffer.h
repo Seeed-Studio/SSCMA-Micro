@@ -1,5 +1,5 @@
-#ifndef _MA_RING_BUFFER_H_
-#define _MA_RING_BUFFER_H_
+#ifndef _MA_RINGBUFFER_H_
+#define _MA_RINGBUFFER_H_
 
 #include <iostream>
 #include <vector>

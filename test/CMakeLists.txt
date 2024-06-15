@@ -26,6 +26,7 @@ list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_data.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_server.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_storage.cpp
 )
 
 list(APPEND include_dirs 

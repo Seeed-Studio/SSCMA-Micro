@@ -7,7 +7,7 @@
 #include "core/ma_common.h"
 
 #include "core/codec/ma_codec.h"
-#include "core/data/ma_transport.h"
+#include "porting/ma_transport.h"
 
 
 namespace ma {
