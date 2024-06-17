@@ -9,7 +9,8 @@
 #include "core/codec/ma_codec.h"
 #include "core/engine/ma_engine.h"
 #include "core/model/ma_model.h"
-#include "core/utils/ma_ringbuffer.h"
+
+#include "core/utils/ma_ringbuffer.hpp"
 
 #include "server/ma_server.h"
 

@@ -5,7 +5,8 @@ file(GLOB_RECURSE SREVER_SOURCES ${SSCMA_ROOT_DIR}/sscma/server/*.c ${SSCMA_ROOT
 
 file(GLOB_RECURSE CLIENT_SOURCES ${SSCMA_ROOT_DIR}/sscma/client/*.c ${SSCMA_ROOT_DIR}/sscma/client/*.cpp)
 
-file(GLOB_RECURSE PORT_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/*.c ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/*.cpp)
+file(GLOB_RECURSE PORT_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/*.c ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/*.cpp  ${SSCMA_ROOT_DIR}/sscma/porting/osal/ma_osal_pthread.cpp)
+
 
 set(SOURCES ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES})
 

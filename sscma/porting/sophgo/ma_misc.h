@@ -1,5 +1,7 @@
-#ifndef _MA_MISC_H_
-#define _MA_MISC_H_
+#ifndef _MA_MISC_PTHREAD_
+#define _MA_MISC_PTHREAD_
+
+#include "core/ma_common.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -14,4 +16,4 @@
 #define ma_abort   abort
 #define ma_reset   abort
 
-#endif  // _MA_MISC_H_
+#endif  // _MA_MISC_PTHREAD_

@@ -86,7 +86,7 @@ void Thread::start(void* arg) {
     int result = 0;
     m_arg      = arg;
     result     = pthread_create(&m_thread, nullptr, threadEntryPointStub, this);
-    pthread_setname_np(m_thread, m_name);
+    pthread_setname_np(m_thread, m_name.c_str());
     pthread_detach(m_thread);
 }
 

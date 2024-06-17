@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "core/ma_common.h"
 
@@ -54,7 +55,7 @@ private:
 #endif
     mutable ma_thread_t m_thread;
     void* m_arg;
-    const char* m_name;
+    std::string m_name;
     void (*m_entry)(void*);
     uint32_t m_priority;
     size_t m_stackSize;
