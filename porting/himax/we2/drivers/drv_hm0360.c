@@ -201,6 +201,7 @@ el_err_code_t drv_hm0360_init(uint16_t width, uint16_t height) {
     sensordplib_set_sensorctrl_start();
 
     _frame_ready = false;
+    ++_frame_count;
     sensordplib_retrigger_capture();
 
     _initiated_before = true;

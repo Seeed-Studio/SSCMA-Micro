@@ -45,15 +45,20 @@ void _reset_all_wdma_buffer() {
 }
 
 void (*_drv_dp_event_cb_on_frame_ready)() = NULL;
-void (*_drv_dp_on_stop_stream)() = NULL;
+void (*_drv_dp_on_stop_stream)()          = NULL;
 
 void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
     EL_LOGD("event: %d", event);
 
     switch (event) {
     case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
-        _frame_ready = true;
         ++_frame_count;
+        if (_frame_count > SKIP_FRAME_COUNT) {
+            _frame_ready = true;
+        } else {
+            _frame_ready = false;
+            sensordplib_retrigger_capture();
+        }
         if (_drv_dp_event_cb_on_frame_ready != NULL) {
             _drv_dp_event_cb_on_frame_ready();
         }

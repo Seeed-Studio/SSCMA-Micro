@@ -549,6 +549,7 @@ el_err_code_t drv_imx708_init(uint16_t width, uint16_t height) {
     sensordplib_set_sensorctrl_start();
 
     _frame_ready = false;
+    ++_frame_count;
     sensordplib_retrigger_capture();
 
     if (_is_version_c) {
