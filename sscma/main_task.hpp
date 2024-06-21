@@ -40,7 +40,7 @@ void init_static_resource() {
         static_resource->executor->add_task([](const std::atomic<bool>&) {
             std::string caller{"INIT"};
             init_algorithm_hook(caller);
-            init_model_hook(caller);
+            // init_model_hook(caller); // may cause system crash while model is broken
             init_sensor_hook(caller);
 #if SSCMA_CFG_ENABLE_ACTION
             init_action_hook(caller);
