@@ -46,8 +46,8 @@ class Engine {
     virtual el_err_code_t init()                        = 0;
     virtual el_err_code_t init(size_t size)             = 0;
     virtual el_err_code_t init(void* pool, size_t size) = 0;
-
-    virtual el_err_code_t run() = 0;
+    virtual               operator bool() const         = 0;
+    virtual el_err_code_t run()                         = 0;
 
 #ifdef CONFIG_EL_FILESYSTEM
     virtual el_err_code_t load_model(const char* model_path) = 0;

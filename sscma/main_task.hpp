@@ -233,6 +233,10 @@ void register_commands() {
       "Invoke for N times (-1 for infinity loop)",
       "N_TIMES,DIFFERED,RESULT_ONLY",
       [](std::vector<std::string> argv, void* caller) {
+          // Load model if not
+          if (!*(static_resource->engine)) {
+              set_model("MODEL", static_resource->current_model_id, caller, false);
+          }
           static_resource->executor->add_task([cmd         = std::move(argv[0]),
                                                n_times     = std::atoi(argv[1].c_str()),
                                                differed    = std::atoi(argv[2].c_str()),
@@ -408,7 +412,8 @@ void register_commands() {
       });
 
     static_resource->instance->register_cmd("OTA", "Enter OTA mode", "", [](std::vector<std::string>, void*) {
-        static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->device->enter_bootloader(); });
+        static_resource->executor->add_task(
+          [](const std::atomic<bool>&) { static_resource->device->enter_bootloader(); });
         return EL_OK;
     });
 }
@@ -440,6 +445,7 @@ Loop:
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
     }
+    static_resource->device->feed_watchdog();
     el_sleep(20);
     goto Loop;
 }

@@ -49,6 +49,8 @@ class Device {
 
     virtual void enter_bootloader() = 0;
 
+    virtual void feed_watchdog() = 0;
+
     const char* get_device_name() const { return _device_name; }
     uint32_t    get_device_id() const { return _device_id; }
     uint32_t    get_chip_revision_id() const { return _revision_id; }

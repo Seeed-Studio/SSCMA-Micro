@@ -11,6 +11,7 @@
 #include "core/synchronize/el_guard.hpp"
 #include "core/synchronize/el_mutex.hpp"
 #include "sscma/definations.hpp"
+#include "sscma/static_resource.hpp"
 #include "sscma/types.hpp"
 
 namespace sscma::repl {
@@ -70,7 +71,9 @@ class Executor {
     }
 
    protected:
-    inline void yield() const { vTaskDelay(10 / portTICK_PERIOD_MS); }
+    inline void yield() const {
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 
     void run() {
         while (!_worker_thread_stop_requested.load()) {

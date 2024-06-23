@@ -30,6 +30,7 @@ extern "C" {
 #include <WE2_core.h>
 #include <ethosu_driver.h>
 #include <hx_drv_pmu.h>
+#include <hx_drv_watchdog.h>
 #include <spi_eeprom_comm.h>
 }
 
@@ -45,7 +46,8 @@ extern "C" {
 #include "el_wire_we2.h"
 #include "porting/el_flash.h"
 
-#define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
+#define U55_BASE             BASE_ADDR_APB_U55_CTRL_ALIAS
+#define WATCH_DOG_TIMEOUT_TH 2000
 
 namespace edgelab {
 
@@ -119,6 +121,11 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
     return 0;
 }
 
+void WDG_Reset_ISR_CB(uint32_t event) {
+    el_printf("Watchdog reset\r\n");
+    Device::get_device()->reset();
+}
+
 }  // namespace porting
 
 DeviceWE2::DeviceWE2() { init(); }
@@ -131,6 +138,12 @@ void DeviceWE2::init() {
     hx_drv_pmu_get_ctrl(PMU_pmu_wakeup_EVT1, &wakeup_event1);
     EL_LOGD("wakeup_event=0x%x,WakeupEvt1=0x%x", wakeup_event, wakeup_event1);
 
+    WATCHDOG_CFG_T wdg_cfg;
+    wdg_cfg.period = WATCH_DOG_TIMEOUT_TH;
+    wdg_cfg.ctrl   = WATCHDOG_CTRL_CPU;
+    wdg_cfg.state  = WATCHDOG_STATE_DC;
+    wdg_cfg.type   = WATCHDOG_RESET;  //wewweWATCHDOG_INT;
+    hx_drv_watchdog_start(WATCHDOG_ID_0, &wdg_cfg, porting::WDG_Reset_ISR_CB);
     hx_drv_uart_init(USE_DW_UART_0, HX_UART0_BASE);
 
     porting::_arm_npu_init(true, true);
@@ -177,8 +190,14 @@ void DeviceWE2::enter_bootloader() {
     hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI2AHB_DO, 1);
     hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI2AHB_DI, 1);
     hx_drv_scu_set_PB4_pinmux(SCU_PB4_PINMUX_SPI2AHB_SCLK, 1);
-    hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI2AHB_CS, 1); 
+    hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI2AHB_CS, 1);
 }
+
+
+void DeviceWE2::feed_watchdog() {
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
+}
+
 
 Device* Device::get_device() {
     static DeviceWE2 device{};

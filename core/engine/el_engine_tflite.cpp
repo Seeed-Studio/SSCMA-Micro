@@ -383,6 +383,8 @@ el_err_code_t EngineTFLite::run() {
     return EL_OK;
 }
 
+EngineTFLite::operator bool() const { return (interpreter != nullptr); }
+
 el_err_code_t EngineTFLite::load_model(const void* model_data, size_t model_size) {
     model = tflite::GetModel(model_data);
     if (model == nullptr) {

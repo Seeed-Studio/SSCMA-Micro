@@ -359,7 +359,7 @@ class EngineTFLite final : public base::Engine {
     el_err_code_t init() override;
     el_err_code_t init(size_t size) override;
     el_err_code_t init(void* pool, size_t size) override;
-
+    operator bool() const override;
     el_err_code_t run() override;
 
 #ifdef CONFIG_EL_FILESYSTEM
