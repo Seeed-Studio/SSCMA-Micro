@@ -79,7 +79,7 @@ el_err_code_t SerialWE2::init() {
         _rb_rx = new lwRingBuffer{8192};
 
     if (!_rb_tx) [[likely]]
-        _rb_tx = new lwRingBuffer{32768};
+        _rb_tx = new lwRingBuffer{48192};
 
     _mutex_tx = xSemaphoreCreateMutex();
 

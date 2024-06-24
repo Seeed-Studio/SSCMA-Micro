@@ -26,12 +26,13 @@ using namespace sscma::hooks;
 
 void init_static_resource();
 void register_commands();
-void wait_for_inputs();
+void wait_for_inputs(void*);
 
 void run() {
     init_static_resource();
     register_commands();
-    wait_for_inputs();
+    xTaskCreate(wait_for_inputs, "listener", 4096, nullptr, 3, nullptr);
+    vTaskDelete(nullptr);
 }
 
 void init_static_resource() {
@@ -418,7 +419,7 @@ void register_commands() {
     });
 }
 
-void wait_for_inputs() {
+void wait_for_inputs(void*) {
     // mark the system status as ready
     static_resource->executor->add_task([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
