@@ -252,3 +252,4 @@ el_err_code_t drv_hm0360_deinit() {
 
     return EL_OK;
 }
+

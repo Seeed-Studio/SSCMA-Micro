@@ -363,13 +363,13 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
     jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
 
-// #if defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
-//     if (width > 240 && height > 240) {
-//         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
-//     } else {
-//         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
-//     }
-// #endif
+    // #if defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
+    //     if (width > 240 && height > 240) {
+    //         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    //     } else {
+    //         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
+    //     }
+    // #endif
 
     // sensordplib_set_int_hw5x5rgb_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
     sensordplib_set_int_hw5x5_jpeg_wdma23(hw5x5_cfg, jpeg_cfg, 1, NULL);
@@ -452,4 +452,16 @@ el_err_code_t drv_ov5647_deinit() {
     el_sleep(3);
 
     return EL_OK;
+}
+
+el_err_code_t drv_ov5647_set_reg(uint16_t addr, uint8_t value) {
+    if (hx_drv_cis_set_reg(addr, value, 1) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
+    return EL_OK;
+}
+el_err_code_t drv_ov5647_get_reg(uint16_t addr, uint8_t* value) {
+    if (hx_drv_cis_get_reg(addr, value) != HX_CIS_NO_ERROR) {
+        return EL_EIO;
+    }
 }

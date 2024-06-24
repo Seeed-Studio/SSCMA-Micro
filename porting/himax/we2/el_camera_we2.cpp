@@ -39,8 +39,10 @@ extern "C" {
 
 namespace edgelab {
 
-static el_err_code_t (*_drv_cam_init)(uint16_t, uint16_t) = nullptr;
-static el_err_code_t (*_drv_cam_deinit)()                 = nullptr;
+static el_err_code_t (*_drv_cam_init)(uint16_t, uint16_t)    = nullptr;
+static el_err_code_t (*_drv_cam_deinit)()                    = nullptr;
+static el_err_code_t (*_drv_cam_set_reg)(uint16_t, uint8_t)  = nullptr;
+static el_err_code_t (*_drv_cam_get_reg)(uint16_t, uint8_t*) = nullptr;
 
 #ifdef CONFIG_EL_BOARD_SENSECAP_WATCHER
 CameraWE2::CameraWE2() : Camera(0b00001111) {
@@ -76,8 +78,10 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
 
     if (!_drv_cam_init) {
         if (drv_ov5647_probe() == EL_OK) {
-            _drv_cam_init   = drv_ov5647_init;
-            _drv_cam_deinit = drv_ov5647_deinit;
+            _drv_cam_init    = drv_ov5647_init;
+            _drv_cam_deinit  = drv_ov5647_deinit;
+            _drv_cam_set_reg = drv_ov5647_set_reg;
+            _drv_cam_get_reg = drv_ov5647_get_reg;
         } else if (drv_imx219_probe() == EL_OK) {
             _drv_cam_init   = drv_imx219_init;
             _drv_cam_deinit = drv_imx219_deinit;
@@ -225,11 +229,24 @@ el_err_code_t CameraWE2::get_processed_frame(el_img_t* img) {
         return EL_EPERM;
     }
 
-    *img = _drv_get_jpeg();
+    *img        = _drv_get_jpeg();
     img->rotate = _rotation_override;
     // just assign, not sure whether the img is valid
 
     return EL_OK;
+}
+
+el_err_code_t CameraWE2::set_register(uint16_t addr, uint8_t value) {
+    if (_drv_cam_set_reg != nullptr) {
+        return _drv_cam_set_reg(addr, value);
+    }
+    return EL_ENOTSUP;
+}
+el_err_code_t CameraWE2::get_register(uint16_t addr, uint8_t* value) {
+    if (_drv_cam_get_reg != nullptr) {
+        return _drv_cam_get_reg(addr, value);
+    }
+    return EL_ENOTSUP;
 }
 
 }  // namespace edgelab

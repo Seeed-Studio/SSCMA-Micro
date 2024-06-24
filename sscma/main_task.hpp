@@ -417,6 +417,40 @@ void register_commands() {
           [](const std::atomic<bool>&) { static_resource->device->enter_bootloader(); });
         return EL_OK;
     });
+
+    static_resource->instance->register_cmd(
+      "SETREG", "Set register", "\"ADDR\",\"VAL\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), addr = std::atoi(argv[1].c_str()), val = std::atoi(argv[2].c_str()), caller](
+              const std::atomic<bool>&) {
+                auto          camera = static_resource->device->get_camera();
+                el_err_code_t ret    = camera->set_register(addr, val);
+                std::string   reply =
+                  concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), "}\n");
+                static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
+            });
+          return EL_OK;
+      });
+
+    static_resource->instance->register_cmd(
+      "GETREG", "Get register", "\"ADDR\"", [](std::vector<std::string> argv, void* caller) {
+          static_resource->executor->add_task(
+            [cmd = std::move(argv[0]), addr = std::atoi(argv[1].c_str()), caller](const std::atomic<bool>&) {
+                el_printf("[SSCMA] GETREG: %d\n", addr);
+                auto          camera = static_resource->device->get_camera();
+                uint8_t       value  = 0;
+                el_err_code_t ret    = camera->get_register(addr, &value);
+                std::string   reply  = concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                   cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(ret),
+                                                   ", \"data\": ",
+                                                   std::to_string(value),
+                                                   "}\n");
+                static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
+            });
+          return EL_OK;
+      });
 }
 
 void wait_for_inputs(void*) {

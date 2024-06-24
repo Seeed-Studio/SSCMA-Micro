@@ -94,6 +94,8 @@ extern "C" {
 el_err_code_t drv_ov5647_probe();
 el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height);
 el_err_code_t drv_ov5647_deinit();
+el_err_code_t drv_ov5647_set_reg(uint16_t addr, uint8_t value);
+el_err_code_t drv_ov5647_get_reg(uint16_t addr, uint8_t* value);
 
 #ifdef __cplusplus
 }
