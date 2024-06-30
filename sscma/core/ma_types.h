@@ -111,7 +111,7 @@ typedef enum {
 
 typedef struct {
     uint8_t* data;
-    size_t size;
+    uint32_t size;
     uint16_t width;
     uint16_t height;
     ma_pixel_format_t format;

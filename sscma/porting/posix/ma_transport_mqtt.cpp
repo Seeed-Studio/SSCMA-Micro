@@ -80,7 +80,7 @@ MQTT::MQTT(const char* clientID, const char* txTopic, const char* rxTopic)
         mqtt_client_set_userdata(m_client, this);
         mqtt_client_set_callback(m_client, onCallbackStub);
     }
-    m_receiveBuffer.assign(1024);
+    m_receiveBuffer.assign(8192);
 }
 
 MQTT::~MQTT() {
