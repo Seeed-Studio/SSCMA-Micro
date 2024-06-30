@@ -33,7 +33,7 @@ typedef struct ma_mbox {
     size_t w;
     size_t count;
     size_t size;
-    const void* msg[64];
+    void* msg[64];
 } ma_mbox_t;
 
 typedef struct ma_timer {

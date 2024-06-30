@@ -26,16 +26,27 @@ TEST(SemaphoreTest, SignalWait) {
     EXPECT_EQ(sem.getCount(), 1);
 }
 
-// // Test for Event
-// TEST(EventTest, SetClearWait) {
-//     Event event;
-//     uint32_t value;
-//     event.set(0x01);
-//     EXPECT_TRUE(event.wait(0x01, &value));
-//     EXPECT_EQ(value, 0x01);
-//     event.clear(0x01);
-//     EXPECT_FALSE(event.wait(0x01, &value, 0));
-// }
+// Test for Event
+TEST(EventTest, SetClearWait) {
+    Event event;
+    uint32_t value;
+    event.set(0x01);
+    EXPECT_TRUE(event.wait(0x01, &value));
+    EXPECT_EQ(value, 0x01);
+    event.clear(0x01);
+    EXPECT_FALSE(event.wait(0x01, &value, 0));
+}
+
+
+// TEST for message box
+TEST(MessageBoxTest, SendReceive) {
+    MessageBox mb;
+    char data[] = "Hello";
+    char* msg;
+    mb.post(data);
+    EXPECT_EQ(mb.fetch(reinterpret_cast<void**>(&msg)), true);
+    EXPECT_STREQ(msg, data);
+}
 
 // // Test for Timer
 // void timerCallback(ma_timer_t*, void*) {

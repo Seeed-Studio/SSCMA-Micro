@@ -133,8 +133,8 @@ public:
     explicit MessageBox(size_t size = 1) noexcept;
     ~MessageBox() noexcept;
     operator bool() const;
-    bool fetch(const void** msg, uint32_t timeout = Tick::waitForever);
-    bool post(const void* msg, uint32_t timeout = Tick::waitForever);
+    bool fetch(void** msg, uint32_t timeout = Tick::waitForever);
+    bool post(void* msg, uint32_t timeout = Tick::waitForever);
 
 private:
     MessageBox(const MessageBox&)            = delete;

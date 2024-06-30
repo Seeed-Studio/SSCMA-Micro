@@ -17,6 +17,9 @@
 #include "porting/ma_osal.h"
 
 namespace ma {
+
+const static char* TAG = "ma::osal::pthread";
+
 ma_tick_t Tick::current() {
     struct timespec ts;
     ma_tick_t tick;
@@ -306,7 +309,7 @@ MessageBox::operator bool() const {
 }
 
 
-bool MessageBox::fetch(const void** msg, uint32_t timeout) {
+bool MessageBox::fetch(void** msg, uint32_t timeout) {
     struct timespec ts;
     int error     = 0;
     uint64_t nsec = (uint64_t)timeout * 1000000;
@@ -341,7 +344,7 @@ bool MessageBox::fetch(const void** msg, uint32_t timeout) {
 }
 
 
-bool MessageBox::post(const void* msg, uint32_t timeout) {
+bool MessageBox::post(void* msg, uint32_t timeout) {
     struct timespec ts;
     int error     = 0;
     uint64_t nsec = (uint64_t)timeout * 1000000;

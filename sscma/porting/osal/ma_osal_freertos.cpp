@@ -256,7 +256,7 @@ MessageBox::operator bool() const {
 }
 
 
-bool MessageBox::fetch(const void** msg, uint32_t timeout) {
+bool MessageBox::fetch(void** msg, uint32_t timeout) {
     BaseType_t yield;
     if (xPortInIsrContext()) {
         if (xQueueReceiveFromISR(m_mbox, msg, &yield) != pdPASS) {
@@ -274,7 +274,7 @@ bool MessageBox::fetch(const void** msg, uint32_t timeout) {
 }
 
 
-bool MessageBox::post(const void* msg, uint32_t timeout) {
+bool MessageBox::post(void* msg, uint32_t timeout) {
     BaseType_t yield;
     if (xPortInIsrContext()) {
         if (xQueueSendFromISR(m_mbox, &msg, &yield) != pdPASS) {
