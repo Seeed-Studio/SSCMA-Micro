@@ -1,5 +1,5 @@
-#ifndef _MA_MISC_PTHREAD_
-#define _MA_MISC_PTHREAD_
+#ifndef _MA_MISC_LINUX_
+#define _MA_MISC_LINUX_
 
 #include "core/ma_common.h"
 
@@ -16,4 +16,4 @@
 #define ma_abort   abort
 #define ma_reset   abort
 
-#endif  // _MA_MISC_PTHREAD_
+#endif  // _MA_MISC_LINUX_

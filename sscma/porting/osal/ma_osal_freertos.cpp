@@ -60,7 +60,7 @@ void Thread::start(void* arg) {
     m_arg = arg;
 
     xTaskCreate(threadEntryPointStub,
-                (m_name ? m_name : "Thread"),
+                (m_name.empty() ? "Thread" : m_name.c_str()),
                 (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
                 this,
                 m_priority,

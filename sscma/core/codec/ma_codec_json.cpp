@@ -62,6 +62,26 @@ ma_err_t CodecJSON::begin(ma_reply_t reply, ma_err_t code, const std::string& na
     return MA_OK;
 }
 
+ma_err_t CodecJSON::begin(ma_reply_t reply,
+                          ma_err_t code,
+                          const std::string& name,
+                          const std::string& data) {
+    ma_err_t ret = reset();
+    if (ret != MA_OK) {
+        return ret;
+    }
+    m_root = cJSON_CreateObject();
+    if (cJSON_AddNumberToObject(m_root, "type", reply) == nullptr ||
+        cJSON_AddStringToObject(m_root, "name", name.c_str()) == nullptr ||
+        cJSON_AddNumberToObject(m_root, "code", code) == nullptr ||
+        cJSON_AddStringToObject(m_root, "data", data.c_str()) == nullptr) {
+        reset();
+        return MA_FAILED;
+    }
+
+    return MA_OK;
+}
+
 ma_err_t CodecJSON::end() {
     if (m_root == nullptr) {
         return MA_EPERM;

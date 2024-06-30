@@ -4,13 +4,11 @@
 class StorageFileTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 初始化测试文件
         storage = new ma::StorageFile("test_data.ini");
     }
 
     void TearDown() override {
         // 清理测试文件
-        delete storage;
         std::remove("test_data.ini");
     }
 

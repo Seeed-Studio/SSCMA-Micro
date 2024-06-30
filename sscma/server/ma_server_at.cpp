@@ -41,7 +41,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     std::string name;
     std::string args;
 
-    line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return std::isspace(c); }),
+    line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return !std::isprint(c); }),
                line.end());
 
     // find first '=' in AT command (<name>=<args>)
@@ -57,8 +57,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
 
     // check if name is valid (starts with "AT+")
     if (name.rfind("AT+", 0) != 0) {
-        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT");
-        m_codec.write("msg", "Uknown command: " + name);
+        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Uknown command: " + name);
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
         return MA_EINVAL;
@@ -78,8 +77,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     });
 
     if (it == m_services.end()) [[unlikely]] {
-        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT");
-        m_codec.write("msg", "Uknown command: " + name);
+        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Uknown command: " + name);
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
         return MA_EINVAL;

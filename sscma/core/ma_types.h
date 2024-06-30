@@ -184,6 +184,47 @@ typedef enum {
     MA_REPLY_LOG      = 2,
 } ma_reply_t;
 
+typedef enum {
+    AUTO      = 0,
+    NONE      = 1,
+    WEP       = 2,
+    WPA1_WPA2 = 3,
+    WPA2_WPA3 = 4,
+    WPA3      = 5
+} ma_wifi_security_t;
+
+typedef struct {
+    char ssid[MA_MAX_WIFI_SSID_LENGTH];
+    char bssid[MA_MAX_WIFI_BSSID_LENGTH];
+    char password[MA_MAX_WIFI_PASSWORD_LENGTH];
+    ma_wifi_security_t security;
+} ma_wifi_config_t;
+
+typedef struct {
+    char alpn[MA_MAX_MQTT_BROKER_LENGTH];
+    char* certification_authority;
+    char* client_cert;
+    char* client_key;
+} ma_mqtt_ssl_config_t;
+
+
+typedef struct {
+    char host[MA_MAX_MQTT_BROKER_LENGTH];
+    int port;
+    char client_id[MA_MAX_MQTT_CLIENT_ID_LENGTH];
+    char username[MA_MAX_MQTT_USERNAME_LENGTH];
+    char password[MA_MAX_MQTT_PASSWORD_LENGTH];
+    bool use_ssl;
+} ma_mqtt_config_t;
+
+
+typedef struct {
+    char publish_topic[MA_MAX_MQTT_TOPIC_LENGTH];
+    char subscribe_topic[MA_MAX_MQTT_TOPIC_LENGTH];
+    uint8_t publish_qos;
+    uint8_t subscribe_qos;
+} ma_mqtt_topic_config_t;
+
 
 #ifdef __cplusplus
 }

@@ -1,8 +1,11 @@
 #ifndef _MA_TRANSPORT_MQTT_H_
 #define _MA_TRANSPORT_MQTT_H_
 
-#include <vector>
+#include "core/ma_common.h"
 
+#ifdef MA_USE_TRANSPORT_MQTT
+
+#include <vector>
 
 #include "hv/hv.h"
 #include "hv/mqtt_client.h"
@@ -25,6 +28,7 @@ public:
     size_t available() const override;
     size_t send(const char* data, size_t length, int timeout = -1) override;
     size_t receive(char* data, size_t length, int timeout = 1) override;
+    size_t receiveUtil(char* data, size_t length, char delimiter, int timeout = 1) override;
 
     ma_err_t connect(const char* host,
                      int port,
@@ -54,5 +58,8 @@ private:
 };
 
 }  // namespace ma
+
+
+#endif
 
 #endif  // _MA_TRANSPORT_MQTT_H_

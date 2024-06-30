@@ -3,10 +3,13 @@
 #define _MA_COMMON_H_
 
 #include "porting/ma_porting.h"
+
 #include "core/ma_compiler.h"
 #include "core/ma_config_internal.h"
-#include "core/ma_types.h"
+
 #include "core/ma_debug.h"
+#include "core/ma_definations.h"
+#include "core/ma_types.h"
 #include "core/ma_version.h"
 
 #define MA_VERSION           __MA_VERSION__

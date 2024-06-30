@@ -19,6 +19,7 @@ public:
 
     ma_err_t begin() override;
     ma_err_t begin(ma_reply_t reply, ma_err_t code, const std::string& name) override;
+    ma_err_t begin(ma_reply_t reply, ma_err_t code, const std::string& name, const std::string& data) override;
     ma_err_t end() override;
     ma_err_t reset() override;
 

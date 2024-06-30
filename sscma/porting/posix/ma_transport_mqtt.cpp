@@ -3,6 +3,8 @@
 
 #include "ma_transport_mqtt.h"
 
+#ifdef MA_USE_TRANSPORT_MQTT
+
 namespace ma {
 
 const static char* TAG = "ma::transport::mqtt";
@@ -29,6 +31,7 @@ void MQTT::onCallback(mqtt_client_t* cli, int type) {
             m_connected = false;
             break;
         case MQTT_TYPE_PUBLISH:
+            MA_LOGI(TAG, "mqtt publish: %d", cli->message.payload_len);
             m_receiveBuffer.write(cli->message.payload, cli->message.payload_len);
             break;
         case MQTT_TYPE_PUBACK:
@@ -121,12 +124,15 @@ size_t MQTT::receive(char* data, size_t length, int timeout) {
     if (m_receiveBuffer.empty()) {
         return 0;
     }
+    size_t ret = m_receiveBuffer.read(data, length);
+    return ret;
+}
 
-    size_t bytesToRead = std::min(length, m_receiveBuffer.size());
-
-    m_receiveBuffer.read(data, bytesToRead);
-
-    return bytesToRead;
+size_t MQTT::receiveUtil(char* data, size_t length, char delimiter, int timeout) {
+    if (m_receiveBuffer.empty()) {
+        return 0;
+    }
+    return m_receiveBuffer.readUtil(data, length, delimiter);
 }
 
 ma_err_t MQTT::connect(
@@ -157,3 +163,6 @@ ma_err_t MQTT::disconnect() {
 }
 
 }  // namespace ma
+
+
+#endif

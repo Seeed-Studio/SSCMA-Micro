@@ -1,0 +1,33 @@
+#ifndef _MA_CONFIG_BOARD_H_
+#define _MA_CONFIG_BOARD_H_
+
+
+#ifndef CONFIG_MA_PORTING_SG200X
+#define MA_PORTING_SG200X 1
+#endif
+
+#ifndef CONFIG_MA_BOARD_RECAMERA
+#define MA_BOARD_RECAMERA 1
+#endif
+
+#ifndef CONFIG_MA_BOARD_NAME
+#define CONFIG_MA_BOARD_NAME "recamera"
+#endif
+
+#ifndef CONFIG_MA_CONFIG_FILE
+#define CONFIG_MA_CONFIG_FILE "/etc/sscma.conf"
+#endif
+
+#ifndef CONFIG_MA_OSAL_PTHREAD
+#define CONFIG_MA_OSAL_PTHREAD 1
+#endif
+
+#ifndef CONFIG_MA_ENGINE_CVINN
+#define CONFIG_MA_ENGINE_CVINN 1
+#endif
+
+#ifndef CONFIG_MA_TRANSPORT_MQTT
+#define CONFIG_MA_TRANSPORT_MQTT 1
+#endif
+
+#endif  // _MA_CONFIG_BOARD_H_

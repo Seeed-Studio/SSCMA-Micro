@@ -4,6 +4,7 @@
 #include "porting/ma_osal.h"
 #include "porting/ma_porting.h"
 #include "porting/ma_storage.h"
+#include "porting/ma_device.h"
 
 #include "core/cv/ma_cv.h"
 #include "core/codec/ma_codec.h"

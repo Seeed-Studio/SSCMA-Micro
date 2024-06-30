@@ -8,7 +8,6 @@
 #include "porting/ma_osal.h"
 
 namespace ma {
-
 template <typename T>
 class ring_buffer {
 public:
@@ -62,11 +61,9 @@ public:
 
     size_t read(T* data, size_t length) {
         Guard guard(m_mutex);
-
         if (length > m_used) {
             length = m_used;
         }
-
         if (length > m_size - m_head) {
             memcpy(data, &m_buffer[m_head], (m_size - m_head) * sizeof(T));
             memcpy(&data[m_size - m_head], &m_buffer[0], length - (m_size - m_head) * sizeof(T));
@@ -76,8 +73,24 @@ public:
 
         m_head = (m_head + length) % m_size;
         m_used -= length;
-
         return length;
+    }
+
+    size_t readUtil(T* data, size_t length, T value) {
+        Guard guard(m_mutex);
+        if (length > m_used) {
+            length = m_used;
+        }
+        size_t i = 0;
+        for (; i < length; ++i) {
+            if (m_buffer[(m_head + i) % m_size] == value) {
+                break;
+            }
+        }
+        if (i == length) {
+            return 0;
+        }
+        return read(&data[0], i + 1);
     }
 
     size_t peek(T* data, size_t length) const {

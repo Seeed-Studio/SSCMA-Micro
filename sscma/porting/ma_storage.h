@@ -11,7 +11,6 @@ public:
     Storage()  = default;
     virtual ~Storage() = default;
 
-
     virtual ma_err_t set(const std::string& key, bool value)               = 0;
     virtual ma_err_t set(const std::string& key, int8_t value)             = 0;
     virtual ma_err_t set(const std::string& key, int16_t value)            = 0;
