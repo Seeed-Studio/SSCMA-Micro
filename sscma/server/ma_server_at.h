@@ -36,6 +36,10 @@ public:
     ATServer(Codec* codec) : m_codec(*codec) {}
     ~ATServer() = default;
 
+    void start();
+    
+    void stop();
+
     ma_err_t addService(const std::string& name,
                         const std::string& desc,
                         const std::string& args,
