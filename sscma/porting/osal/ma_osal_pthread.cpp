@@ -26,7 +26,7 @@ ma_tick_t Tick::current() {
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     tick = ts.tv_sec;
-    tick *= 1000000;
+    tick *= 1000000000;
     tick += ts.tv_nsec;
 
     return tick;
@@ -38,6 +38,10 @@ ma_tick_t Tick::fromMicroseconds(uint32_t us) {
 
 ma_tick_t Tick::fromMilliseconds(uint32_t ms) {
     return ms * 1000 * 1000;
+}
+
+ma_tick_t Tick::fromSeconds(uint32_t sec) {
+    return sec * 1000 * 1000 * 1000;
 }
 
 void Tick::sleep(ma_tick_t tick) {
@@ -128,7 +132,7 @@ Mutex::operator bool() const {
     return true;
 }
 
-bool Mutex::tryLock(uint32_t timeout) {
+bool Mutex::tryLock(ma_tick_t timeout) {
     return pthread_mutex_trylock(&m_mutex) == 0;
 }
 
@@ -173,19 +177,14 @@ Semaphore::operator bool() const {
 }
 
 
-bool Semaphore::wait(uint32_t timeout) {
+bool Semaphore::wait(ma_tick_t timeout) {
     struct timespec ts;
-    int error     = 0;
-    uint64_t nsec = (uint64_t)timeout * 1000000;
+    int error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-        if (nsec > (1000000000)) {
-            ts.tv_sec += nsec / (1000000000);
-            nsec %= (1000000000);
-        }
-        ts.tv_nsec = nsec;
+        ts.tv_sec += timeout / 1000000000;
+        ts.tv_nsec += (timeout % 1000000000);
     }
 
     Guard guard(m_mutex);
@@ -226,6 +225,7 @@ Event::Event() noexcept {
     pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
     pthread_cond_init(&m_event.cond, &cattr);
     pthread_condattr_destroy(&cattr);
+    m_event.value = 0;
 }
 
 Event::~Event() noexcept {
@@ -237,23 +237,27 @@ Event::operator bool() const {
 }
 
 
-bool Event::wait(uint32_t mask, uint32_t* value, uint32_t timeout) {
+bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, bool waitAll) {
     struct timespec ts;
-    int error     = 0;
-    uint64_t nsec = (uint64_t)timeout * 1000000;
+    int error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-        if (nsec > (1000000000)) {
-            ts.tv_sec += nsec / (1000000000);
-            nsec %= (1000000000);
-        }
-        ts.tv_nsec = nsec;
+        ts.tv_sec += timeout / 1000000000;
+        ts.tv_nsec += (timeout % 1000000000);
     }
-
     Guard guard(m_mutex);
-    while ((m_event.value & mask) == 0) {
+
+    do {
+        if (waitAll) {
+            if (m_event.value & mask == mask) {
+                break;
+            }
+        } else {
+            if (m_event.value & mask) {
+                break;
+            }
+        }
         if (timeout != Tick::waitForever) {
             error = pthread_cond_timedwait(&m_event.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
             MA_ASSERT(error != EINVAL);
@@ -264,10 +268,15 @@ bool Event::wait(uint32_t mask, uint32_t* value, uint32_t timeout) {
             error = pthread_cond_wait(&m_event.cond, static_cast<ma_mutex_t*>(m_mutex));
             MA_ASSERT(error != EINVAL);
         }
-    }
-
+    } while (true);
+    // if (!waitAll) {
+    //     m_event.value &= ~mask;
+    // }
     if (value != nullptr) {
         *value = m_event.value & mask;
+    }
+    if (clear) {
+        m_event.value &= ~mask;
     }
     return true;
 }
@@ -281,6 +290,7 @@ void Event::clear(uint32_t value) {
 void Event::set(uint32_t value) {
     Guard guard(m_mutex);
     m_event.value |= value;
+    pthread_cond_signal(&m_event.cond);
 }
 
 uint32_t Event::get() const {
@@ -309,19 +319,14 @@ MessageBox::operator bool() const {
 }
 
 
-bool MessageBox::fetch(void** msg, uint32_t timeout) {
+bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     struct timespec ts;
-    int error     = 0;
-    uint64_t nsec = (uint64_t)timeout * 1000000;
+    int error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-        if (nsec > (1000000000)) {
-            ts.tv_sec += nsec / (1000000000);
-            nsec %= (1000000000);
-        }
-        ts.tv_nsec = nsec;
+        ts.tv_sec += timeout / 1000000000;
+        ts.tv_nsec += (timeout % 1000000000);
     }
 
     Guard guard(m_mutex);
@@ -344,19 +349,14 @@ bool MessageBox::fetch(void** msg, uint32_t timeout) {
 }
 
 
-bool MessageBox::post(void* msg, uint32_t timeout) {
+bool MessageBox::post(void* msg, ma_tick_t timeout) {
     struct timespec ts;
-    int error     = 0;
-    uint64_t nsec = (uint64_t)timeout * 1000000;
+    int error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        nsec += ts.tv_nsec;
-        if (nsec > (1000000000)) {
-            ts.tv_sec += nsec / (1000000000);
-            nsec %= (1000000000);
-        }
-        ts.tv_nsec = nsec;
+        ts.tv_sec += timeout / 1000000000;
+        ts.tv_nsec += (timeout % 1000000000);
     }
 
     Guard guard(m_mutex);

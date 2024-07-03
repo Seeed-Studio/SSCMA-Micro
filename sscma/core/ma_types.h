@@ -225,6 +225,15 @@ typedef struct {
     uint8_t subscribe_qos;
 } ma_mqtt_topic_config_t;
 
+typedef enum MA_ATTR_PACKED {
+    CAM_EVT_OPEN    = 0b00000001,
+    CAM_EVT_CLOSE   = 0b00000010,
+    CAM_EVT_START   = 0b00000100,
+    CAM_EVT_STOP    = 0b00001000,
+    CAM_EVT_CAPTURE = 0b00010000,
+    CAM_EVT_FRAME   = 0b00100000,
+} ma_camera_event_t;
+
 
 #ifdef __cplusplus
 }

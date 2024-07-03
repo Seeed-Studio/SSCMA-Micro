@@ -18,10 +18,11 @@ namespace ma {
 class Tick {
 public:
     static ma_tick_t current();
-    static ma_tick_t fromMilliseconds(uint32_t ms);
     static ma_tick_t fromMicroseconds(uint32_t us);
+    static ma_tick_t fromMilliseconds(uint32_t ms);
+    static ma_tick_t fromSeconds(uint32_t sec);
     static void sleep(ma_tick_t tick);
-    static const uint32_t waitForever = MA_WAIT_FOREVER;
+    static const ma_tick_t waitForever = MA_WAIT_FOREVER;
 };
 
 class Thread {
@@ -67,7 +68,7 @@ public:
     Mutex() noexcept;
     ~Mutex() noexcept;
     operator bool() const;
-    bool tryLock(uint32_t timeout = Tick::waitForever);
+    bool tryLock(ma_tick_t timeout = Tick::waitForever);
     bool lock() const;
     bool unlock() const;
     operator ma_mutex_t*() const;
@@ -96,7 +97,7 @@ public:
     explicit Semaphore(size_t count = 0) noexcept;
     ~Semaphore() noexcept;
     operator bool() const;
-    bool wait(uint32_t timeout = Tick::waitForever);
+    bool wait(ma_tick_t timeout = Tick::waitForever);
     uint32_t getCount() const;
     void signal();
 
@@ -114,8 +115,12 @@ public:
     Event() noexcept;
     ~Event() noexcept;
     operator bool() const;
-    bool wait(uint32_t mask, uint32_t* value, uint32_t timeout = Tick::waitForever);
-    void clear(uint32_t value);
+    bool wait(uint32_t mask,
+              uint32_t* value,
+              ma_tick_t timeout = Tick::waitForever,
+              bool clear        = true,
+              bool waitAll      = false);
+    void clear(uint32_t value = 0xffffffffu);
     void set(uint32_t value);
     uint32_t get() const;
 
@@ -133,8 +138,9 @@ public:
     explicit MessageBox(size_t size = 1) noexcept;
     ~MessageBox() noexcept;
     operator bool() const;
-    bool fetch(void** msg, uint32_t timeout = Tick::waitForever);
-    bool post(void* msg, uint32_t timeout = Tick::waitForever);
+
+    bool fetch(void** msg, ma_tick_t timeout = Tick::waitForever);
+    bool post(void* msg, ma_tick_t timeout = Tick::waitForever);
 
 private:
     MessageBox(const MessageBox&)            = delete;
@@ -150,7 +156,7 @@ public:
     Timer(uint32_t ms, void (*fn)(ma_timer_t*, void*), void* arg, bool oneshot = false) noexcept;
     ~Timer() noexcept;
     operator bool() const;
-    void set(uint32_t ms = Tick::waitForever);
+    void set(ma_tick_t ms = Tick::waitForever);
     void start();
     void stop();
 

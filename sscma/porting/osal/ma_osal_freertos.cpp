@@ -17,6 +17,10 @@ ma_tick_t Tick::fromMilliseconds(uint32_t ms) {
     return ms / portTICK_PERIOD_MS;
 }
 
+ma_tick_t Tick::fromSeconds(uint32_t sec) {
+    return (sec * 1000) / portTICK_PERIOD_MS;
+}
+
 void Tick::sleep(ma_tick_t tick) {
     vTaskDelay(tick);
 }
@@ -98,7 +102,7 @@ Mutex::operator bool() const {
     return m_mutex != nullptr;
 }
 
-bool Mutex::tryLock(uint32_t timeout) {
+bool Mutex::tryLock(ma_tick_t timeout) {
     if (xPortInIsrContext()) {
         return false;
     }
@@ -147,7 +151,7 @@ Semaphore::operator bool() const {
 }
 
 
-bool Semaphore::wait(uint32_t timeout) {
+bool Semaphore::wait(ma_tick_t timeout) {
     BaseType_t yield;
     if (xPortInIsrContext()) {
         if (xSemaphoreTakeFromISR(m_sem, &yield) != pdPASS) {
@@ -200,13 +204,14 @@ Event::operator bool() const {
 }
 
 
-bool Event::wait(uint32_t mask, uint32_t* value, uint32_t timeout) {
+bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, bool waitAll) {
     if (xPortInIsrContext()) {
         *value = 0;
         return false;
     }
     Guard guard(m_mutex);
-    *value = xEventGroupWaitBits(m_event, mask, pdFALSE, pdFALSE, MS_TO_TICKS(timeout));
+    *value = xEventGroupWaitBits(
+        m_event, mask, waitAll ? pdTRUE : pdFALSE, clear ? pdTRUE : pdFALSE, MS_TO_TICKS(timeout));
     *value &= mask;
     return (*value == mask);
 }
@@ -256,7 +261,7 @@ MessageBox::operator bool() const {
 }
 
 
-bool MessageBox::fetch(void** msg, uint32_t timeout) {
+bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     BaseType_t yield;
     if (xPortInIsrContext()) {
         if (xQueueReceiveFromISR(m_mbox, msg, &yield) != pdPASS) {
@@ -274,7 +279,7 @@ bool MessageBox::fetch(void** msg, uint32_t timeout) {
 }
 
 
-bool MessageBox::post(void* msg, uint32_t timeout) {
+bool MessageBox::post(void* msg, ma_tick_t timeout) {
     BaseType_t yield;
     if (xPortInIsrContext()) {
         if (xQueueSendFromISR(m_mbox, &msg, &yield) != pdPASS) {

@@ -3,7 +3,7 @@
 
 #include "ma_transport_mqtt.h"
 
-#ifdef MA_USE_TRANSPORT_MQTT
+#if MA_USE_TRANSPORT_MQTT
 
 namespace ma {
 
@@ -17,34 +17,26 @@ void MQTT::onCallbackStub(mqtt_client_t* cli, int type) {
 }
 
 void MQTT::onCallback(mqtt_client_t* cli, int type) {
-    MA_LOGD(TAG, "mqtt onCallback %d", type);
     switch (type) {
         case MQTT_TYPE_CONNECT:
-            MA_LOGI(TAG, "mqtt connected!");
             m_connected = true;
             break;
         case MQTT_TYPE_CONNACK:
             mqtt_client_subscribe(m_client, m_rxTopic.c_str(), 0);
             break;
         case MQTT_TYPE_DISCONNECT:
-            MA_LOGI(TAG, "mqtt disconnected!");
             m_connected = false;
             break;
         case MQTT_TYPE_PUBLISH:
-            MA_LOGI(TAG, "mqtt publish: %d", cli->message.payload_len);
             m_receiveBuffer.write(cli->message.payload, cli->message.payload_len);
             break;
-        case MQTT_TYPE_PUBACK:
-            MA_LOGI(TAG, "mqtt puback!");
-            break;
-        case MQTT_TYPE_PUBREC:
-            MA_LOGI(TAG, "mqtt pubrec!");
-            break;
-        case MQTT_TYPE_PUBREL:
-            MA_LOGI(TAG, "mqtt pubrel!");
-            break;
-        case MQTT_TYPE_PUBCOMP:
-            MA_LOGI(TAG, "mqtt pubcomp!");
+            // case MQTT_TYPE_PUBACK:
+            //     break;
+            // case MQTT_TYPE_PUBREC:
+            //     break;
+            // case MQTT_TYPE_PUBREL:
+            //     break;
+            // case MQTT_TYPE_PUBCOMP:
             break;
         default:
             break;
@@ -59,7 +51,6 @@ void MQTT::threadEntryStub(void* param) {
 }
 
 void MQTT::threadEntry() {
-    MA_LOGD(TAG, "mqtt threadEntry");
     mqtt_client_run(m_client);
 }
 
@@ -112,7 +103,7 @@ size_t MQTT::send(const char* data, size_t length, int timeout) {
     std::memset(&msg, 0, sizeof(msg));
     msg.topic       = m_txTopic.c_str();
     msg.topic_len   = m_txTopic.length();
-    msg.payload     = (char*)data;
+    msg.payload     = (const char*)data;
     msg.payload_len = length;
     msg.qos         = 0;
 

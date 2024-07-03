@@ -3,7 +3,7 @@
 
 #include "core/ma_common.h"
 
-#ifdef MA_USE_TRANSPORT_MQTT
+#if MA_USE_TRANSPORT_MQTT
 
 #include <vector>
 
