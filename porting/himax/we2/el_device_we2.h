@@ -42,7 +42,7 @@ class DeviceWE2 final : public Device {
 
     void enter_bootloader() override;
 
-    void feed_watchdog() override;
+    void yield() override;
 };
 
 }  // namespace edgelab

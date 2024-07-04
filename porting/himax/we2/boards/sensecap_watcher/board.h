@@ -30,6 +30,7 @@
 #define PRODUCT_NAME_SUFFIX                 "v1"
 #define DEVICE_NAME                         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
 #define PORT_DEVICE_NAME                    "SenseCAP Watcher"
+#define WATCH_DOG_TIMEOUT_TH                3000
 
 #define SSCMA_CFG_ENABLE_ACTION             0
 #define SSCMA_CFG_ENABLE_CONTENTS_EXPORT    0

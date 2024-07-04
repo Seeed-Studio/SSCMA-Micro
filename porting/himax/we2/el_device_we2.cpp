@@ -46,8 +46,7 @@ extern "C" {
 #include "el_wire_we2.h"
 #include "porting/el_flash.h"
 
-#define U55_BASE             BASE_ADDR_APB_U55_CTRL_ALIAS
-#define WATCH_DOG_TIMEOUT_TH 2000
+#define U55_BASE BASE_ADDR_APB_U55_CTRL_ALIAS
 
 namespace edgelab {
 
@@ -122,7 +121,9 @@ static int _arm_npu_init(bool security_enable, bool privilege_enable) {
 }
 
 void WDG_Reset_ISR_CB(uint32_t event) {
-    el_printf("Watchdog reset\r\n");
+    el_printf("==Watchdog reset\r\n");
+    hx_drv_watchdog_irq_clear(WATCHDOG_ID_0);
+    hx_drv_watchdog_stop(WATCHDOG_ID_0);
     Device::get_device()->reset();
 }
 
@@ -186,6 +187,7 @@ void DeviceWE2::reset() { __NVIC_SystemReset(); }
 
 void DeviceWE2::enter_bootloader() {
     el_printf("Enter bootloader\r\n");
+    hx_drv_watchdog_stop(WATCHDOG_ID_0);
     hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false);
     hx_drv_scu_set_PB2_pinmux(SCU_PB2_PINMUX_SPI2AHB_DO, 1);
     hx_drv_scu_set_PB3_pinmux(SCU_PB3_PINMUX_SPI2AHB_DI, 1);
@@ -193,7 +195,7 @@ void DeviceWE2::enter_bootloader() {
     hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI2AHB_CS, 1);
 }
 
-void DeviceWE2::feed_watchdog() { hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH); }
+void DeviceWE2::yield() { hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH); }
 
 Device* Device::get_device() {
     static DeviceWE2 device{};

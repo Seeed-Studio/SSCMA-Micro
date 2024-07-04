@@ -49,7 +49,7 @@ class Device {
 
     virtual void enter_bootloader() = 0;
 
-    virtual void feed_watchdog() = 0;
+    virtual void yield() = 0;
 
     const char* get_device_name() const { return _device_name; }
     uint32_t    get_device_id() const { return _device_id; }

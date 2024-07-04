@@ -420,35 +420,36 @@ void register_commands() {
 
     static_resource->instance->register_cmd(
       "SETREG", "Set register", "\"ADDR\",\"VAL\"", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), addr = std::atoi(argv[1].c_str()), val = std::atoi(argv[2].c_str()), caller](
-              const std::atomic<bool>&) {
-                auto          camera = static_resource->device->get_camera();
-                el_err_code_t ret    = camera->set_register(addr, val);
-                std::string   reply =
-                  concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), "}\n");
-                static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
-            });
+          static_resource->executor->add_task([cmd  = std::move(argv[0]),
+                                               addr = std::stoi(argv[1].c_str(), nullptr, 16),
+                                               val  = std::stoi(argv[2].c_str(), nullptr, 16),
+                                               caller](const std::atomic<bool>&) {
+              auto          camera = static_resource->device->get_camera();
+              el_err_code_t ret    = camera->set_register(addr, val);
+              std::string   reply =
+                concat_strings("\r{\"type\": 0, \"name\": \"", cmd, "\", \"code\": ", std::to_string(ret), "}\n");
+              static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
+          });
           return EL_OK;
       });
 
     static_resource->instance->register_cmd(
       "GETREG", "Get register", "\"ADDR\"", [](std::vector<std::string> argv, void* caller) {
-          static_resource->executor->add_task(
-            [cmd = std::move(argv[0]), addr = std::atoi(argv[1].c_str()), caller](const std::atomic<bool>&) {
-                el_printf("[SSCMA] GETREG: %d\n", addr);
-                auto          camera = static_resource->device->get_camera();
-                uint8_t       value  = 0;
-                el_err_code_t ret    = camera->get_register(addr, &value);
-                std::string   reply  = concat_strings("\r{\"type\": 0, \"name\": \"",
-                                                   cmd,
-                                                   "\", \"code\": ",
-                                                   std::to_string(ret),
-                                                   ", \"data\": ",
-                                                   std::to_string(value),
-                                                   "}\n");
-                static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
-            });
+          static_resource->executor->add_task([cmd  = std::move(argv[0]),
+                                               addr = std::stoi(argv[1].c_str(), nullptr, 16),
+                                               caller](const std::atomic<bool>&) {
+              auto          camera = static_resource->device->get_camera();
+              uint8_t       value  = 0;
+              el_err_code_t ret    = camera->get_register(addr, &value);
+              std::string   reply  = concat_strings("\r{\"type\": 0, \"name\": \"",
+                                                 cmd,
+                                                 "\", \"code\": ",
+                                                 std::to_string(ret),
+                                                 ", \"data\": ",
+                                                 std::to_string(value),
+                                                 "}\n");
+              static_cast<Transport*>(caller)->send_bytes(reply.c_str(), reply.size());
+          });
           return EL_OK;
       });
 }
@@ -480,7 +481,7 @@ Loop:
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
     }
-    static_resource->device->feed_watchdog();
+    static_resource->device->yield();
     el_sleep(20);
     goto Loop;
 }

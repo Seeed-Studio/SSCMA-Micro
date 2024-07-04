@@ -18,14 +18,20 @@ void set_info(const std::vector<std::string>& argv, void* caller) {
     char key[sizeof(SSCMA_STORAGE_KEY_INFO) + 4]{};
     std::strncpy(info, argv[1].c_str(), sizeof(info) - 1);
     snprintf(key, sizeof(key), SSCMA_STORAGE_KEY_INFO "#%d", static_resource->current_model_id);
-    auto ret = static_resource->storage->emplace(el_make_storage_kv(key, info)) ? EL_OK : EL_EIO;
-
+    el_err_code_t ret = EL_OK;
+    uint8_t       i   = 0;
+    for (i = 0; i < 5; i++) {
+        ret = static_resource->storage->emplace(el_make_storage_kv(key, info)) ? EL_OK : EL_EIO;
+        if (ret == EL_OK) break;
+    }
     auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                            argv[0],
                            "\", \"code\": ",
                            std::to_string(ret),
                            ", \"data\": {\"crc16_maxim\": ",
                            std::to_string(el_crc16_maxim(reinterpret_cast<uint8_t*>(&info[0]), std::strlen(&info[0]))),
+                           ", \"retries\": ",
+                           std::to_string(i),
                            "}}\n")};
     static_cast<Transport*>(caller)->send_bytes(ss.c_str(), ss.size());
 }
