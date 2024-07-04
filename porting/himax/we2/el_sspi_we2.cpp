@@ -217,6 +217,7 @@ void sspiWE2::sspi_write_enable(size_t size) {
     // memset(this->tx_buffer, 0, sizeof(this->tx_buffer));
     hx_CleanDCache_by_Addr((void*)this->tx_buffer, size);
     this->spi->spi_write_dma(this->tx_buffer, size, (void*)sspi_txcb);
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
 }
 
 }  // namespace edgelab

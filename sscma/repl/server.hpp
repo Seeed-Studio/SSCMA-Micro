@@ -331,10 +331,10 @@ class Server {
                         arg += cmd_args.at(index);
                 }
                 argv.push_back(std::move(arg));
-            } else if (c == '-' || std::isdigit(c)) {  //if current char is a digit or a minus sign
+            } else if (c == '-' || std::isxdigit(c)) {  //if current char is a digit or a minus sign
                 size_t prev = index;
                 while (++index < size)                                // while not reach end of cmd_args
-                    if (!std::isdigit(cmd_args.at(index))) break;     // if current char is not a digit, break
+                    if (!std::isxdigit(cmd_args.at(index))) break;     // if current char is not a digit, break
                 argv.push_back(cmd_args.substr(prev, index - prev));  // append the number string to argv
             } else
                 ++index;  // if current char is not a quote or a digit, skip it

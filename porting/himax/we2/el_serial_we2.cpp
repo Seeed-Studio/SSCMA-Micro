@@ -52,13 +52,14 @@ void _uart_dma_recv(void*) {
 }
 
 void _uart_dma_send(void*) {
-    size_t     remaind                  = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
-    _tx_busy                            = remaind != 0;
+    size_t remaind = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
+    _tx_busy       = remaind != 0;
     if (remaind != 0) {
         _rb_tx->get(_buf_tx, remaind);
         SCB_CleanDCache_by_Addr((volatile void*)_buf_tx, remaind);
         _uart->uart_write_udma(_buf_tx, remaind, (void*)_uart_dma_send);
     }
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
 }
 }  // namespace porting
 
@@ -79,7 +80,7 @@ el_err_code_t SerialWE2::init() {
         _rb_rx = new lwRingBuffer{8192};
 
     if (!_rb_tx) [[likely]]
-        _rb_tx = new lwRingBuffer{48192};
+        _rb_tx = new lwRingBuffer{32768};
 
     _mutex_tx = xSemaphoreCreateMutex();
 
@@ -106,8 +107,8 @@ el_err_code_t SerialWE2::deinit() {
     delete _rb_tx;
     vSemaphoreDelete(_mutex_tx);
 
-    _rb_rx = nullptr;
-    _rb_tx = nullptr;
+    _rb_rx    = nullptr;
+    _rb_tx    = nullptr;
     _mutex_tx = nullptr;
 
     return !this->_is_present ? EL_OK : EL_EIO;
@@ -178,7 +179,7 @@ std::size_t SerialWE2::send_bytes(const char* buffer, size_t size) {
         size -= bytes_to_send;
         sent += bytes_to_send;
         if (!_tx_busy) {
-            _tx_busy = true;
+            _tx_busy      = true;
             bytes_to_send = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
             _rb_tx->get(_buf_tx, bytes_to_send);
             SCB_CleanDCache_by_Addr((volatile void*)_buf_tx, bytes_to_send);
@@ -189,6 +190,7 @@ std::size_t SerialWE2::send_bytes(const char* buffer, size_t size) {
             _tx_busy = false;
             break;
         }
+        hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
     }
 
     xSemaphoreGive(_mutex_tx);
