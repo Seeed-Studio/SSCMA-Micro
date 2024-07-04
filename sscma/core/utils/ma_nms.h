@@ -12,10 +12,10 @@ extern "C" {
 
 
 int nms(std::forward_list<ma_bbox_t>& boxes,
-        float                         threshold_iou,
-        float                         threshold_score,
-        bool                          soft_nms     = false,
-        bool                          multi_target = false);
+        float threshold_iou,
+        float threshold_score,
+        bool soft_nms     = false,
+        bool multi_target = false);
 }
 
 }  // namespace ma::utils

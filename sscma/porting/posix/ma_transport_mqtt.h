@@ -5,12 +5,11 @@
 
 #if MA_USE_TRANSPORT_MQTT
 
+#include <atomic>
 #include <vector>
 
 #include "hv/hv.h"
 #include "hv/mqtt_client.h"
-
-#include "core/utils/ma_ringbuffer.hpp"
 
 #include "porting/ma_osal.h"
 #include "porting/ma_transport.h"
@@ -45,7 +44,8 @@ private:
     static void threadEntryStub(void* param);
     static void onCallbackStub(mqtt_client_t* client, int type);
     mqtt_client_t* m_client;
-    bool m_connected;
+    std::atomic<bool> m_connected;
+    Mutex m_mutex;
     std::string m_txTopic;
     std::string m_rxTopic;
     std::string m_clientID;

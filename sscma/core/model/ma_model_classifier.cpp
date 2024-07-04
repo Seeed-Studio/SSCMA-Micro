@@ -4,7 +4,7 @@
 
 namespace ma::model {
 
-const static char* TAG = "ma::model::classifier";
+constexpr char TAG[] = "ma::model::classifier";
 
 Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
     input_           = p_engine_->getInput(0);
@@ -99,12 +99,12 @@ ma_err_t Classifier::postprocess() {
     results_.clear();
 
     if (output_.type == MA_TENSOR_TYPE_S8) {
-        auto  scale{output_.quant_param.scale};
-        auto  zero_point{output_.quant_param.zero_point};
-        bool  rescale{scale < 0.1f ? true : false};
+        auto scale{output_.quant_param.scale};
+        auto zero_point{output_.quant_param.zero_point};
+        bool rescale{scale < 0.1f ? true : false};
         auto* data = output_.data.s8;
 
-        auto  pred_l{output_.shape.dims[1]};
+        auto pred_l{output_.shape.dims[1]};
 
         for (decltype(pred_l) i{0}; i < pred_l; ++i) {
             auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
@@ -138,7 +138,7 @@ ma_err_t Classifier::run(const ma_img_t* img) {
 
 ma_err_t Classifier::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
+    va_list args;
     va_start(args, opt);
     switch (opt) {
         case MA_MODEL_CFG_OPT_THRESHOLD:
@@ -154,8 +154,8 @@ ma_err_t Classifier::setConfig(ma_model_cfg_opt_t opt, ...) {
 }
 ma_err_t Classifier::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
-    void*    p_arg = nullptr;
+    va_list args;
+    void* p_arg = nullptr;
     va_start(args, opt);
     switch (opt) {
         case MA_MODEL_CFG_OPT_THRESHOLD:

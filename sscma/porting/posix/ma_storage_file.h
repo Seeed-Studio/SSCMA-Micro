@@ -4,6 +4,8 @@
 #include <cJSON.h>
 #include <fstream>
 
+#include "core/ma_common.h"
+
 #include "porting/ma_osal.h"
 #include "porting/ma_storage.h"
 
@@ -15,7 +17,7 @@ public:
     StorageFile(const std::string& filename);
     virtual ~StorageFile();
 
-    virtual ma_err_t set(const std::string& key, bool value) override;
+    // virtual ma_err_t set(const std::string& key, bool value) override;
     virtual ma_err_t set(const std::string& key, int8_t value) override;
     virtual ma_err_t set(const std::string& key, int16_t value) override;
     virtual ma_err_t set(const std::string& key, int32_t value) override;
@@ -29,7 +31,7 @@ public:
     virtual ma_err_t set(const std::string& key, const std::string& value) override;
     virtual ma_err_t set(const std::string& key, void* value, size_t size) override;
 
-    virtual ma_err_t get(const std::string& key, bool& value) override;
+    // virtual ma_err_t get(const std::string& key, bool& value) override;
     virtual ma_err_t get(const std::string& key, int8_t& value) override;
     virtual ma_err_t get(const std::string& key, int16_t& value) override;
     virtual ma_err_t get(const std::string& key, int32_t& value) override;
@@ -41,8 +43,10 @@ public:
     virtual ma_err_t get(const std::string& key, float& value) override;
     virtual ma_err_t get(const std::string& key, double& value) override;
     virtual ma_err_t get(const std::string& key, std::string& value) override;
+    virtual ma_err_t get(const std::string& key, char* value) override;
 
     virtual ma_err_t remove(const std::string& key) override;
+    virtual bool exists(const std::string& key) override;
 
 private:
     std::string filename_;

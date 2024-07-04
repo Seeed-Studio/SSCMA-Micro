@@ -15,7 +15,7 @@
 
 namespace ma {
 
-const static char* TAG = "ma::camera::mqtt";
+constexpr char TAG[] = "ma::camera::mqtt";
 
 void CameraMQTT::onCallbackStub(mqtt_client_t* cli, int type) {
     CameraMQTT* mqtt = (CameraMQTT*)mqtt_client_get_userdata(cli);
@@ -137,26 +137,23 @@ void CameraMQTT::threadEntry() {
 
 CameraMQTT::CameraMQTT(const char* clientID, const char* txTopic, const char* rxTopic)
     : m_client(nullptr), m_clientID(clientID), m_txTopic(txTopic), m_rxTopic(rxTopic) {
-    m_client = mqtt_client_new(nullptr);
-    if (m_client) {
-        mqtt_client_set_id(m_client, m_clientID.c_str());
-        mqtt_client_set_userdata(m_client, this);
-        mqtt_client_set_callback(m_client, onCallbackStub);
-    }
-    m_thread = new Thread(clientID, threadEntryStub);
-    if (!m_thread) {
-        return;
-    }
-    m_thread->start(this);
-    m_msgBox = new MessageBox(100);
-    if (!m_msgBox) {
-        delete m_thread;
-        return;
-    }
+
     m_event.clear();
     m_streaming.store(false);
     m_opened.store(false);
     m_connected.store(false);
+    m_msgBox = new MessageBox(MA_CAMERA_MQTT_FRAME_QUEUE_SIZE);
+    MA_ASSERT(m_msgBox != nullptr);
+
+    m_client = mqtt_client_new(nullptr);
+    MA_ASSERT(m_client != nullptr);
+    mqtt_client_set_id(m_client, m_clientID.c_str());
+    mqtt_client_set_userdata(m_client, this);
+    mqtt_client_set_callback(m_client, onCallbackStub);
+
+    m_thread = new Thread(clientID, threadEntryStub);
+    MA_ASSERT(m_thread != nullptr);
+    m_thread->start(this);
 }
 
 CameraMQTT::~CameraMQTT() {
@@ -190,7 +187,7 @@ ma_err_t CameraMQTT::connect(
         }
         ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
     }
-    return ret == 0 ? MA_OK : MA_AGAIN;
+    return m_client && ret == 0 ? MA_OK : MA_AGAIN;
 }
 
 ma_err_t CameraMQTT::disconnect() {
@@ -430,19 +427,20 @@ CameraMQTTProvider::CameraMQTTProvider(const char* clientID,
                                        const char* rxTopic)
     : m_client(nullptr), m_clientID(clientID), m_txTopic(txTopic), m_rxTopic(rxTopic) {
 
-    m_thread = new Thread(clientID, threadEntryStub);
-    if (!m_thread) {
-        return;
-    }
-    m_client = mqtt_client_new(nullptr);
-    if (m_client) {
-        mqtt_client_set_id(m_client, m_clientID.c_str());
-        mqtt_client_set_userdata(m_client, this);
-        mqtt_client_set_callback(m_client, onCallbackStub);
-    }
     m_connected.store(false);
     m_opened.store(false);
     m_streaming.store(false);
+
+    m_client = mqtt_client_new(nullptr);
+    MA_ASSERT(m_client);
+    mqtt_client_set_id(m_client, m_clientID.c_str());
+    mqtt_client_set_userdata(m_client, this);
+    mqtt_client_set_callback(m_client, onCallbackStub);
+
+    m_thread = new Thread(clientID, threadEntryStub);
+    MA_ASSERT(m_thread);
+
+    m_thread->start(this);
 }
 
 CameraMQTTProvider::~CameraMQTTProvider() {
@@ -459,6 +457,8 @@ CameraMQTTProvider::~CameraMQTTProvider() {
 
 ma_err_t CameraMQTTProvider::connect(
     const char* host, int port, const char* username, const char* password, bool useSSL) {
+    Guard guard(m_mutex);
+    int ret = 0;
     if (m_connected.load()) {
         return MA_EBUSY;
     }
@@ -466,13 +466,9 @@ ma_err_t CameraMQTTProvider::connect(
         if (username && password) {
             mqtt_client_set_auth(m_client, username, password);
         }
-        int ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
-        m_connected.store(ret == 0);
+        ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
     }
-    if (m_connected.load()) {
-        m_thread->start(this);
-    }
-    return m_client && m_connected.load() ? MA_OK : MA_AGAIN;
+    return m_client && ret == 0 ? MA_OK : MA_AGAIN;
 }
 
 CameraMQTTProvider::operator bool() const {

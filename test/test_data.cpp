@@ -35,4 +35,4 @@ TEST(DATA, RingBufferOperator) {
     EXPECT_EQ(rb[0], 'a');
 }
 
-}  // namespace ma::data
+}  // namespace ma

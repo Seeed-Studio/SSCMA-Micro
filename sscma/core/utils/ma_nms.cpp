@@ -23,10 +23,10 @@ float compute_iou(const ma_bbox_t& box1, const ma_bbox_t& box2) {
 
 
 int nms(std::forward_list<ma_bbox_t>& boxes,
-        float                         threshold_iou,
-        float                         threshold_score,
-        bool                          soft_nms,
-        bool                          multi_target) {
+        float threshold_iou,
+        float threshold_score,
+        bool soft_nms,
+        bool multi_target) {
     boxes.sort(box_comparator_sort);
 
     for (auto it = boxes.begin(); it != boxes.end(); it++) {
@@ -53,4 +53,4 @@ int nms(std::forward_list<ma_bbox_t>& boxes,
     return std::distance(boxes.begin(), boxes.end());
 }
 
-}
+}  // namespace ma::utils

@@ -8,23 +8,11 @@ protected:
     }
 
     void TearDown() override {
-        // 清理测试文件
         std::remove("test_data.ini");
     }
 
     ma::StorageFile* storage;
 };
-
-TEST_F(StorageFileTest, SetAndGetBool) {
-    EXPECT_EQ(storage->set("bool_key", true), MA_OK);
-    bool value;
-    EXPECT_EQ(storage->get("bool_key", value), MA_OK);
-    EXPECT_TRUE(value);
-
-    EXPECT_EQ(storage->set("bool_key", false), MA_OK);
-    EXPECT_EQ(storage->get("bool_key", value), MA_OK);
-    EXPECT_FALSE(value);
-}
 
 TEST_F(StorageFileTest, SetAndGetInt) {
     int32_t int_value = 42;

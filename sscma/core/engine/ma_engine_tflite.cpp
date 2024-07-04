@@ -300,7 +300,7 @@ OpsResolver::OpsResolver() {
 
 }  // namespace tflite
 
-namespace ma {
+namespace ma::engine {
 
 const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_F32, MA_TENSOR_TYPE_S32,  MA_TENSOR_TYPE_U8,

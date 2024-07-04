@@ -14,7 +14,7 @@
 #include "ma_engine_base.h"
 
 
-namespace ma {
+namespace ma::engine {
 
 class EngineCVI final : public Engine {
 public:

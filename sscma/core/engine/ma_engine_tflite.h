@@ -315,7 +315,6 @@ enum OpsCount : unsigned int {
     OpsTail
 };
 
-
 class OpsResolver : public MicroMutableOpResolver<OpsCount::OpsTail - OpsCount::OpsHead> {
 public:
     OpsResolver();
@@ -326,7 +325,7 @@ private:
 }  // namespace tflite
 
 
-namespace ma {
+namespace ma::engine {
 
 class EngineTFLite final : public Engine {
 public:
@@ -362,7 +361,7 @@ private:
 #endif
 };
 
-}  // namespace ma
+}  // namespace ma::engine
 #endif
 
 #endif

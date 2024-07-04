@@ -35,7 +35,7 @@ void inference_done(void* ctx) {
 
 
 TEST(Model, YOLO) {
-    auto* engine = new EngineTFLite();
+    auto* engine = new engine::EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
     EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
     Detector* detector = static_cast<Detector*>(new ma::model::Yolo(engine));
@@ -92,7 +92,7 @@ TEST(Model, YOLO) {
 }
 
 TEST(Model, Classifier) {
-    auto* engine = new EngineTFLite();
+    auto* engine = new engine::EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
     EXPECT_EQ(MA_OK, engine->loadModel("mnist.tflite"));
     Classifier* classifier = static_cast<Classifier*>(new ma::model::Classifier(engine));

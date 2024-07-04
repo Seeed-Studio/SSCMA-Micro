@@ -1,18 +1,17 @@
-#ifndef _MA_C_TYPES_H_
-#define _MA_C_TYPES_H_
+#ifndef _MA_TYPES_H_
+#define _MA_TYPES_H_
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "core/ma_compiler.h"
-#include "core/ma_config_internal.h"
+#include "ma_compiler.h"
+#include "ma_config_internal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 typedef enum {
     MA_FAILED   = -1,  // UNKOWN ERROR
@@ -197,7 +196,7 @@ typedef struct {
     char ssid[MA_MAX_WIFI_SSID_LENGTH];
     char bssid[MA_MAX_WIFI_BSSID_LENGTH];
     char password[MA_MAX_WIFI_PASSWORD_LENGTH];
-    ma_wifi_security_t security;
+    int8_t security;
 } ma_wifi_config_t;
 
 typedef struct {
@@ -214,15 +213,15 @@ typedef struct {
     char client_id[MA_MAX_MQTT_CLIENT_ID_LENGTH];
     char username[MA_MAX_MQTT_USERNAME_LENGTH];
     char password[MA_MAX_MQTT_PASSWORD_LENGTH];
-    bool use_ssl;
+    int8_t use_ssl;
 } ma_mqtt_config_t;
 
 
 typedef struct {
-    char publish_topic[MA_MAX_MQTT_TOPIC_LENGTH];
-    char subscribe_topic[MA_MAX_MQTT_TOPIC_LENGTH];
-    uint8_t publish_qos;
-    uint8_t subscribe_qos;
+    char pub_topic[MA_MAX_MQTT_TOPIC_LENGTH];
+    char sub_topic[MA_MAX_MQTT_TOPIC_LENGTH];
+    int8_t pub_qos;
+    int8_t sub_qos;
 } ma_mqtt_topic_config_t;
 
 typedef enum MA_ATTR_PACKED {
@@ -239,4 +238,4 @@ typedef enum MA_ATTR_PACKED {
 }
 #endif
 
-#endif  // _MA_C_TYPES_H_
+#endif  // _MA_TYPES_H_

@@ -4,12 +4,11 @@
 
 #include "core/utils/ma_nms.h"
 
-
-#include "core/model/ma_model_yolo.h"
+#include "ma_model_yolo.h"
 
 namespace ma::model {
 
-const static char* TAG = "ma::model::yolo";
+constexpr char TAG[] = "ma::model::yolo";
 
 Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
     MA_ASSERT(p_engine_ != nullptr);

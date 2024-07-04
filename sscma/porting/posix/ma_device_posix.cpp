@@ -9,11 +9,7 @@
 
 namespace ma {
 
-DevicePosix::DevicePosix() {}
-
-DevicePosix::~DevicePosix() {}
-
-ma_err_t DevicePosix::init() {
+DevicePosix::DevicePosix() {
     static StorageFile storage(MA_CONFIG_FILE);
 
     m_storage = &storage;
@@ -33,6 +29,12 @@ ma_err_t DevicePosix::init() {
         // Set device id
         m_storage->set(MA_STORAGE_KEY_ID, m_id);
     }
+}
+
+DevicePosix::~DevicePosix() {}
+
+ma_err_t DevicePosix::init() {
+
     return MA_OK;
 }
 

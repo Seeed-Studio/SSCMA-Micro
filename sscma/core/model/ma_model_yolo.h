@@ -3,17 +3,16 @@
 
 #include <vector>
 
-#include "core/model/ma_model_base.h"
-#include "core/model/ma_model_detector.h"
-
+#include "ma_model_detector.h"
 
 namespace ma::model {
+
 class Yolo : public Detector {
 private:
     ma_tensor_t output_;
-    int32_t     num_record_;
-    int32_t     num_element_;
-    int32_t     num_class_;
+    int32_t num_record_;
+    int32_t num_element_;
+    int32_t num_class_;
     enum {
         INDEX_X = 0,
         INDEX_Y = 1,
@@ -33,6 +32,5 @@ public:
 };
 
 }  // namespace ma::model
-
 
 #endif  // _MA_MODEL_YOLO_H

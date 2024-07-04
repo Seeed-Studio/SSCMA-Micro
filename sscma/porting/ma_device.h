@@ -5,6 +5,7 @@
 
 #include "core/ma_common.h"
 
+#include "ma_camera.h"
 #include "ma_storage.h"
 #include "ma_transport.h"
 
@@ -39,6 +40,7 @@ public:
 
 protected:
     std::forward_list<Transport*> m_transports;
+    std::forward_list<Camera*> m_cameras;
     Storage* m_storage;
     std::string m_name;
     uint32_t m_id;

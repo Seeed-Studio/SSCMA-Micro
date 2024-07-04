@@ -37,7 +37,7 @@ public:
     ~ATServer() = default;
 
     void start();
-    
+
     void stop();
 
     ma_err_t addService(const std::string& name,

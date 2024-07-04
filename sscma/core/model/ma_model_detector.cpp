@@ -2,8 +2,7 @@
 
 namespace ma::model {
 
-const static char* TAG = "ma::model::detecor";
-
+constexpr char TAG[] = "ma::model::detecor";
 
 Detector::Detector(Engine* p_engine, const char* name) : Model(p_engine, name) {
     input_           = p_engine_->getInput(0);
@@ -27,7 +26,6 @@ Detector::Detector(Engine* p_engine, const char* name) : Model(p_engine, name) {
     }
 };
 
-
 ma_err_t Detector::preprocess() {
 
     ma_err_t ret = MA_OK;
@@ -44,7 +42,6 @@ ma_err_t Detector::preprocess() {
 
 #if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
     // TODO: use opencv
-
     if (input_.shape.dims[1] == 3) {
         char* r_channel = new char[img_.width * img_.height];
         char* g_channel = new char[img_.width * img_.height];
@@ -69,7 +66,6 @@ const std::vector<ma_bbox_t>& Detector::getResults() {
     return results_;
 }
 
-
 ma_err_t Detector::run(const ma_img_t* img) {
     MA_ASSERT(img != nullptr);
     input_img_ = img;
@@ -78,7 +74,7 @@ ma_err_t Detector::run(const ma_img_t* img) {
 
 ma_err_t Detector::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
+    va_list args;
     va_start(args, opt);
     switch (opt) {
         case MA_MODEL_CFG_OPT_THRESHOLD:
@@ -96,10 +92,11 @@ ma_err_t Detector::setConfig(ma_model_cfg_opt_t opt, ...) {
     va_end(args);
     return ret;
 }
+
 ma_err_t Detector::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
-    void*    p_arg = nullptr;
+    va_list args;
+    void* p_arg = nullptr;
     va_start(args, opt);
     switch (opt) {
         case MA_MODEL_CFG_OPT_THRESHOLD:

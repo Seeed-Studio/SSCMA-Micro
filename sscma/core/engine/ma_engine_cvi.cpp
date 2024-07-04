@@ -2,9 +2,9 @@
 
 #if MA_USE_ENGINE_CVI
 
-namespace ma {
+namespace ma::engine {
 
-const static char* TAG = "ma::engine::cvinn";
+constexpr char TAG[] = "ma::engine::cvinn";
 
 const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_F32,

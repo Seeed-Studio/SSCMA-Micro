@@ -2,9 +2,6 @@
 
 #include <sscma.h>
 
-#include "core/pipeline/executor.hpp"
-
-
 #define TAG "test::pipeline"
 
 namespace ma {

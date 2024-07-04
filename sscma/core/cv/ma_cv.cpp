@@ -27,14 +27,14 @@ typedef struct MA_ATTR_PACKED b24_t {
 
 // TODO: need to be optimized
 MA_ATTR_WEAK void yuv422p_to_rgb(const ma_img_t* src, ma_img_t* dst) {
-    int32_t  y;
-    int32_t  cr;
-    int32_t  cb;
-    int32_t  r, g, b;
+    int32_t y;
+    int32_t cr;
+    int32_t cb;
+    int32_t r, g, b;
     uint32_t init_index, cbcr_index, index;
     uint32_t u_chunk = src->width * src->height;
     uint32_t v_chunk = src->width * src->height + src->width * src->height / 2;
-    float    beta_h = (float)src->height / dst->height, beta_w = (float)src->width / dst->width;
+    float beta_h = (float)src->height / dst->height, beta_w = (float)src->width / dst->width;
 
     MA_ASSERT(src->format == MA_PIXEL_FORMAT_YUV422);
 
@@ -84,21 +84,21 @@ MA_ATTR_WEAK void yuv422p_to_rgb(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb888_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
+    uint32_t i_mul_bh_sw = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
 
     switch (dst->rotate) {
@@ -161,27 +161,27 @@ MA_ATTR_WEAK void rgb888_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb888_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    b24_t          b24{};
-    uint8_t        r = 0;
-    uint8_t        g = 0;
-    uint8_t        b = 0;
+    b24_t b24{};
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -271,28 +271,28 @@ MA_ATTR_WEAK void rgb888_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb888_to_gray(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    b24_t          b24{};
+    b24_t b24{};
 
-    uint8_t        r = 0;
-    uint8_t        g = 0;
-    uint8_t        b = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -374,28 +374,28 @@ MA_ATTR_WEAK void rgb888_to_gray(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb565_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    b16_t          b16{};
+    b16_t b16{};
 
-    uint8_t        r = 0;
-    uint8_t        g = 0;
-    uint8_t        b = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -481,21 +481,21 @@ MA_ATTR_WEAK void rgb565_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb565_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
+    uint32_t i_mul_bh_sw = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -546,28 +546,28 @@ MA_ATTR_WEAK void rgb565_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void rgb565_to_gray(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    b16_t          b16{};
+    b16_t b16{};
 
-    uint8_t        r = 0;
-    uint8_t        g = 0;
-    uint8_t        b = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -649,24 +649,24 @@ MA_ATTR_WEAK void rgb565_to_gray(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void gray_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    uint8_t        c = 0;
+    uint8_t c = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -736,24 +736,24 @@ MA_ATTR_WEAK void gray_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void gray_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
-    uint32_t       i_mul_dw    = 0;
+    uint32_t i_mul_bh_sw = 0;
+    uint32_t i_mul_dw    = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
-    uint8_t        c = 0;
+    uint8_t c = 0;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -827,21 +827,21 @@ MA_ATTR_WEAK void gray_to_rgb565(const ma_img_t* src, ma_img_t* dst) {
 }
 
 MA_ATTR_WEAK void gray_to_gray(const ma_img_t* src, ma_img_t* dst) {
-    uint16_t       sw = src->width;
-    uint16_t       sh = src->height;
-    uint16_t       dw = dst->width;
-    uint16_t       dh = dst->height;
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
 
-    uint32_t       beta_w = (sw << 16) / dw;
-    uint32_t       beta_h = (sh << 16) / dh;
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
 
-    uint32_t       i_mul_bh_sw = 0;
+    uint32_t i_mul_bh_sw = 0;
 
-    uint32_t       init_index = 0;
-    uint32_t       index      = 0;
+    uint32_t init_index = 0;
+    uint32_t index      = 0;
 
     const uint8_t* src_p = src->data;
-    uint8_t*       dst_p = dst->data;
+    uint8_t* dst_p       = dst->data;
 
     switch (dst->rotate) {
         case MA_PIXEL_ROTATE_90:
@@ -922,13 +922,13 @@ MA_ATTR_WEAK void rgb_to_rgb(const ma_img_t* src, ma_img_t* dst) {
 
 MA_ATTR_WEAK ma_err_t rgb_to_jpeg(const ma_img_t* src, ma_img_t* dst) {
     static JPEG jpg;
-    JPEGENCODE  jpe;
-    int         rc            = 0;
-    ma_err_t    err           = MA_OK;
-    int         iMCUCount     = 0;
-    int         pitch         = 0;
-    int         bytesPerPixel = 0;
-    int         pixelFormat   = 0;
+    JPEGENCODE jpe;
+    int rc            = 0;
+    ma_err_t err      = MA_OK;
+    int iMCUCount     = 0;
+    int pitch         = 0;
+    int bytesPerPixel = 0;
+    int pixelFormat   = 0;
     MA_ASSERT(src->format == MA_PIXEL_FORMAT_GRAYSCALE || src->format == MA_PIXEL_FORMAT_RGB565 ||
               src->format == MA_PIXEL_FORMAT_RGB888);
     if (src->format == MA_PIXEL_FORMAT_GRAYSCALE) {

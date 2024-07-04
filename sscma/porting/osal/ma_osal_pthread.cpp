@@ -18,7 +18,7 @@
 
 namespace ma {
 
-const static char* TAG = "ma::osal::pthread";
+constexpr char TAG[] = "ma::osal::pthread";
 
 ma_tick_t Tick::current() {
     struct timespec ts;

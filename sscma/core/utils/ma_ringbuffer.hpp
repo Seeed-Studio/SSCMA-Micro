@@ -34,7 +34,7 @@ public:
         if (m_buffer) {
             delete[] m_buffer;
         }
-        m_buffer = new T[size];
+        m_buffer = reinterpret_cast<T*>(ma_malloc(sizeof(T) * size));
         m_head   = 0;
         m_tail   = 0;
         m_used   = 0;

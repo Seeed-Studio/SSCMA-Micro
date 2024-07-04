@@ -1,9 +1,8 @@
 #include "core/model/ma_model_base.h"
 
-namespace ma::model {
+namespace ma {
 
-const static char* TAG = "ma::model";
-
+constexpr char TAG[] = "ma::model";
 
 Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name) {
     p_user_ctx_            = nullptr;
@@ -15,9 +14,7 @@ Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name
     perf_.postprocess      = 0;
 }
 
-
 Model::~Model() {}
-
 
 ma_err_t Model::underlyingRun() {
 
@@ -72,7 +69,6 @@ const char* Model::getName() const {
     return p_name_;
 }
 
-
 void Model::setPreprocessDone(void (*fn)(void* ctx)) {
     if (p_preprocess_done_ != nullptr) {
         p_preprocess_done_ = nullptr;
@@ -81,7 +77,6 @@ void Model::setPreprocessDone(void (*fn)(void* ctx)) {
     p_preprocess_done_ = fn;
 }
 
-
 void Model::setPostprocessDone(void (*fn)(void* ctx)) {
     if (p_postprocess_done_ != nullptr) {
         p_postprocess_done_ = nullptr;
@@ -89,7 +84,6 @@ void Model::setPostprocessDone(void (*fn)(void* ctx)) {
     }
     p_postprocess_done_ = fn;
 }
-
 
 void Model::setRunDone(void (*fn)(void* ctx)) {
     if (p_underlying_run_done_ != nullptr) {
@@ -107,5 +101,4 @@ void Model::setUserCtx(void* ctx) {
     p_user_ctx_ = ctx;
 }
 
-
-}  // namespace ma::model
+}  // namespace ma

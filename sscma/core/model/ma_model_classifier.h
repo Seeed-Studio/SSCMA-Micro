@@ -5,18 +5,17 @@
 
 #include "core/cv/ma_cv.h"
 
-#include "core/model/ma_model_base.h"
-
+#include "ma_model_base.h"
 
 namespace ma::model {
 
 class Classifier : public Model {
 protected:
-    ma_tensor_t             input_;
-    ma_tensor_t             output_;
-    ma_img_t                img_;
-    const ma_img_t*         input_img_;
-    double                  threshold_score_;
+    ma_tensor_t input_;
+    ma_tensor_t output_;
+    ma_img_t img_;
+    const ma_img_t* input_img_;
+    double threshold_score_;
     std::vector<ma_class_t> results_;
 
 protected:
@@ -26,14 +25,13 @@ protected:
 public:
     Classifier(Engine* engine);
     virtual ~Classifier();
-    bool                           isValid(Engine* engine) override;
+    bool isValid(Engine* engine) override;
     const std::vector<ma_class_t>& getResults();
-    ma_err_t                       run(const ma_img_t* img);
-    ma_err_t                       setConfig(ma_model_cfg_opt_t opt, ...) override;
-    ma_err_t                       getConfig(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t run(const ma_img_t* img);
+    ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) override;
+    ma_err_t getConfig(ma_model_cfg_opt_t opt, ...) override;
 };
 
 }  // namespace ma::model
-
 
 #endif  // _MA_MODEL_DETECTOR_H

@@ -7,10 +7,10 @@
 
 namespace ma {
 
-const static char* TAG = "ma::transport::mqtt";
+constexpr char TAG[] = "ma::transport::mqtt";
 
 void MQTT::onCallbackStub(mqtt_client_t* cli, int type) {
-    MQTT* mqtt = (MQTT*)mqtt_client_get_userdata(cli);
+    MQTT* mqtt = reinterpret_cast<MQTT*>(mqtt_client_get_userdata(cli));
     if (mqtt) {
         mqtt->onCallback(cli, type);
     }
@@ -19,24 +19,16 @@ void MQTT::onCallbackStub(mqtt_client_t* cli, int type) {
 void MQTT::onCallback(mqtt_client_t* cli, int type) {
     switch (type) {
         case MQTT_TYPE_CONNECT:
-            m_connected = true;
+            m_connected.store(true);
             break;
         case MQTT_TYPE_CONNACK:
             mqtt_client_subscribe(m_client, m_rxTopic.c_str(), 0);
             break;
         case MQTT_TYPE_DISCONNECT:
-            m_connected = false;
+            m_connected.store(false);
             break;
         case MQTT_TYPE_PUBLISH:
             m_receiveBuffer.write(cli->message.payload, cli->message.payload_len);
-            break;
-            // case MQTT_TYPE_PUBACK:
-            //     break;
-            // case MQTT_TYPE_PUBREC:
-            //     break;
-            // case MQTT_TYPE_PUBREL:
-            //     break;
-            // case MQTT_TYPE_PUBCOMP:
             break;
         default:
             break;
@@ -44,7 +36,7 @@ void MQTT::onCallback(mqtt_client_t* cli, int type) {
 }
 
 void MQTT::threadEntryStub(void* param) {
-    MQTT* mqtt = (MQTT*)param;
+    MQTT* mqtt = reinterpret_cast<MQTT*>(param);
     if (mqtt) {
         mqtt->threadEntry();
     }
@@ -61,17 +53,17 @@ MQTT::MQTT(const char* clientID, const char* txTopic, const char* rxTopic)
       m_clientID(clientID),
       m_txTopic(txTopic),
       m_rxTopic(rxTopic) {
-    m_thread = new Thread(clientID, threadEntryStub);
-    if (!m_thread) {
-        return;
-    }
     m_client = mqtt_client_new(nullptr);
-    if (m_client) {
-        mqtt_client_set_id(m_client, m_clientID.c_str());
-        mqtt_client_set_userdata(m_client, this);
-        mqtt_client_set_callback(m_client, onCallbackStub);
-    }
-    m_receiveBuffer.assign(8192);
+    MA_ASSERT(m_client);
+
+    mqtt_client_set_id(m_client, m_clientID.c_str());
+    mqtt_client_set_userdata(m_client, this);
+    mqtt_client_set_callback(m_client, onCallbackStub);
+
+    m_thread = new Thread(clientID, threadEntryStub);
+    MA_ASSERT(m_thread);
+    m_thread->start(this);
+    m_receiveBuffer.assign(MA_MQTT_RECEIVE_BUFFER_SIZE);
 }
 
 MQTT::~MQTT() {
@@ -80,30 +72,30 @@ MQTT::~MQTT() {
         mqtt_client_stop(m_client);
         mqtt_client_free(m_client);
     }
-
     if (m_thread) {
         delete m_thread;
     }
 }
 
 MQTT::operator bool() const {
-    return m_client;
+    return m_connected.load();
 }
 
 size_t MQTT::available() const {
+    Guard guard(m_mutex);
     return m_receiveBuffer.size();
 }
 
 size_t MQTT::send(const char* data, size_t length, int timeout) {
-    if (!m_client || !m_connected) {
+    Guard guard(m_mutex);
+    if (!m_client || !m_connected.load()) {
         return 0;
     }
 
     mqtt_message_t msg;
-    std::memset(&msg, 0, sizeof(msg));
     msg.topic       = m_txTopic.c_str();
     msg.topic_len   = m_txTopic.length();
-    msg.payload     = (const char*)data;
+    msg.payload     = data;
     msg.payload_len = length;
     msg.qos         = 0;
 
@@ -112,6 +104,7 @@ size_t MQTT::send(const char* data, size_t length, int timeout) {
 }
 
 size_t MQTT::receive(char* data, size_t length, int timeout) {
+    Guard guard(m_mutex);
     if (m_receiveBuffer.empty()) {
         return 0;
     }
@@ -120,6 +113,7 @@ size_t MQTT::receive(char* data, size_t length, int timeout) {
 }
 
 size_t MQTT::receiveUtil(char* data, size_t length, char delimiter, int timeout) {
+    Guard guard(m_mutex);
     if (m_receiveBuffer.empty()) {
         return 0;
     }
@@ -128,27 +122,26 @@ size_t MQTT::receiveUtil(char* data, size_t length, char delimiter, int timeout)
 
 ma_err_t MQTT::connect(
     const char* host, int port, const char* username, const char* password, bool useSSL) {
-    if (m_connected) {
+    Guard guard(m_mutex);
+    int ret = 0;
+    if (m_connected.load()) {
         return MA_EBUSY;
     }
     if (m_client) {
         if (username && password) {
             mqtt_client_set_auth(m_client, username, password);
         }
-        int ret     = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
-        m_connected = (ret == 0);
+        ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
     }
-    if (m_connected) {
-        m_thread->start(this);
-    }
-    return m_client && m_connected ? MA_OK : MA_AGAIN;
+    return m_client && ret == 0 ? MA_OK : MA_AGAIN;
 }
 
 ma_err_t MQTT::disconnect() {
-    if (m_client && m_connected) {
+    Guard guard(m_mutex);
+    if (m_client && m_connected.load()) {
         mqtt_client_disconnect(m_client);
         mqtt_client_stop(m_client);
-        m_connected = false;
+        m_connected.store(false);
     }
     return MA_OK;
 }
@@ -157,3 +150,5 @@ ma_err_t MQTT::disconnect() {
 
 
 #endif
+
+

@@ -49,7 +49,10 @@ public:
      * @param[in] data
      * @retval MA_OK on success
      */
-    virtual ma_err_t begin(ma_reply_t reply, ma_err_t code, const std::string& name, const std::string& data) = 0;
+    virtual ma_err_t begin(ma_reply_t reply,
+                           ma_err_t code,
+                           const std::string& name,
+                           const std::string& data) = 0;
 
     /*!
      * @brief Codec type for end.

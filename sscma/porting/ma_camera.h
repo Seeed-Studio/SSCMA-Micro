@@ -2,6 +2,7 @@
 #define MA_CAMERA_H_
 
 #include <atomic>
+#include <functional>
 
 #include "core/ma_common.h"
 #include "porting/ma_osal.h"

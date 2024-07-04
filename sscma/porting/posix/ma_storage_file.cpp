@@ -8,7 +8,7 @@
 
 namespace ma {
 
-const static char* TAG = "ma::storage::file";
+constexpr char TAG[] = "ma::storage::file";
 
 const std::string default_filename = "sscma.conf";
 
@@ -97,10 +97,10 @@ void StorageFile::setNode(const std::string& key, cJSON* value) {
     save();
 }
 
-ma_err_t StorageFile::set(const std::string& key, bool value) {
-    setNode(key, cJSON_CreateBool(value));
-    return MA_OK;
-}
+// ma_err_t StorageFile::set(const std::string& key, bool value) {
+//     setNode(key, cJSON_CreateBool(value));
+//     return MA_OK;
+// }
 
 ma_err_t StorageFile::set(const std::string& key, int8_t value) {
     return set(key, static_cast<int64_t>(value));
@@ -156,14 +156,14 @@ ma_err_t StorageFile::set(const std::string& key, void* value, size_t size) {
     return MA_OK;
 }
 
-ma_err_t StorageFile::get(const std::string& key, bool& value) {
-    cJSON* item = getNode(key);
-    if (item && cJSON_IsBool(item)) {
-        value = cJSON_IsTrue(item);
-        return MA_OK;
-    }
-    return MA_ENOENT;
-}
+// ma_err_t StorageFile::get(const std::string& key, bool& value) {
+//     cJSON* item = getNode(key);
+//     if (item && cJSON_IsBool(item)) {
+//         value = cJSON_IsTrue(item);
+//         return MA_OK;
+//     }
+//     return MA_ENOENT;
+// }
 
 ma_err_t StorageFile::get(const std::string& key, int8_t& value) {
     int64_t temp;
@@ -264,6 +264,15 @@ ma_err_t StorageFile::get(const std::string& key, std::string& value) {
     return MA_ENOENT;
 }
 
+ma_err_t StorageFile::get(const std::string& key, char* value) {
+    cJSON* item = getNode(key);
+    if (item && cJSON_IsString(item)) {
+        strcpy(value, item->valuestring);
+        return MA_OK;
+    }
+    return MA_ENOENT;
+}
+
 ma_err_t StorageFile::remove(const std::string& key) {
     Guard guard(mutex_);
     std::vector<std::string> parts = splitKey(key);
@@ -277,6 +286,19 @@ ma_err_t StorageFile::remove(const std::string& key) {
     cJSON_DeleteItemFromObjectCaseSensitive(current, parts.back().c_str());
     save();
     return MA_OK;
+}
+
+bool StorageFile::exists(const std::string& key) {
+    Guard guard(mutex_);
+    std::vector<std::string> parts = splitKey(key);
+    cJSON* current                 = root_;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        current = cJSON_GetObjectItemCaseSensitive(current, parts[i].c_str());
+        if (!current) {
+            return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace ma

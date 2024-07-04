@@ -3,10 +3,8 @@
 
 #include <forward_list>
 
-#include "core/ma_common.h"
-
-#include "porting/ma_device.h"
-#include "porting/ma_porting.h"
+#include <core/ma_core.h>
+#include <porting/ma_porting.h>
 
 namespace ma {
 
