@@ -184,12 +184,12 @@ typedef enum {
 } ma_reply_t;
 
 typedef enum {
-    AUTO      = 0,
-    NONE      = 1,
-    WEP       = 2,
-    WPA1_WPA2 = 3,
-    WPA2_WPA3 = 4,
-    WPA3      = 5
+    SEC_AUTO      = 0,
+    SEC_NONE      = 1,
+    SEC_WEP       = 2,
+    SEC_WPA1_WPA2 = 3,
+    SEC_WPA2_WPA3 = 4,
+    SEC_WPA3      = 5
 } ma_wifi_security_t;
 
 typedef struct {
@@ -200,7 +200,7 @@ typedef struct {
 } ma_wifi_config_t;
 
 typedef struct {
-    char alpn[MA_MAX_MQTT_BROKER_LENGTH];
+    char alpn[MA_MQTT_MAX_BROKER_LENGTH];
     char* certification_authority;
     char* client_cert;
     char* client_key;
@@ -208,18 +208,18 @@ typedef struct {
 
 
 typedef struct {
-    char host[MA_MAX_MQTT_BROKER_LENGTH];
+    char host[MA_MQTT_MAX_BROKER_LENGTH];
     int port;
-    char client_id[MA_MAX_MQTT_CLIENT_ID_LENGTH];
-    char username[MA_MAX_MQTT_USERNAME_LENGTH];
-    char password[MA_MAX_MQTT_PASSWORD_LENGTH];
+    char client_id[MA_MQTT_MAX_CLIENT_ID_LENGTH];
+    char username[MA_MQTT_MAX_USERNAME_LENGTH];
+    char password[MA_MQTT_MAX_PASSWORD_LENGTH];
     int8_t use_ssl;
 } ma_mqtt_config_t;
 
 
 typedef struct {
-    char pub_topic[MA_MAX_MQTT_TOPIC_LENGTH];
-    char sub_topic[MA_MAX_MQTT_TOPIC_LENGTH];
+    char pub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
+    char sub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
     int8_t pub_qos;
     int8_t sub_qos;
 } ma_mqtt_topic_config_t;

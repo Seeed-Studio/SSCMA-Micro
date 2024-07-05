@@ -85,8 +85,12 @@ ma_thread_t* Thread::self() {
 }
 
 
-Mutex::Mutex() noexcept : m_mutex(nullptr) {
-    m_mutex = xSemaphoreCreateRecursiveMutex();
+Mutex::Mutex(bool recursive) noexcept : m_mutex(nullptr) {
+    if (recursive) {
+        m_mutex = xSemaphoreCreateRecursiveMutex();
+    } else {
+        m_mutex = xSemaphoreCreateMutex();
+    }
 }
 
 Mutex::operator ma_mutex_t*() const {

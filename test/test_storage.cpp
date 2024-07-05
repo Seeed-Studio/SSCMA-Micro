@@ -55,5 +55,5 @@ TEST_F(StorageFileTest, RemoveKey) {
     EXPECT_EQ(storage->set("key_to_remove", 123), MA_OK);
     EXPECT_EQ(storage->remove("key_to_remove"), MA_OK);
     int32_t value;
-    EXPECT_EQ(storage->get("key_to_remove", value), MA_ENOENT);
+    EXPECT_EQ(storage->exists("key_to_remove"), false);
 }

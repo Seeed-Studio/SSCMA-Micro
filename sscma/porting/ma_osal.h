@@ -65,7 +65,7 @@ private:
 
 class Mutex {
 public:
-    Mutex() noexcept;
+    Mutex(bool recursive = true) noexcept;
     ~Mutex() noexcept;
     operator bool() const;
     bool tryLock(ma_tick_t timeout = Tick::waitForever);

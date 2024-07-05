@@ -111,10 +111,13 @@ ma_thread_t* Thread::self() {
 }
 
 
-Mutex::Mutex() noexcept {
+Mutex::Mutex(bool recursive) noexcept {
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
+    if (recursive) {
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    }
     pthread_mutex_init(&m_mutex, &attr);
     pthread_mutexattr_destroy(&attr);
 }

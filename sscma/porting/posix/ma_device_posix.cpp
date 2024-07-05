@@ -14,21 +14,17 @@ DevicePosix::DevicePosix() {
 
     m_storage = &storage;
     m_name    = MA_BOARD_NAME;
+    m_version = "v1";
 
-    if (MA_OK != m_storage->get(MA_STORAGE_KEY_ID, m_id)) {
-        // Create a random device and seed it
-        std::random_device rd;
-        std::mt19937 gen(rd());
+    // TODO: read id from system
+    // Create a random device and seed it
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
-        // Define the range
-        std::uniform_int_distribution<> dis(0x10000000, 0x7FFFFFFF);
+    // Define the range
+    std::uniform_int_distribution<> dis(0x10000000, 0x7FFFFFFF);
 
-        // Generate the random number
-        m_id = dis(gen);
-
-        // Set device id
-        m_storage->set(MA_STORAGE_KEY_ID, m_id);
-    }
+    m_storage->get(MA_STORAGE_KEY_ID, m_id, std::to_string(dis(gen)));
 }
 
 DevicePosix::~DevicePosix() {}

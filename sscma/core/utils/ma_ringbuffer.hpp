@@ -1,6 +1,7 @@
 #ifndef _MA_RINGBUFFER_H_
 #define _MA_RINGBUFFER_H_
 
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -8,6 +9,7 @@
 #include "porting/ma_osal.h"
 
 namespace ma {
+
 template <typename T>
 class ring_buffer {
 public:
@@ -34,7 +36,7 @@ public:
         if (m_buffer) {
             delete[] m_buffer;
         }
-        m_buffer = reinterpret_cast<T*>(ma_malloc(sizeof(T) * size));
+        m_buffer = new T[size];
         m_head   = 0;
         m_tail   = 0;
         m_used   = 0;
@@ -65,10 +67,11 @@ public:
             length = m_used;
         }
         if (length > m_size - m_head) {
-            memcpy(data, &m_buffer[m_head], (m_size - m_head) * sizeof(T));
-            memcpy(&data[m_size - m_head], &m_buffer[0], length - (m_size - m_head) * sizeof(T));
+            std::memcpy(data, &m_buffer[m_head], (m_size - m_head) * sizeof(T));
+            std::memcpy(
+                &data[m_size - m_head], &m_buffer[0], length - (m_size - m_head) * sizeof(T));
         } else {
-            memcpy(data, &m_buffer[m_head], length * sizeof(T));
+            std::memcpy(data, &m_buffer[m_head], length * sizeof(T));
         }
 
         m_head = (m_head + length) % m_size;
@@ -87,9 +90,10 @@ public:
                 break;
             }
         }
-        if (i == length) {
+        if (i == length) {  // not found
             return 0;
         }
+        std::memset(&data[i + 1], 0, sizeof(T));
         return read(&data[0], i + 1);
     }
 
@@ -100,10 +104,11 @@ public:
         }
 
         if (length > m_size - m_head) {
-            memcpy(data, &m_buffer[m_head], (m_size - m_head) * sizeof(T));
-            memcpy(&data[m_size - m_head], &m_buffer[0], length - (m_size - m_head) * sizeof(T));
+            std::memcpy(data, &m_buffer[m_head], (m_size - m_head) * sizeof(T));
+            std::memcpy(
+                &data[m_size - m_head], &m_buffer[0], length - (m_size - m_head) * sizeof(T));
         } else {
-            memcpy(data, &m_buffer[m_head], length * sizeof(T));
+            std::memcpy(data, &m_buffer[m_head], length * sizeof(T));
         }
 
         return length;
@@ -116,10 +121,11 @@ public:
         }
 
         if (length > m_size - m_tail) {
-            memcpy(&m_buffer[m_tail], data, (m_size - m_tail) * sizeof(T));
-            memcpy(&m_buffer[0], &data[m_size - m_tail], length - (m_size - m_tail) * sizeof(T));
+            std::memcpy(&m_buffer[m_tail], data, (m_size - m_tail) * sizeof(T));
+            std::memcpy(
+                &m_buffer[0], &data[m_size - m_tail], length - (m_size - m_tail) * sizeof(T));
         } else {
-            memcpy(&m_buffer[m_tail], data, length * sizeof(T));
+            std::memcpy(&m_buffer[m_tail], data, length * sizeof(T));
         }
 
         m_tail = (m_tail + length) % m_size;

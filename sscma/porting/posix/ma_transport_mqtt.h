@@ -11,6 +11,8 @@
 #include "hv/hv.h"
 #include "hv/mqtt_client.h"
 
+#include "core/utils/ma_ringbuffer.hpp"
+
 #include "porting/ma_osal.h"
 #include "porting/ma_transport.h"
 
@@ -18,6 +20,7 @@ namespace ma {
 
 class MQTT final : public Transport {
 public:
+
     MQTT(const char* clientID, const char* txTopic, const char* rxTopic);
 
     ~MQTT() override;
@@ -35,6 +38,7 @@ public:
                      const char* password = nullptr,
                      bool useSSL          = false);
     ma_err_t disconnect();
+    
 
 protected:
     void onCallback(mqtt_client_t* client, int type);
@@ -48,6 +52,7 @@ private:
     Mutex m_mutex;
     std::string m_txTopic;
     std::string m_rxTopic;
+    std::string m_discoveryTopic;
     std::string m_clientID;
     std::string m_username;
     std::string m_password;

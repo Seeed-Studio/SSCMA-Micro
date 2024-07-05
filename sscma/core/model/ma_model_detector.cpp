@@ -117,4 +117,4 @@ ma_err_t Detector::getConfig(ma_model_cfg_opt_t opt, ...) {
 
 Detector::~Detector() {}
 
-}  // namespace ma::model
+}  // namespace ma

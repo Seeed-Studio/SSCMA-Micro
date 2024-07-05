@@ -4,6 +4,7 @@
 #include <cJSON.h>
 
 #include "core/ma_common.h"
+#include "porting/ma_osal.h"
 
 #include "ma_codec_base.h"
 
@@ -28,7 +29,6 @@ public:
 
     ma_err_t remove(const std::string& key) override;
 
-    ma_err_t write(const std::string& key, bool value) override;
     ma_err_t write(const std::string& key, int8_t value) override;
     ma_err_t write(const std::string& key, int16_t value) override;
     ma_err_t write(const std::string& key, int32_t value) override;
@@ -52,6 +52,7 @@ public:
 private:
     cJSON* m_root;
     cJSON* m_data;
+    Mutex m_mutex;
     mutable std::string m_string;
 };
 

@@ -99,15 +99,6 @@ public:
     virtual ma_err_t remove(const std::string& key) = 0;
 
     /*!
-     * @brief Codec type for write boolean value.
-     *
-     * @param[in] key
-     * @param[in] value Boolean typed value to write.
-     * @retval MA_OK on success
-     */
-    virtual ma_err_t write(const std::string& key, bool value) = 0;
-
-    /*!
      * @brief Codec type for write int8_t value.
      *
      * @param[in] key

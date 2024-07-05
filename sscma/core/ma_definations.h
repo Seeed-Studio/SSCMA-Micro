@@ -2,7 +2,7 @@
 #define _MA_DEFINATIONS_H_
 
 
-#define MA_MQTT_CLIENTID_FMT           "%s_%s_%s"
+#define MA_MQTT_CLIENTID_FMT           "%s_%s"
 #define MA_MQTT_TOPIC_FMT              "sscma/%s/%s"
 
 #define MA_EXECUTOR_WORKER_NAME_PREFIX "sscma#executor"

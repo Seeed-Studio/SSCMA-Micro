@@ -7,7 +7,7 @@
 
 namespace ma {
 
-constexpr char TAG[] = "ma::transport::mqtt";
+const static char* TAG = "ma::transport::mqtt";
 
 void MQTT::onCallbackStub(mqtt_client_t* cli, int type) {
     MQTT* mqtt = reinterpret_cast<MQTT*>(mqtt_client_get_userdata(cli));
@@ -128,11 +128,17 @@ ma_err_t MQTT::connect(
         return MA_EBUSY;
     }
     if (m_client) {
-        if (username && password) {
+        if (username && password && username[0] && password[0]) {
             mqtt_client_set_auth(m_client, username, password);
         }
         ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
     }
+    reconn_setting_t reconn;
+    reconn_setting_init(&reconn);
+    reconn.min_delay    = 1000;
+    reconn.max_delay    = 10000;
+    reconn.delay_policy = 2;
+    mqtt_client_set_reconnect(m_client, &reconn);
     return m_client && ret == 0 ? MA_OK : MA_AGAIN;
 }
 
@@ -150,5 +156,3 @@ ma_err_t MQTT::disconnect() {
 
 
 #endif
-
-

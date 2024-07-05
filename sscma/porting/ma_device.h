@@ -27,8 +27,11 @@ public:
     std::string name() const {
         return m_name;
     }
-    uint32_t id() const {
+    std::string id() const {
         return m_id;
+    }
+    std::string version() const {
+        return m_version;
     }
 
     std::forward_list<Transport*>& getTransports() {
@@ -43,7 +46,8 @@ protected:
     std::forward_list<Camera*> m_cameras;
     Storage* m_storage;
     std::string m_name;
-    uint32_t m_id;
+    std::string m_id;
+    std::string m_version;
 
 private:
     static Device* s_instance;

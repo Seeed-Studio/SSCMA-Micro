@@ -6,8 +6,7 @@ namespace ma {
 
 static const char* TAG = "ma::codec::JSON";
 
-CodecJSON::CodecJSON() {
-    m_root                     = nullptr;
+CodecJSON::CodecJSON() : m_mutex(false), m_root(nullptr), m_data(nullptr) {
     static bool s_inited       = false;
     static cJSON_Hooks g_hooks = {
         .malloc_fn = ma_malloc,
@@ -30,65 +29,89 @@ CodecJSON::operator bool() const {
 }
 
 ma_err_t CodecJSON::begin() {
+    m_mutex.lock();
     ma_err_t ret = reset();
-    if (ret != MA_OK) {
-        return ret;
+    if (ret != MA_OK) [[unlikely]] {
+        goto err;
     }
     m_root = cJSON_CreateObject();
-    if (m_root == nullptr) {
-        return MA_ENOMEM;
+    if (m_root == nullptr) [[unlikely]] {
+        ret = MA_ENOMEM;
+        goto err;
     }
     m_data = m_root;
+
     return MA_OK;
+err:
+    m_mutex.unlock();
+    return ret;
 }
 
 ma_err_t CodecJSON::begin(ma_reply_t reply, ma_err_t code, const std::string& name) {
+    m_mutex.lock();
     ma_err_t ret = reset();
-    if (ret != MA_OK) {
-        return ret;
+
+    if (ret != MA_OK) [[unlikely]] {
+        goto err;
     }
+
     m_root = cJSON_CreateObject();
+
     if (cJSON_AddNumberToObject(m_root, "type", reply) == nullptr ||
         cJSON_AddStringToObject(m_root, "name", name.c_str()) == nullptr ||
-        cJSON_AddNumberToObject(m_root, "code", code) == nullptr) {
+        cJSON_AddNumberToObject(m_root, "code", code) == nullptr) [[unlikely]] {
         reset();
-        return MA_FAILED;
+        ret = MA_FAILED;
+        goto err;
     }
+
     m_data = cJSON_AddObjectToObject(m_root, "data");
-    if (m_data == nullptr) {
+    if (m_data == nullptr) [[unlikely]] {
         reset();
-        return MA_FAILED;
+        ret = MA_FAILED;
+        goto err;
     }
+
     return MA_OK;
+
+err:
+    m_mutex.unlock();
+    return ret;
 }
 
 ma_err_t CodecJSON::begin(ma_reply_t reply,
                           ma_err_t code,
                           const std::string& name,
                           const std::string& data) {
+    m_mutex.lock();
     ma_err_t ret = reset();
-    if (ret != MA_OK) {
+    if (ret != MA_OK) [[unlikely]] {
+        m_mutex.unlock();
         return ret;
     }
     m_root = cJSON_CreateObject();
     if (cJSON_AddNumberToObject(m_root, "type", reply) == nullptr ||
         cJSON_AddStringToObject(m_root, "name", name.c_str()) == nullptr ||
         cJSON_AddNumberToObject(m_root, "code", code) == nullptr ||
-        cJSON_AddStringToObject(m_root, "data", data.c_str()) == nullptr) {
+        cJSON_AddStringToObject(m_root, "data", data.c_str()) == nullptr) [[unlikely]] {
         reset();
+        m_mutex.unlock();
         return MA_FAILED;
     }
-
     return MA_OK;
 }
 
 ma_err_t CodecJSON::end() {
-    if (m_root == nullptr) {
-        return MA_EPERM;
+    ma_err_t ret = MA_OK;
+    char* str    = nullptr;
+    if (m_root == nullptr) [[unlikely]] {
+        ret = MA_EPERM;
+        goto exit;
     }
-    char* str = cJSON_PrintUnformatted(m_root);
-    if (!str) {
-        return MA_ENOMEM;
+    str = cJSON_PrintUnformatted(m_root);
+    if (!str) [[unlikely]] {
+        ret = MA_ENOMEM;
+        goto exit;
     }
     m_string.clear();
     m_string.shrink_to_fit();
@@ -96,7 +119,10 @@ ma_err_t CodecJSON::end() {
     m_string += str;
     m_string += "\n";  // suffix
     ma_free(str);
-    return MA_OK;
+
+exit:
+    m_mutex.unlock();
+    return ret;
 }
 
 const std::string& CodecJSON::toString() const {
@@ -127,12 +153,6 @@ ma_err_t CodecJSON::remove(const std::string& key) {
     }
     cJSON_DeleteItemFromObject(m_data, key.c_str());
     return MA_OK;
-}
-ma_err_t CodecJSON::write(const std::string& key, bool value) {
-    if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
-        return MA_EEXIST;
-    }
-    return cJSON_AddBoolToObject(m_data, key.c_str(), value) != nullptr ? MA_OK : MA_FAILED;
 }
 
 ma_err_t CodecJSON::write(const std::string& key, int8_t value) {

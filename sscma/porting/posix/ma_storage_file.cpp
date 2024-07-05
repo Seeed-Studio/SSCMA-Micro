@@ -78,7 +78,7 @@ cJSON* StorageFile::getNode(const std::string& key) {
     return current;
 }
 
-void StorageFile::setNode(const std::string& key, cJSON* value) {
+ma_err_t StorageFile::setNode(const std::string& key, cJSON* value) {
     Guard guard(mutex_);
     std::vector<std::string> parts = splitKey(key);
     cJSON* parent                  = root_;
@@ -95,6 +95,7 @@ void StorageFile::setNode(const std::string& key, cJSON* value) {
         parent = child;
     }
     save();
+    return MA_OK;
 }
 
 // ma_err_t StorageFile::set(const std::string& key, bool value) {
@@ -165,112 +166,119 @@ ma_err_t StorageFile::set(const std::string& key, void* value, size_t size) {
 //     return MA_ENOENT;
 // }
 
-ma_err_t StorageFile::get(const std::string& key, int8_t& value) {
+ma_err_t StorageFile::get(const std::string& key, int8_t& value, int8_t default_) {
     int64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<int8_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, int16_t& value) {
+ma_err_t StorageFile::get(const std::string& key, int16_t& value, int16_t default_) {
     int64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<int16_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, int32_t& value) {
+ma_err_t StorageFile::get(const std::string& key, int32_t& value, int32_t default_) {
     int64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<int32_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, int64_t& value) {
+ma_err_t StorageFile::get(const std::string& key, int64_t& value, int64_t default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsNumber(item)) {
         value = static_cast<int64_t>(item->valuedouble);
         return MA_OK;
     }
-    return MA_ENOENT;
+    value = default_;
+    return setNode(key, cJSON_CreateNumber(default_));
 }
 
-ma_err_t StorageFile::get(const std::string& key, uint8_t& value) {
+ma_err_t StorageFile::get(const std::string& key, uint8_t& value, uint8_t default_) {
     uint64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<uint8_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, uint16_t& value) {
+ma_err_t StorageFile::get(const std::string& key, uint16_t& value, uint16_t default_) {
     uint64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<uint16_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, uint32_t& value) {
+ma_err_t StorageFile::get(const std::string& key, uint32_t& value, uint32_t default_) {
     uint64_t temp;
-    if (get(key, temp) == MA_OK) {
+    if (get(key, temp, default_) == MA_OK) {
         value = static_cast<uint32_t>(temp);
         return MA_OK;
     }
     return MA_ENOENT;
 }
 
-ma_err_t StorageFile::get(const std::string& key, uint64_t& value) {
+ma_err_t StorageFile::get(const std::string& key, uint64_t& value, uint64_t default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsNumber(item)) {
         value = static_cast<uint64_t>(item->valuedouble);
         return MA_OK;
     }
-    return MA_ENOENT;
+    value = default_;
+    return setNode(key, cJSON_CreateNumber(default_));
 }
-
-ma_err_t StorageFile::get(const std::string& key, float& value) {
+ma_err_t StorageFile::get(const std::string& key, float& value, float default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsNumber(item)) {
         value = static_cast<float>(item->valuedouble);
         return MA_OK;
     }
-    return MA_ENOENT;
+    value = default_;
+    return setNode(key, cJSON_CreateNumber(default_));
 }
 
-ma_err_t StorageFile::get(const std::string& key, double& value) {
+ma_err_t StorageFile::get(const std::string& key, double& value, double default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsNumber(item)) {
         value = item->valuedouble;
         return MA_OK;
     }
-    return MA_ENOENT;
+    value = default_;
+    return setNode(key, cJSON_CreateNumber(default_));
 }
 
-ma_err_t StorageFile::get(const std::string& key, std::string& value) {
+ma_err_t StorageFile::get(const std::string& key, std::string& value, const std::string default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsString(item)) {
         value = item->valuestring;
         return MA_OK;
     }
-    return MA_ENOENT;
+    value = default_;
+    return setNode(key, cJSON_CreateString(default_.c_str()));
 }
 
-ma_err_t StorageFile::get(const std::string& key, char* value) {
+ma_err_t StorageFile::get(const std::string& key, char* value, const char* default_) {
     cJSON* item = getNode(key);
     if (item && cJSON_IsString(item)) {
         strcpy(value, item->valuestring);
         return MA_OK;
     }
-    return MA_ENOENT;
+    if (value != default_ && default_ != nullptr) {
+        strcpy(value, default_);
+    }
+    return setNode(key, cJSON_CreateString(default_));
 }
 
 ma_err_t StorageFile::remove(const std::string& key) {
