@@ -54,6 +54,21 @@ public:
                            const std::string& name,
                            const std::string& data) = 0;
 
+
+    /*!
+     * @brief Codec type for begin.
+     *
+     * @param[in] reply
+     * @param[in] code
+     * @param[in] name
+     * @param[in] data
+     * @retval MA_OK on success
+     */
+    virtual ma_err_t begin(ma_reply_t reply,
+                           ma_err_t code,
+                           const std::string& name,
+                           uint64_t data) = 0;
+
     /*!
      * @brief Codec type for end.
      *

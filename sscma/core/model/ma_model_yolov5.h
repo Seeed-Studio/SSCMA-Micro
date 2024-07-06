@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_YOLO_H
-#define _MA_MODEL_YOLO_H
+#ifndef _MA_MODEL_YOLOV5_H
+#define _MA_MODEL_YOLOV5_H
 
 #include <vector>
 
@@ -7,7 +7,7 @@
 
 namespace ma::model {
 
-class Yolo : public Detector {
+class YoloV5 : public Detector {
 private:
     ma_tensor_t output_;
     int32_t num_record_;
@@ -26,8 +26,8 @@ protected:
     ma_err_t postprocess() override;
 
 public:
-    Yolo(Engine* engine);
-    ~Yolo();
+    YoloV5(Engine* engine);
+    ~YoloV5();
     bool isValid(Engine* engine) override;
 };
 

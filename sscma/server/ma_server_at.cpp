@@ -6,7 +6,11 @@
 
 #include "ma_server_at.h"
 
+#include "callback/common.hpp"
+
 namespace ma {
+
+using namespace ma::server::callback;
 
 const char* TAG = "ma::server::ATServer";
 
@@ -28,35 +32,14 @@ ma_err_t ATServer::addService(ATService& service) {
 }
 
 ATServer::ATServer(Codec* codec) : m_codec(*codec) {
-
-    m_device  = Device::getInstance();
-    m_storage = m_device->getStorage();
-    m_transports.assign(m_device->getTransports().begin(), m_device->getTransports().end());
-
-    m_executor = new Executor(MA_SEVER_AT_EXECUTOR_STACK_SIZE, MA_SEVER_AT_EXECUTOR_TASK_PRIO);
-    MA_ASSERT(m_executor);
     m_thread = new Thread("ATServer", ATServer::threadEntryStub);
     MA_ASSERT(m_thread);
-
-    memset(&m_wifiConfig, 0, sizeof(m_wifiConfig));
-    memset(&m_mqttConfig, 0, sizeof(m_mqttConfig));
-    memset(&m_mqttTopicConfig, 0, sizeof(m_mqttTopicConfig));
 }
 
 ATServer::ATServer(Codec& codec) : m_codec(codec) {
 
-    m_device  = Device::getInstance();
-    m_storage = m_device->getStorage();
-    m_transports.assign(m_device->getTransports().begin(), m_device->getTransports().end());
-
-    m_executor = new Executor(MA_SEVER_AT_EXECUTOR_STACK_SIZE, MA_SEVER_AT_EXECUTOR_TASK_PRIO);
-    MA_ASSERT(m_executor);
     m_thread = new Thread("ATServer", ATServer::threadEntryStub);
     MA_ASSERT(m_thread);
-
-    memset(&m_wifiConfig, 0, sizeof(m_wifiConfig));
-    memset(&m_mqttConfig, 0, sizeof(m_mqttConfig));
-    memset(&m_mqttTopicConfig, 0, sizeof(m_mqttTopicConfig));
 }
 
 void ATServer::threadEntryStub(void* arg) {
@@ -68,7 +51,7 @@ void ATServer::threadEntry() {
     char* buf = reinterpret_cast<char*>(malloc(MA_SEVER_AT_CMD_MAX_LENGTH + 1));
     std::memset(buf, 0, MA_SEVER_AT_CMD_MAX_LENGTH + 1);
     while (true) {
-        for (auto& tansport : m_transports) {
+        for (auto& tansport : static_resource->transports) {
             if (*tansport) {
                 int len = tansport->receiveUtil(buf, MA_SEVER_AT_CMD_MAX_LENGTH, 0x0D);
                 if (len > 1) {
@@ -88,86 +71,105 @@ ma_err_t ATServer::init() {
 
     ma_err_t err = MA_OK;
 
-    Executor* executor = m_executor;
+    static_resource->init();
 
+    this->addService("ID?",
+                     "Get device ID",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_device_id(cmd, transport, codec);
+                         });
+                         return MA_OK;
+                     });
 
-    m_storage->get(MA_STORAGE_KEY_MQTT_HOST, m_mqttConfig.host, "");
+    this->addService("NAME?",
+                     "Get device name",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_device_name(cmd, transport, codec);
+                         });
+                         return MA_OK;
+                     });
 
-    if (m_mqttConfig.host[0] != '\0') {
+    this->addService("STAT?",
+                     "Get device status",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_device_status(cmd, transport, codec);
+                         });
+                         return MA_OK;
+                     });
 
-        m_storage->get(MA_STORAGE_KEY_MQTT_PORT, m_mqttConfig.port, 1883);
-        m_storage->get(MA_STORAGE_KEY_MQTT_CLIENTID, m_mqttConfig.client_id, "");
-        m_storage->get(MA_STORAGE_KEY_MQTT_USER, m_mqttConfig.username, "");
-        m_storage->get(MA_STORAGE_KEY_MQTT_PWD, m_mqttConfig.password, "");
+    this->addService("VER?",
+                     "Get device version",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_version(cmd, transport, codec, MA_AT_API_VERSION);
+                         });
+                         return MA_OK;
+                     });
 
-        if (m_mqttConfig.client_id[0] == '\0') {
-            snprintf(m_mqttConfig.client_id,
-                     MA_MQTT_MAX_CLIENT_ID_LENGTH,
-                     MA_MQTT_CLIENTID_FMT,
-                     m_device->name().c_str(),
-                     m_device->id().c_str());
-            m_storage->set(MA_STORAGE_KEY_MQTT_CLIENTID, m_mqttConfig.client_id);
-        }
-
-        snprintf(m_mqttTopicConfig.pub_topic,
-                 MA_MQTT_MAX_TOPIC_LENGTH,
-                 MA_MQTT_TOPIC_FMT "/tx",
-                 MA_AT_API_VERSION,
-                 m_mqttConfig.client_id);
-        snprintf(m_mqttTopicConfig.sub_topic,
-                 MA_MQTT_MAX_TOPIC_LENGTH,
-                 MA_MQTT_TOPIC_FMT "/rx",
-                 MA_AT_API_VERSION,
-                 m_mqttConfig.client_id);
-
-#if MA_USE_TRANSPORT_MQTT
-        MQTT* transport = new MQTT(
-            m_mqttConfig.client_id, m_mqttTopicConfig.pub_topic, m_mqttTopicConfig.sub_topic);
-        MA_LOGD(TAG, "MQTT Transport: %p", transport);
-        transport->connect(
-            m_mqttConfig.host, m_mqttConfig.port, m_mqttConfig.username, m_mqttConfig.password);
-
-        m_transports.push_front(transport);
-#endif
-    }
-
-
-    MA_LOGD(TAG, "MQTT Host: %s:%d", m_mqttConfig.host, m_mqttConfig.port);
-    MA_LOGD(TAG, "MQTT Client ID: %s", m_mqttConfig.client_id);
-    MA_LOGD(TAG, "MQTT User: %s", m_mqttConfig.username);
-    MA_LOGD(TAG, "MQTT Pwd: %s", m_mqttConfig.password);
-    MA_LOGD(TAG, "MQTT Pub Topic: %s", m_mqttTopicConfig.pub_topic);
-    MA_LOGD(TAG, "MQTT Sub Topic: %s", m_mqttTopicConfig.sub_topic);
-
-    m_storage->get(MA_STORAGE_KEY_WIFI_SSID, m_wifiConfig.ssid, "");
-    m_storage->get(MA_STORAGE_KEY_WIFI_BSSID, m_wifiConfig.bssid, "");
-    m_storage->get(MA_STORAGE_KEY_WIFI_PWD, m_wifiConfig.password, "");
-    m_storage->get(MA_STORAGE_KEY_WIFI_SECURITY, m_wifiConfig.security, SEC_AUTO);
-
-    MA_LOGD(TAG, "Wifi SSID: %s", m_wifiConfig.ssid);
-    MA_LOGD(TAG, "Wifi BSSID: %s", m_wifiConfig.bssid);
-    MA_LOGD(TAG, "Wifi Pwd: %s", m_wifiConfig.password);
-    MA_LOGD(TAG, "Wifi Security: %d", m_wifiConfig.security);
-
+    this->addService("RST",
+                     "Reset device",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task(
+                             [cmd = std::move(args[0]), &transport, &codec](
+                                 const std::atomic<bool>&) { ma_reset(); });
+                         return MA_OK;
+                     });
 
     this->addService(
-        "ID?",
-        "Get device ID",
+        "BREAK",
+        "Stop all running tasks",
         "",
-        [executor](std::vector<std::string> args, Transport& transport, Codec& codec) {
-            executor->add_task(
-                [cmd = std::move(args[0]), &transport, &codec](const std::atomic<bool>&) {
-                    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd);
-                    codec.write("id", Device::getInstance()->id());
-                    codec.end();
-                    transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
+        [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+            if (static_resource->is_ready.load()) [[likely]] {
+                static_resource->executor->add_task(
+                    [cmd = std::move(args[0]), &transport, &codec](const std::atomic<bool>&) {
+                        static_resource->current_task_id.fetch_add(1);
+                        break_task(cmd, transport, codec);
+                    });
+            }
+            return MA_OK;
+        });
+
+    this->addService(
+        "YIELD",
+        "Yield running tasks for a period time",
+        "TIME_S",
+        [](std::vector<std::string> args, Transport& Transport, Codec& Codec) {
+            static_resource->executor->add_task(
+                [cmd = std::move(args[0]), period = std::atoi(args[1].c_str()), &Transport, &Codec](
+                    const std::atomic<bool>& stop_token) mutable {
+                    while (stop_token.load(std::memory_order_seq_cst) && period > 0) {
+                        Thread::yield();
+                        period -= 1;
+                    }
                 });
             return MA_OK;
         });
+
+
     return err;
 }
 
 ma_err_t ATServer::start() {
+
+    static_resource->executor->add_task(
+        [](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
     m_thread->start(this);
 

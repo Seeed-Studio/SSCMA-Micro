@@ -35,6 +35,7 @@ public:
     void setUserCtx(void* ctx);
 };
 
+
 }  // namespace ma
 
 #endif /* _MA_ALGO_H_ */

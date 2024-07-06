@@ -66,15 +66,8 @@ protected:
 private:
     static void threadEntryStub(void* arg);
     Thread* m_thread;
-    Executor* m_executor;
     Codec& m_codec;
-    Device* m_device;
-    Storage* m_storage;
-    std::forward_list<Transport*> m_transports;
     std::vector<ATService> m_services;
-    ma_wifi_config_t m_wifiConfig;
-    ma_mqtt_config_t m_mqttConfig;
-    ma_mqtt_topic_config_t m_mqttTopicConfig;
 };
 
 }  // namespace ma

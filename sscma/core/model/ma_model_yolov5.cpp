@@ -4,13 +4,13 @@
 
 #include "core/utils/ma_nms.h"
 
-#include "ma_model_yolo.h"
+#include "ma_model_yolov5.h"
 
 namespace ma::model {
 
 constexpr char TAG[] = "ma::model::yolo";
 
-Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
+YoloV5::YoloV5(Engine* p_engine_) : Detector(p_engine_, "yolov5") {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->getOutput(0);
@@ -20,9 +20,9 @@ Yolo::Yolo(Engine* p_engine_) : Detector(p_engine_, "yolo") {
     num_class_   = num_element_ - INDEX_T;
 }
 
-Yolo::~Yolo() {}
+YoloV5::~YoloV5() {}
 
-bool Yolo::isValid(Engine* engine) {
+bool YoloV5::isValid(Engine* engine) {
     const auto& input_shape{engine->getInputShape(0)};
 
 #if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
@@ -74,7 +74,7 @@ bool Yolo::isValid(Engine* engine) {
 }
 
 
-ma_err_t Yolo::postprocess() {
+ma_err_t YoloV5::postprocess() {
 
     std::forward_list<ma_bbox_t> result;
     results_.clear();

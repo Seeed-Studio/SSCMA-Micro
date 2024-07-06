@@ -13,7 +13,7 @@
 #include "ma_definations.h"
 #include "ma_types.h"
 
-#define MA_VERSION           __MA_VERSION__
+#define MA_VERSION           "1.0.0"
 #define MA_VERSION_LENTH_MAX 32
 
 #endif  // MA_COMMON_H

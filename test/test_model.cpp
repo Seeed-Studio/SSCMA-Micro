@@ -38,7 +38,7 @@ TEST(Model, YOLO) {
     auto* engine = new engine::EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
     EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
-    Detector* detector = static_cast<Detector*>(new ma::model::Yolo(engine));
+    Detector* detector = static_cast<Detector*>(new ma::model::YoloV5(engine));
     ma_img_t img;
     img.data   = (uint8_t*)gImage_meter;
     img.size   = sizeof(gImage_meter);

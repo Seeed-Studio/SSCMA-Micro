@@ -101,6 +101,25 @@ ma_err_t CodecJSON::begin(ma_reply_t reply,
     return MA_OK;
 }
 
+ma_err_t CodecJSON::begin(ma_reply_t reply, ma_err_t code, const std::string& name, uint64_t data) {
+    m_mutex.lock();
+    ma_err_t ret = reset();
+    if (ret != MA_OK) [[unlikely]] {
+        m_mutex.unlock();
+        return ret;
+    }
+    m_root = cJSON_CreateObject();
+    if (cJSON_AddNumberToObject(m_root, "type", reply) == nullptr ||
+        cJSON_AddStringToObject(m_root, "name", name.c_str()) == nullptr ||
+        cJSON_AddNumberToObject(m_root, "code", code) == nullptr ||
+        cJSON_AddNumberToObject(m_root, "data", data) == nullptr) [[unlikely]] {
+        reset();
+        m_mutex.unlock();
+        return MA_FAILED;
+    }
+    return MA_OK;
+}
+
 ma_err_t CodecJSON::end() {
     ma_err_t ret = MA_OK;
     char* str    = nullptr;
