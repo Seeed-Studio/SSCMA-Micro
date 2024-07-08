@@ -22,17 +22,50 @@ float compute_iou(const ma_bbox_t& box1, const ma_bbox_t& box2) {
 }
 
 
-int nms(std::forward_list<ma_bbox_t>& boxes,
+// int nms(std::forward_list<ma_bbox_t>& boxes,
+//         float threshold_iou,
+//         float threshold_score,
+//         bool soft_nms,
+//         bool multi_target) {
+
+//     boxes.sort(box_comparator_sort);
+
+//     for (auto it = boxes.begin(); it != boxes.end(); it++) {
+//         if (it->score == 0)
+//             continue;
+//         for (auto it2 = std::next(it); it2 != boxes.end(); it2++) {
+//             if (it2->score == 0)
+//                 continue;
+//             if (multi_target && it->target != it2->target)
+//                 continue;
+//             auto iou = compute_iou(*it, *it2);
+//             if (iou > threshold_iou) {
+//                 if (soft_nms) {  // soft-nms
+//                     it2->score = it2->score * (1 - iou);
+//                     if (it2->score < threshold_score)
+//                         it2->score = 0;
+//                 } else {
+//                     it2->score = 0;
+//                 }
+//             }
+//         }
+//     }
+//     boxes.remove_if([](const ma_bbox_t& box) { return box.score == 0; });
+//     return std::distance(boxes.begin(), boxes.end());
+// }
+
+int nms(std::vector<ma_bbox_t>& boxes,
         float threshold_iou,
         float threshold_score,
         bool soft_nms,
         bool multi_target) {
-    boxes.sort(box_comparator_sort);
 
-    for (auto it = boxes.begin(); it != boxes.end(); it++) {
+    std::sort(boxes.begin(), boxes.end(), box_comparator_sort);
+
+    for (auto it = boxes.begin(); it != boxes.end(); ++it) {
         if (it->score == 0)
             continue;
-        for (auto it2 = std::next(it); it2 != boxes.end(); it2++) {
+        for (auto it2 = std::next(it); it2 != boxes.end(); ++it2) {
             if (it2->score == 0)
                 continue;
             if (multi_target && it->target != it2->target)
@@ -49,8 +82,13 @@ int nms(std::forward_list<ma_bbox_t>& boxes,
             }
         }
     }
-    boxes.remove_if([](const ma_bbox_t& box) { return box.score == 0; });
-    return std::distance(boxes.begin(), boxes.end());
+
+    boxes.erase(std::remove_if(boxes.begin(),
+                               boxes.end(),
+                               [](const ma_bbox_t& box) { return box.score == 0; }),
+                boxes.end());
+
+    return boxes.size();
 }
 
 }  // namespace ma::utils

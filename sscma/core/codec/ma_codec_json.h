@@ -44,10 +44,12 @@ public:
     ma_err_t write(const std::string& key, float value) override;
     ma_err_t write(const std::string& key, double value) override;
     ma_err_t write(const std::string& key, const std::string& value) override;
+    ma_err_t write(const std::string& key, ma_model_t value) override;
     ma_err_t write(ma_perf_t value) override;
     ma_err_t write(std::vector<ma_class_t>& value) override;
     ma_err_t write(std::vector<ma_point_t>& value) override;
     ma_err_t write(std::vector<ma_bbox_t>& value) override;
+    ma_err_t write(std::vector<ma_model_t>& value) override;
 
     const std::string& toString() const override;
     const void* data() const override;

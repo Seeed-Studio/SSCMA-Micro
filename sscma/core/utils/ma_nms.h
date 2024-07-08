@@ -2,7 +2,9 @@
 #define _MA_NMS_H_
 
 #include "core/ma_common.h"
+#include <algorithm>
 #include <forward_list>
+#include <vector>
 
 namespace ma::utils {
 
@@ -11,7 +13,13 @@ extern "C" {
 #endif
 
 
-int nms(std::forward_list<ma_bbox_t>& boxes,
+// int nms(std::forward_list<ma_bbox_t>& boxes,
+//         float threshold_iou,
+//         float threshold_score,
+//         bool soft_nms     = false,
+//         bool multi_target = false);
+
+int nms(std::vector<ma_bbox_t>& boxes,
         float threshold_iou,
         float threshold_score,
         bool soft_nms     = false,

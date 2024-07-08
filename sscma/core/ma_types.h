@@ -190,8 +190,8 @@ typedef enum {
 typedef struct {
     uint8_t id;
     uint32_t size;
-    void* name;
-    void* addr;
+    char* name;
+    char* addr;
     ma_model_type_t type;
 } ma_model_t;
 

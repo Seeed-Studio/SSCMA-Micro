@@ -77,7 +77,7 @@ enum OpsCount : unsigned int {
 #if MA_TFLITE_OP_ALL || MA_TFLITE_OP_COS
     AddCos,
 #endif
-#if MA_TFLITE_OP_ALL || MA_TFLITE_OP_CUM_SUM
+#if MA_TFLITE_OP_ALL || MA_TFLITE_OPC_UM_SUM
     AddCumSum,
 #endif
 #if MA_TFLITE_OP_ALL || MA_TFLITE_OP_DEPTH_TO_SPACE
@@ -347,6 +347,7 @@ public:
 #if MA_USE_FILESYSTEM
     ma_err_t loadModel(const char* model_path) override;
 #endif
+
     int32_t getInputSize() override;
     int32_t getOutputSize() override;
     ma_tensor_t getInput(int32_t index) override;

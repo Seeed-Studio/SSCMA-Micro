@@ -7,12 +7,14 @@
 #include "ma_server_at.h"
 
 #include "callback/common.hpp"
+#include "callback/model.hpp"
+#include "callback/resource.hpp"
 
 namespace ma {
 
 using namespace ma::server::callback;
 
-const char* TAG = "ma::server::ATServer";
+//static constexpr char TAG[] = "ma::server::ATServer";
 
 ATService::ATService(const std::string& name,
                      const std::string& desc,
@@ -176,6 +178,43 @@ ma_err_t ATServer::init() {
             return MA_OK;
         });
 
+    this->addService("MODELS?",
+                     "Get available models",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_available_models(cmd, transport, codec);
+                         });
+                         return MA_OK;
+                     });
+
+    this->addService("MODEL?",
+                     "Get current model",
+                     "",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd = std::move(args[0]),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             get_model_info(cmd, transport, codec);
+                         });
+                         return MA_OK;
+                     });
+
+    this->addService("MODEL",
+                     "Set current model",
+                     "MODEL_ID",
+                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                         static_resource->executor->add_task([cmd      = std::move(args[0]),
+                                                              model_id = std::atoi(args[1].c_str()),
+                                                              &transport,
+                                                              &codec](const std::atomic<bool>&) {
+                             set_model(cmd, transport, codec, model_id);
+                         });
+                         return MA_OK;
+                     });
+
 
     return err;
 }
@@ -285,7 +324,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     }
     argv.shrink_to_fit();
 
-    if (argv.size() < it->args.size()) [[unlikely]] {
+    if (argv.size() < it->argc) [[unlikely]] {
         m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());

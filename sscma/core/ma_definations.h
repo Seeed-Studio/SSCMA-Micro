@@ -1,6 +1,9 @@
 #ifndef _MA_DEFINATIONS_H_
 #define _MA_DEFINATIONS_H_
 
+#define MA_SSCMA_CONFIG_DEFAULT_PATH   "/etc/sscma/sscma.conf"
+#define MA_SSCMA_MODEL_DEFAULT_PATH    "/mnt/user/model/" // TODO change to model dir 
+
 
 #define MA_MQTT_CLIENTID_FMT           "%s_%s"
 #define MA_MQTT_TOPIC_FMT              "sscma/%s/%s"
@@ -10,7 +13,11 @@
 #define MA_STORAGE_KEY_ID              "device#id"
 #define MA_STORAGE_KEY_NAME            "device#name"
 
+
 #define MA_STORAGE_DEFAULT_VALUE       "N/A"
+
+#define MA_STORAGE_KEY_MODEL_ID       "model#id"
+#define MA_STORAGE_KEY_MODEL_DIR       "model#addr"
 
 #define MA_STORAGE_KEY_WIFI_SSID       "wifi#ssid"
 #define MA_STORAGE_KEY_WIFI_BSSID      "wifi#bssid"

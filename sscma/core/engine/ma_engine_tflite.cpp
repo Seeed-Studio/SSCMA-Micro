@@ -302,9 +302,9 @@ OpsResolver::OpsResolver() {
 
 namespace ma::engine {
 
-std::forward_list<ma_model_t> Engine::m_models;
+std::vector<ma_model_t> Engine::m_models;
 
-std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t size) {
+std::vector<ma_model_t>& Engine::findModels(const char* address, size_t size) {
 // search *.cvimodel in path
 #if MA_USE_FILESYSTEM_POSIX
     if (size == 0) {
@@ -333,12 +333,12 @@ std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t si
                         ma_model_t model;
                         model.id   = std::distance(m_models.begin(), m_models.end());
                         model.type = MA_MODEL_TYPE_UNDEFINED;
-                        model.name = ma_malloc(strlen(ent->d_name) + 1);
+                        model.name = static_cast<char*>(ma_malloc(strlen(ent->d_name) + 1));
                         strcpy(static_cast<char*>(model.name), ent->d_name);
-                        model.addr = ma_malloc(strlen(model_path.c_str()) + 1);
-                        strcpy(static_cast<char*>(model.addr),  model_path.c_str());
+                        model.addr = static_cast<char*>(ma_malloc(strlen(model_path.c_str()) + 1));
+                        strcpy(static_cast<char*>(model.addr), model_path.c_str());
                         model.size = ent->d_reclen;
-                        m_models.push_front(model);
+                        m_models.push_back(model);
                     }
                 }
             }
@@ -355,11 +355,9 @@ std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t si
             model.type = MA_MODEL_TYPE_UNDEFINED;
             model.name = i;
             model.addr = data;
-            m_models.emplace_front(model);
+            m_models.push_back(model);
         }
     }
-
-
 #endif
 
     return m_models;

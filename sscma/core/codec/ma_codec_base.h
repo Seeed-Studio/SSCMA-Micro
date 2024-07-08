@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <forward_list>
 
 #include "core/ma_common.h"
 
@@ -213,6 +214,15 @@ public:
     virtual ma_err_t write(const std::string& key, const std::string& value) = 0;
 
     /*!
+     * @brief Codec type for write ma_model_t value.
+     *
+     * @param[in] key
+     * @param[in] value ma_model_t typed value to write.
+     * @retval MA_OK on success
+     */
+    virtual ma_err_t write(const std::string& key, ma_model_t value) = 0;
+
+    /*!
      * @brief Codec type for write ma_perf_t
      *
      * @param[in] value ma_perf_t typed value to write.
@@ -243,6 +253,14 @@ public:
      * @retval MA_OK on success
      */
     virtual ma_err_t write(std::vector<ma_bbox_t>& value) = 0;
+
+    /*!
+     * @brief Codec type for write std::forward_list<ma_model_t> value.
+     *
+     * @param[in] value std::forward_list<ma_model_t> typed value to write.
+     * @retval MA_OK on success
+     */
+    virtual ma_err_t write(std::vector<ma_model_t>& value) = 0;
 };
 
 }  // namespace ma

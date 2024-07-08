@@ -79,8 +79,9 @@ bool YoloV5::isValid(Engine* engine) {
 
 ma_err_t YoloV5::postprocess() {
 
-    std::forward_list<ma_bbox_t> result;
+    // std::forward_list<ma_bbox_t> result;
     results_.clear();
+    results_.shrink_to_fit();
 
     auto* data = output_.data.s8;
 
@@ -130,7 +131,7 @@ ma_err_t YoloV5::postprocess() {
             box.y = MA_CLIP(y, 0, 1.0f);
             box.w = MA_CLIP(w, 0, 1.0f);
             box.h = MA_CLIP(h, 0, 1.0f);
-            result.emplace_front(std::move(box));
+            results_.push_back(std::move(box));
         }
     } else if (output_.type == MA_TENSOR_TYPE_F32) {
         auto* data      = output_.data.f32;
@@ -172,17 +173,21 @@ ma_err_t YoloV5::postprocess() {
             box.y = MA_CLIP(y, 0, 1.0f);
             box.w = MA_CLIP(w, 0, 1.0f);
             box.h = MA_CLIP(h, 0, 1.0f);
-            result.emplace_front(std::move(box));
+            results_.push_back(std::move(box));
         }
     } else {
         return MA_ENOTSUP;
     }
 
-    ma::utils::nms(result, threshold_nms_, threshold_score_, false, false);
+     ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
 
-    result.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });  // left to right
+    std::sort(results_.begin(), results_.end(), [](const ma_bbox_t& a, const ma_bbox_t& b) {
+        return a.y < b.y;
+    });
 
-    std::copy(result.begin(), result.end(), std::back_inserter(results_));
+    results_.shrink_to_fit();
+
+    // std::copy(result.begin(), result.end(), std::back_inserter(results_));
 
     return MA_OK;
 }

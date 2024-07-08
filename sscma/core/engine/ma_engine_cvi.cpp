@@ -8,9 +8,9 @@ namespace ma::engine {
 
 constexpr char TAG[] = "ma::engine::cvinn";
 
-std::forward_list<ma_model_t> Engine::m_models;
+std::vector<ma_model_t> Engine::m_models;
 
-std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t size) {
+std::vector<ma_model_t>& Engine::findModels(const char* address, size_t size) {
 
     (void)size;
 
@@ -25,6 +25,7 @@ std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t si
     }
 
     m_models.clear();
+    m_models.shrink_to_fit();
     // search *.cvimodel in path
     DIR* dir;
     struct dirent* ent;
@@ -43,19 +44,16 @@ std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t si
                     continue;
                 }
                 model.size = ifs.tellg();
-                model.name = ma_malloc(strlen(ent->d_name) + 1);
+                model.name = static_cast<char*>(ma_malloc(strlen(ent->d_name) + 1));
                 strcpy(static_cast<char*>(model.name), ent->d_name);
-                model.addr = ma_malloc(strlen(model_path.c_str()) + 1);
+                model.addr = static_cast<char*>(ma_malloc(strlen(model_path.c_str()) + 1));
                 strcpy(static_cast<char*>(model.addr), model_path.c_str());
-                m_models.emplace_front(model);
+                m_models.push_back(model);
                 ifs.close();
             }
         }
         closedir(dir);
     }
-
-    m_models.sort([](const ma_model_t& a, const ma_model_t& b) { return a.id < b.id; });
-
     return m_models;
 }
 
@@ -76,11 +74,12 @@ EngineCVI::EngineCVI() {
 }
 
 EngineCVI::~EngineCVI() {
-    CVI_NN_CleanupModel(model);
+    if (model != nullptr) {
+        CVI_NN_CleanupModel(model);
+    }
 }
 
 ma_err_t EngineCVI::init() {
-
     return MA_OK;
 }
 
@@ -97,6 +96,12 @@ ma_err_t EngineCVI::init(void* pool, size_t size) {
 ma_err_t EngineCVI::loadModel(const char* model_path) {
     ma_err_t ret = MA_OK;
     CVI_RC _ret  = CVI_RC_SUCCESS;
+
+    if (model != nullptr) {
+        CVI_NN_CleanupModel(model);
+        model = nullptr;
+    }
+
     _ret == CVI_NN_RegisterModel(model_path, &model);
 
     if (_ret != CVI_RC_SUCCESS) {
@@ -106,7 +111,6 @@ ma_err_t EngineCVI::loadModel(const char* model_path) {
     _ret = CVI_NN_GetInputOutputTensors(
         model, &input_tensors, &input_num, &output_tensors, &output_num);
 
-    printf("input_num: %d, output_num: %d\n", input_num, output_num);
 
     if (_ret != CVI_RC_SUCCESS) {
         return MA_EINVAL;
@@ -117,6 +121,11 @@ ma_err_t EngineCVI::loadModel(const char* model_path) {
 ma_err_t EngineCVI::loadModel(const void* model_data, size_t model_size) {
     ma_err_t ret = MA_OK;
     CVI_RC _ret  = CVI_RC_SUCCESS;
+
+    if (model != nullptr) {
+        CVI_NN_CleanupModel(model);
+        model = nullptr;
+    }
 
     _ret ==
         CVI_NN_RegisterModelFromBuffer(static_cast<const int8_t*>(model_data), model_size, &model);
@@ -133,7 +142,6 @@ ma_err_t EngineCVI::loadModel(const void* model_data, size_t model_size) {
     }
     return MA_OK;
 }
-
 
 ma_err_t EngineCVI::run() {
     MA_ASSERT(model != nullptr);

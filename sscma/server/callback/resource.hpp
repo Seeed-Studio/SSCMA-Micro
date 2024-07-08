@@ -36,75 +36,68 @@ public:
 
     ma_err_t init() {
 
-        Engine::findModels("/mnt/user/model", 0);
+#if MA_USE_FILESYSTEM
+        storage->get(MA_STORAGE_KEY_MODEL_DIR, model_path, MA_SSCMA_MODEL_DEFAULT_PATH);
+        Engine::findModels(model_path, 0);
+#endif
+        storage->get(MA_STORAGE_KEY_MQTT_HOST, mqtt_cfg.host, "");
 
-        std::forward_list<ma_model_t>& models = Engine::getModels();
+        storage->get(MA_STORAGE_KEY_MODEL_ID, cur_model_id, 0);
 
-        for (auto& model : models) {
-            MA_LOGI(TAG, "model name: %s", model.name);
-            MA_LOGI(TAG, "model type: %d", model.type);
-            MA_LOGI(TAG, "model addr: %s", model.addr);
-            MA_LOGI(TAG, "model size: %d", model.size);
-            MA_LOGI(TAG, "model id: %d", model.id);
-        }
+        if (mqtt_cfg.host[0] != '\0') {
 
-        storage->get(MA_STORAGE_KEY_MQTT_HOST, m_mqttConfig.host, "");
+            storage->get(MA_STORAGE_KEY_MQTT_PORT, mqtt_cfg.port, 1883);
+            storage->get(MA_STORAGE_KEY_MQTT_CLIENTID, mqtt_cfg.client_id, "");
+            storage->get(MA_STORAGE_KEY_MQTT_USER, mqtt_cfg.username, "");
+            storage->get(MA_STORAGE_KEY_MQTT_PWD, mqtt_cfg.password, "");
 
-        if (m_mqttConfig.host[0] != '\0') {
-
-            storage->get(MA_STORAGE_KEY_MQTT_PORT, m_mqttConfig.port, 1883);
-            storage->get(MA_STORAGE_KEY_MQTT_CLIENTID, m_mqttConfig.client_id, "");
-            storage->get(MA_STORAGE_KEY_MQTT_USER, m_mqttConfig.username, "");
-            storage->get(MA_STORAGE_KEY_MQTT_PWD, m_mqttConfig.password, "");
-
-            if (m_mqttConfig.client_id[0] == '\0') {
-                snprintf(m_mqttConfig.client_id,
+            if (mqtt_cfg.client_id[0] == '\0') {
+                snprintf(mqtt_cfg.client_id,
                          MA_MQTT_MAX_CLIENT_ID_LENGTH,
                          MA_MQTT_CLIENTID_FMT,
                          device->name().c_str(),
                          device->id().c_str());
-                storage->set(MA_STORAGE_KEY_MQTT_CLIENTID, m_mqttConfig.client_id);
+                storage->set(MA_STORAGE_KEY_MQTT_CLIENTID, mqtt_cfg.client_id);
             }
 
-            snprintf(m_mqttTopicConfig.pub_topic,
+            snprintf(mqtt_topic.pub_topic,
                      MA_MQTT_MAX_TOPIC_LENGTH,
                      MA_MQTT_TOPIC_FMT "/tx",
                      MA_AT_API_VERSION,
-                     m_mqttConfig.client_id);
-            snprintf(m_mqttTopicConfig.sub_topic,
+                     mqtt_cfg.client_id);
+            snprintf(mqtt_topic.sub_topic,
                      MA_MQTT_MAX_TOPIC_LENGTH,
                      MA_MQTT_TOPIC_FMT "/rx",
                      MA_AT_API_VERSION,
-                     m_mqttConfig.client_id);
+                     mqtt_cfg.client_id);
 
 #if MA_USE_TRANSPORT_MQTT
-            MQTT* transport = new MQTT(
-                m_mqttConfig.client_id, m_mqttTopicConfig.pub_topic, m_mqttTopicConfig.sub_topic);
+            MQTT* transport =
+                new MQTT(mqtt_cfg.client_id, mqtt_topic.pub_topic, mqtt_topic.sub_topic);
             MA_LOGD(TAG, "MQTT Transport: %p", transport);
-            transport->connect(
-                m_mqttConfig.host, m_mqttConfig.port, m_mqttConfig.username, m_mqttConfig.password);
+            transport->connect(mqtt_cfg.host, mqtt_cfg.port, mqtt_cfg.username, mqtt_cfg.password);
 
             transports.push_front(transport);
 #endif
         }
 
 
-        MA_LOGD(TAG, "MQTT Host: %s:%d", m_mqttConfig.host, m_mqttConfig.port);
-        MA_LOGD(TAG, "MQTT Client ID: %s", m_mqttConfig.client_id);
-        MA_LOGD(TAG, "MQTT User: %s", m_mqttConfig.username);
-        MA_LOGD(TAG, "MQTT Pwd: %s", m_mqttConfig.password);
-        MA_LOGD(TAG, "MQTT Pub Topic: %s", m_mqttTopicConfig.pub_topic);
-        MA_LOGD(TAG, "MQTT Sub Topic: %s", m_mqttTopicConfig.sub_topic);
+        MA_LOGD(TAG, "MQTT Host: %s:%d", mqtt_cfg.host, mqtt_cfg.port);
+        MA_LOGD(TAG, "MQTT Client ID: %s", mqtt_cfg.client_id);
+        MA_LOGD(TAG, "MQTT User: %s", mqtt_cfg.username);
+        MA_LOGD(TAG, "MQTT Pwd: %s", mqtt_cfg.password);
+        MA_LOGD(TAG, "MQTT Pub Topic: %s", mqtt_topic.pub_topic);
+        MA_LOGD(TAG, "MQTT Sub Topic: %s", mqtt_topic.sub_topic);
 
-        storage->get(MA_STORAGE_KEY_WIFI_SSID, m_wifiConfig.ssid, "");
-        storage->get(MA_STORAGE_KEY_WIFI_BSSID, m_wifiConfig.bssid, "");
-        storage->get(MA_STORAGE_KEY_WIFI_PWD, m_wifiConfig.password, "");
-        storage->get(MA_STORAGE_KEY_WIFI_SECURITY, m_wifiConfig.security, SEC_AUTO);
+        storage->get(MA_STORAGE_KEY_WIFI_SSID, wifi_cfg.ssid, "");
+        storage->get(MA_STORAGE_KEY_WIFI_BSSID, wifi_cfg.bssid, "");
+        storage->get(MA_STORAGE_KEY_WIFI_PWD, wifi_cfg.password, "");
+        storage->get(MA_STORAGE_KEY_WIFI_SECURITY, wifi_cfg.security, SEC_AUTO);
 
-        MA_LOGD(TAG, "Wifi SSID: %s", m_wifiConfig.ssid);
-        MA_LOGD(TAG, "Wifi BSSID: %s", m_wifiConfig.bssid);
-        MA_LOGD(TAG, "Wifi Pwd: %s", m_wifiConfig.password);
-        MA_LOGD(TAG, "Wifi Security: %d", m_wifiConfig.security);
+        MA_LOGD(TAG, "Wifi SSID: %s", wifi_cfg.ssid);
+        MA_LOGD(TAG, "Wifi BSSID: %s", wifi_cfg.bssid);
+        MA_LOGD(TAG, "Wifi Pwd: %s", wifi_cfg.password);
+        MA_LOGD(TAG, "Wifi Security: %d", wifi_cfg.security);
 
         return MA_OK;
     }
@@ -116,9 +109,14 @@ public:
     Engine* engine;
     std::forward_list<Transport*> transports;
 
+#if MA_USE_FILESYSTEM
+    char model_path[MA_MODEL_MAX_PATH_LENGTH];
+#endif
+
 
     // internal configs that stored in flash
     int32_t boot_count;
+    uint8_t cur_model_id;
 
     // internal states
     std::atomic<bool> is_ready;
@@ -129,9 +127,9 @@ public:
     std::atomic<std::size_t> current_task_id;
 
     // configs
-    ma_wifi_config_t m_wifiConfig;
-    ma_mqtt_config_t m_mqttConfig;
-    ma_mqtt_topic_config_t m_mqttTopicConfig;
+    ma_wifi_config_t wifi_cfg;
+    ma_mqtt_config_t mqtt_cfg;
+    ma_mqtt_topic_config_t mqtt_topic;
 };
 
 static staticResource* static_resource{staticResource::getInstance()};

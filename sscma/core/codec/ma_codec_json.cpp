@@ -252,6 +252,30 @@ ma_err_t CodecJSON::write(const std::string& key, const std::string& value) {
                                                                                   : MA_FAILED;
 }
 
+ma_err_t CodecJSON::write(const std::string& key, ma_model_t value) {
+    if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
+        return MA_EEXIST;
+    }
+
+    cJSON *item = cJSON_AddObjectToObject(m_data, key.c_str());
+    if (item == nullptr) {
+        return MA_FAILED;
+    }
+
+    cJSON_AddItemToObject(item, "id", cJSON_CreateNumber(value.id));
+    cJSON_AddItemToObject(item, "type", cJSON_CreateNumber(value.type));
+    cJSON_AddItemToObject(item, "size", cJSON_CreateNumber(value.size));
+#if MA_USE_FILESYSTEM
+    cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<char*>(value.name)));
+    cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<char*>(value.addr)));
+#else
+    cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(static_cast<int>(value.name)));
+    cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(static_cast<int>(value.addr)));
+#endif
+
+    return MA_OK;
+}
+
 ma_err_t CodecJSON::write(ma_perf_t value) {
     if (cJSON_GetObjectItem(m_data, "perf") != nullptr) {
         return MA_EEXIST;
@@ -327,6 +351,33 @@ ma_err_t CodecJSON::write(std::vector<ma_bbox_t>& value) {
         cJSON_AddItemToArray(item, cJSON_CreateNumber(it->h));
         cJSON_AddItemToArray(item, cJSON_CreateNumber(it->score));
         cJSON_AddItemToArray(item, cJSON_CreateNumber(it->target));
+    }
+    return MA_OK;
+}
+
+ma_err_t CodecJSON::write(std::vector<ma_model_t>& value) {
+    cJSON* array = cJSON_CreateArray();
+    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
+    if (array == nullptr) {
+        return MA_FAILED;
+    }
+    for (auto it = value.begin(); it != value.end(); it++) {
+        cJSON* item = cJSON_CreateObject();
+        if (item == nullptr) {
+            return MA_FAILED;
+        }
+        cJSON_AddItemToObject(item, "id", cJSON_CreateNumber(it->id));
+        cJSON_AddItemToObject(item, "type", cJSON_CreateNumber(it->type));
+        cJSON_AddItemToObject(item, "size", cJSON_CreateNumber(it->size));
+#if MA_USE_FILESYSTEM
+        cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<char*>(it->name)));
+        cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<char*>(it->addr)));
+#else
+        cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(static_cast<int>(it->name)));
+        cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(static_cast<int>(it->addr)));
+#endif
+
+        cJSON_AddItemToArray(array, item);
     }
     return MA_OK;
 }
