@@ -117,15 +117,6 @@ typedef struct {
     ma_pixel_rotate_t rotate;
 } ma_img_t;
 
-
-typedef enum {
-    MA_MODEL_DETECTOR       = 0,
-    MA_MODEL_CLASSIFIER     = 1,
-    MA_MODEL_SEGMENTER      = 2,
-    MA_MODEL_POSE_ESTIMATOR = 3,
-    MA_MODEL_POINTCLOUD     = 4,
-} ma_model_type_t;
-
 typedef struct {
     int64_t preprocess;
     int64_t inference;
@@ -184,6 +175,27 @@ typedef enum {
 } ma_reply_t;
 
 typedef enum {
+    MA_MODEL_TYPE_UNDEFINED   = 0u,
+    MA_MODEL_TYPE_FOMO        = 1u,
+    MA_MODEL_TYPE_PFLD        = 2u,
+    MA_MODEL_TYPE_YOLOV5      = 3u,
+    MA_MODEL_TYPE_IMCLS       = 4u,
+    MA_MODEL_TYPE_YOLOV8_POSE = 5u,
+    MA_MODEL_TYPE_YOLOV8      = 6u,
+    MA_MODEL_TYPE_NVIDIA_DET  = 7u,
+    MA_MODEL_TYPE_YOLO_WORLD  = 8u,
+} ma_model_type_t;
+
+
+typedef struct {
+    uint8_t id;
+    uint32_t size;
+    void* name;
+    void* addr;
+    ma_model_type_t type;
+} ma_model_t;
+
+typedef enum {
     SEC_AUTO      = 0,
     SEC_NONE      = 1,
     SEC_WEP       = 2,
@@ -215,7 +227,6 @@ typedef struct {
     char password[MA_MQTT_MAX_PASSWORD_LENGTH];
     int8_t use_ssl;
 } ma_mqtt_config_t;
-
 
 typedef struct {
     char pub_topic[MA_MQTT_MAX_TOPIC_LENGTH];

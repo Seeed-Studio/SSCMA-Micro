@@ -41,9 +41,18 @@ public:
         return m_storage;
     }
 
+    std::forward_list<Camera*>& getCameras() {
+        return m_cameras;
+    }
+
+    std::forward_list<ma_model_t>& getModels() {
+        return m_models;
+    }
+
 protected:
     std::forward_list<Transport*> m_transports;
     std::forward_list<Camera*> m_cameras;
+    std::forward_list<ma_model_t> m_models;
     Storage* m_storage;
     std::string m_name;
     std::string m_id;

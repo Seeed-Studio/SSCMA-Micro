@@ -6,19 +6,29 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::classifier";
 
-Classifier::Classifier(Engine* p_engine) : Model(p_engine, "classifier") {
+Classifier::Classifier(Engine* p_engine) : Model(p_engine, "IMCLS", MA_MODEL_TYPE_IMCLS) {
     input_           = p_engine_->getInput(0);
     output_          = p_engine_->getOutput(0);
     threshold_score_ = 0.5f;
-    img_.width       = input_.shape.dims[1];
-    img_.height      = input_.shape.dims[2];
-    img_.size        = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
-    img_.data        = input_.data.u8;
-    if (input_.shape.dims[3] == 3) {
-        img_.format = MA_PIXEL_FORMAT_RGB888;
-    } else if (input_.shape.dims[3] == 1) {
-        img_.format = MA_PIXEL_FORMAT_GRAYSCALE;
+    is_nhwc_         = input_.shape.dims[3] == 3 || input_.shape.dims[3] == 1;
+
+    if (is_nhwc_) {
+        img_.width  = input_.shape.dims[1];
+        img_.height = input_.shape.dims[2];
+        img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
+        img_.format =
+            input_.shape.dims[3] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
     }
+
+    else {
+        img_.width  = input_.shape.dims[3];
+        img_.height = input_.shape.dims[2];
+        img_.size   = input_.shape.dims[3] * input_.shape.dims[2] * input_.shape.dims[1];
+        img_.format =
+            input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
+    }
+
+    img_.data = input_.data.u8;
 };
 
 Classifier::~Classifier() {}
@@ -26,33 +36,36 @@ Classifier::~Classifier() {}
 bool Classifier::isValid(Engine* engine) {
 
     const auto& input_shape = engine->getInputShape(0);
+    auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
 
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
-    if (input_shape.size != 4 ||      // N, H, W, C
-        input_shape.dims[0] != 1 ||   // N = 1
-        input_shape.dims[1] < 16 ||   // H >= 16
-        input_shape.dims[2] < 16 ||   // W >= 16
-        (input_shape.dims[3] != 3 &&  // C = RGB or Gray
-         input_shape.dims[3] != 1))
-        return false;
-#endif
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
-    if (input_shape.size != 4 ||      // N, C, H, W
-        input_shape.dims[0] != 1 ||   // N = 1
-        input_shape.dims[2] < 16 ||   // H >= 16
-        input_shape.dims[3] < 16 ||   // W >= 16
-        (input_shape.dims[1] != 3 &&  // C = RGB or Gray
-         input_shape.dims[1] != 1))
-        return false;
-#endif
+    if (is_nhwc_) {
+        if (input_shape.size != 4 ||      // N, H, W, C
+            input_shape.dims[0] != 1 ||   // N = 1
+            input_shape.dims[1] < 16 ||   // H >= 16
+            input_shape.dims[2] < 16 ||   // W >= 16
+            (input_shape.dims[3] != 3 &&  // C = RGB or Gray
+             input_shape.dims[3] != 1))
+            return false;
+    } else {
+
+        if (input_shape.size != 4 ||      // N, C, H, W
+            input_shape.dims[0] != 1 ||   // N = 1
+            input_shape.dims[2] < 16 ||   // H >= 16
+            input_shape.dims[3] < 16 ||   // W >= 16
+            (input_shape.dims[1] != 3 &&  // C = RGB or Gray
+             input_shape.dims[1] != 1))
+            return false;
+    }
 
 
     const auto& output_shape{engine->getOutputShape(0)};
+
     if (output_shape.size != 2 ||     // N, C
         output_shape.dims[0] != 1 ||  // N = 1
         output_shape.dims[1] < 2      // C >= 2
-    )
+    ) {
         return false;
+    }
 
     return true;
 }

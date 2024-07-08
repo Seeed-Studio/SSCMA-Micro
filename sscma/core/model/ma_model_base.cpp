@@ -1,10 +1,11 @@
 #include "core/model/ma_model_base.h"
 
-namespace ma {
+namespace ma::model {
 
 constexpr char TAG[] = "ma::model";
 
-Model::Model(Engine* engine, const char* name) : p_engine_(engine), p_name_(name) {
+Model::Model(Engine* engine, const char* name, ma_model_type_t type)
+    : p_engine_(engine), p_name_(name), m_type_(type) {
     p_user_ctx_            = nullptr;
     p_preprocess_done_     = nullptr;
     p_postprocess_done_    = nullptr;

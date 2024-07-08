@@ -30,7 +30,6 @@ DevicePosix::DevicePosix() {
 DevicePosix::~DevicePosix() {}
 
 ma_err_t DevicePosix::init() {
-
     return MA_OK;
 }
 

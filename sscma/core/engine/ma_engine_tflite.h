@@ -17,6 +17,11 @@
 
 #include "ma_engine_base.h"
 
+#if MA_USE_FILESYSTEM_POSIX
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
+
 namespace tflite {
 
 enum OpsCount : unsigned int {

@@ -18,7 +18,9 @@ ATService::ATService(const std::string& name,
                      const std::string& desc,
                      const std::string& args,
                      ATServiceCallback cb)
-    : name(name), desc(desc), args(args), cb(cb) {}
+    : name(name), desc(desc), args(args), cb(cb) {
+    argc = std::count(args.begin(), args.end(), ',') + 1;
+}
 
 
 ma_err_t ATServer::addService(ATService& service) {
@@ -162,6 +164,18 @@ ma_err_t ATServer::init() {
             return MA_OK;
         });
 
+    this->addService(
+        "LED",
+        "Set LED status",
+        "ENABLE/DISABLE",
+        [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+            static_resource->executor->add_task(
+                [cmd = std::move(args[0]), sta = std::atoi(args[1].c_str()), &transport, &codec](
+                    const std::atomic<bool>&) { task_status(cmd, sta, transport, codec); });
+
+            return MA_OK;
+        });
+
 
     return err;
 }
@@ -242,7 +256,8 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     size_t index = 0;
     size_t size  = args.size();
 
-    while (index < size) {  // while not reach end of args and not enough args
+    while (index < size &&
+           argv.size() < it->argc + 1u) {  // while not reach end of args and not enough args
         char c = args.at(index);
         if (c == '\'' || c == '"') [[unlikely]] {  // if current char is a quote
             stk.push(c);                           // push the quote to stack
@@ -269,6 +284,13 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
             ++index;  // if current char is not a quote or a digit, skip it
     }
     argv.shrink_to_fit();
+
+    if (argv.size() < it->args.size()) [[unlikely]] {
+        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
+        m_codec.end();
+        transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
+        return MA_EINVAL;
+    }
 
     ret = it->cb(std::move(argv), transport, m_codec);
 

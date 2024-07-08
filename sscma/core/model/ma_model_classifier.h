@@ -14,6 +14,7 @@ protected:
     ma_tensor_t input_;
     ma_tensor_t output_;
     ma_img_t img_;
+    bool is_nhwc_;
     const ma_img_t* input_img_;
     double threshold_score_;
     std::vector<ma_class_t> results_;

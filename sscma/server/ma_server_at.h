@@ -34,6 +34,7 @@ struct ATService {
     std::string name;
     std::string desc;
     std::string args;
+    uint8_t argc;
     ATServiceCallback cb;
 
     friend class ATServer;

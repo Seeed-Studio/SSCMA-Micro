@@ -16,13 +16,14 @@ protected:
     const ma_img_t* input_img_;
     double threshold_nms_;
     double threshold_score_;
+    bool is_nhwc_;
     std::vector<ma_bbox_t> results_;
 
 protected:
     ma_err_t preprocess() override;
 
 public:
-    Detector(Engine* engine, const char* name);
+    Detector(Engine* engine, const char* name, ma_model_type_t type);
     virtual ~Detector();
     const std::vector<ma_bbox_t>& getResults();
     ma_err_t run(const ma_img_t* img);

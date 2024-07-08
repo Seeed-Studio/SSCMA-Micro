@@ -2,6 +2,7 @@
 #define _MA_ENGINE_BASE_H_
 
 #include <cstdint>
+#include <forward_list>
 
 #include "core/ma_common.h"
 
@@ -10,7 +11,7 @@
 #include <iostream>
 #endif
 
-namespace ma {
+namespace ma::engine {
 
 class Engine {
 public:
@@ -48,8 +49,15 @@ public:
     // virtual ma_quant_param_t getInputQuantParam(const char* name)  = 0;
     // virtual ma_quant_param_t getOutputQuantParam(const char* name) = 0;
 #endif
+
+    static std::forward_list<ma_model_t>& getModels() {
+        return m_models;
+    }
+
+    static std::forward_list<ma_model_t>& findModels(const char* address, size_t size = 0);
+    static std::forward_list<ma_model_t> m_models;
 };
 
-}  // namespace ma
+}  // namespace ma::engine
 
 #endif

@@ -10,7 +10,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::yolo";
 
-YoloV5::YoloV5(Engine* p_engine_) : Detector(p_engine_, "yolov5") {
+YoloV5::YoloV5(Engine* p_engine_) : Detector(p_engine_, "yolov5", MA_MODEL_TYPE_YOLOV5) {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->getOutput(0);
@@ -24,51 +24,54 @@ YoloV5::~YoloV5() {}
 
 bool YoloV5::isValid(Engine* engine) {
     const auto& input_shape{engine->getInputShape(0)};
+    auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
+    auto ibox_len{0};
+    if (is_nhwc) {
+        if (input_shape.size != 4 ||                      // N, H, W, C
+            input_shape.dims[0] != 1 ||                   // H = 1
+            input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
+            input_shape.dims[1] < 32 ||                   // W, H >= 32
+            input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
+            (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
+             input_shape.dims[3] != 1))
+            return false;
 
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
-    if (input_shape.size != 4 ||                      // N, H, W, C
-        input_shape.dims[0] != 1 ||                   // H = 1
-        input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
-        input_shape.dims[1] < 32 ||                   // W, H >= 32
-        input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
-        (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
-         input_shape.dims[3] != 1))
-        return false;
+        ibox_len = {[&]() {
+            auto r{static_cast<uint16_t>(input_shape.dims[1])};
+            auto s{r >> 5};  // r / 32
+            auto m{r >> 4};  // r / 16
+            auto l{r >> 3};  // r / 8
+            return (s * s + m * m + l * l) * input_shape.dims[3];
+        }()};
 
-    auto ibox_len{[&]() {
-        auto r{static_cast<uint16_t>(input_shape.dims[1])};
-        auto s{r >> 5};  // r / 32
-        auto m{r >> 4};  // r / 16
-        auto l{r >> 3};  // r / 8
-        return (s * s + m * m + l * l) * input_shape.dims[3];
-    }()};
-#endif
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
-    if (input_shape.size != 4 ||                      // N, C, H, W
-        input_shape.dims[0] != 1 ||                   // H = 1
-        input_shape.dims[2] ^ input_shape.dims[3] ||  // W = H
-        input_shape.dims[2] < 32 ||                   // W, H >= 32
-        input_shape.dims[2] % 32 ||                   // W or H is multiply of 32
-        (input_shape.dims[1] != 3 &&                  // C = RGB or Gray
-         input_shape.dims[1] != 1))
-        return false;
+    } else {
+        if (input_shape.size != 4 ||                      // N, C, H, W
+            input_shape.dims[0] != 1 ||                   // H = 1
+            input_shape.dims[2] ^ input_shape.dims[3] ||  // W = H
+            input_shape.dims[2] < 32 ||                   // W, H >= 32
+            input_shape.dims[2] % 32 ||                   // W or H is multiply of 32
+            (input_shape.dims[1] != 3 &&                  // C = RGB or Gray
+             input_shape.dims[1] != 1))
+            return false;
 
-    auto ibox_len{[&]() {
-        auto r{static_cast<uint16_t>(input_shape.dims[2])};
-        auto s{r >> 5};  // r / 32
-        auto m{r >> 4};  // r / 16
-        auto l{r >> 3};  // r / 8
-        return (s * s + m * m + l * l) * input_shape.dims[1];
-    }()};
-#endif
+        ibox_len = {[&]() {
+            auto r{static_cast<uint16_t>(input_shape.dims[2])};
+            auto s{r >> 5};  // r / 32
+            auto m{r >> 4};  // r / 16
+            auto l{r >> 3};  // r / 8
+            return (s * s + m * m + l * l) * input_shape.dims[1];
+        }()};
+    }
 
     const auto& output_shape{engine->getOutputShape(0)};
+
     if (output_shape.size != 3 ||            // B, IB, BC...
         output_shape.dims[0] != 1 ||         // B = 1
         output_shape.dims[1] != ibox_len ||  // IB is based on input shape
         output_shape.dims[2] < 6 ||          // 6 <= BC - 5[XYWHC] <= 80 (could be larger than 80)
-        output_shape.dims[2] > 85)
+        output_shape.dims[2] > 85) {
         return false;
+    }
 
     return true;
 }

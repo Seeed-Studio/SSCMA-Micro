@@ -8,6 +8,8 @@ using namespace ma;
 
 namespace ma::server::callback {
 
+using namespace ma::engine;
+
 constexpr char TAG[] = "ma::server::callback::resource";
 
 class staticResource final {
@@ -33,6 +35,18 @@ public:
     }
 
     ma_err_t init() {
+
+        Engine::findModels("/mnt/user/model", 0);
+
+        std::forward_list<ma_model_t>& models = Engine::getModels();
+
+        for (auto& model : models) {
+            MA_LOGI(TAG, "model name: %s", model.name);
+            MA_LOGI(TAG, "model type: %d", model.type);
+            MA_LOGI(TAG, "model addr: %s", model.addr);
+            MA_LOGI(TAG, "model size: %d", model.size);
+            MA_LOGI(TAG, "model id: %d", model.id);
+        }
 
         storage->get(MA_STORAGE_KEY_MQTT_HOST, m_mqttConfig.host, "");
 
@@ -110,7 +124,7 @@ public:
     std::atomic<bool> is_ready;
     std::atomic<bool> is_sample;
     std::atomic<bool> is_invoke;
-    
+
     // internal states
     std::atomic<std::size_t> current_task_id;
 

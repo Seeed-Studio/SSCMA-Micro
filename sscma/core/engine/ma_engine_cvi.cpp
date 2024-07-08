@@ -2,11 +2,65 @@
 
 #if MA_USE_ENGINE_CVI
 
+#include <dirent.h>
+
 namespace ma::engine {
 
 constexpr char TAG[] = "ma::engine::cvinn";
 
-const ma_tensor_type_t mapped_tensor_types[] = {
+std::forward_list<ma_model_t> Engine::m_models;
+
+std::forward_list<ma_model_t>& Engine::findModels(const char* address, size_t size) {
+
+    (void)size;
+
+    for (auto& model : m_models) {
+        if (model.addr != nullptr) {
+            ma_free(model.addr);
+        }
+
+        if (model.name != nullptr) {
+            ma_free(model.name);
+        }
+    }
+
+    m_models.clear();
+    // search *.cvimodel in path
+    DIR* dir;
+    struct dirent* ent;
+    if ((dir = opendir(address)) != nullptr) {
+        while ((ent = readdir(dir)) != nullptr) {
+            if (ent->d_type == DT_REG && strstr(ent->d_name, ".cvimodel") != nullptr) {
+                std::string model_path = address;
+                model_path += "/";
+                model_path += ent->d_name;
+                ma_model_t model;
+                model.id   = std::distance(m_models.begin(), m_models.end());
+                model.type = MA_MODEL_TYPE_UNDEFINED;
+                std::ifstream ifs(model_path.c_str(), std::ifstream::binary | std::ifstream::ate);
+                if (!ifs.is_open()) {
+                    MA_LOGW(TAG, "model %s corrupt.", model_path.c_str());
+                    continue;
+                }
+                model.size = ifs.tellg();
+                model.name = ma_malloc(strlen(ent->d_name) + 1);
+                strcpy(static_cast<char*>(model.name), ent->d_name);
+                model.addr = ma_malloc(strlen(model_path.c_str()) + 1);
+                strcpy(static_cast<char*>(model.addr), model_path.c_str());
+                m_models.emplace_front(model);
+                ifs.close();
+            }
+        }
+        closedir(dir);
+    }
+
+    m_models.sort([](const ma_model_t& a, const ma_model_t& b) { return a.id < b.id; });
+
+    return m_models;
+}
+
+
+static const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_F32,
     MA_TENSOR_TYPE_S32,
     MA_TENSOR_TYPE_U32,
@@ -212,6 +266,6 @@ int32_t EngineCVI::getOutputNum(const char* name) {
 }
 
 
-}  // namespace ma
+}  // namespace ma::engine
 
 #endif

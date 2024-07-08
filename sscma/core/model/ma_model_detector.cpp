@@ -4,26 +4,30 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::detecor";
 
-Detector::Detector(Engine* p_engine, const char* name) : Model(p_engine, name) {
+Detector::Detector(Engine* p_engine, const char* name, ma_model_type_t type)
+    : Model(p_engine, name, type) {
     input_           = p_engine_->getInput(0);
     threshold_nms_   = 0.45;
     threshold_score_ = 0.25;
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NHWC
-    img_.height = input_.shape.dims[1];
-    img_.width  = input_.shape.dims[2];
-    img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
-#endif
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
-    img_.height = input_.shape.dims[2];
-    img_.width  = input_.shape.dims[3];
-    img_.size   = input_.shape.dims[3] * input_.shape.dims[2] * input_.shape.dims[1];
-#endif
-    img_.data = input_.data.u8;
-    if (input_.shape.dims[3] == 3) {
-        img_.format = MA_PIXEL_FORMAT_RGB888;
-    } else if (input_.shape.dims[3] == 1) {
-        img_.format = MA_PIXEL_FORMAT_GRAYSCALE;
+
+    is_nhwc_ = input_.shape.dims[3] == 3 || input_.shape.dims[3] == 1;
+
+    if (is_nhwc_) {
+        img_.height = input_.shape.dims[1];
+        img_.width  = input_.shape.dims[2];
+        img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
+        img_.format =
+            input_.shape.dims[3] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
+
+    } else {
+        img_.height = input_.shape.dims[2];
+        img_.width  = input_.shape.dims[3];
+        img_.size   = input_.shape.dims[3] * input_.shape.dims[2] * input_.shape.dims[1];
+        img_.format =
+            input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
     }
+
+    img_.data = input_.data.u8;
 };
 
 ma_err_t Detector::preprocess() {
@@ -40,9 +44,8 @@ ma_err_t Detector::preprocess() {
         }
     }
 
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
     // TODO: use opencv
-    if (input_.shape.dims[1] == 3) {
+    if (!is_nhwc_) {
         char* r_channel = new char[img_.width * img_.height];
         char* g_channel = new char[img_.width * img_.height];
         char* b_channel = new char[img_.width * img_.height];
@@ -58,7 +61,7 @@ ma_err_t Detector::preprocess() {
         delete[] g_channel;
         delete[] b_channel;
     }
-#endif
+
     return ret;
 }
 
@@ -117,4 +120,4 @@ ma_err_t Detector::getConfig(ma_model_cfg_opt_t opt, ...) {
 
 Detector::~Detector() {}
 
-}  // namespace ma
+}  // namespace ma::model
