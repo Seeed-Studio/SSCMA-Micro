@@ -35,12 +35,12 @@ ma_err_t ATServer::addService(ATService& service) {
     return MA_OK;
 }
 
-ATServer::ATServer(Codec* codec) : m_codec(*codec) {
+ATServer::ATServer(Encoder* codec) : m_codec(*codec) {
     m_thread = new Thread("ATServer", ATServer::threadEntryStub);
     MA_ASSERT(m_thread);
 }
 
-ATServer::ATServer(Codec& codec) : m_codec(codec) {
+ATServer::ATServer(Encoder& codec) : m_codec(codec) {
 
     m_thread = new Thread("ATServer", ATServer::threadEntryStub);
     MA_ASSERT(m_thread);
@@ -80,7 +80,7 @@ ma_err_t ATServer::init() {
     this->addService("ID?",
                      "Get device ID",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -92,7 +92,7 @@ ma_err_t ATServer::init() {
     this->addService("NAME?",
                      "Get device name",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -104,7 +104,7 @@ ma_err_t ATServer::init() {
     this->addService("STAT?",
                      "Get device status",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -116,7 +116,7 @@ ma_err_t ATServer::init() {
     this->addService("VER?",
                      "Get device version",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -128,7 +128,7 @@ ma_err_t ATServer::init() {
     this->addService("RST",
                      "Reset device",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task(
                              [cmd = std::move(args[0]), &transport, &codec](
                                  const std::atomic<bool>&) { ma_reset(); });
@@ -139,7 +139,7 @@ ma_err_t ATServer::init() {
         "BREAK",
         "Stop all running tasks",
         "",
-        [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+        [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
             if (static_resource->is_ready.load()) [[likely]] {
                 static_resource->executor->add_task(
                     [cmd = std::move(args[0]), &transport, &codec](const std::atomic<bool>&) {
@@ -154,9 +154,9 @@ ma_err_t ATServer::init() {
         "YIELD",
         "Yield running tasks for a period time",
         "TIME_S",
-        [](std::vector<std::string> args, Transport& Transport, Codec& Codec) {
+        [](std::vector<std::string> args, Transport& Transport, Encoder& Encoder) {
             static_resource->executor->add_task(
-                [cmd = std::move(args[0]), period = std::atoi(args[1].c_str()), &Transport, &Codec](
+                [cmd = std::move(args[0]), period = std::atoi(args[1].c_str()), &Transport, &Encoder](
                     const std::atomic<bool>& stop_token) mutable {
                     while (stop_token.load(std::memory_order_seq_cst) && period > 0) {
                         Thread::yield();
@@ -170,7 +170,7 @@ ma_err_t ATServer::init() {
         "LED",
         "Set LED status",
         "ENABLE/DISABLE",
-        [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+        [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
             static_resource->executor->add_task(
                 [cmd = std::move(args[0]), sta = std::atoi(args[1].c_str()), &transport, &codec](
                     const std::atomic<bool>&) { task_status(cmd, sta, transport, codec); });
@@ -181,7 +181,7 @@ ma_err_t ATServer::init() {
     this->addService("MODELS?",
                      "Get available models",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -193,7 +193,7 @@ ma_err_t ATServer::init() {
     this->addService("MODEL?",
                      "Get current model",
                      "",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd = std::move(args[0]),
                                                               &transport,
                                                               &codec](const std::atomic<bool>&) {
@@ -205,7 +205,7 @@ ma_err_t ATServer::init() {
     this->addService("MODEL",
                      "Set current model",
                      "MODEL_ID",
-                     [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+                     [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
                          static_resource->executor->add_task([cmd      = std::move(args[0]),
                                                               model_id = std::atoi(args[1].c_str()),
                                                               &transport,
@@ -262,7 +262,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
 
     // check if name is valid (starts with "AT+")
     if (name.rfind("AT+", 0) != 0) {
-        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Uknown command: " + name);
+        m_codec.begin(MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Uknown command: " + name);
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
         return MA_EINVAL;
@@ -282,7 +282,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     });
 
     if (it == m_services.end()) [[unlikely]] {
-        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Uknown command: " + name);
+        m_codec.begin(MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Uknown command: " + name);
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
         return MA_EINVAL;
@@ -325,7 +325,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     argv.shrink_to_fit();
 
     if (argv.size() < it->argc) [[unlikely]] {
-        m_codec.begin(MA_REPLY_EVENT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
+        m_codec.begin(MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
         m_codec.end();
         transport.send(reinterpret_cast<const char*>(m_codec.data()), m_codec.size());
         return MA_EINVAL;

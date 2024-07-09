@@ -23,7 +23,7 @@ namespace ma {
 
 class ATServer;
 
-typedef std::function<ma_err_t(std::vector<std::string>, Transport&, Codec&)> ATServiceCallback;
+typedef std::function<ma_err_t(std::vector<std::string>, Transport&, Encoder&)> ATServiceCallback;
 
 struct ATService {
     ATService(const std::string& name,
@@ -42,8 +42,8 @@ struct ATService {
 
 class ATServer {
 public:
-    ATServer(Codec& codec);
-    ATServer(Codec* codec);
+    ATServer(Encoder& codec);
+    ATServer(Encoder* codec);
     ~ATServer() = default;
 
     ma_err_t init();
@@ -67,7 +67,7 @@ protected:
 private:
     static void threadEntryStub(void* arg);
     Thread* m_thread;
-    Codec& m_codec;
+    Encoder& m_codec;
     std::vector<ATService> m_services;
 };
 

@@ -10,21 +10,21 @@
 
 namespace ma {
 
-class CodecJSON final : public Codec {
+class EncoderJSON final : public Encoder {
 
 public:
-    CodecJSON();
-    ~CodecJSON();
+    EncoderJSON();
+    ~EncoderJSON();
 
     operator bool() const override;
 
     ma_err_t begin() override;
-    ma_err_t begin(ma_reply_t reply, ma_err_t code, const std::string& name) override;
-    ma_err_t begin(ma_reply_t reply,
+    ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name) override;
+    ma_err_t begin(ma_msg_type_t type,
                    ma_err_t code,
                    const std::string& name,
                    const std::string& data) override;
-    ma_err_t begin(ma_reply_t reply,
+    ma_err_t begin(ma_msg_type_t type,
                    ma_err_t code,
                    const std::string& name,
                    uint64_t data) override;
@@ -61,6 +61,50 @@ private:
     Mutex m_mutex;
     mutable std::string m_string;
 };
+
+class DecoderJSON final : public Decoder {
+
+public:
+    DecoderJSON();
+    ~DecoderJSON();
+
+    operator bool() const override;
+
+    ma_err_t begin(const void* data, size_t size) override;
+    ma_err_t begin(const std::string& str) override;
+    ma_err_t end() override;
+
+    ma_msg_type_t type() const override;
+    ma_err_t code() const override;
+    std::string name() const override;
+
+    ma_err_t read(const std::string& key, int8_t& value) const override;
+    ma_err_t read(const std::string& key, int16_t& value) const override;
+    ma_err_t read(const std::string& key, int32_t& value) const override;
+    ma_err_t read(const std::string& key, int64_t& value) const override;
+    ma_err_t read(const std::string& key, uint8_t& value) const override;
+    ma_err_t read(const std::string& key, uint16_t& value) const override;
+    ma_err_t read(const std::string& key, uint32_t& value) const override;
+    ma_err_t read(const std::string& key, uint64_t& value) const override;
+    ma_err_t read(const std::string& key, float& value) const override;
+    ma_err_t read(const std::string& key, double& value) const override;
+    ma_err_t read(const std::string& key, std::string& value) const override;
+    ma_err_t read(ma_perf_t& value) override;
+    ma_err_t read(std::vector<ma_class_t>& value) override;
+    ma_err_t read(std::vector<ma_point_t>& value) override;
+    ma_err_t read(std::vector<ma_bbox_t>& value) override;
+
+
+private:
+    std::string m_string;
+    cJSON* m_root;
+    cJSON* m_data;
+    ma_msg_type_t m_type;
+    ma_err_t m_code;
+    std::string m_name;
+    Mutex m_mutex;
+};
+
 
 }  // namespace ma
 

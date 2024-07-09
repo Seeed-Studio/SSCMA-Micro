@@ -11,16 +11,16 @@ namespace ma::server::callback {
 
 using namespace ma::model;
 
-void get_available_models(const std::string& cmd, Transport& transport, Codec& codec) {
+void get_available_models(const std::string& cmd, Transport& transport, Encoder& codec) {
     auto& models = Engine::getModels();
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd);
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     codec.write(models);
     codec.end();
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 void set_model(const std::string& cmd,
                Transport& transport,
-               Codec& codec,
+               Encoder& codec,
                uint8_t model_id,
                bool called_by_event = false) {
 
@@ -50,7 +50,7 @@ void set_model(const std::string& cmd,
     }
 
 exit:
-    codec.begin(MA_REPLY_RESPONSE, ret, cmd);
+    codec.begin(MA_MSG_TYPE_RESP, ret, cmd);
     if (static_resource->cur_model_id) {
         codec.write("model", models[static_resource->cur_model_id]);
     }
@@ -58,11 +58,11 @@ exit:
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 
-void get_model_info(const std::string& cmd, Transport& transport, Codec& codec) {
+void get_model_info(const std::string& cmd, Transport& transport, Encoder& codec) {
 
     auto& models = Engine::getModels();
 
-    codec.begin(MA_REPLY_RESPONSE, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
+    codec.begin(MA_MSG_TYPE_RESP, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
     if (static_resource->cur_model_id) {
         codec.write("model", models[static_resource->cur_model_id]);
     }

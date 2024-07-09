@@ -169,10 +169,10 @@ typedef enum {
 } ma_transport_cfg_opt_t;
 
 typedef enum {
-    MA_REPLY_RESPONSE = 0,
-    MA_REPLY_EVENT    = 1,
-    MA_REPLY_LOG      = 2,
-} ma_reply_t;
+    MA_MSG_TYPE_RESP = 0,
+    MA_MSG_TYPE_EVT  = 1,
+    MA_MSG_TYPE_LOG  = 2,
+} ma_msg_type_t;
 
 typedef enum {
     MA_MODEL_TYPE_UNDEFINED   = 0u,

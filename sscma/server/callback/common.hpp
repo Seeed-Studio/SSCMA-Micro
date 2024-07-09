@@ -12,20 +12,20 @@ namespace ma::server::callback {
 
 using namespace ma;
 
-void get_device_id(const std::string& cmd, Transport& transport, Codec& codec) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd, static_resource->device->id());
+void get_device_id(const std::string& cmd, Transport& transport, Encoder& codec) {
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd, static_resource->device->id());
     codec.end();
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 
-void get_device_name(const std::string& cmd, Transport& transport, Codec& codec) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd, static_resource->device->name());
+void get_device_name(const std::string& cmd, Transport& transport, Encoder& codec) {
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd, static_resource->device->name());
     codec.end();
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 
-void get_device_status(const std::string& cmd, Transport& transport, Codec& codec) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd);
+void get_device_status(const std::string& cmd, Transport& transport, Encoder& codec) {
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     codec.write("boot_count", static_resource->boot_count);
     codec.write("is_ready", static_resource->is_ready.load() ? 1 : 0);
     codec.end();
@@ -34,9 +34,9 @@ void get_device_status(const std::string& cmd, Transport& transport, Codec& code
 
 void get_version(const std::string& cmd,
                  Transport& transport,
-                 Codec& codec,
+                 Encoder& codec,
                  const std::string& version) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd);
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     codec.write("at_api", version);
     codec.write("software", MA_VERSION);
     codec.write("hardware", static_resource->device->version());
@@ -44,14 +44,14 @@ void get_version(const std::string& cmd,
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 
-void break_task(const std::string& cmd, Transport& transport, Codec& codec) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd, static_cast<uint64_t>(ma_get_time_ms()));
+void break_task(const std::string& cmd, Transport& transport, Encoder& codec) {
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd, static_cast<uint64_t>(ma_get_time_ms()));
     codec.end();
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }
 
-void task_status(const std::string& cmd, bool sta, Transport& transport, Codec& codec) {
-    codec.begin(MA_REPLY_RESPONSE, MA_OK, cmd, static_cast<uint64_t>(sta));
+void task_status(const std::string& cmd, bool sta, Transport& transport, Encoder& codec) {
+    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd, static_cast<uint64_t>(sta));
     codec.end();
     transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
 }

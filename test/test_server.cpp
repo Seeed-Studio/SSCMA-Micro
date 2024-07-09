@@ -9,7 +9,7 @@ namespace ma::server {
 
 TEST(Server, AT) {
     ma_err_t err     = MA_OK;
-    auto* codec      = new CodecJSON();
+    auto* codec      = new EncoderJSON();
     auto* server     = new ATServer(codec);
     auto* transport  = new Console();
     static int value = 0;
@@ -18,16 +18,16 @@ TEST(Server, AT) {
         "VALUE",
         "Set value",
         "<value>",
-        [](std::vector<std::string> args, Transport& transport, Codec& codec) {
+        [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
             if (args.size() != 2) {
-                codec.begin(MA_REPLY_EVENT, MA_EINVAL, args[0]);
+                codec.begin(MA_MSG_TYPE_EVT, MA_EINVAL, args[0]);
                 codec.write("value", value);
                 codec.end();
                 transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
                 return MA_OK;
             }
             value = std::stoi(args[1]);
-            codec.begin(MA_REPLY_RESPONSE, MA_OK, args[0]);
+            codec.begin(MA_MSG_TYPE_RESP, MA_OK, args[0]);
             codec.write("value", value);
             codec.end();
             transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
@@ -39,8 +39,8 @@ TEST(Server, AT) {
     err = server->addService("VALUE?",
                              "Get value",
                              "",
-                             [](std::vector<std::string> args, Transport& transport, Codec& codec) {
-                                 codec.begin(MA_REPLY_RESPONSE, MA_OK, args[0]);
+                             [](std::vector<std::string> args, Transport& transport, Encoder& codec) {
+                                 codec.begin(MA_MSG_TYPE_RESP, MA_OK, args[0]);
                                  codec.write("value", value);
                                  codec.end();
                                  transport.send(reinterpret_cast<const char*>(codec.data()),
