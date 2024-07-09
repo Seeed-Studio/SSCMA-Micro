@@ -50,7 +50,7 @@ Example;
 - Config operation: `AT+T<String>=<Any>\r`
 - Reserved operation: `AT+<String>\r` or `AT+<String>=<Any>\r`
 
-Note: The type `<Any>` means a number in string format or a quoated string (include escape characters).
+Note: The type `<Any>` means a number in string format or a quoted string (include escape characters).
 
 ### Response Lexical Format
 
@@ -124,7 +124,7 @@ Common format of normal replies:
 ```
 
 
-## Intereaction Examples
+## Interaction Examples
 
 ### Read-only operation
 
@@ -176,7 +176,7 @@ Response:
 }\n
 ```
 
-#### Get version deatils
+#### Get version details
 
 Request: `AT+VER?\r`
 
@@ -197,8 +197,8 @@ Response:
 
 Note:
 
-1. All version info is store in strings.
-1. The `hardware` version is chip revision on ESP32 port.
+1. All version info is stored in strings.
+1. The `hardware` version is chip revision on the ESP32 port.
 
 #### Get available algorithms
 
@@ -517,8 +517,8 @@ Status Table:
 | Status | Value                                                             |
 |--------|-------------------------------------------------------------------|
 | `0`    | the WiFi is not initialized or joined                             |
-| `1`    | the WiFi is joined, but the latested configuration is not applied |
-| `2`    | the WiFi is joined, and the latested configuration is applied     |
+| `1`    | the WiFi is joined, but the latest configuration is not applied |
+| `2`    | the WiFi is joined, and the latest configuration is applied     |
 
 #### Get Wi-Fi module version (no native network only)
 
@@ -567,8 +567,8 @@ Status Table:
 | Status | Value                                                                       |
 |--------|-----------------------------------------------------------------------------|
 | `0`    | the MQTT server is not initialized or connected                             |
-| `1`    | the MQTT server is connected, but the latested configuration is not applied |
-| `2`    | the MQTT server is connected, and the latested configuration is applied     |
+| `1`    | the MQTT server is connected, but the latest configuration is not applied |
+| `2`    | the MQTT server is connected, and the latest configuration is applied     |
 
 #### Get MQTT publish/subscribe topic
 
