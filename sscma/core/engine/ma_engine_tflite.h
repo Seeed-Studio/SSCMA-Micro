@@ -359,7 +359,7 @@ public:
 
 private:
     tflite::MicroInterpreter* interpreter;
-    const tflite::Model* model;
+     const tflite::Model* model;
     ma_memory_pool_t memory_pool;
 
 #if MA_USE_FILESYSTEM

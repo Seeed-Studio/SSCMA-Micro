@@ -578,6 +578,14 @@ ma_err_t DecoderJSON::read(const std::string& key, std::string& value) const {
 }
 
 ma_err_t DecoderJSON::read(ma_perf_t& value) {
+    cJSON* item = cJSON_GetObjectItem(m_data, "perf");
+    if (item == nullptr || item->type != cJSON_Array || cJSON_GetArraySize(item) != 3) {
+        return MA_FAILED;
+    }
+
+    value.preprocess  = cJSON_GetArrayItem(item, 0)->valueint;
+    value.inference   = cJSON_GetArrayItem(item, 1)->valueint;
+    value.postprocess = cJSON_GetArrayItem(item, 2)->valueint;
     return MA_OK;
 };
 ma_err_t DecoderJSON::read(std::vector<ma_class_t>& value) {
@@ -588,10 +596,13 @@ ma_err_t DecoderJSON::read(std::vector<ma_class_t>& value) {
     }
 
     for (cJSON* it = item->child; it != nullptr; it = it->next) {
+        if (cJSON_GetArraySize(it) != 2) {
+            continue;
+        }
         ma_class_t t;
         t.score  = cJSON_GetArrayItem(it, 0)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 1)->valueint;
-        value.push_back(t);
+        value.push_back(std::move(t));
     }
     return MA_OK;
 };
@@ -602,12 +613,15 @@ ma_err_t DecoderJSON::read(std::vector<ma_point_t>& value) {
         return MA_FAILED;
     }
     for (cJSON* it = item->child; it != nullptr; it = it->next) {
+        if (cJSON_GetArraySize(it) != 4) {
+            continue;
+        }
         ma_point_t t;
         t.x      = cJSON_GetArrayItem(it, 0)->valuedouble;
         t.y      = cJSON_GetArrayItem(it, 1)->valuedouble;
         t.score  = cJSON_GetArrayItem(it, 2)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 3)->valueint;
-        value.push_back(t);
+        value.push_back(std::move(t));
     }
     return MA_OK;
 };
@@ -618,6 +632,9 @@ ma_err_t DecoderJSON::read(std::vector<ma_bbox_t>& value) {
         return MA_FAILED;
     }
     for (cJSON* it = item->child; it != nullptr; it = it->next) {
+        if (cJSON_GetArraySize(it) != 6) {
+            continue;
+        }
         ma_bbox_t t;
         t.x      = cJSON_GetArrayItem(it, 0)->valuedouble;
         t.y      = cJSON_GetArrayItem(it, 1)->valuedouble;
@@ -625,7 +642,7 @@ ma_err_t DecoderJSON::read(std::vector<ma_bbox_t>& value) {
         t.h      = cJSON_GetArrayItem(it, 3)->valuedouble;
         t.score  = cJSON_GetArrayItem(it, 4)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 5)->valueint;
-        value.push_back(t);
+        value.push_back(std::move(t));
     }
     return MA_OK;
 };

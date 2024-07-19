@@ -14,7 +14,7 @@ namespace ma {
 class Encoder {
 public:
     Encoder()          = default;
-    virtual ~Encoder() = default;
+    virtual ~Encoder() = default; 
 
     /*!
      * @brief Encoder is valid.
@@ -289,10 +289,10 @@ public:
     virtual ma_err_t read(const std::string& key, float& value) const       = 0;
     virtual ma_err_t read(const std::string& key, double& value) const      = 0;
     virtual ma_err_t read(const std::string& key, std::string& value) const = 0;
-    virtual ma_err_t read(ma_perf_t& value)                     = 0;
-    virtual ma_err_t read(std::vector<ma_class_t>& value)       = 0;
-    virtual ma_err_t read(std::vector<ma_point_t>& value)       = 0;
-    virtual ma_err_t read(std::vector<ma_bbox_t>& value)        = 0;
+    virtual ma_err_t read(ma_perf_t& value)                                 = 0;
+    virtual ma_err_t read(std::vector<ma_class_t>& value)                   = 0;
+    virtual ma_err_t read(std::vector<ma_point_t>& value)                   = 0;
+    virtual ma_err_t read(std::vector<ma_bbox_t>& value)                    = 0;
 };
 
 }  // namespace ma
