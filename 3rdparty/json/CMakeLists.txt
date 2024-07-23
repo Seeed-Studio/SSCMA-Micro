@@ -15,6 +15,21 @@ if(NOT result EQUAL "0")
     message(FATAL_ERROR "fetch_script.sh failed")
 endif()
 
+file(GLOB PATCHES "${CMAKE_CURRENT_LIST_DIR}/patches/*.patch")
+
+foreach(patch IN LISTS PATCHES)
+    message(STATUS "patch: ${patch}")
+    execute_process(
+        COMMAND git apply ${patch}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/cJSON
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL "0")
+        message(FATAL_ERROR "git apply failed")
+    endif()
+endforeach()
+
+
 
 set(CJSON_DIR "${CMAKE_CURRENT_LIST_DIR}/cJSON")
 file(GLOB SRCS_CJSON
