@@ -9,6 +9,7 @@ namespace ma::model {
 
 class YoloV5 : public Detector {
 private:
+    bool is_multi_output_;
     ma_tensor_t output_;
     int32_t num_record_;
     int32_t num_element_;
@@ -28,7 +29,7 @@ protected:
 public:
     YoloV5(Engine* engine);
     ~YoloV5();
-    bool isValid(Engine* engine) override;
+    static bool isValid(Engine* engine);
 };
 
 }  // namespace ma::model

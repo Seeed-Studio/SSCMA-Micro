@@ -38,7 +38,7 @@ bool Classifier::isValid(Engine* engine) {
     const auto& input_shape = engine->getInputShape(0);
     auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
 
-    if (is_nhwc_) {
+    if (is_nhwc) {
         if (input_shape.size != 4 ||      // N, H, W, C
             input_shape.dims[0] != 1 ||   // N = 1
             input_shape.dims[1] < 16 ||   // H >= 16

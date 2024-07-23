@@ -600,6 +600,10 @@ ma_err_t EngineTFLite::loadModel(const char* model_path) {
     ma_err_t ret = MA_OK;
     size_t size  = 0;
 #ifdef MA_USE_FILESYSTEM_POSIX
+    if(model_file != nullptr) {
+        delete model_file;
+        model_file = nullptr;
+    }
     std::ifstream file(model_path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         return MA_ELOG;
@@ -622,6 +626,10 @@ ma_err_t EngineTFLite::loadModel(const char* model_path) {
 #else
     return MA_ENOTSUP;
 #endif
+}
+
+ma_err_t EngineTFLite::loadModel(const std::string& model_path) {
+    return loadModel(model_path.c_str());
 }
 #endif
 

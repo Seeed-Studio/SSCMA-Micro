@@ -70,6 +70,10 @@ const char* Model::getName() const {
     return p_name_;
 }
 
+ma_model_type_t Model::getType() const {
+    return m_type_;
+}
+
 void Model::setPreprocessDone(void (*fn)(void* ctx)) {
     if (p_preprocess_done_ != nullptr) {
         p_preprocess_done_ = nullptr;
@@ -102,4 +106,11 @@ void Model::setUserCtx(void* ctx) {
     p_user_ctx_ = ctx;
 }
 
-}  // namespace ma
+class ModelFactory {
+public:
+    static Model* create(Engine* engine);
+    static ma_err_t remove(const std::string& name);
+};
+
+
+}  // namespace ma::model

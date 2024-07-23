@@ -26,7 +26,7 @@ protected:
 public:
     Classifier(Engine* engine);
     virtual ~Classifier();
-    bool isValid(Engine* engine) override;
+    static bool isValid(Engine* engine);
     const std::vector<ma_class_t>& getResults();
     ma_err_t run(const ma_img_t* img);
     ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) override;

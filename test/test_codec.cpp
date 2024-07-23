@@ -78,8 +78,10 @@ TEST(DecoderTest, DecoderJSONTEST) {
     EXPECT_EQ(decoder.read("string", s), MA_OK);
     EXPECT_EQ(s, "test");
     ma_perf_t perf = {0, 0, 0};
-    // EXPECT_EQ(decoder.read("perf", perf), MA_OK);
-    //  EXPECT_EQ(perf, (ma_perf_t){11, 12, 13});
+    EXPECT_EQ(decoder.read(perf), MA_OK);
+    EXPECT_EQ(perf.preprocess, 11);
+    EXPECT_EQ(perf.inference, 12);
+    EXPECT_EQ(perf.postprocess, 13);
     std::vector<ma_class_t> classes;
     EXPECT_EQ(decoder.read(classes), MA_OK);
     EXPECT_EQ(classes.size(), 2);

@@ -1,8 +1,9 @@
 #ifndef _MA_MODEL_BASE_H_
 #define _MA_MODEL_BASE_H_
 
-#include "core/engine/ma_engine.h"
 #include "core/ma_common.h"
+
+#include "core/engine/ma_engine.h"
 
 namespace ma::model {
 
@@ -27,7 +28,6 @@ protected:
 public:
     Model(Engine* engine, const char* name, ma_model_type_t type);
     virtual ~Model();
-    virtual bool isValid(Engine* engine) = 0;
     const ma_perf_t getPerf() const;
     const char* getName() const;
     ma_model_type_t getType() const;
@@ -38,7 +38,6 @@ public:
     void setRunDone(void (*fn)(void* ctx));
     void setUserCtx(void* ctx);
 };
-
 
 }  // namespace ma::model
 

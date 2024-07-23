@@ -26,5 +26,6 @@ component_register(
     COMPONENT_NAME sscma
     SRCS ${SOURCES}
     INCLUDE_DIRS ${INCS}
-    PRIVATE_REQUIREDS cviruntime cjson
+    PRIVATE_REQUIREDS cjson 
+    REQUIREDS cviruntime hv
 )

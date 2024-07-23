@@ -15,6 +15,7 @@ if(NOT result EQUAL "0")
     message(FATAL_ERROR "fetch_script.sh failed")
 endif()
 
+
 set(CJSON_DIR "${CMAKE_CURRENT_LIST_DIR}/cJSON")
 file(GLOB SRCS_CJSON
     "${CJSON_DIR}/cJSON.c"

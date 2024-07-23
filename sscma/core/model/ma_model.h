@@ -3,9 +3,8 @@
 
 
 #include "core/model/ma_model_base.h"
-#include "core/model/ma_model_classifier.h"
-#include "core/model/ma_model_detector.h"
-#include "core/model/ma_model_yolov5.h"
+#include "core/model/ma_model_factory.h"
+
 
 
 #endif  // _MA_MODEL_H_

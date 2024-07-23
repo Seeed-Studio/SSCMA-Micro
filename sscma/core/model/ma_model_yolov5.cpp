@@ -51,8 +51,9 @@ bool YoloV5::isValid(Engine* engine) {
             input_shape.dims[2] < 32 ||                   // W, H >= 32
             input_shape.dims[2] % 32 ||                   // W or H is multiply of 32
             (input_shape.dims[1] != 3 &&                  // C = RGB or Gray
-             input_shape.dims[1] != 1))
+             input_shape.dims[1] != 1)) {
             return false;
+        }
 
         ibox_len = {[&]() {
             auto r{static_cast<uint16_t>(input_shape.dims[2])};
@@ -65,10 +66,10 @@ bool YoloV5::isValid(Engine* engine) {
 
     const auto& output_shape{engine->getOutputShape(0)};
 
-    if (output_shape.size != 3 ||            // B, IB, BC...
-        output_shape.dims[0] != 1 ||         // B = 1
-        output_shape.dims[1] != ibox_len ||  // IB is based on input shape
-        output_shape.dims[2] < 6 ||          // 6 <= BC - 5[XYWHC] <= 80 (could be larger than 80)
+    if ((output_shape.size != 3 && output_shape.size != 4) ||  // B, IB, BC...
+        output_shape.dims[0] != 1 ||                           // B = 1
+        output_shape.dims[1] != ibox_len ||                    // IB is based on input shape
+        output_shape.dims[2] < 6 ||  // 6 <= BC - 5[XYWHC] <= 80 (could be larger than 80)
         output_shape.dims[2] > 85) {
         return false;
     }
@@ -179,15 +180,14 @@ ma_err_t YoloV5::postprocess() {
         return MA_ENOTSUP;
     }
 
-     ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
 
     std::sort(results_.begin(), results_.end(), [](const ma_bbox_t& a, const ma_bbox_t& b) {
-        return a.y < b.y;
+        return a.x < b.x;
     });
 
     results_.shrink_to_fit();
 
-    // std::copy(result.begin(), result.end(), std::back_inserter(results_));
 
     return MA_OK;
 }
