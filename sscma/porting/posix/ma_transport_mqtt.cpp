@@ -9,42 +9,86 @@ namespace ma {
 
 const static char* TAG = "ma::transport::mqtt";
 
-void MQTT::onCallbackStub(mqtt_client_t* cli, int type) {
-    MQTT* mqtt = reinterpret_cast<MQTT*>(mqtt_client_get_userdata(cli));
+
+void MQTT::onConnect(struct mosquitto* mosq, int rc) {
+    MA_LOGD(TAG, "onConnect: %d", rc);
+    m_connected.store(true);
+
+    if (rc == MOSQ_ERR_SUCCESS) {
+        mosquitto_subscribe(mosq, nullptr, m_rxTopic.c_str(), 0);
+    }
+}
+
+void MQTT::onDisconnect(struct mosquitto* mosq, int rc) {
+    MA_LOGD(TAG, "onDisconnect: %d", rc);
+    m_connected.store(false);
+}
+
+void MQTT::onPublish(struct mosquitto* mosq, int mid) {
+    MA_LOGD(TAG, "onPublish: %d", mid);
+}
+
+void MQTT::onSubscribe(struct mosquitto* mosq, int mid, int qos_count, const int* granted_qos) {
+    MA_LOGD(TAG, "onSubscribe: %d", mid);
+}
+
+void MQTT::onUnsubscribe(struct mosquitto* mosq, int mid) {
+    MA_LOGD(TAG, "onUnsubscribe: %d", mid);
+}
+
+void MQTT::onMessage(struct mosquitto* mosq, const struct mosquitto_message* msg) {
+    MA_LOGD(TAG, "onMessage: %d", msg->mid);
+    m_receiveBuffer.write(static_cast<const char*>(msg->payload), msg->payloadlen);
+}
+
+void MQTT::onConnectStub(struct mosquitto* mosq, void* obj, int rc) {
+    MQTT* mqtt = static_cast<MQTT*>(obj);
     if (mqtt) {
-        mqtt->onCallback(cli, type);
+        mqtt->onConnect(mosq, rc);
     }
 }
 
-void MQTT::onCallback(mqtt_client_t* cli, int type) {
-    switch (type) {
-        case MQTT_TYPE_CONNECT:
-            m_connected.store(true);
-            break;
-        case MQTT_TYPE_CONNACK:
-            mqtt_client_subscribe(m_client, m_rxTopic.c_str(), 0);
-            break;
-        case MQTT_TYPE_DISCONNECT:
-            m_connected.store(false);
-            break;
-        case MQTT_TYPE_PUBLISH:
-            m_receiveBuffer.write(cli->message.payload, cli->message.payload_len);
-            break;
-        default:
-            break;
-    }
-}
+void MQTT::onDisconnectStub(struct mosquitto* mosq, void* obj, int rc) {
 
-void MQTT::threadEntryStub(void* param) {
-    MQTT* mqtt = reinterpret_cast<MQTT*>(param);
+    MQTT* mqtt = static_cast<MQTT*>(obj);
     if (mqtt) {
-        mqtt->threadEntry();
+        mqtt->onDisconnect(mosq, rc);
     }
 }
 
-void MQTT::threadEntry() {
-    mqtt_client_run(m_client);
+void MQTT::onPublishStub(struct mosquitto* mosq, void* obj, int mid) {
+
+    MQTT* mqtt = static_cast<MQTT*>(obj);
+    if (mqtt) {
+        mqtt->onPublish(mosq, mid);
+    }
 }
+
+void MQTT::onSubscribeStub(
+    struct mosquitto* mosq, void* obj, int mid, int qos_count, const int* granted_qos) {
+
+    MQTT* mqtt = static_cast<MQTT*>(obj);
+    if (mqtt) {
+        mqtt->onSubscribe(mosq, mid, qos_count, granted_qos);
+    }
+}
+
+void MQTT::onUnsubscribeStub(struct mosquitto* mosq, void* obj, int mid) {
+
+    MQTT* mqtt = static_cast<MQTT*>(obj);
+    if (mqtt) {
+        mqtt->onUnsubscribe(mosq, mid);
+    }
+}
+
+void MQTT::onMessageStub(struct mosquitto* mosq, void* obj, const struct mosquitto_message* msg) {
+
+    MQTT* mqtt = static_cast<MQTT*>(obj);
+    if (mqtt) {
+        mqtt->onMessage(mosq, msg);
+    }
+}
+
 
 MQTT::MQTT(const char* clientID, const char* txTopic, const char* rxTopic)
     : Transport(MA_TRANSPORT_MQTT),
@@ -53,28 +97,34 @@ MQTT::MQTT(const char* clientID, const char* txTopic, const char* rxTopic)
       m_clientID(clientID),
       m_txTopic(txTopic),
       m_rxTopic(rxTopic) {
-    m_client = mqtt_client_new(nullptr);
+
+    mosquitto_lib_init();
+
+    m_client = mosquitto_new(m_clientID.c_str(), true, this);
     MA_ASSERT(m_client);
 
-    mqtt_client_set_id(m_client, m_clientID.c_str());
-    mqtt_client_set_userdata(m_client, this);
-    mqtt_client_set_callback(m_client, onCallbackStub);
+    mosquitto_connect_callback_set(m_client, onConnectStub);
+    mosquitto_disconnect_callback_set(m_client, onDisconnectStub);
+    mosquitto_publish_callback_set(m_client, onPublishStub);
+    mosquitto_subscribe_callback_set(m_client, onSubscribeStub);
+    mosquitto_unsubscribe_callback_set(m_client, onUnsubscribeStub);
+    mosquitto_message_callback_set(m_client, onMessageStub);
 
-    m_thread = new Thread(clientID, threadEntryStub);
-    MA_ASSERT(m_thread);
-    m_thread->start(this);
+    mosquitto_loop_start(m_client);
+
     m_receiveBuffer.assign(MA_MQTT_RECEIVE_BUFFER_SIZE);
 }
 
 MQTT::~MQTT() {
-    if (m_client) {
-        mqtt_client_disconnect(m_client);
-        mqtt_client_stop(m_client);
-        mqtt_client_free(m_client);
+
+    if (m_client && m_connected.load()) {
+        mosquitto_disconnect(m_client);
+        mosquitto_loop_stop(m_client, true);
+        mosquitto_destroy(m_client);
+        m_client = nullptr;
     }
-    if (m_thread) {
-        delete m_thread;
-    }
+
+    mosquitto_lib_cleanup();
 }
 
 MQTT::operator bool() const {
@@ -91,16 +141,8 @@ size_t MQTT::send(const char* data, size_t length, int timeout) {
     if (!m_client || !m_connected.load()) {
         return 0;
     }
-
-    mqtt_message_t msg;
-    msg.topic       = m_txTopic.c_str();
-    msg.topic_len   = m_txTopic.length();
-    msg.payload     = data;
-    msg.payload_len = length;
-    msg.qos         = 0;
-
-    int ret = mqtt_client_publish(m_client, &msg);
-    return ret == 0 ? length : 0;
+    int ret = mosquitto_publish(m_client, nullptr, m_txTopic.c_str(), length, data, 0, false);
+    return ret == MOSQ_ERR_SUCCESS ? length : 0;
 }
 
 size_t MQTT::receive(char* data, size_t length, int timeout) {
@@ -129,24 +171,20 @@ ma_err_t MQTT::connect(
     }
     if (m_client) {
         if (username && password && username[0] && password[0]) {
-            mqtt_client_set_auth(m_client, username, password);
+            mosquitto_username_pw_set(m_client, username, password);
         }
-        ret = mqtt_client_connect(m_client, host, port, useSSL ? 1 : 0);
+        mosquitto_reconnect_delay_set(m_client, 2, 30, true);
+        ret = mosquitto_connect_async(m_client, host, port, 60);
     }
-    reconn_setting_t reconn;
-    reconn_setting_init(&reconn);
-    reconn.min_delay    = 1000;
-    reconn.max_delay    = 10000;
-    reconn.delay_policy = 2;
-    mqtt_client_set_reconnect(m_client, &reconn);
-    return m_client && ret == 0 ? MA_OK : MA_AGAIN;
+
+    return m_client && ret == MOSQ_ERR_SUCCESS ? MA_OK : MA_AGAIN;
 }
+
 
 ma_err_t MQTT::disconnect() {
     Guard guard(m_mutex);
     if (m_client && m_connected.load()) {
-        mqtt_client_disconnect(m_client);
-        mqtt_client_stop(m_client);
+        mosquitto_disconnect(m_client);
         m_connected.store(false);
     }
     return MA_OK;
