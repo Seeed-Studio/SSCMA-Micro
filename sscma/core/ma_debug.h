@@ -96,16 +96,17 @@
 
 #if MA_USE_ASSERT
 #ifndef MA_ASSERT
-#define MA_ASSERT(expr)                                    \
-    do {                                                   \
-        if (!(expr)) {                                     \
-            ma_printf(MA_DEBUG_COLOR_MAGENTA "E ");        \
-            MA_DEBUG_MORE_INFO("ASSERT");                  \
-            ma_printf("Failed assertion '%s'\r\n", #expr); \
-            ma_printf(MA_DEBUG_COLOR_RESET);               \
-            while (1) {                                    \
-            }                                              \
-        }                                                  \
+#define MA_ASSERT(expr)                                \
+    do {                                               \
+        if (!(expr)) {                                 \
+            ma_printf(MA_DEBUG_COLOR_MAGENTA "E ");    \
+            MA_DEBUG_MORE_INFO("ASSERT");              \
+            ma_printf("Failed assertion '%s'", #expr); \
+            ma_printf(MA_DEBUG_COLOR_RESET "\r\n");    \
+            while (1) {                                \
+                ma_abort();                            \
+            }                                          \
+        }                                              \
     } while (0)
 #endif
 #else

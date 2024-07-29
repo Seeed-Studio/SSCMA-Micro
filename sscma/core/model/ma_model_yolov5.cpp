@@ -15,6 +15,7 @@ YoloV5::YoloV5(Engine* p_engine_) : Detector(p_engine_, "yolov5", MA_MODEL_TYPE_
 
     output_ = p_engine_->getOutput(0);
 
+
     num_record_  = output_.shape.dims[1];
     num_element_ = output_.shape.dims[2];
     num_class_   = num_element_ - INDEX_T;
@@ -23,48 +24,40 @@ YoloV5::YoloV5(Engine* p_engine_) : Detector(p_engine_, "yolov5", MA_MODEL_TYPE_
 YoloV5::~YoloV5() {}
 
 bool YoloV5::isValid(Engine* engine) {
+
     const auto& input_shape{engine->getInputShape(0)};
+    const auto& output_shape{engine->getOutputShape(0)};
+
     auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
-    auto ibox_len{0};
-    if (is_nhwc) {
-        if (input_shape.size != 4 ||                      // N, H, W, C
-            input_shape.dims[0] != 1 ||                   // H = 1
-            input_shape.dims[1] ^ input_shape.dims[2] ||  // W = H
-            input_shape.dims[1] < 32 ||                   // W, H >= 32
-            input_shape.dims[1] % 32 ||                   // W or H is multiply of 32
-            (input_shape.dims[3] != 3 &&                  // C = RGB or Gray
-             input_shape.dims[3] != 1))
-            return false;
 
-        ibox_len = {[&]() {
-            auto r{static_cast<uint16_t>(input_shape.dims[1])};
-            auto s{r >> 5};  // r / 32
-            auto m{r >> 4};  // r / 16
-            auto l{r >> 3};  // r / 8
-            return (s * s + m * m + l * l) * input_shape.dims[3];
-        }()};
+    auto n{0}, h{0}, w{0}, c{0};
 
-    } else {
-        if (input_shape.size != 4 ||                      // N, C, H, W
-            input_shape.dims[0] != 1 ||                   // H = 1
-            input_shape.dims[2] ^ input_shape.dims[3] ||  // W = H
-            input_shape.dims[2] < 32 ||                   // W, H >= 32
-            input_shape.dims[2] % 32 ||                   // W or H is multiply of 32
-            (input_shape.dims[1] != 3 &&                  // C = RGB or Gray
-             input_shape.dims[1] != 1)) {
-            return false;
-        }
-
-        ibox_len = {[&]() {
-            auto r{static_cast<uint16_t>(input_shape.dims[2])};
-            auto s{r >> 5};  // r / 32
-            auto m{r >> 4};  // r / 16
-            auto l{r >> 3};  // r / 8
-            return (s * s + m * m + l * l) * input_shape.dims[1];
-        }()};
+    if (input_shape.size != 4) {
+        return false;
     }
 
-    const auto& output_shape{engine->getOutputShape(0)};
+    if (is_nhwc) {
+        n = input_shape.dims[0];
+        h = input_shape.dims[1];
+        w = input_shape.dims[2];
+        c = input_shape.dims[3];
+    } else {
+        n = input_shape.dims[0];
+        c = input_shape.dims[1];
+        h = input_shape.dims[2];
+        w = input_shape.dims[3];
+    }
+
+    if (n != 1 || h ^ w || h < 32 || h % 32 || (c != 3 && c != 1)) {
+        return false;
+    }
+
+    auto ibox_len{[&]() {
+        auto s{w >> 5};  // r / 32
+        auto m{w >> 4};  // r / 16
+        auto l{w >> 3};  // r / 8
+        return (s * s + m * m + l * l) * c;
+    }()};
 
     if ((output_shape.size != 3 && output_shape.size != 4) ||  // B, IB, BC...
         output_shape.dims[0] != 1 ||                           // B = 1
