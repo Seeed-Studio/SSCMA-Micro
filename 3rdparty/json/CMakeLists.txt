@@ -1,33 +1,37 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 set(component_hash "acc76239bee01d8e9c858ae2cab296704e52d916")
-set(fetch_script "${SSCMA_ROOT_DIR}/scripts/fetch_cjson.sh")
 
-message(STATUS "component_hash: ${component_hash}")
-message(STATUS "fetch_script: ${fetch_script}")
+if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/.component_hash")
+    set(fetch_script "${SSCMA_ROOT_DIR}/scripts/fetch_cjson.sh")
 
-execute_process(
-    COMMAND ${fetch_script} ${component_hash}
-    RESULT_VARIABLE result
-)
+    message(STATUS "component_hash: ${component_hash}")
+    message(STATUS "fetch_script: ${fetch_script}")
 
-if(NOT result EQUAL "0")
-    message(FATAL_ERROR "fetch_script.sh failed")
-endif()
-
-file(GLOB PATCHES "${CMAKE_CURRENT_LIST_DIR}/patches/*.patch")
-
-foreach(patch IN LISTS PATCHES)
-    message(STATUS "patch: ${patch}")
     execute_process(
-        COMMAND git apply ${patch}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/cJSON
+        COMMAND ${fetch_script} ${component_hash}
         RESULT_VARIABLE result
     )
+
     if(NOT result EQUAL "0")
-        message(FATAL_ERROR "git apply failed")
+        message(FATAL_ERROR "fetch_script.sh failed")
     endif()
-endforeach()
+
+    file(GLOB PATCHES "${CMAKE_CURRENT_LIST_DIR}/patches/*.patch")
+
+    foreach(patch IN LISTS PATCHES)
+        message(STATUS "patch: ${patch}")
+        execute_process(
+            COMMAND git apply ${patch}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/cJSON
+            RESULT_VARIABLE result
+        )
+        if(NOT result EQUAL "0")
+            message(FATAL_ERROR "git apply failed")
+        endif()
+    endforeach()
+
+endif()
 
 
 
