@@ -190,9 +190,14 @@ ma_err_t YoloWorld::postprocess() {
         }
     }
 
-    if (check != 0 && (check ^ 0b111111)) return MA_ENOTSUP;
-
-    return MA_OK;
+    switch (check) {
+        case 0:
+        return postprocessI8();
+        case 0b111111:
+        return postprocessF32();
+        default:
+        return MA_ENOTSUP;
+    }
 }
 
 ma_err_t YoloWorld::postprocessI8() {
@@ -370,7 +375,7 @@ ma_err_t YoloWorld::postprocessF32() {
         }
     }
 
-    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, true);
 
     results_.shrink_to_fit();
 
