@@ -10,7 +10,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::yolo";
 
-NvidiaDet::NvidiaDet(Engine* p_engine_) : Detector(p_engine_, "nvidia_det", MA_MODEL_TYPE_YOLOV5) {
+NvidiaDet::NvidiaDet(Engine* p_engine_) : Detector(p_engine_, "nvidia_det", MA_MODEL_TYPE_NVIDIA_DET) {
     MA_ASSERT(p_engine_ != nullptr);
 }
 

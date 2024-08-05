@@ -10,7 +10,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::yolov8";
 
-YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "yolov8", MA_MODEL_TYPE_YOLOV5) {
+YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "yolov8", MA_MODEL_TYPE_YOLOV8) {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->getOutput(0);
