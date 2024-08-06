@@ -1,7 +1,8 @@
 #include "ma_model_yolov8.h"
 
 #include <algorithm>
-#include <forward_list>
+#include <limits>
+#include <type_traits>
 #include <vector>
 
 #include "core/utils/ma_nms.h"
@@ -26,9 +27,9 @@ bool YoloV8::isValid(Engine* engine) {
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape{engine->getOutputShape(0)};
 
-    auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
+    const auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
 
-    auto n{0}, h{0}, w{0}, c{0};
+    const size_t n = 0, h = 0, w = 0, c = 0;
 
     if (input_shape.size != 4) {
         return false;
@@ -50,7 +51,7 @@ bool YoloV8::isValid(Engine* engine) {
         return false;
     }
 
-    auto ibox_len{[&]() {
+    const auto ibox_len{[&]() {
         auto s{w >> 5};  // r / 32
         auto m{w >> 4};  // r / 16
         auto l{w >> 3};  // r / 8
@@ -69,124 +70,121 @@ bool YoloV8::isValid(Engine* engine) {
 }
 
 ma_err_t YoloV8::postprocess() {
-    results_.clear();
-
     switch (output_.type) {
-    case MA_TENSOR_TYPE_S8: {
-        const auto* data = output_.data.s8;
+    case MA_TENSOR_TYPE_S8:
+        return postProcessI8();
 
-        const auto scale{output_.quant_param.scale};
-        const auto zero_point{output_.quant_param.zero_point};
-        const bool normalized{scale < 0.1f ? true : false};
-
-        for (decltype(num_record_) i{0}; i < num_record_; ++i) {
-            uint16_t target = 0;
-            int8_t   max{INT8_MIN};
-
-            for (decltype(num_class_) t{0}; t < num_class_; ++t) {
-                const auto n = data[idx + (t + INDEX_T) * num_record];
-                if (max < n) {
-                    max    = n;
-                    target = t;
-                }
-            }
-
-            auto score{static_cast<decltype(scale)>(max - zero_point) * scale};
-            score = normalized ? score * 100.f : score;
-
-            if (score > score_threshold) {
-                BoxType box{
-                  .x      = 0,
-                  .y      = 0,
-                  .w      = 0,
-                  .h      = 0,
-                  .score  = static_cast<decltype(BoxType::score)>(std::round(score)),
-                  .target = static_cast<decltype(BoxType::target)>(target),
-                };
-
-                // get box position, int8_t - int32_t (narrowing)
-                auto x{((data[idx + INDEX_X * num_record] - zero_point) * scale)};
-                auto y{((data[idx + INDEX_Y * num_record] - zero_point) * scale)};
-                auto w{((data[idx + INDEX_W * num_record] - zero_point) * scale)};
-                auto h{((data[idx + INDEX_H * num_record] - zero_point) * scale)};
-
-                if (!normalized) {
-                    x = x / img_.width;
-                    y = y / img_.height;
-                    w = w / img_.width;
-                    h = h / img_.height;
-                }
-
-                box.x = MA_CLIP(x, 0, 1.0f);
-                box.y = MA_CLIP(y, 0, 1.0f);
-                box.w = MA_CLIP(w, 0, 1.0f);
-                box.h = MA_CLIP(h, 0, 1.0f);
-
-                results_.push_back(std::move(box));
-            }
-        }
-    } break;
-
-    case MA_TENSOR_TYPE_F32: {
-        const auto* data = output_.data.f32;
-
-        const auto scale{output_.quant_param.scale};
-        const auto zero_point{output_.quant_param.zero_point};
-        const bool normalized{scale < 0.1f ? true : false};
-
-        for (decltype(num_record_) i{0}; i < num_record_; ++i) {
-            uint16_t target = 0;
-            int8_t   max{INT8_MIN};
-
-            for (decltype(num_class_) t{0}; t < num_class_; ++t) {
-                const auto n = data[idx + (t + INDEX_T) * num_record];
-                if (max < n) {
-                    max    = n;
-                    target = t;
-                }
-            }
-
-            auto score{max};
-            score = normalized ? score * 100.f : score;
-
-            if (score > score_threshold) {
-                BoxType box{
-                  .x      = 0,
-                  .y      = 0,
-                  .w      = 0,
-                  .h      = 0,
-                  .score  = static_cast<decltype(BoxType::score)>(std::round(score)),
-                  .target = static_cast<decltype(BoxType::target)>(target),
-                };
-
-                // get box position, int8_t - int32_t (narrowing)
-                auto x{data[idx + INDEX_X * num_record]};
-                auto y{data[idx + INDEX_Y * num_record]};
-                auto w{data[idx + INDEX_W * num_record]};
-                auto h{data[idx + INDEX_H * num_record]};
-
-                if (!normalized) {
-                    x = x / img_.width;
-                    y = y / img_.height;
-                    w = w / img_.width;
-                    h = h / img_.height;
-                }
-
-                box.x = MA_CLIP(x, 0, 1.0f);
-                box.y = MA_CLIP(y, 0, 1.0f);
-                box.w = MA_CLIP(w, 0, 1.0f);
-                box.h = MA_CLIP(h, 0, 1.0f);
-
-                results_.push_back(std::move(box));
-            }
-        }
-    } break;
+    case MA_TENSOR_TYPE_F32:
+        return postProcessF32();
 
     default:
         return MA_ENOTSUP;
     }
 
-    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, true);
+    return MA_ENOTSUP;
+}
+
+ma_err_t YoloV8::postProcessI8() {
+    results_.clear();
+
+    const auto* data = output_.data.s8;
+
+    const auto scale{output_.quant_param.scale};
+    const auto zero_point{output_.quant_param.zero_point};
+    const bool normalized{
+      (scale * (std::numeric_limits<decltype(*data)>::max() - std::numeric_limits<decltype(*data)>::min())) <= 1.0};
+
+    for (decltype(num_record_) i = 0; i < num_record_; ++i) {
+        uint16_t target = 0;
+        auto     max    = std::numeric_limits<decltype(*data)>::min();
+
+        for (decltype(num_class_) t = 0; t < num_class_; ++t) {
+            const auto n = data[idx + (t + INDEX_T) * num_record];
+            if (max < n) {
+                max    = n;
+                target = t;
+            }
+        }
+
+        float score{static_cast<decltype(scale)>(max - zero_point) * scale};
+        score = normalized ? score : std::round(score / 100.f);
+
+        if (score > score_threshold) {
+            ma_bbox_t box;
+
+            box.score  = score;
+            box.target = target;
+
+            // get box position, int8_t - int32_t (narrowing)
+            float x = (data[idx + INDEX_X * num_record] - zero_point) * scale;
+            float y = (data[idx + INDEX_Y * num_record] - zero_point) * scale;
+            float w = (data[idx + INDEX_W * num_record] - zero_point) * scale;
+            float h = (data[idx + INDEX_H * num_record] - zero_point) * scale;
+
+            if (!normalized) {
+                x = x / img_.width;
+                y = y / img_.height;
+                w = w / img_.width;
+                h = h / img_.height;
+            }
+
+            box.x = MA_CLIP(x, 0, 1.0f);
+            box.y = MA_CLIP(y, 0, 1.0f);
+            box.w = MA_CLIP(w, 0, 1.0f);
+            box.h = MA_CLIP(h, 0, 1.0f);
+
+            results_.push_back(std::move(box));
+        }
+    }
+
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, num_class_ > 1);
+
+    results_.shrink_to_fit();
+
+    return MA_OK;
+}
+
+ma_err_t YoloV8::postProcessF32() {
+    results_.clear();
+
+    const auto* data = output_.data.f32;
+
+    for (decltype(num_record_) i = 0; i < num_record_; ++i) {
+        uint16_t target = 0;
+        auto     max    = std::numeric_limits<decltype(*data)>::min();
+
+        for (decltype(num_class_) t = 0; t < num_class_; ++t) {
+            const auto n = data[idx + (t + INDEX_T) * num_record];
+            if (max < n) {
+                max    = n;
+                target = t;
+            }
+        }
+
+        const float score{max};
+
+        if (score > score_threshold) {
+            ma_bbox_t box;
+
+            box.score  = score;
+            box.target = target;
+
+            // get box position, int8_t - int32_t (narrowing)
+            float x = data[idx + INDEX_X * num_record];
+            float y = data[idx + INDEX_Y * num_record];
+            float w = data[idx + INDEX_W * num_record];
+            float h = data[idx + INDEX_H * num_record];
+
+            box.x = MA_CLIP(x, 0, 1.0f);
+            box.y = MA_CLIP(y, 0, 1.0f);
+            box.w = MA_CLIP(w, 0, 1.0f);
+            box.h = MA_CLIP(h, 0, 1.0f);
+
+            results_.push_back(std::move(box));
+        }
+    }
+
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, num_class_ > 1);
 
     results_.shrink_to_fit();
 

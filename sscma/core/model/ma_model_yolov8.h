@@ -10,9 +10,11 @@ namespace ma::model {
 class YoloV8 : public Detector {
    private:
     ma_tensor_t output_;
-    int32_t     num_record_;
-    int32_t     num_element_;
-    int32_t     num_class_;
+
+    int32_t num_record_;
+    int32_t num_element_;
+    int32_t num_class_;
+
     enum {
         INDEX_X = 0,
         INDEX_Y = 1,
@@ -24,6 +26,9 @@ class YoloV8 : public Detector {
 
    protected:
     ma_err_t postprocess() override;
+
+    ma_err_t postProcessI8();
+    ma_err_t postProcessF32();
 
    public:
     YoloV8(Engine* engine);
