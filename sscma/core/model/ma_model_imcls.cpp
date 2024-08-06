@@ -1,20 +1,19 @@
 #include "ma_model_imcls.h"
 
 #include <algorithm>
+#include <limits>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
-namespace ma::model {
+#include "core/math/ma_math.h"
 
-constexpr char TAG[] = "ma::model::imcls";
+namespace ma::model {
 
 ImCls::ImCls(Engine* p_engine_) : Detector(p_engine_, "imcls", MA_MODEL_TYPE_IMCLS) {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->getOutput(0);
-
-    num_record_  = output_.shape.dims[1];
-    num_element_ = output_.shape.dims[2];
-    num_class_   = num_element_ - INDEX_T;
 }
 
 ImCls::~ImCls() {}
@@ -57,53 +56,68 @@ bool ImCls::isValid(Engine* engine) {
     return true;
 }
 
+const char* ImCls::getTag() { return "ma::model::imcls"; }
+
 ma_err_t ImCls::postprocess() {
-    results_.clear();
-
     switch (output_.type) {
-    case MA_TENSOR_TYPE_S8: {
-        const auto* data{output_.data.s8};
+    case MA_TENSOR_TYPE_S8:
+        return postProcessI8();
 
-        const auto scale{output_.quant_param.scale};
-        const bool rescale{scale < 0.1f ? true : false};
-
-        const auto zero_point{output_.quant_param.zero_point};
-
-        const auto output_shape{engine->getOutputShape(0)};
-        const auto pred_l{output_shape.dims[1]};
-
-        for (decltype(pred_l) i{0}; i < pred_l; ++i) {
-            auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
-            score = rescale ? score : score / 100.f;
-            if (score > threshold_score_) {
-                _results.emplace_back({.score = score, .target = i});
-            }
-        }
-
-    } break;
-
-    case MA_TENSOR_TYPE_F32: {
-        const auto* data{output_.data.f32};
-
-        const auto output_shape{engine->getOutputShape(0)};
-        const auto pred_l{output_shape.dims[1]};
-
-        for (decltype(pred_l) i{0}; i < pred_l; ++i) {
-            const auto score{data[i]};
-            if (score > threshold_score_) {
-                _results.emplace_back({.score = score, .target = i});
-            }
-        }
-
-    } break;
+    case MA_TENSOR_TYPE_F32:
+        return postProcessF32();
 
     default:
-        MA_LOGE(TAG, "Unsupported tensor type: %d", output_.type);
-        return MA_ERROR;
+        return MA_ENOTSUP;
+    }
+
+    return MA_ENOTSUP;
+}
+
+ma_err_t ImCls::postProcessI8() {
+    results_.clear();
+
+    const auto* data{output_.data.s8};
+
+    const auto scale{output_.quant_param.scale};
+    const auto zero_point{output_.quant_param.zero_point};
+    const bool normalized{
+      (scale * (std::numeric_limits<decltype(*data)>::max() - std::numeric_limits<decltype(*data)>::min())) <= 1.0};
+
+    const auto pred_l{output_.shape.dims[1]};
+
+    for (decltype(pred_l) i = 0; i < pred_l; ++i) {
+        float score = ma::math::dequantizeValue(static_cast<int32_t>(data[i]), scale, zero_point);
+        score       = normalized ? score : score / 100.f;
+
+        if (score >= threshold_score_) {
+            results_.emplace_back({.score = score, .target = i});
+        }
     }
 
     results_.shrink_to_fit();
-    _results.sort([](const auto& a, const auto& b) { return a.score > b.score; });
+
+    results_.sort([](const auto& a, const auto& b) { return a.score > b.score; });
+
+    return MA_OK;
+}
+
+ma_err_t ImCls::postProcessF32() {
+    results_.clear();
+
+    const auto* data{output_.data.s8};
+    const auto  pred_l{output_.shape.dims[1]};
+
+    for (decltype(pred_l) i = 0; i < pred_l; ++i) {
+        const float score = data[i];
+
+        if (score >= threshold_score_) {
+            results_.emplace_back({.score = score, .target = i});
+        }
+    }
+
+    results_.shrink_to_fit();
+
+    results_.sort([](const auto& a, const auto& b) { return a.score > b.score; });
 
     return MA_OK;
 }

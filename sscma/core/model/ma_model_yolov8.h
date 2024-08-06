@@ -1,8 +1,6 @@
 #ifndef _MA_MODEL_YOLOV8_H
 #define _MA_MODEL_YOLOV8_H
 
-#include <vector>
-
 #include "ma_model_detector.h"
 
 namespace ma::model {
@@ -33,7 +31,10 @@ class YoloV8 : public Detector {
    public:
     YoloV8(Engine* engine);
     ~YoloV8();
+
     static bool isValid(Engine* engine);
+
+    static const char* getTag();
 };
 
 }  // namespace ma::model

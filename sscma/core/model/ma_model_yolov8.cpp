@@ -1,15 +1,14 @@
 #include "ma_model_yolov8.h"
 
-#include <algorithm>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
+#include "core/math/ma_math.h"
 #include "core/utils/ma_nms.h"
 
 namespace ma::model {
-
-constexpr char TAG[] = "ma::model::yolov8";
 
 YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "yolov8", MA_MODEL_TYPE_YOLOV8) {
     MA_ASSERT(p_engine_ != nullptr);
@@ -69,6 +68,8 @@ bool YoloV8::isValid(Engine* engine) {
     return true;
 }
 
+const char* YoloV8::getTag() { return "ma::model::yolov8"; }
+
 ma_err_t YoloV8::postprocess() {
     switch (output_.type) {
     case MA_TENSOR_TYPE_S8:
@@ -106,7 +107,8 @@ ma_err_t YoloV8::postProcessI8() {
             }
         }
 
-        float score{static_cast<decltype(scale)>(max - zero_point) * scale};
+        float score =
+          ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_S * num_record]), scale, zero_point);
         score = normalized ? score : std::round(score / 100.f);
 
         if (score > score_threshold) {
@@ -116,10 +118,14 @@ ma_err_t YoloV8::postProcessI8() {
             box.target = target;
 
             // get box position, int8_t - int32_t (narrowing)
-            float x = (data[idx + INDEX_X * num_record] - zero_point) * scale;
-            float y = (data[idx + INDEX_Y * num_record] - zero_point) * scale;
-            float w = (data[idx + INDEX_W * num_record] - zero_point) * scale;
-            float h = (data[idx + INDEX_H * num_record] - zero_point) * scale;
+            float x =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_X * num_record]), scale, zero_point);
+            float y =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_Y * num_record]), scale, zero_point);
+            float w =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_W * num_record]), scale, zero_point);
+            float h =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_H * num_record]), scale, zero_point);
 
             if (!normalized) {
                 x = x / img_.width;
@@ -163,7 +169,7 @@ ma_err_t YoloV8::postProcessF32() {
 
         const float score{max};
 
-        if (score > score_threshold) {
+        if (score >= score_threshold) {
             ma_bbox_t box;
 
             box.score  = score;
