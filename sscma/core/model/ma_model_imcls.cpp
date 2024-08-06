@@ -22,9 +22,13 @@ bool ImCls::isValid(Engine* engine) {
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape{engine->getOutputShape(0)};
 
+    if (input_shape.size != 4) {
+        return false;
+    }
+
     auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
 
-    auto n{0}, h{0}, w{0}, c{0};
+    size_t n = 0, h = 0, w = 0, c = 0;
 
     if (input_shape.size != 4) {
         return false;

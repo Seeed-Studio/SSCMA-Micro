@@ -1,17 +1,16 @@
+#include "ma_model_yolo_world.h"
+
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <forward_list>
 #include <utility>
 #include <vector>
 
+#include "core/math/ma_math.h"
+#include "core/utils/ma_anchors.h"
 #include "core/utils/ma_nms.h"
-#include "ma_model_world.h"
 
 namespace ma::model {
-
-constexpr char TAG[] = "ma::model::yolo_world";
 
 static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
     if (shape.size != 4) {
@@ -22,68 +21,21 @@ static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
     return is_nhwc ? std::make_pair(shape.dims[1], shape.dims[2]) : std::make_pair(shape.dims[2], shape.dims[3]);
 }
 
-static inline float fastLn(float x) {
-    // Remez approximation of ln(x)
-    static_assert(sizeof(unsigned int) == sizeof(float));
-    static_assert(sizeof(float) == 4);
-
-    auto bx{*reinterpret_cast<unsigned int*>(&x)};
-    auto ex{bx >> 23};
-    auto t{static_cast<signed int>(ex) - static_cast<signed int>(127)};
-    bx = 1065353216 | (bx & 8388607);
-    x  = *reinterpret_cast<float*>(&bx);
-    return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
-}
-
-static inline float fastExp(float x) {
-    // N. Schraudolph, "A Fast, Compact Approximation of the Exponential Function"
-    // https://nic.schraudolph.org/pubs/Schraudolph99.pdf
-    static_assert(sizeof(float) == 4);
-
-    x = (12102203.1608621 * x) + 1064986823.01029;
-
-    const float c{8388608.f};
-    const float d{2139095040.f};
-
-    if (x < c || x > d) x = (x < c) ? 0.0f : d;
-
-    uint32_t n = static_cast<uint32_t>(x);
-    x          = *reinterpret_cast<float*>(&n);
-
-    return x;
-}
-
-static inline float sigmoid(float x) { return 1.f / (1.f + fastExp(-x)); }
-
-static inline void softmax(float* data, size_t size) {
-    float sum{0.f};
-    for (size_t i = 0; i < size; ++i) {
-        data[i] = std::exp(data[i]);
-        sum += data[i];
-    }
-    for (size_t i = 0; i < size; ++i) {
-        data[i] /= sum;
-    }
-}
-
 YoloWorld::YoloWorld(Engine* p_engine_) : Detector(p_engine_, "yolo_world", MA_MODEL_TYPE_YOLO_WORLD) {
     MA_ASSERT(p_engine_ != nullptr);
 
     for (size_t i = 0; i < outputs_; ++i) {
-        output_tensors_[i]      = p_engine_->getOutput(i);
-        output_shapes_[i]       = p_engine->getOutputShape(i);
-        output_quant_params_[i] = p_engine->getOutputQuantParam(i);
+        outputs_[i] = p_engine_->getOutput(i);
     }
 
     const auto [h, w] = estimateTensorHW(p_engine_->getInputShape(0));
-    MA_ASSERT(h & w);
 
-    anchor_strides_ = generateAnchorStrides_(std::min(h, w));
-    anchor_matrix_  = generateAnchorMatrix_(anchor_strides_);
+    anchor_strides_ = ma::utils::generateAnchorStrides(std::min(h, w));
+    anchor_matrix_  = ma::utils::generateAnchorMatrix(anchor_strides_);
 
-    for (size_t i = 0; i < outputs_; ++i) {
-        const auto dim_1 = output_shapes_[i].dims[1];
-        const auto dim_2 = output_shapes_[i].dims[2];
+    for (size_t i = 0; i < num_outputs_; ++i) {
+        const auto dim_1 = outputs_[i].shape.dims[1];
+        const auto dim_2 = outputs_[i].shape.dims[2];
 
         if (dim_2 == 64) {
             for (size_t j = 0; j < anchor_variants_; ++j) {
@@ -101,16 +53,6 @@ YoloWorld::YoloWorld(Engine* p_engine_) : Detector(p_engine_, "yolo_world", MA_M
             }
         }
     }
-
-    using CheckType          = uint8_t;
-    const size_t check_bytes = sizeof(CheckType) * 8u;
-    CheckType    check       = 0;
-    for (size_t i = 0; i < anchor_variants_; ++i) {
-        CheckType f_s = 1 << (output_scores_ids_[i] % check_bytes);
-        CheckType f_b = 1 << (output_bboxes_ids_[i] % check_bytes);
-        check |= f_s | f_b;
-    }
-    MA_ASSERT(!(check ^ 0b00111111));
 }
 
 YoloWorld::~YoloWorld() {}
@@ -125,6 +67,7 @@ bool YoloWorld::isValid(Engine* engine) {
     const auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
 
     size_t n = 0, h = 0, w = 0, c = 0;
+
     if (is_nhwc) {
         n = input_shape.dims[0];
         h = input_shape.dims[1];
@@ -141,99 +84,112 @@ bool YoloWorld::isValid(Engine* engine) {
         return false;
     }
 
-    auto anchor_strides_1 = generateAnchorStrides_(std::min(h, w));
+    auto anchor_strides_1 = ma::utils::generateAnchorStrides(std::min(h, w));
     auto anchor_strides_2 = anchor_strides_1;
 
     // Note: would fail if the model has 64 classes
     for (size_t i = 0; i < outputs_; ++i) {
         const auto output_shape{engine->getOutputShape(i)};
-        if (output_shape.size != 3 || output_shape.dims[0] != 1) return false;
+
+        if (output_shape.size != 3) {
+            return false;
+        }
 
         if (output_shape.dims[2] == 64) {
             auto it = std::find_if(
               anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
                   return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
               });
-            if (it == anchor_strides_2.end())
+            if (it == anchor_strides_2.end()) {
                 return false;
-            else
+            } else {
                 anchor_strides_2.erase(it);
+            }
         } else {
             auto it = std::find_if(
               anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
                   return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
               });
-            if (it == anchor_strides_1.end())
+            if (it == anchor_strides_1.end()) {
                 return false;
-            else
+            } else {
                 anchor_strides_1.erase(it);
+            }
         }
     }
 
-    if (anchor_strides_1.size() || anchor_strides_2.size()) return false;
+    if (anchor_strides_1.size() || anchor_strides_2.size()) {
+        return false;
+    }
 
     return true;
 }
+
+const char* YoloWorld::getTag() { return "ma::model::yolo_world"; }
 
 ma_err_t YoloWorld::postprocess() {
     uint8_t check = 0;
 
     for (size_t i = 0; i < outputs_; ++i) {
-        switch (output_tensors_.type) {
+        switch (outputs_[i].type) {
         case MA_TENSOR_TYPE_S8:
             break;
+
         case MA_TENSOR_TYPE_F32:
             check |= 1 << i;
             break;
+
         default:
             return MA_ENOTSUP;
         }
     }
 
     switch (check) {
-        case 0:
-        return postprocessI8();
-        case 0b111111:
+    case 0:
+        return postProcessI8();
+
+    case 0b111111:
         return postprocessF32();
-        default:
+
+    default:
         return MA_ENOTSUP;
     }
+
+    return MA_ENOTSUP;
 }
 
-ma_err_t YoloWorld::postprocessI8() {
+ma_err_t YoloWorld::postProcessI8() {
     results_.clear();
 
-    const int8_t* output_data[_outputs];
-    // Note: assume is dynamic tensor
-    for (size_t i = 0; i < outputs_; ++i) {
-        output_tensors_[i] = p_engine_->getOutput(i);
-        output_data[i]     = output_tensors_[i].data.s8;
+    const int8_t* output_data[num_outputs_];
+
+    for (size_t i = 0; i < num_outputs_; ++i) {
+        output_data[i] = outputs_[i].data.s8;
     }
 
-    const uint8_t score_threshold = this->threshold_score_;
-    const uint8_t iou_threshold   = this->threshold_nms_;
+    const auto score_threshold = threshold_score_;
+    const auto iou_threshold   = threshold_nms_;
 
-    const float score_threshold_non_sigmoid = -std::log((1.0 / static_cast<float>(score_threshold)) - 1.f);
+    const float score_threshold_non_sigmoid = ma::math::inverseSigmoid(score_threshold);
 
     const auto anchor_matrix_size = anchor_matrix_.size();
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
         const auto   output_scores_id           = output_scores_ids_[i];
         const auto*  output_scores              = output_data[output_scores_id];
-        const size_t output_scores_shape_dims_2 = output_shapes_[output_scores_id].dims[2];
-        const auto   output_scores_quant_parm   = output_quant_params_[output_scores_id];
+        const size_t output_scores_shape_dims_2 = outputs_[output_scores_id].shape.dims[2];
+        const auto   output_scores_quant_parm   = outputs_[output_scores_id].quant_param;
 
         const auto   output_bboxes_id           = output_bboxes_ids_[i];
         const auto*  output_bboxes              = output_data[output_bboxes_id];
-        const size_t output_bboxes_shape_dims_2 = output_shapes_[output_bboxes_id].dims[2];
-        const auto   output_bboxes_quant_parm   = output_quant_params_[output_bboxes_id];
+        const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
+        const auto   output_bboxes_quant_parm   = outputs_[output_bboxes_id].quant_param;
 
         const auto& anchor_array      = anchor_matrix_[i];
         const auto  anchor_array_size = anchor_array.size();
 
-        const int32_t score_threshold_quan_non_sigmoid =
-          static_cast<int32_t>(std::floor(score_threshold_non_sigmoid / output_scores_quant_parm.scale)) +
-          output_scores_quant_parm.zero_point;
+        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(
+          score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
@@ -253,8 +209,8 @@ ma_err_t YoloWorld::postprocessI8() {
 
             if (target < 0) continue;
 
-            const float real_score = sigmoid(static_cast<float>(max_score_raw - output_scores_quant_parm.zero_point) *
-                                             output_scores_quant_parm.scale);
+            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(
+              max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
 
             // DFL
             float dist[4];
@@ -264,11 +220,12 @@ ma_err_t YoloWorld::postprocessI8() {
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m * 16;
                 for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = dequantValue_(
-                      offset + n, output_bboxes, output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
+                    matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]),
+                                                          output_bboxes_quant_parm.zero_point,
+                                                          output_bboxes_quant_parm.scale);
                 }
 
-                softmax(matrix, 16);
+                ma::math::softmax(matrix, 16);
 
                 float res = 0.0;
                 for (size_t n = 0; n < 16; ++n) {
@@ -284,42 +241,43 @@ ma_err_t YoloWorld::postprocessI8() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            results_.emplace_back(ma_bbox_t{.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
+            results_.emplace_back({.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
         }
     }
 
-    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, true);
 
     results_.shrink_to_fit();
 
     return MA_OK;
 }
 
-ma_err_t YoloWorld::postprocessF32() {
+ma_err_t YoloWorld::postProcessF32() {
     results_.clear();
 
-    const float* output_data[_outputs];
-    // Note: assume is dynamic tensor
-    for (size_t i = 0; i < outputs_; ++i) {
-        output_tensors_[i] = p_engine_->getOutput(i);
-        output_data[i]     = output_tensors_[i].data.f32;
+    const int8_t* output_data[num_outputs_];
+
+    for (size_t i = 0; i < num_outputs_; ++i) {
+        output_data[i] = outputs_[i].data.s8;
     }
 
-    const uint8_t score_threshold = this->threshold_score_;
-    const uint8_t iou_threshold   = this->threshold_nms_;
+    const auto score_threshold = threshold_score_;
+    const auto iou_threshold   = threshold_nms_;
 
-    const float score_threshold_non_sigmoid = -std::log((1.0 / static_cast<float>(score_threshold)) - 1.f);
+    const float score_threshold_non_sigmoid = ma::math::inverseSigmoid(score_threshold);
 
     const auto anchor_matrix_size = anchor_matrix_.size();
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
         const auto   output_scores_id           = output_scores_ids_[i];
         const auto*  output_scores              = output_data[output_scores_id];
-        const size_t output_scores_shape_dims_2 = output_shapes_[output_scores_id].dims[2];
+        const size_t output_scores_shape_dims_2 = outputs_[output_scores_id].shape.dims[2];
+        const auto   output_scores_quant_parm   = outputs_[output_scores_id].quant_param;
 
         const auto   output_bboxes_id           = output_bboxes_ids_[i];
         const auto*  output_bboxes              = output_data[output_bboxes_id];
-        const size_t output_bboxes_shape_dims_2 = output_shapes_[output_bboxes_id].dims[2];
+        const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
+        const auto   output_bboxes_quant_parm   = outputs_[output_bboxes_id].quant_param;
 
         const auto& anchor_array      = anchor_matrix_[i];
         const auto  anchor_array_size = anchor_array.size();
@@ -342,7 +300,7 @@ ma_err_t YoloWorld::postprocessF32() {
 
             if (target < 0) continue;
 
-            const float real_score = sigmoid(max_score_raw);
+            const float real_score = ma::math::sigmoid(max_score_raw);
 
             // DFL
             float dist[4];
@@ -352,10 +310,10 @@ ma_err_t YoloWorld::postprocessF32() {
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m * 16;
                 for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = output_bboxes_id[offset + n];
+                    matrix[n] = output_bboxes[offset + n];
                 }
 
-                softmax(matrix, 16);
+                ma::math::softmax(matrix, 16);
 
                 float res = 0.0;
                 for (size_t n = 0; n < 16; ++n) {
@@ -371,7 +329,7 @@ ma_err_t YoloWorld::postprocessF32() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            results_.emplace_back(ma_bbox_t{.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
+            results_.emplace_back({.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
         }
     }
 

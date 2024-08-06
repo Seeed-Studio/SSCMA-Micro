@@ -26,13 +26,13 @@ bool YoloV8::isValid(Engine* engine) {
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape{engine->getOutputShape(0)};
 
-    const auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
-
-    const size_t n = 0, h = 0, w = 0, c = 0;
-
     if (input_shape.size != 4) {
         return false;
     }
+
+    const auto is_nhwc{input_shape.dims[3] == 3 || input_shape.dims[3] == 1};
+
+    size_t n = 0, h = 0, w = 0, c = 0;
 
     if (is_nhwc) {
         n = input_shape.dims[0];
@@ -134,11 +134,6 @@ ma_err_t YoloV8::postProcessI8() {
                 h = h / img_.height;
             }
 
-            box.x = MA_CLIP(x, 0, 1.0f);
-            box.y = MA_CLIP(y, 0, 1.0f);
-            box.w = MA_CLIP(w, 0, 1.0f);
-            box.h = MA_CLIP(h, 0, 1.0f);
-
             results_.push_back(std::move(box));
         }
     }
@@ -180,11 +175,6 @@ ma_err_t YoloV8::postProcessF32() {
             float y = data[idx + INDEX_Y * num_record];
             float w = data[idx + INDEX_W * num_record];
             float h = data[idx + INDEX_H * num_record];
-
-            box.x = MA_CLIP(x, 0, 1.0f);
-            box.y = MA_CLIP(y, 0, 1.0f);
-            box.w = MA_CLIP(w, 0, 1.0f);
-            box.h = MA_CLIP(h, 0, 1.0f);
 
             results_.push_back(std::move(box));
         }

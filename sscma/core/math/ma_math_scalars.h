@@ -42,14 +42,30 @@ constexpr inline float fastExp(float x) {
     return x;
 }
 
-constexpr inline float fastSigmid(float x) { return 1.0f / (1.0f + fastExp(-x)); }
+constexpr inline float sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
 
-constexpr inline float quantizeValue(int32_t value, float scale, int32_t zero_point) {
-    return std::round(value / scale) + zero_point;
+constexpr inline float fastSigmoid(float x) { return 1.0f / (1.0f + fastExp(-x)); }
+
+constexpr inline float inverseSigmoid(float x) {
+    float denominator = 1.0f - x;
+
+    if (std::abs(denominator) < std::numeric_limits<float>::epsilon()) {
+        denominator = std::numeric_limits<float>::epsilon();
+    }
+
+    return std::log(x / denominator);
 }
 
-constexpr inline int32_t dequantizeValue(float value, float scale, int32_t zero_point) {
-    return static_cast<int32_t>(std::round((value - zero_point) * scale));
+constexpr inline int32_t quantizeValue(float value, float scale, int32_t zero_point) {
+    return static_cast<int32_t>(std::round(value / scale) + zero_point);
+}
+
+constexpr inline int32_t quantizeValueFloor(float value, float scale, int32_t zero_point) {
+    return static_cast<int32_t>(std::floor(value / scale) + zero_point);
+}
+
+constexpr inline float dequantizeValue(int32_t value, float scale, int32_t zero_point) {
+    return static_cast<float>(value - zero_point) * scale;
 }
 
 }  // namespace ma::math

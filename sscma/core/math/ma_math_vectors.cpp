@@ -36,8 +36,8 @@ namespace ma::math {
         }                                                            \
     }
 
-void softMax(float* data, size_t size) { MA_MATH_FAST_SOFTMAX_IMPL(data, size, std::exp); }
+void softmax(float* data, size_t size) { MA_MATH_FAST_SOFTMAX_IMPL(data, size, std::exp); }
 
-void fastSoftMax(float* data, size_t size) { MA_MATH_FAST_SOFTMAX_IMPL(data, size, fastExp); }
+void fastSoftmax(float* data, size_t size) { MA_MATH_FAST_SOFTMAX_IMPL(data, size, fastExp); }
 
 }  // namespace ma::math

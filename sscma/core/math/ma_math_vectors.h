@@ -6,9 +6,9 @@
 
 namespace ma::math {
 
-void softMax(float* data, size_t size);
+void softmax(float* data, size_t size);
 
-void fastSoftMax(float* data, size_t size);
+void fastSoftmax(float* data, size_t size);
 
 }  // namespace ma::math
 
