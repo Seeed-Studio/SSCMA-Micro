@@ -24,7 +24,7 @@ static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
 YoloWorld::YoloWorld(Engine* p_engine_) : Detector(p_engine_, "yolo_world", MA_MODEL_TYPE_YOLO_WORLD) {
     MA_ASSERT(p_engine_ != nullptr);
 
-    for (size_t i = 0; i < outputs_; ++i) {
+    for (size_t i = 0; i < num_outputs_; ++i) {
         outputs_[i] = p_engine_->getOutput(i);
     }
 
@@ -88,7 +88,7 @@ bool YoloWorld::isValid(Engine* engine) {
     auto anchor_strides_2 = anchor_strides_1;
 
     // Note: would fail if the model has 64 classes
-    for (size_t i = 0; i < outputs_; ++i) {
+    for (size_t i = 0; i < num_outputs_; ++i) {
         const auto output_shape{engine->getOutputShape(i)};
 
         if (output_shape.size != 3) {
@@ -130,7 +130,7 @@ const char* YoloWorld::getTag() { return "ma::model::yolo_world"; }
 ma_err_t YoloWorld::postprocess() {
     uint8_t check = 0;
 
-    for (size_t i = 0; i < outputs_; ++i) {
+    for (size_t i = 0; i < num_outputs_; ++i) {
         switch (outputs_[i].type) {
         case MA_TENSOR_TYPE_S8:
             break;
@@ -255,10 +255,10 @@ ma_err_t YoloWorld::postProcessI8() {
 ma_err_t YoloWorld::postProcessF32() {
     results_.clear();
 
-    const int8_t* output_data[num_outputs_];
+    const float* output_data[num_outputs_];
 
     for (size_t i = 0; i < num_outputs_; ++i) {
-        output_data[i] = outputs_[i].data.s8;
+        output_data[i] = outputs_[i].data.f32;
     }
 
     const auto score_threshold = threshold_score_;
