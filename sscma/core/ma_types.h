@@ -10,6 +10,11 @@
 #include "ma_config_internal.h"
 
 #ifdef __cplusplus
+
+    #include <cstddef>
+    #include <cstdint>
+    #include <vector>
+
 extern "C" {
 #endif
 
@@ -132,6 +137,19 @@ typedef struct {
 } ma_pt2f_t;
 
 typedef struct {
+    float x;
+    float y;
+    float z;
+} ma_pt3f_t;
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float t;
+} ma_pt4f_t;
+
+typedef struct {
     size_t stride;
     size_t split;
     size_t size;
@@ -150,14 +168,42 @@ typedef struct {
     int   target;
 } ma_class_t;
 
-typedef struct {
+struct ma_bbox_t {
     float x;
     float y;
     float w;
     float h;
     float score;
     int   target;
-} ma_bbox_t;
+};
+
+#ifdef __cplusplus
+struct ma_bbox_ext_t : public ma_bbox_t {
+    size_t level;
+    size_t index;
+};
+#endif
+
+struct ma_types {
+    /* data */
+};
+
+#ifdef __cplusplus
+struct ma_keypoint2f_t {
+    ma_bbox_t              box;
+    std::vector<ma_pt2f_t> pts;
+};
+
+struct ma_keypoint3f_t {
+    ma_bbox_t              box;
+    std::vector<ma_pt3f_t> pts;
+};
+
+struct ma_keypoint4f_t {
+    ma_bbox_t              box;
+    std::vector<ma_pt4f_t> pts;
+};
+#endif
 
 typedef enum {
     MA_MODEL_CFG_OPT_THRESHOLD = 0,
