@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_NvidiaDet_H
-#define _MA_MODEL_NVIDIA_DET
+#ifndef _MA_MODEL_NVIDIA_DET_
+#define _MA_MODEL_NVIDIA_DET_
 
 #include <vector>
 
