@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 namespace ma::math {
 
@@ -13,6 +14,12 @@ constexpr inline float fastLn(float x) {
 
     static_assert(sizeof(unsigned int) == sizeof(float));
     static_assert(sizeof(float) == 4);
+
+    if (x < 0.0f) [[unlikely]] {
+        return -std::numeric_limits<float>::quiet_NaN();
+    } else if (x == 0.0f) [[unlikely]] {
+        return -std::numeric_limits<float>::infinity();
+    }
 
     auto       bx{*reinterpret_cast<unsigned int*>(&x)};
     auto       ex{bx >> 23};

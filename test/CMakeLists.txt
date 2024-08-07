@@ -17,6 +17,8 @@ set(SSCMA_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/ma_config.h")
 
 include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
+include(math/CMakeLists.txt)
+
 list(APPEND srcs 
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_os.cpp
@@ -27,6 +29,8 @@ list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_storage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_pipeline.cpp
+
+    ${MA_TEST_MATH_SRCS}
 )
 
 list(APPEND include_dirs 
@@ -45,5 +49,6 @@ add_executable(${PROJECT_NAME} ${srcs})
 target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
 target_include_directories(${PROJECT_NAME} PRIVATE ${private_include_dirs})
 target_link_libraries(${PROJECT_NAME} PRIVATE sscma)
+target_link_libraries(${PROJECT_NAME} PRIVATE tflm)
 target_link_libraries(${PROJECT_NAME} PRIVATE gtest)
 
