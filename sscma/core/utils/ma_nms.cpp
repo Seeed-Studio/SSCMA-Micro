@@ -22,9 +22,14 @@ static inline float compute_iou(const T& box1, const T& box2) {
     return iou;
 }
 
-template <typename Container, typename T>
-static void nms(Container bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
-    std::sort(bboxes.begin(), bboxes.end(), [](const auto& box1, const auto& box2) { return box1.score > box2.score; });
+template <typename Container, typename T = typename Container::value_type>
+static void nms_impl(Container& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+    if constexpr (std::is_same_v<Container, std::forward_list<T>>) {
+        bboxes.sort([](const auto& box1, const auto& box2) { return box1.score > box2.score; });
+    } else {
+        std::sort(
+          bboxes.begin(), bboxes.end(), [](const auto& box1, const auto& box2) { return box1.score > box2.score; });
+    }
 
     for (auto it = bboxes.begin(); it != bboxes.end(); ++it) {
         if (it->score == 0) continue;
@@ -52,7 +57,7 @@ static void nms(Container bboxes, float threshold_iou, float threshold_score, bo
 }
 
 void nms(std::vector<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
-    nms(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
+    nms_impl(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
 }
 
 void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
@@ -60,7 +65,7 @@ void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
          float                             threshold_score,
          bool                              soft_nms,
          bool                              multi_target) {
-    nms(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
+    nms_impl(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
 }
 
 }  // namespace ma::utils
