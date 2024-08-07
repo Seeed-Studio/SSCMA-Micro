@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_YOLOV8_H
-#define _MA_MODEL_YOLOV8_H
+#ifndef _MA_MODEL_YOLOV8_H_
+#define _MA_MODEL_YOLOV8_H_
 
 #include "ma_model_detector.h"
 

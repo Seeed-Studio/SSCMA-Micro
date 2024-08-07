@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_YOLO_WORLD_H
-#define _MA_MODEL_YOLO_WORLD_H
+#ifndef _MA_MODEL_YOLO_WORLD_H_
+#define _MA_MODEL_YOLO_WORLD_H_
 
 #include <cstddef>
 #include <cstdint>

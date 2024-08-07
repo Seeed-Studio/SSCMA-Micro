@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_POSE_DETECTOR_H
-#define _MA_MODEL_POSE_DETECTOR_H
+#ifndef _MA_MODEL_POSE_DETECTOR_H_
+#define _MA_MODEL_POSE_DETECTOR_H_
 
 #include <vector>
 

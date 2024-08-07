@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_YOLOV8_POSE_H
-#define _MA_MODEL_YOLOV8_POSE_H
+#ifndef _MA_MODEL_YOLOV8_POSE_H_
+#define _MA_MODEL_YOLOV8_POSE_H_
 
 #include <cstddef>
 #include <cstdint>

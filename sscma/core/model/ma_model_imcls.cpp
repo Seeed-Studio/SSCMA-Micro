@@ -108,7 +108,7 @@ ma_err_t ImCls::postProcessI8() {
 ma_err_t ImCls::postProcessF32() {
     results_.clear();
 
-    const auto* data{output_.data.s8};
+    const auto* data{output_.data.f32};
     const auto  pred_l{output_.shape.dims[1]};
 
     for (decltype(pred_l) i = 0; i < pred_l; ++i) {

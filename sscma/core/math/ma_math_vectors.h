@@ -1,5 +1,5 @@
-#ifndef _MA_MATH_VECTORS_H
-#define _MA_MATH_VECTORS_H
+#ifndef _MA_MATH_VECTORS_H_
+#define _MA_MATH_VECTORS_H_
 
 #include <cstdint>
 #include <cstddef>

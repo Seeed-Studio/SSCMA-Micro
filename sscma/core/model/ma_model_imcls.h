@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_IMCLS_H
-#define _MA_MODEL_IMCLS_H
+#ifndef _MA_MODEL_IMCLS_H_
+#define _MA_MODEL_IMCLS_H_
 
 #include "ma_model_detector.h"
 

@@ -1,6 +1,6 @@
 
-#ifndef _MA_MATH_SCALARS_H
-#define _MA_MATH_SCALARS_H
+#ifndef _MA_MATH_SCALARS_H_
+#define _MA_MATH_SCALARS_H_
 
 #include <cmath>
 #include <cstdint>
