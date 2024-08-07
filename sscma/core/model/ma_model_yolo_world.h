@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "ma_model_detector.h"
-#include "ma_types.h"
+#include "core/ma_types.h"
 
 namespace ma::model {
 
@@ -27,7 +27,7 @@ class YoloWorld : public Detector {
     ma_err_t postprocess() override;
 
     ma_err_t postProcessI8();
-    ma_err_t postprocessF32();
+    ma_err_t postProcessF32();
 
    public:
     YoloWorld(Engine* engine);

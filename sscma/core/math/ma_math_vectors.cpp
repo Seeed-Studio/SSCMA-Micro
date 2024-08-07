@@ -12,8 +12,8 @@ namespace ma::math {
     #undef MA_MATH_FAST_SOFTMAX_IMPL
 #endif
 
-#define MA_MATH_FAST_SOFTMAX_IMPL                                    \
-    (data, size, exp_f) {                                            \
+#define MA_MATH_FAST_SOFTMAX_IMPL(data, size, exp_f)                 \
+    {                                                                \
         if (!data) [[unlikely]] {                                    \
             return;                                                  \
         }                                                            \

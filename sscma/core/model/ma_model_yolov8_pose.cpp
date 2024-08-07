@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <forward_list>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -94,20 +95,25 @@ bool YoloV8Pose::isValid(Engine* engine) {
 
     auto anchor_strides_1 = ma::utils::generateAnchorStrides(std::min(h, w));
     auto anchor_strides_2 = anchor_strides_1;
+    auto sum =
+      std::accumulate(anchor_strides_1.begin(), anchor_strides_1.end(), 0u, [](auto sum, const auto& anchor_stride) {
+          return sum + anchor_stride.size;
+      });
 
     // Note: would fail if the model has 64 classes
     for (size_t i = 0; i < num_outputs_; ++i) {
         const auto output_shape{engine->getOutputShape(i)};
         if (output_shape.size != 3 || output_shape.dims[0] != 1) {
-            return false
-        };
+            return false;
+        }
 
         switch (output_shape.dims[2]) {
         case 1: {
-            auto it = std::find_if(
-              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
-                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-              });
+            auto it = std::find_if(anchor_strides_1.begin(),
+                                   anchor_strides_1.end(),
+                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                                   });
             if (it == anchor_strides_1.end()) {
                 return false;
             } else {
@@ -116,10 +122,11 @@ bool YoloV8Pose::isValid(Engine* engine) {
         } break;
 
         case 64: {
-            auto it = std::find_if(
-              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
-                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-              });
+            auto it = std::find_if(anchor_strides_2.begin(),
+                                   anchor_strides_2.end(),
+                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                                   });
             if (it == anchor_strides_2.end()) {
                 return false;
             } else {
@@ -168,7 +175,7 @@ ma_err_t YoloV8Pose::postprocess() {
         return postProcessI8();
 
     case 0b1111111:
-        return postprocessF32();
+        return postProcessF32();
 
     default:
         return MA_ENOTSUP;
@@ -262,8 +269,17 @@ ma_err_t YoloV8Pose::postProcessI8() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            multi_level_bboxes.emplace_front(
-              {.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target, .level = i, .index = j});
+            ma_bbox_ext_t bbox_ext;
+            bbox_ext.x      = cx;
+            bbox_ext.y      = cy;
+            bbox_ext.w      = w;
+            bbox_ext.h      = h;
+            bbox_ext.score  = real_score;
+            bbox_ext.target = target;
+            bbox_ext.level  = i;
+            bbox_ext.index  = j;
+
+            multi_level_bboxes.emplace_front(std::move(bbox_ext));
         }
     }
 
@@ -283,7 +299,7 @@ ma_err_t YoloV8Pose::postProcessI8() {
     std::vector<ma_pt3f_t> n_keypoint(keypoint_nums);
 
     for (const auto& bbox : multi_level_bboxes) {
-        const auto pre = (_anchor_strides[bbox.level].start + bbox.index) * output_keypoints_dims_2;
+        const auto pre = (anchor_strides_[bbox.level].start + bbox.index) * output_keypoints_dims_2;
 
         for (size_t i = 0; i < keypoint_nums; ++i) {
             const auto offset = pre + i * 3;
@@ -393,8 +409,17 @@ ma_err_t YoloV8Pose::postProcessF32() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            multi_level_bboxes.emplace_front(
-              {.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target, .level = i, .index = j});
+            ma_bbox_ext_t bbox_ext;
+            bbox_ext.x      = cx;
+            bbox_ext.y      = cy;
+            bbox_ext.w      = w;
+            bbox_ext.h      = h;
+            bbox_ext.score  = real_score;
+            bbox_ext.target = target;
+            bbox_ext.level  = i;
+            bbox_ext.index  = j;
+
+            multi_level_bboxes.emplace_front(std::move(bbox_ext));
         }
     }
 
@@ -414,7 +439,7 @@ ma_err_t YoloV8Pose::postProcessF32() {
     std::vector<ma_pt3f_t> n_keypoint(keypoint_nums);
 
     for (const auto& bbox : multi_level_bboxes) {
-        const auto pre = (_anchor_strides[bbox.level].start + bbox.index) * output_keypoints_dims_2;
+        const auto pre = (anchor_strides_[bbox.level].start + bbox.index) * output_keypoints_dims_2;
 
         for (size_t i = 0; i < keypoint_nums; ++i) {
             const auto offset = pre + i * 3;

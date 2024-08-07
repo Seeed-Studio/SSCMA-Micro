@@ -2,7 +2,7 @@
 
 namespace ma::utils {
 
-std::vector<ma_anchor_stride_t> generateAnchorStrides(size_t input_size, std::vector<size_t> strides = {8, 16, 32}) {
+std::vector<ma_anchor_stride_t> generateAnchorStrides(size_t input_size, std::vector<size_t> strides) {
     std::vector<ma_anchor_stride_t> anchor_strides(strides.size());
     size_t                          nth_anchor = 0;
 
@@ -18,8 +18,8 @@ std::vector<ma_anchor_stride_t> generateAnchorStrides(size_t input_size, std::ve
 }
 
 std::vector<std::vector<ma_pt2f_t>> generateAnchorMatrix(const std::vector<ma_anchor_stride_t>& anchor_strides,
-                                                         float                                  shift_right = 1.f,
-                                                         float                                  shift_down  = 1.f) {
+                                                         float                                  shift_right,
+                                                         float                                  shift_down) {
     const auto                          anchor_matrix_size = anchor_strides.size();
     std::vector<std::vector<ma_pt2f_t>> anchor_matrix(anchor_matrix_size);
     const float                         shift_right_init = shift_right * 0.5f;

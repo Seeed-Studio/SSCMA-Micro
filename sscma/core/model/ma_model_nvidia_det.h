@@ -7,8 +7,8 @@
 
 namespace ma::model {
 
-class _MA_MODEL_NVIDIA_DET : public Detector {
-private:
+class NvidiaDet : public Detector {
+   private:
     ma_shape_t conf_shape_;
     ma_shape_t bboxes_shape_;
 
@@ -16,15 +16,18 @@ private:
     int8_t scale_  = 35;
     float  offset_ = 0.5;
 
-protected:
+   protected:
     ma_err_t postprocess() override;
 
     ma_err_t postprocessF32();
 
-public:
+   public:
     NvidiaDet(Engine* engine);
     ~NvidiaDet();
+
     static bool isValid(Engine* engine);
+
+    static const char* getTag();
 };
 
 }  // namespace ma::model

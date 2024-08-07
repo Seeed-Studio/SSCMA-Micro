@@ -96,20 +96,22 @@ bool YoloWorld::isValid(Engine* engine) {
         }
 
         if (output_shape.dims[2] == 64) {
-            auto it = std::find_if(
-              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
-                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-              });
+            auto it = std::find_if(anchor_strides_2.begin(),
+                                   anchor_strides_2.end(),
+                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                                   });
             if (it == anchor_strides_2.end()) {
                 return false;
             } else {
                 anchor_strides_2.erase(it);
             }
         } else {
-            auto it = std::find_if(
-              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
-                  return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-              });
+            auto it = std::find_if(anchor_strides_1.begin(),
+                                   anchor_strides_1.end(),
+                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                                   });
             if (it == anchor_strides_1.end()) {
                 return false;
             } else {
@@ -149,7 +151,7 @@ ma_err_t YoloWorld::postprocess() {
         return postProcessI8();
 
     case 0b111111:
-        return postprocessF32();
+        return postProcessF32();
 
     default:
         return MA_ENOTSUP;
@@ -241,7 +243,7 @@ ma_err_t YoloWorld::postProcessI8() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            results_.emplace_back({.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
+            results_.push_back(ma_bbox_t{.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
         }
     }
 
@@ -329,7 +331,7 @@ ma_err_t YoloWorld::postProcessF32() {
             float w  = dist[0] + dist[2];
             float h  = dist[1] + dist[3];
 
-            results_.emplace_back({.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
+            results_.emplace_back(ma_bbox_t{.x = cx, .y = cy, .w = w, .h = h, .score = real_score, .target = target});
         }
     }
 

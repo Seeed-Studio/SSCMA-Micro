@@ -10,7 +10,7 @@
 
 namespace ma::model {
 
-ImCls::ImCls(Engine* p_engine_) : Detector(p_engine_, "imcls", MA_MODEL_TYPE_IMCLS) {
+ImCls::ImCls(Engine* p_engine_) : Classifier(p_engine_) {
     MA_ASSERT(p_engine_ != nullptr);
 
     output_ = p_engine_->getOutput(0);
@@ -84,23 +84,22 @@ ma_err_t ImCls::postProcessI8() {
 
     const auto scale{output_.quant_param.scale};
     const auto zero_point{output_.quant_param.zero_point};
-    const bool normalized{
-      (scale * (std::numeric_limits<decltype(*data)>::max() - std::numeric_limits<decltype(*data)>::min())) <= 1.0};
+    const bool normalized{(scale * (std::numeric_limits<int8_t>::max() - std::numeric_limits<int8_t>::min())) <= 1.0};
 
-    const auto pred_l{output_.shape.dims[1]};
+    auto pred_l{output_.shape.dims[1]};
 
     for (decltype(pred_l) i = 0; i < pred_l; ++i) {
         float score = ma::math::dequantizeValue(static_cast<int32_t>(data[i]), scale, zero_point);
         score       = normalized ? score : score / 100.f;
 
         if (score >= threshold_score_) {
-            results_.emplace_back({.score = score, .target = i});
+            results_.push_back(ma_class_t{.score = score, .target = i});
         }
     }
 
     results_.shrink_to_fit();
 
-    results_.sort([](const auto& a, const auto& b) { return a.score > b.score; });
+    std::sort(results_.begin(), results_.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
 
     return MA_OK;
 }
@@ -109,19 +108,19 @@ ma_err_t ImCls::postProcessF32() {
     results_.clear();
 
     const auto* data{output_.data.f32};
-    const auto  pred_l{output_.shape.dims[1]};
+    auto        pred_l{output_.shape.dims[1]};
 
     for (decltype(pred_l) i = 0; i < pred_l; ++i) {
         const float score = data[i];
 
         if (score >= threshold_score_) {
-            results_.emplace_back({.score = score, .target = i});
+            results_.push_back(ma_class_t{.score = score, .target = i});
         }
     }
 
     results_.shrink_to_fit();
 
-    results_.sort([](const auto& a, const auto& b) { return a.score > b.score; });
+    std::sort(results_.begin(), results_.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
 
     return MA_OK;
 }

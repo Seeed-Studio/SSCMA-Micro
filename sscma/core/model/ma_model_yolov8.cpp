@@ -92,15 +92,14 @@ ma_err_t YoloV8::postProcessI8() {
 
     const auto scale{output_.quant_param.scale};
     const auto zero_point{output_.quant_param.zero_point};
-    const bool normalized{
-      (scale * (std::numeric_limits<decltype(*data)>::max() - std::numeric_limits<decltype(*data)>::min())) <= 1.0};
+    const bool normalized{(scale * (std::numeric_limits<int8_t>::max() - std::numeric_limits<int8_t>::min())) <= 1.0};
 
     for (decltype(num_record_) i = 0; i < num_record_; ++i) {
         uint16_t target = 0;
-        auto     max    = std::numeric_limits<decltype(*data)>::min();
+        auto     max    = std::numeric_limits<int8_t>::min();
 
         for (decltype(num_class_) t = 0; t < num_class_; ++t) {
-            const auto n = data[idx + (t + INDEX_T) * num_record];
+            const auto n = data[i + (t + INDEX_T) * num_record_];
             if (max < n) {
                 max    = n;
                 target = t;
@@ -108,10 +107,10 @@ ma_err_t YoloV8::postProcessI8() {
         }
 
         float score =
-          ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_S * num_record]), scale, zero_point);
+          ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_S * num_record_]), scale, zero_point);
         score = normalized ? score : std::round(score / 100.f);
 
-        if (score > score_threshold) {
+        if (score > threshold_score_) {
             ma_bbox_t box;
 
             box.score  = score;
@@ -119,13 +118,13 @@ ma_err_t YoloV8::postProcessI8() {
 
             // get box position, int8_t - int32_t (narrowing)
             float x =
-              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_X * num_record]), scale, zero_point);
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_X * num_record_]), scale, zero_point);
             float y =
-              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_Y * num_record]), scale, zero_point);
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_Y * num_record_]), scale, zero_point);
             float w =
-              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_W * num_record]), scale, zero_point);
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_W * num_record_]), scale, zero_point);
             float h =
-              ma::math::dequantizeValue(static_cast<int32_t>(data[idx + INDEX_H * num_record]), scale, zero_point);
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_H * num_record_]), scale, zero_point);
 
             if (!normalized) {
                 x = x / img_.width;
@@ -152,10 +151,10 @@ ma_err_t YoloV8::postProcessF32() {
 
     for (decltype(num_record_) i = 0; i < num_record_; ++i) {
         uint16_t target = 0;
-        auto     max    = std::numeric_limits<decltype(*data)>::min();
+        auto     max    = std::numeric_limits<float>::min();
 
         for (decltype(num_class_) t = 0; t < num_class_; ++t) {
-            const auto n = data[idx + (t + INDEX_T) * num_record];
+            const auto n = data[i + (t + INDEX_T) * num_record_];
             if (max < n) {
                 max    = n;
                 target = t;
@@ -164,17 +163,17 @@ ma_err_t YoloV8::postProcessF32() {
 
         const float score{max};
 
-        if (score >= score_threshold) {
+        if (score >= threshold_score_) {
             ma_bbox_t box;
 
             box.score  = score;
             box.target = target;
 
             // get box position, int8_t - int32_t (narrowing)
-            float x = data[idx + INDEX_X * num_record];
-            float y = data[idx + INDEX_Y * num_record];
-            float w = data[idx + INDEX_W * num_record];
-            float h = data[idx + INDEX_H * num_record];
+            float x = data[i + INDEX_X * num_record_];
+            float y = data[i + INDEX_Y * num_record_];
+            float w = data[i + INDEX_W * num_record_];
+            float h = data[i + INDEX_H * num_record_];
 
             results_.push_back(std::move(box));
         }

@@ -8,8 +8,6 @@
 
 namespace ma::model {
 
-constexpr char TAG[] = "ma::model::yolo";
-
 NvidiaDet::NvidiaDet(Engine* p_engine_) : Detector(p_engine_, "nvidia_det", MA_MODEL_TYPE_NVIDIA_DET) {
     MA_ASSERT(p_engine_ != nullptr);
 }
@@ -56,6 +54,8 @@ bool NvidiaDet::isValid(Engine* engine) {
 
     return true;
 }
+
+const char* NvidiaDet::getTag() { return "ma::model::nvidia_det"; }
 
 ma_err_t NvidiaDet::postprocess() {
     uint8_t check = 0;
@@ -112,16 +112,13 @@ ma_err_t NvidiaDet::postprocessF32() {
                 if (conf[h * (W * N) + w * N + j] > 0.2) {
                     ma_bbox_t box;
 
-                    box.x = max(w * stride_ + offset_ - bboxs[h * (W * C) + w * C + j * 4] * scale_, 0.0) / img_.width;
-                    box.y =
-                      max(h * stride_ + offset_ - bboxs[h * (W * C) + w * C + j * 4 + 1] * scale_, 0.0) / img_.height;
-                      
-                    box.w = (min(w * stride_ + offset_ + bboxs[h * (W * C) + w * C + j * 4 + 2] * scale_, W * stride_) /
-                             img_.width) -
-                            box.x;
-                    box.h = (min(h * stride_ + offset_ + bboxs[h * (W * C) + w * C + j * 4 + 3] * scale_, H * stride_) /
-                             img_.height) -
-                            box.y;
+                    box.x = (w * stride_ + offset_ - bboxs[h * (W * C) + w * C + j * 4] * scale_) / img_.width;
+                    box.y = (h * stride_ + offset_ - bboxs[h * (W * C) + w * C + j * 4 + 1] * scale_) / img_.height;
+
+                    box.w =
+                      ((w * stride_ + offset_ + bboxs[h * (W * C) + w * C + j * 4 + 2] * scale_) / img_.width) - box.x;
+                    box.h =
+                      ((h * stride_ + offset_ + bboxs[h * (W * C) + w * C + j * 4 + 3] * scale_) / img_.height) - box.y;
 
                     box.x = box.x + box.w / 2;
                     box.y = box.y + box.h / 2;
@@ -139,7 +136,7 @@ ma_err_t NvidiaDet::postprocessF32() {
 
     results_.shrink_to_fit();
 
-    return EL_OK;
+    return MA_OK;
 }
 
 }  // namespace ma::model

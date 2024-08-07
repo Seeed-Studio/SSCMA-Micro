@@ -1,11 +1,11 @@
 #ifndef _MA_MODEL_IMCLS_H_
 #define _MA_MODEL_IMCLS_H_
 
-#include "ma_model_detector.h"
+#include "ma_model_classifier.h"
 
 namespace ma::model {
 
-class ImCls : public Detector {
+class ImCls : public Classifier {
    private:
     ma_tensor_t output_;
 

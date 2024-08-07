@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "ma_model_detector.h"
+#include "ma_model_pose_detector.h"
 
 namespace ma::model {
 
@@ -28,7 +28,7 @@ class YoloV8Pose : public PoseDetector {
     ma_err_t postprocess() override;
 
     ma_err_t postProcessI8();
-    ma_err_t postprocessF32();
+    ma_err_t postProcessF32();
 
    public:
     YoloV8Pose(Engine* engine);
