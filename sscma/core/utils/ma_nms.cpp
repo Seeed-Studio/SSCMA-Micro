@@ -4,27 +4,27 @@
 #include <algorithm>
 #include <cmath>
 #include <forward_list>
+#include <type_traits>
 #include <vector>
 
 namespace ma::utils {
 
-template <typename Container,
-          typename T = typename Container::value_type,
-          std::enable_if_t<has_iterator_support_v<Container> && std::is_base_of_v<ma_bbox_t, T>, bool> = true>
-constexpr void nms(Container bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
-    std::sort(bboxes.begin(), bboxes.end(), [](const auto& box1, const auto& box2) { return box1.score > box2.score; });
+template <typename T, std::enable_if_t<std::is_base_of_v<ma_bbox_t, T>, bool> = true>
+static inline float compute_iou(const T& box1, const T& box2) {
+    float x1    = std::max(box1.x, box2.x);
+    float y1    = std::max(box1.y, box2.y);
+    float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
+    float y2    = std::min(box1.y + box1.h, box2.y + box2.h);
+    float w     = std::max(0.0f, x2 - x1);
+    float h     = std::max(0.0f, y2 - y1);
+    float inter = w * h;
+    float iou   = inter / (box1.w * box1.h + box2.w * box2.h - inter);
+    return iou;
+}
 
-    static const auto compute_iou = [](const auto& box1, const auto& box2) {
-        float x1    = std::max(box1.x, box2.x);
-        float y1    = std::max(box1.y, box2.y);
-        float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
-        float y2    = std::min(box1.y + box1.h, box2.y + box2.h);
-        float w     = std::max(0.0f, x2 - x1);
-        float h     = std::max(0.0f, y2 - y1);
-        float inter = w * h;
-        float iou   = inter / (box1.w * box1.h + box2.w * box2.h - inter);
-        return iou;
-    };
+template <typename Container, typename T>
+static void nms(Container bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+    std::sort(bboxes.begin(), bboxes.end(), [](const auto& box1, const auto& box2) { return box1.score > box2.score; });
 
     for (auto it = bboxes.begin(); it != bboxes.end(); ++it) {
         if (it->score == 0) continue;
@@ -51,7 +51,16 @@ constexpr void nms(Container bboxes, float threshold_iou, float threshold_score,
     }
 }
 
-template void nms(std::forward_list<ma_bbox_ext_t>&, float, float, bool, bool);
-template void nms(std::vector<ma_bbox_t>&, float, float, bool, bool);
+void nms(std::vector<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+    nms(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
+}
+
+void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
+         float                             threshold_iou,
+         float                             threshold_score,
+         bool                              soft_nms,
+         bool                              multi_target) {
+    nms(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
+}
 
 }  // namespace ma::utils

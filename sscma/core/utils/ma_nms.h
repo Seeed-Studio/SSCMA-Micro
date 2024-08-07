@@ -2,25 +2,23 @@
 #define _MA_NMS_H_
 
 #include <algorithm>
+#include <forward_list>
 #include <iterator>
-#include <type_traits>
+#include <vector>
 
 #include "core/ma_types.h"
 
 namespace ma::utils {
 
-template <typename T, typename = std::void_t<>> struct has_iterator_support : std::false_type {};
+// skip use of template since it is not allowed
 
-template <typename T>
-struct has_iterator_support<T, std::void_t<typename T::iterator, typename T::const_iterator>> : std::true_type {};
+void nms(std::vector<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target);
 
-template <typename T> constexpr bool has_iterator_support_v = has_iterator_support<T>::value;
-
-template <typename Container,
-          typename T = typename Container::value_type,
-          std::enable_if_t<has_iterator_support_v<Container> && std::is_base_of_v<ma_bbox_t, T>, bool> = true>
- constexpr void nms(
-  Container bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target);
+void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
+         float                             threshold_iou,
+         float                             threshold_score,
+         bool                              soft_nms,
+         bool                              multi_target);
 
 }  // namespace ma::utils
 
