@@ -7,6 +7,7 @@
 #include "Eigen/Dense"
 
 namespace ma {
+
 TEST(MISC, MiscCheckEigenInstall) {
     using Eigen::MatrixXd;
 
@@ -22,4 +23,5 @@ TEST(MISC, MiscCheckEigenInstall) {
     EXPECT_EQ(m(0, 1), -1);
     EXPECT_EQ(m(1, 1), 1.5);
 }
+
 }  // namespace ma

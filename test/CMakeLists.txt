@@ -19,6 +19,7 @@ include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
 include(math/CMakeLists.txt)
 include(misc/CMakeLists.txt)
+include(utils/CMakeLists.txt)
 
 list(APPEND srcs 
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
@@ -35,6 +36,7 @@ list(APPEND srcs
 list(APPEND srcs
     ${MA_TEST_MATH_SRCS}
     ${MA_TEST_MISC_SRCS}
+    ${MA_TEST_UTILS_SRCS}
 )
 
 list(APPEND include_dirs 
