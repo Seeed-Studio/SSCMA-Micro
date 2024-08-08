@@ -2,7 +2,7 @@
  * MIT License
  * Copyright (c) 2021 Yifu Zhang
  *
- * Modified by nullptr, Apr 15, 2024, Seeed Technology Co.,Ltd
+ * Modified by nullptr, Aug 8, 2024, Seeed Technology Co.,Ltd
 */
 
 #include "byte_tracker.h"
