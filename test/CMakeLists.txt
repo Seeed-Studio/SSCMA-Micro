@@ -18,6 +18,7 @@ set(SSCMA_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/ma_config.h")
 include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
 include(math/CMakeLists.txt)
+include(misc/CMakeLists.txt)
 
 list(APPEND srcs 
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
@@ -31,6 +32,7 @@ list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_pipeline.cpp
 
     ${MA_TEST_MATH_SRCS}
+    ${MA_TEST_MISC_SRCS}
 )
 
 list(APPEND include_dirs 

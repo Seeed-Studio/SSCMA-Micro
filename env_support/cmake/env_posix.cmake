@@ -40,3 +40,11 @@ target_link_libraries(sscma PUBLIC tflm)
 target_link_libraries(sscma PUBLIC cjson)
 endif()
 
+if(SSCMA_EXTENSION_BYTETRACK)
+set(SSCMA_REQUIRE_LIB_EIGEN 1)
+endif()
+
+if(SSCMA_REQUIRE_LIB_EIGEN)
+include(${SSCMA_ROOT_DIR}/3rdparty/eigen/CMakeLists.txt)
+target_link_libraries(sscma PUBLIC Eigen3::Eigen)
+endif()
