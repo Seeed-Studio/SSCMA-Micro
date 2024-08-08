@@ -30,7 +30,9 @@ list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_server.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_storage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_pipeline.cpp
+)
 
+list(APPEND srcs
     ${MA_TEST_MATH_SRCS}
     ${MA_TEST_MISC_SRCS}
 )
