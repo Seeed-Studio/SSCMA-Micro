@@ -87,10 +87,10 @@
 	{HX_CIS_I2C_Action_W, 0x583F, 0x80}, // MIN
 
 	// AEC/AGC Area
-	{HX_CIS_I2C_Action_W, 0x3a0f, 0x30}, 
-	{HX_CIS_I2C_Action_W, 0x3a10, 0x20},
-	{HX_CIS_I2C_Action_W, 0x3a1b, 0x30},
-	{HX_CIS_I2C_Action_W, 0x3a1e, 0x20},
+	{HX_CIS_I2C_Action_W, 0x3a0f, 0x32}, 
+	{HX_CIS_I2C_Action_W, 0x3a10, 0x24},
+	{HX_CIS_I2C_Action_W, 0x3a1b, 0x32},
+	{HX_CIS_I2C_Action_W, 0x3a1e, 0x24},
 
 	// AGC/AEC Average Area & weight
 	{HX_CIS_I2C_Action_W, 0x5680, 0x00},
@@ -145,6 +145,7 @@
 	{HX_CIS_I2C_Action_W, 0x5821, 0x20}, //default 0x10
 	{HX_CIS_I2C_Action_W, 0x5822, 0x20}, //default 0x10
 	{HX_CIS_I2C_Action_W, 0x5823, 0x20}, //default 0x10
+
 
 	{HX_CIS_I2C_Action_W, 0x3a11, 0x60},
 	{HX_CIS_I2C_Action_W, 0x3a1f, 0x28},

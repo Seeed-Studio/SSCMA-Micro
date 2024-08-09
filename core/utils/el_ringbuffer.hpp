@@ -7,6 +7,7 @@ namespace edgelab {
 class lwRingBuffer {
    public:
     lwRingBuffer(size_t len) : buf(new char[len]), len(len), head(0), tail(0) {}
+    lwRingBuffer(char *buf, size_t len) : buf(buf), len(len), head(0), tail(0) {}
     ~lwRingBuffer() { delete[] buf; }
 
     void put(char c) {

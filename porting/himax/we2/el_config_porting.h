@@ -44,7 +44,7 @@
     #endif
 #endif
 
-#define CONFIG_EL_DEBUG                0  // use 0 to make firmware generator happy
+#define CONFIG_EL_DEBUG                4  // use 0 to make firmware generator happy
 #define CONFIG_EL_DEBUG_COLOR          0
 #define CONFIG_EL_HAS_FREERTOS_SUPPORT 1
 #define SSCMA_REPL_EXECUTOR_PRIO       2
@@ -98,20 +98,20 @@
 extern const struct fal_flash_dev _el_flash_db_nor_flash0;
 
     #define NOR_FLASH_DEV_NAME CONFIG_EL_STORAGE_PARTITION_MOUNT_POINT
-    #define FAL_FLASH_DEV_TABLE \
-        { &_el_flash_db_nor_flash0, }
+    #define FAL_FLASH_DEV_TABLE     \
+        {                           \
+          &_el_flash_db_nor_flash0, \
+        }
 
     #define FAL_PART_HAS_TABLE_CFG
     #ifdef FAL_PART_HAS_TABLE_CFG
-        #define FAL_PART_TABLE                          \
-            {                                           \
-                {FAL_PART_MAGIC_WORD,                   \
-                 CONFIG_EL_STORAGE_PARTITION_FS_NAME_0, \
-                 NOR_FLASH_DEV_NAME,                    \
-                 0,                                     \
-                 CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0, \
-                 0},                                    \
-            }
+        #define FAL_PART_TABLE                        \
+            {                                         \
+              {FAL_PART_MAGIC_WORD,                   \
+               CONFIG_EL_STORAGE_PARTITION_FS_NAME_0, NOR_FLASH_DEV_NAME,                    \
+               0, CONFIG_EL_STORAGE_PARTITION_FS_SIZE_0, \
+               0},                                    \
+}
     #endif
 
     #define FDB_USING_KVDB

@@ -1,7 +1,7 @@
 		{HX_CIS_I2C_Action_W, 0x3000, 0x0f},
 		{HX_CIS_I2C_Action_W, 0x3001, 0xff},
 		{HX_CIS_I2C_Action_W, 0x3002, 0xe4},
-		{HX_CIS_I2C_Action_S, 0x0005, 0x00},  //delay 5ms
+		{HX_CIS_I2C_Action_S, 0x0005, 0x00},	//delay 5ms
 		{HX_CIS_I2C_Action_W, 0x0100, 0x00},
 		{HX_CIS_I2C_Action_W, 0x0103, 0x01},
 		{HX_CIS_I2C_Action_W, 0x3035, 0x11},
