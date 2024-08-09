@@ -281,6 +281,8 @@ class Server {
 
         std::transform(cmd_name.begin(), cmd_name.end(), cmd_name.begin(), ::toupper);
 
+        EL_LOGD("cmd_name: %s", cmd_name.c_str());
+
         // check if cmd_name is valid (starts with "AT+")
         if (cmd_name.rfind("AT+", 0) != 0) {
             m_echo_cb(caller, EL_EINVAL, "Unknown command: ", cmd, "\n");

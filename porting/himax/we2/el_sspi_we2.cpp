@@ -123,8 +123,8 @@ el_err_code_t sspiWE2::init() {
 
     this->_is_present = this->spi ? true : false;
 
-    this->tx_ring_buffer = new lwRingBuffer(SPI_WRITE_PL_LEN * 16);
-    this->rx_ring_buffer = new lwRingBuffer(SPI_READ_PL_LEN * 4);
+    this->tx_ring_buffer = new lwRingBuffer((char *)SPI_TRANSPORT_TX_BASE_ADDR, SPI_TRANSPORT_TX_BASE_SIZE);
+    this->rx_ring_buffer = new lwRingBuffer((char *)SPI_TRANSPORT_RX_BASE_ADDR, SPI_TRANSPORT_RX_BASE_SIZE);
 
     this->sspi_read_enable(sizeof(this->rx_buffer));
 

@@ -23,6 +23,7 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event);
 #define SKIP_FRAME_COUNT (2)
 
 extern volatile bool     _initiated_before;
+extern volatile bool     _switch_qtable;
 extern volatile bool     _frame_ready;
 extern volatile uint32_t _frame_count;
 extern volatile uint32_t _wdma1_baseaddr;

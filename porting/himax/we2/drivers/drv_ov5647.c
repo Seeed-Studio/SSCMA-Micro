@@ -31,9 +31,7 @@ static HX_CIS_SensorSetting_t OV5647_stream_off[] = {
 
 static HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
   {HX_CIS_I2C_Action_W, 0x0101,       0x00},
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
   {HX_CIS_I2C_Action_W, 0x3821, 0b00000111},
-#endif
 };
 
 el_err_code_t drv_ov5647_probe() {
@@ -313,7 +311,7 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     _frame.height = height;
     _frame.rotate = EL_PIXEL_ROTATE_0;
     _frame.format = EL_PIXEL_FORMAT_YUV422;
-    _frame.size   = width * height * 3 / 2;
+    _frame.size   = width * height * 2;
 
     _jpeg.width  = width;
     _jpeg.height = height;
@@ -339,7 +337,6 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
 #endif
         sensordplib_set_xDMA_baseaddrbyapp(_wdma1_baseaddr, _wdma2_baseaddr, _wdma3_baseaddr);
         sensordplib_set_jpegfilesize_addrbyapp(_jpegsize_baseaddr);
-
 #if ENABLE_SENSOR_FAST_SWITCH
         // BLOCK END
     }
@@ -362,7 +359,11 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
     jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
-
+    if (_switch_qtable == true) {
+        jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+        _switch_qtable          = false;
+        EL_LOGD("switch qtable: %d", jpeg_cfg.jpeg_encqtable);
+    }
     // #if defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
     //     if (width > 240 && height > 240) {
     //         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
