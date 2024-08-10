@@ -89,6 +89,7 @@ class Executor {
                 task(_task_stop_requested);
                 if (_task_stop_requested.load()) [[unlikely]]                      // did request stop
                     _task_stop_requested.store(false, std::memory_order_seq_cst);  // reset the flag
+                Device::get_device()->yield();
                 continue;                                                          // skip yield
             }
             _task_stop_requested.store(false, std::memory_order_seq_cst);
