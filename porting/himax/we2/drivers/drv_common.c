@@ -53,7 +53,6 @@ void (*_drv_dp_event_cb_on_frame_ready)() = NULL;
 void (*_drv_dp_on_stop_stream)()          = NULL;
 
 void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
-
     switch (event) {
     case SENSORDPLIB_STATUS_XDMA_FRAME_READY:
         ++_frame_count;
@@ -67,12 +66,12 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
             _drv_dp_event_cb_on_frame_ready();
         }
         break;
-    case SENSORDPLIB_STATUS_XDMA_WDMA2_ABNORMAL3:
-    case SENSORDPLIB_STATUS_XDMA_WDMA2_ABNORMAL4:
-    case SENSORDPLIB_STATUS_XDMA_WDMA3_ABNORMAL2:
-        _initiated_before = true;  // do not reinit
-        _switch_qtable    = true;
-        break;
+    // case SENSORDPLIB_STATUS_XDMA_WDMA2_ABNORMAL3:
+    // case SENSORDPLIB_STATUS_XDMA_WDMA2_ABNORMAL4:
+    // case SENSORDPLIB_STATUS_XDMA_WDMA3_ABNORMAL2:
+    //     _initiated_before = true;  // do not reinit
+    //     _switch_qtable    = true;
+    //     break;
     default:
         _initiated_before = false;
         EL_LOGW("unkonw event: %d", event);
@@ -86,7 +85,7 @@ el_err_code_t _drv_capture(uint32_t timeout) {
     while (!_frame_ready) {
         if (el_get_time_ms() - time >= timeout) {
             EL_LOGW("frame timeout\n");
-            // _initiated_before = false; 
+            _initiated_before = false;
             return EL_ETIMOUT;
         }
         el_sleep(3);

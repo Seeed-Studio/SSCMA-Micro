@@ -189,7 +189,7 @@ el_err_code_t CameraWE2::start_stream() {
         }
     }
 
-    auto ret = _drv_capture(200);
+    auto ret = _drv_capture(500);
 
     if (ret == EL_OK) [[likely]] {
         this->_is_streaming = true;
