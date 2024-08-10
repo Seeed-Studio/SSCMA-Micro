@@ -53,8 +53,9 @@ void set_sensor(
             ret = camera->init(opt_id);  // TODO: custom resolution
             if (ret != EL_OK) [[unlikely]]
                 goto SensorError;
-
+#ifndef CONFIG_EL_BOARD_SENSECAP_WATCHER  // watcher does not store sensor id
             static_resource->storage->emplace(el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_OPT, opt_id));
+#endif
         }
 
         // set the sensor state to available
@@ -65,11 +66,13 @@ void set_sensor(
         // if sensor id changed, update current sensor id
         if (static_resource->current_sensor_id != sensor_id) {
             static_resource->current_sensor_id = sensor_id;
+#ifndef CONFIG_EL_BOARD_SENSECAP_WATCHER  // watcher does not store sensor id
             if (!called_by_event)
                 ret = static_resource->storage->emplace(
                         el_make_storage_kv(SSCMA_STORAGE_KEY_CONF_SENSOR_ID, static_resource->current_sensor_id))
                         ? EL_OK
                         : EL_EIO;
+#endif
         }
     } else
         ret = EL_ENOTSUP;
