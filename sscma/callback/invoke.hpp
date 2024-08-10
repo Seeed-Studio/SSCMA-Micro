@@ -292,11 +292,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                       static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), value, ret, caller](const std::atomic<bool>&) mutable {
                             if (ret == EL_OK) [[likely]] {
-                                algorithm->set_score_threshold(value);
-                                ret = static_resource->storage->emplace(
-                                        el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
-                                        ? EL_OK
-                                        : EL_EIO;
+                                if (algorithm->get_score_threshold() != value) [[likely]] {
+                                    algorithm->set_score_threshold(value);
+                                    ret = static_resource->storage->emplace(
+                                            el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
+                                            ? EL_OK
+                                            : EL_EIO;
+                                }
                             }
                             auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                                    cmd,
@@ -341,11 +343,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                       static_resource->executor->add_task(
                         [algorithm, cmd = std::move(argv[0]), value, ret, caller](const std::atomic<bool>&) mutable {
                             if (ret == EL_OK) [[likely]] {
-                                algorithm->set_iou_threshold(value);
-                                ret = static_resource->storage->emplace(
-                                        el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
-                                        ? EL_OK
-                                        : EL_EIO;
+                                if (algorithm->get_iou_threshold() != value) [[likely]] {
+                                    algorithm->set_iou_threshold(value);
+                                    ret = static_resource->storage->emplace(
+                                            el_make_storage_kv_from_type(algorithm->get_algorithm_config()))
+                                            ? EL_OK
+                                            : EL_EIO;
+                                }
                             }
                             auto ss{concat_strings("\r{\"type\": 0, \"name\": \"",
                                                    cmd,
