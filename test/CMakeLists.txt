@@ -1,7 +1,19 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.20)
 
 project(test)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP true
+)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 set(srcs "")
 set(include_dirs "")
@@ -20,8 +32,9 @@ include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 include(math/CMakeLists.txt)
 include(misc/CMakeLists.txt)
 include(utils/CMakeLists.txt)
+include(extension/CMakeLists.txt)
 
-list(APPEND srcs 
+list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_os.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_codec.cpp
@@ -37,9 +50,10 @@ list(APPEND srcs
     ${MA_TEST_MATH_SRCS}
     ${MA_TEST_MISC_SRCS}
     ${MA_TEST_UTILS_SRCS}
+    ${MA_TEST_EXTENSION_SRCS}
 )
 
-list(APPEND include_dirs 
+list(APPEND include_dirs
     ${CMAKE_CURRENT_LIST_DIR}/
 )
 
@@ -57,4 +71,3 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${private_include_dirs})
 target_link_libraries(${PROJECT_NAME} PRIVATE sscma)
 target_link_libraries(${PROJECT_NAME} PRIVATE tflm)
 target_link_libraries(${PROJECT_NAME} PRIVATE gtest)
-
