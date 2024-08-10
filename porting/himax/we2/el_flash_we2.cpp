@@ -115,6 +115,7 @@ static int _el_flash_db_init(void) {
 static int _el_flash_db_read(long offset, uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
 
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
@@ -136,6 +137,8 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
 
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
+
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
 
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
         return -1;
@@ -162,6 +165,8 @@ static int _el_flash_db_write(long offset, const uint8_t* buf, size_t size) {
 static int _el_flash_db_erase(long offset, size_t size) {
     const Guard<Mutex> guard(_el_flash_lock);
 
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
+
     uint32_t addr = _el_flash_db_nor_flash0.addr + offset;
 
     if (addr + size > _el_flash_db_partition_end) [[unlikely]]
@@ -179,6 +184,7 @@ static int _el_flash_db_erase(long offset, size_t size) {
         ret = -1;
         if (i < _el_flash_db_partition_begin) continue;
         if (i >= _el_flash_db_partition_end) break;
+        hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
         if (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, i, FLASH_SECTOR) == E_OK) [[likely]]
             ret = 0;
     }
