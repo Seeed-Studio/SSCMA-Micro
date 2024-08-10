@@ -358,12 +358,12 @@ el_err_code_t drv_ov5647_init(uint16_t width, uint16_t height) {
     jpeg_cfg.enc_width      = width;
     jpeg_cfg.enc_height     = height;
     jpeg_cfg.jpeg_enctype   = JPEG_ENC_TYPE_YUV422;
-    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_4X;
-    if (_switch_qtable == true) {
-        jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
-        _switch_qtable          = false;
-        EL_LOGD("switch qtable: %d", jpeg_cfg.jpeg_encqtable);
-    }
+    jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    // if (_switch_qtable == true) {
+    //     jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
+    //     _switch_qtable          = false;
+    //     EL_LOGD("switch qtable: %d", jpeg_cfg.jpeg_encqtable);
+    // }
     // #if defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
     //     if (width > 240 && height > 240) {
     //         jpeg_cfg.jpeg_encqtable = JPEG_ENC_QTABLE_10X;
