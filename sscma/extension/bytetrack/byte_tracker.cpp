@@ -23,10 +23,11 @@
 using namespace std;
 
 BYTETracker::BYTETracker(
-    int frame_rate, int track_buffer, float track_thresh, float high_thresh, float match_thresh) {
+    int frame_rate, int track_buffer, float track_thresh, float high_thresh, float match_thresh, float scale_factor) {
     this->track_thresh = track_thresh;
     this->high_thresh  = high_thresh;
     this->match_thresh = match_thresh;
+    this->scale_factor = scale_factor;
 
     frame_id      = 0;
     max_time_lost = int(frame_rate / 30.0 * track_buffer);
@@ -43,10 +44,10 @@ vector<int> BYTETracker::inplace_update(vector<ma_bbox_t>& objects) {
 
     size_t i = 0;
     for (const auto& strack : stracks) {
-        objects.push_back(ma_bbox_t{.x      = strack.tlwh[0],
-                                    .y      = strack.tlwh[1],
-                                    .w      = strack.tlwh[2],
-                                    .h      = strack.tlwh[3],
+        objects.push_back(ma_bbox_t{.x      = strack.tlwh[0] / scale_factor,
+                                    .y      = strack.tlwh[1] / scale_factor,
+                                    .w      = strack.tlwh[2] / scale_factor,
+                                    .h      = strack.tlwh[3] / scale_factor,
                                     .score  = strack.score,
                                     .target = strack.label});
         res[i] = strack.track_id;
@@ -83,10 +84,10 @@ vector<STrack> BYTETracker::update(const vector<ma_bbox_t>& objects) {
         vector<float> tlwh_;
         tlwh_.resize(4);
 
-        tlwh_[0] = obj.x;
-        tlwh_[1] = obj.y;
-        tlwh_[2] = obj.w;
-        tlwh_[3] = obj.h;
+        tlwh_[0] = obj.x * scale_factor;
+        tlwh_[1] = obj.y * scale_factor;
+        tlwh_[2] = obj.w * scale_factor;
+        tlwh_[3] = obj.h * scale_factor;
 
         float score = obj.score;
         if (score >= track_thresh) {

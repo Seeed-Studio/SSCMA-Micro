@@ -22,12 +22,14 @@ public:
                 int track_buffer   = 30,
                 float track_thresh = 0.5,
                 float high_thresh  = 0.6,
-                float match_thresh = 0.8);
+                float match_thresh = 0.8,
+                float scale_factor = 1000.0);
     ~BYTETracker();
 
-    std::vector<STrack> update(const std::vector<ma_bbox_t>& objects);
-
     std::vector<int> inplace_update(std::vector<ma_bbox_t>& objects);
+
+protected:
+    std::vector<STrack> update(const std::vector<ma_bbox_t>& objects);
 
 private:
     std::vector<STrack*> joint_stracks(std::vector<STrack*>& tlista, std::vector<STrack>& tlistb);
@@ -66,6 +68,7 @@ private:
     float track_thresh;
     float high_thresh;
     float match_thresh;
+    float scale_factor;
     int frame_id;
     int max_time_lost;
 
