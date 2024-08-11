@@ -15,9 +15,9 @@ constexpr inline float fastLn(float x) {
     static_assert(sizeof(unsigned int) == sizeof(float));
     static_assert(sizeof(float) == 4);
 
-    if (x < 0.0f) [[unlikely]] {
+    if (*reinterpret_cast<unsigned int*>(&x) & 0x80000000) [[unlikely]] {
         return -std::numeric_limits<float>::quiet_NaN();
-    } else if (x == 0.0f) [[unlikely]] {
+    } else if (!((*reinterpret_cast<unsigned int*>(&x) & 0x7FFFFFFF) ^ 0x00000000)) [[unlikely]] {
         return -std::numeric_limits<float>::infinity();
     }
 
@@ -27,7 +27,7 @@ constexpr inline float fastLn(float x) {
 
     bx = 1065353216 | (bx & 8388607);
     x  = *reinterpret_cast<float*>(&bx);
-    return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
+    return static_cast<float>(-1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t);
 }
 
 constexpr inline float fastExp(float x) {
@@ -41,7 +41,7 @@ constexpr inline float fastExp(float x) {
     const float c{8388608.f};
     const float d{2139095040.f};
 
-    if (x < c || x > d) x = (x < c) ? 0.0f : d;
+    if (x < c | x > d) x = (x < c) ? 0.0f : d;
 
     uint32_t n = static_cast<uint32_t>(x);
     x          = *reinterpret_cast<float*>(&n);
