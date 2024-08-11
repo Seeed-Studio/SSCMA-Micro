@@ -58,6 +58,13 @@ YoloWorld::YoloWorld(Engine* p_engine_) : Detector(p_engine_, "yolo_world", MA_M
 YoloWorld::~YoloWorld() {}
 
 bool YoloWorld::isValid(Engine* engine) {
+    const auto inputs_count = engine->getInputSize();
+    const auto outputs_count = engine->getOutputSize();
+
+    if (inputs_count != 1 || outputs_count != num_outputs_) {
+        return false;
+    }
+
     const auto input_shape{engine->getInputShape(0)};
 
     if (input_shape.size != 4) {
