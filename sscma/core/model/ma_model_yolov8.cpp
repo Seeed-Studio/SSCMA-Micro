@@ -23,6 +23,13 @@ YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "yolov8", MA_MODEL_TYPE_
 YoloV8::~YoloV8() {}
 
 bool YoloV8::isValid(Engine* engine) {
+    const auto inputs_count = engine->getInputSize();
+    const auto outputs_count = engine->getOutputSize();
+
+    if (inputs_count != 1 || outputs_count != 1) {
+        return false;
+    }
+
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape{engine->getOutputShape(0)};
 

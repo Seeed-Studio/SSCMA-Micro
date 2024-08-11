@@ -15,6 +15,13 @@ NvidiaDet::NvidiaDet(Engine* p_engine_) : Detector(p_engine_, "nvidia_det", MA_M
 NvidiaDet::~NvidiaDet() {}
 
 bool NvidiaDet::isValid(Engine* engine) {
+    const auto inputs_count = engine->getInputSize();
+    const auto outputs_count = engine->getOutputSize();
+
+    if (inputs_count != 1 || outputs_count != 2) {
+        return false;
+    }
+
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape_0{engine->getOutputShape(0)};
     const auto output_shape_1{engine->getOutputShape(1)};

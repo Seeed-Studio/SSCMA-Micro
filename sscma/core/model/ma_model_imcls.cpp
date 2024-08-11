@@ -19,6 +19,13 @@ ImCls::ImCls(Engine* p_engine_) : Classifier(p_engine_) {
 ImCls::~ImCls() {}
 
 bool ImCls::isValid(Engine* engine) {
+    const auto inputs_count = engine->getInputSize();
+    const auto outputs_count = engine->getOutputSize();
+
+    if (inputs_count != 1 || outputs_count != 1) {
+        return false;
+    }
+
     const auto input_shape{engine->getInputShape(0)};
     const auto output_shape{engine->getOutputShape(0)};
 

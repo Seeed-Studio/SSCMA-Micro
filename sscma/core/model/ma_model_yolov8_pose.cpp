@@ -67,6 +67,13 @@ YoloV8Pose::YoloV8Pose(Engine* p_engine_) : PoseDetector(p_engine_, "yolo_world"
 YoloV8Pose::~YoloV8Pose() {}
 
 bool YoloV8Pose::isValid(Engine* engine) {
+    const auto inputs_count = engine->getInputSize();
+    const auto outputs_count = engine->getOutputSize();
+
+    if (inputs_count != 1 || outputs_count != num_outputs_) {
+        return false;
+    }
+
     const auto input_shape{engine->getInputShape(0)};
 
     if (input_shape.size != 4) {
