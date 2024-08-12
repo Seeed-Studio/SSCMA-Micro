@@ -82,14 +82,14 @@ ma_err_t NvidiaDet::postprocess() {
 
     switch (check) {
     case 0b11:
-        return postprocessF32();
+        return postProcessF32();
 
     default:
         return MA_ENOTSUP;
     }
 }
 
-ma_err_t NvidiaDet::postprocessF32() {
+ma_err_t NvidiaDet::postProcessF32() {
     results_.clear();
 
     // get output

@@ -19,7 +19,7 @@ class NvidiaDet : public Detector {
    protected:
     ma_err_t postprocess() override;
 
-    ma_err_t postprocessF32();
+    ma_err_t postProcessF32();
 
    public:
     NvidiaDet(Engine* engine);
@@ -32,4 +32,4 @@ class NvidiaDet : public Detector {
 
 }  // namespace ma::model
 
-#endif  // _MA_MODEL_YOLO_H
+#endif
