@@ -141,6 +141,38 @@ public:
     }
 };
 
+class AnotherAnotherFakeEngine : public FakeEngine {
+public:
+    AnotherAnotherFakeEngine() = default;
+
+    ~AnotherAnotherFakeEngine() override = default;
+
+    ma_shape_t getOutputShape(int32_t index) override {
+        switch (index) {
+            case 3:
+                return {3, {1, 1600, 4}};
+
+            case 1:
+                return {3, {1, 100, 4}};
+
+            case 0:
+                return {3, {1, 100, 64}};
+
+            case 5:
+                return {3, {1, 400, 64}};
+
+            case 4:
+                return {3, {1, 400, 4}};
+
+            case 2:
+                return {3, {1, 1600, 64}};
+
+            default:
+                return {0, {0}};
+        }
+    }
+};
+
 class BadEngine : public FakeEngine {
 public:
     BadEngine() = default;
@@ -196,6 +228,10 @@ TEST(MODEL, YOLOWorldIsValid) {
     auto another_fake_engine = std::unique_ptr<Engine>(new AnotherFakeEngine());
 
     EXPECT_EQ(YoloWorld::isValid(another_fake_engine.get()), true);
+
+    auto another_another_fake_engine = std::unique_ptr<Engine>(new AnotherAnotherFakeEngine());
+
+    EXPECT_EQ(YoloWorld::isValid(another_another_fake_engine.get()), true);
 
     for (int i = 0; i < 7; i++) {
         auto bad_engine = std::unique_ptr<Engine>(new BadEngine());
