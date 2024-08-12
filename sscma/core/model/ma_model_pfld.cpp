@@ -75,20 +75,20 @@ ma_err_t PFLD::postprocess() {
 ma_err_t PFLD::postProcessI8() {
     results_.clear();
 
-    auto  output = p_engine_->getOutput(0);
-    auto* data{output.data.s8};
+    const auto  output = p_engine_->getOutput(0);
+    const auto* data   = output.data.s8;
 
-    float   scale{output.quant_param.scale};
-    bool    rescale{scale < 0.1f ? true : false};
-    int32_t zero_point{output.quant_param.zero_point};
-    auto    pred_l{output.shape.dims[1]};
+    float         scale      = output.quant_param.scale;
+    const bool    rescale    = scale < 0.1f ? true : false;
+    const int32_t zero_point = output.quant_param.zero_point;
+    const auto    pred_l     = output.shape.dims[1];
 
     scale = rescale ? scale : scale / 100.f;
 
     const float w = input_img_->width;
     const float h = input_img_->height;
 
-    for (decltype(pred_l) i = 0; i < pred_l; i += 2) {
+    for (int i = 0; i < pred_l; i += 2) {
         ma_point_t point;
 
         point.x      = (data[i] - zero_point) * scale / w;

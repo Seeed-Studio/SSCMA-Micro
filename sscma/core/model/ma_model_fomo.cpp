@@ -1,6 +1,7 @@
 #include "ma_model_fomo.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace ma::model {
@@ -77,36 +78,37 @@ ma_err_t FOMO::postprocess() {
 ma_err_t FOMO::postProcessI8() {
     results_.clear();
 
-    auto  output = p_engine_->getOutput(0);
-    auto* data{output.data.s8};
+    const auto  output = p_engine_->getOutput(0);
+    const auto* data   = output.data.s8;
 
-    auto width{input_img_->width};
-    auto height{input_img_->height};
+    const auto width  = input_img_->width;
+    const auto height = input_img_->height;
 
-    float scale{output.quant_param.scale};
+    const float scale = output.quant_param.scale;
 
-    int32_t zero_point{output.quant_param.zero_point};
+    const int32_t zero_point = output.quant_param.zero_point;
 
-    auto pred_w{output.shape.dims[2]};
-    auto pred_h{output.shape.dims[1]};
-    auto pred_t{output.shape.dims[3]};
+    const auto pred_w = output.shape.dims[2];
+    const auto pred_h = output.shape.dims[1];
+    const auto pred_t = output.shape.dims[3];
 
-    auto bw{static_cast<int>(width / pred_w)};
-    auto bh{static_cast<int>(height / pred_h)};
+    const auto bw = static_cast<int>(width / pred_w);
+    const auto bh = static_cast<int>(height / pred_h);
 
-    auto score_threshold{threshold_score_};
+    const auto score_threshold = threshold_score_;
 
-    for (decltype(pred_h) i = 0; i < pred_h; ++i) {
-        for (decltype(pred_w) j = 0; j < pred_w; ++j) {
+    for (int i = 0; i < pred_h; ++i) {
+        for (int j = 0; j < pred_w; ++j) {
             float max_score  = score_threshold;
             int   max_target = -1;
-            for (decltype(pred_t) t{0}; t < pred_t; ++t) {
-                auto score{static_cast<float>((data[i * pred_w * pred_t + j * pred_t + t] - zero_point) * 100 * scale)};
+            for (int t = 0; t < pred_t; ++t) {
+                const auto score = (data[i * pred_w * pred_t + j * pred_t + t] - zero_point) * scale;
                 if (score > max_score) {
                     max_score  = score;
                     max_target = t;
                 }
             }
+
             if (max_target == -1) {
                 continue;
             }
