@@ -53,6 +53,11 @@ if(SSCMA_ENGINE_TFLITE)
     target_link_libraries(sscma PUBLIC cjson)
 endif()
 
+if (SSCMA_FILESYSTEM_LITTLEFS)
+    include(${SSCMA_ROOT_DIR}/3rdparty/littlefs/CMakeLists.txt)
+    target_link_libraries(sscma PUBLIC littlefs)
+endif()
+
 if(SSCMA_EXTENSION_BYTETRACK)
     set(SSCMA_REQUIRE_LIB_EIGEN 1)
 endif()

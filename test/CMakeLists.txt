@@ -34,6 +34,7 @@ include(misc/CMakeLists.txt)
 include(utils/CMakeLists.txt)
 include(extension/CMakeLists.txt)
 include(model/CMakeLists.txt)
+include(filesystem/CMakeLists.txt)
 
 list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
@@ -53,6 +54,7 @@ list(APPEND srcs
     ${MA_TEST_UTILS_SRCS}
     ${MA_TEST_EXTENSION_SRCS}
     ${MA_TEST_MODEL_SRCS}
+    ${MA_TEST_FILESYSTEM_SRCS}
 )
 
 list(APPEND include_dirs
