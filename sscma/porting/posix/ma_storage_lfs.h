@@ -2,6 +2,7 @@
 #define _MA_STORAGE_LFS_H_
 
 #include <cstdint>
+#include <list>
 #include <string>
 
 #include "bd/lfs_filebd.h"
@@ -54,8 +55,10 @@ class StorageLfs : public Storage {
     virtual bool     exists(const std::string& key) override;
 
    protected:
-    ma_err_t setImpl(std::string key, void* data, size_t size);
-    ma_err_t getImpl(std::string key, std::string& buffer);
+    std::list<std::string> keyToPath(const std::string& key, size_t break_size);
+
+    ma_err_t setImpl(std::string key, void const* data, size_t size);
+    ma_err_t getImpl(std::string key, std::string& buffer, size_t chunk_size);
 
    private:
     bool  is_mounted_;

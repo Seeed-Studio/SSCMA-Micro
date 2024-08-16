@@ -80,6 +80,7 @@ TEST(FILESYSTEM, LittleFSRamBD) {
     ret = lfs_mkdir(&lfs, "/mydir");
     ASSERT_EQ(ret, LFS_ERR_OK);
 
+
     ret = lfs_mkdir(&lfs, "/mydir/subdir");
     ASSERT_EQ(ret, LFS_ERR_OK);
 
@@ -107,6 +108,43 @@ TEST(FILESYSTEM, LittleFSRamBD) {
 
     ret = lfs_file_close(&lfs, &file);
     ASSERT_EQ(ret, LFS_ERR_OK);
+
+    ret = lfs_file_open(&lfs, &file, "/mydir/subdir/file", LFS_O_RDONLY);
+    ASSERT_EQ(ret, LFS_ERR_OK);
+
+    std::vector<uint8_t> buffer2(128, 0);
+    size = lfs_file_read(&lfs, &file, buffer2.data(), buffer2.size());
+    ASSERT_EQ(size, buffer.size());
+    
+    std::string read_data2(reinterpret_cast<const char*>(buffer2.data()), size);
+    ASSERT_EQ(data, read_data2);
+
+    size = lfs_file_read(&lfs, &file, buffer2.data(), buffer2.size());
+    ASSERT_EQ(size, 0);
+
+    ret = lfs_file_close(&lfs, &file);
+    ASSERT_EQ(ret, LFS_ERR_OK);
+
+    ret = lfs_mkdir(&lfs, "/mydir/subdir2");
+    ASSERT_EQ(ret, LFS_ERR_OK);
+
+    ret = lfs_mkdir(&lfs, "/mydir/subdir2");
+    ASSERT_EQ(ret, LFS_ERR_EXIST);
+
+    ret = lfs_remove(&lfs, "/mydir/subdir2");
+    ASSERT_EQ(ret, LFS_ERR_OK);
+
+    ret = lfs_remove(&lfs, "/mydir/subdir2");
+    ASSERT_EQ(ret, LFS_ERR_NOENT);
+
+    ret = lfs_remove(&lfs, "/mydir/subdir");
+    ASSERT_EQ(ret, LFS_ERR_NOTEMPTY);
+
+    ret = lfs_remove(&lfs, "/mydir/subdir/file");
+    ASSERT_EQ(ret, LFS_ERR_OK);
+
+    ret = lfs_remove(&lfs, "/mydir/subdir/file");
+    ASSERT_EQ(ret, LFS_ERR_NOENT);
 
     ret = lfs_unmount(&lfs);
     ASSERT_EQ(ret, LFS_ERR_OK);
