@@ -34,13 +34,15 @@ include(misc/CMakeLists.txt)
 include(utils/CMakeLists.txt)
 include(extension/CMakeLists.txt)
 include(model/CMakeLists.txt)
-include(filesystem/CMakeLists.txt)
+
+if (SSCMA_FILESYSTEM_LITTLEFS)
+    include(filesystem/CMakeLists.txt)
+    list(APPEND srcs ${MA_TEST_FILESYSTEM_SRCS})
+endif()
 
 if(POSIX_PLATFORM)
     include(${CMAKE_CURRENT_LIST_DIR}/porting/posix/CMakeLists.txt)
-    list(APPEND srcs
-        ${MA_TEST_PORTING_POSIX_SRCS}
-    )
+    list(APPEND srcs ${MA_TEST_PORTING_POSIX_SRCS})
 endif()
 
 list(APPEND srcs
@@ -61,7 +63,6 @@ list(APPEND srcs
     ${MA_TEST_UTILS_SRCS}
     ${MA_TEST_EXTENSION_SRCS}
     ${MA_TEST_MODEL_SRCS}
-    ${MA_TEST_FILESYSTEM_SRCS}
 )
 
 list(APPEND include_dirs
