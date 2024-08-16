@@ -36,6 +36,13 @@ include(extension/CMakeLists.txt)
 include(model/CMakeLists.txt)
 include(filesystem/CMakeLists.txt)
 
+if(POSIX_PLATFORM)
+    include(${CMAKE_CURRENT_LIST_DIR}/porting/posix/CMakeLists.txt)
+    list(APPEND srcs
+        ${MA_TEST_PORTING_POSIX_SRCS}
+    )
+endif()
+
 list(APPEND srcs
     ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_os.cpp
