@@ -179,8 +179,9 @@ ma_err_t StorageLfs::setImpl(std::string key, void const* data, size_t size) {
         return MA_EINVAL;
     }
 
-    std::string path = "/";
+    std::string path;
     for (auto it = parts.begin(); it != std::prev(parts.end()); ++it) {
+        path.push_back('/');
         path += std::move(*it);
         int ret = lfs_mkdir(&lfs_, path.c_str());
         if (ret != LFS_ERR_OK && ret != LFS_ERR_EXIST) {
@@ -188,11 +189,12 @@ ma_err_t StorageLfs::setImpl(std::string key, void const* data, size_t size) {
             return MA_EIO;
         }
     }
+    path.push_back('/');
     path += parts.back();
     parts.clear();
 
     lfs_file_t file;
-    int        ret = lfs_file_open(&lfs_, &file, path.c_str(), LFS_O_RDWR | LFS_O_CREAT);
+    int        ret = lfs_file_open(&lfs_, &file, path.c_str(), LFS_O_RDWR | LFS_O_CREAT | LFS_O_TRUNC);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to open file %s", path.c_str());
         return MA_EIO;
@@ -201,6 +203,9 @@ ma_err_t StorageLfs::setImpl(std::string key, void const* data, size_t size) {
     const auto written = lfs_file_write(&lfs_, &file, data, size);
     if (written != size) {
         MA_LOGE(TAG, "Failed to write to file %s", path.c_str());
+
+        lfs_file_close(&lfs_, &file);
+
         return MA_EIO;
     }
 
@@ -234,7 +239,7 @@ ma_err_t StorageLfs::getImpl(std::string key, std::string& buffer, size_t chunk_
     lfs_file_t file;
     int        ret = lfs_file_open(&lfs_, &file, path.c_str(), LFS_O_RDONLY);
     if (ret != LFS_ERR_OK) {
-        MA_LOGE(TAG, "Failed to open file %s", path.c_str());
+        MA_LOGE(TAG, "Failed to open file %s, code %d", path.c_str(), ret);
         return MA_EIO;
     }
 
@@ -242,12 +247,23 @@ ma_err_t StorageLfs::getImpl(std::string key, std::string& buffer, size_t chunk_
     lfs_ssize_t          read = 0;
     do {
         read = lfs_file_read(&lfs_, &file, chunk.data(), chunk.size());
-        if (read < 0) {
-            MA_LOGE(TAG, "Failed to read from file %s", path.c_str());
+        if (read == 0) {
+            break;
+        } else if (read < 0) {
+            MA_LOGE(TAG, "Failed to read from file %s, code %d", path.c_str(), read);
+
+            lfs_file_close(&lfs_, &file);
+
             return MA_EIO;
         }
         buffer.append(chunk.begin(), chunk.begin() + read);
     } while (read == chunk_size);
+
+    ret = lfs_file_close(&lfs_, &file);
+    if (ret != LFS_ERR_OK) {
+        MA_LOGE(TAG, "Failed to close file %s", path.c_str());
+        return MA_EIO;
+    }
 
     return MA_OK;
 }
