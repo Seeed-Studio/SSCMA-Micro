@@ -27,6 +27,7 @@ static int _lfs_unlock(const struct lfs_config* c) {
     _lfs_mutex.unlock();
     return 0;
 }
+
 }
 
 TEST(FILESYSTEM, LittleFSFileBD) {
@@ -51,8 +52,10 @@ TEST(FILESYSTEM, LittleFSFileBD) {
       .prog             = lfs_filebd_prog,
       .erase            = lfs_filebd_erase,
       .sync             = lfs_filebd_sync,
+#ifdef LFS_THREADSAFE
       .lock             = _lfs_lock,
       .unlock           = _lfs_unlock,
+#endif
       .read_size        = filebd_cfg.read_size,
       .prog_size        = filebd_cfg.prog_size,
       .block_size       = block_size,
@@ -86,9 +89,9 @@ TEST(FILESYSTEM, LittleFSFileBD) {
         ret = lfs_mkdir(&lfs, "/mydir");
         if (ret == LFS_ERR_EXIST) {
             ret = lfs_remove(&lfs, "/mydir");
+            ASSERT_EQ(ret, LFS_ERR_OK);
+            ret = lfs_mkdir(&lfs, "/mydir");
         }
-        ASSERT_EQ(ret, LFS_ERR_OK);
-        ret = lfs_mkdir(&lfs, "/mydir");
         ASSERT_EQ(ret, LFS_ERR_OK);
         ret = lfs_dir_open(&lfs, &dir, "/mydir");
     }

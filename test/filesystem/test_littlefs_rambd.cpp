@@ -25,6 +25,7 @@ static int _lfs_unlock(const struct lfs_config* c) {
     _lfs_mutex.unlock();
     return 0;
 }
+
 }
 
 TEST(FILESYSTEM, LittleFSRamBD) {
@@ -49,8 +50,10 @@ TEST(FILESYSTEM, LittleFSRamBD) {
       .prog             = lfs_rambd_prog,
       .erase            = lfs_rambd_erase,
       .sync             = lfs_rambd_sync,
+#ifdef LFS_THREADSAFE
       .lock             = _lfs_lock,
       .unlock           = _lfs_unlock,
+#endif
       .read_size        = rambd_cfg.read_size,
       .prog_size        = rambd_cfg.prog_size,
       .block_size       = block_size,
@@ -115,7 +118,7 @@ TEST(FILESYSTEM, LittleFSRamBD) {
     std::vector<uint8_t> buffer2(128, 0);
     size = lfs_file_read(&lfs, &file, buffer2.data(), buffer2.size());
     ASSERT_EQ(size, buffer.size());
-    
+
     std::string read_data2(reinterpret_cast<const char*>(buffer2.data()), size);
     ASSERT_EQ(data, read_data2);
 
