@@ -20,7 +20,7 @@ class StorageLfs : public Storage {
     StorageLfs(const std::string& mount_point, size_t bd_size = 8 * 1024 * 1024);
     virtual ~StorageLfs();
 
-    ma_err_t mount();
+    ma_err_t mount(bool force = true);
     ma_err_t uMount();
 
     // virtual ma_err_t set(const std::string& key, bool value) override;

@@ -52,7 +52,7 @@ StorageLfs::~StorageLfs() {
 #endif
 }
 
-ma_err_t StorageLfs::mount() {
+ma_err_t StorageLfs::mount(bool force) {
     Guard guard(mutex_);
 
     if (mount_point_.empty()) {
@@ -103,6 +103,14 @@ ma_err_t StorageLfs::mount() {
     }
 
     ret = lfs_mount(&lfs_, &fs_config_);
+    if (force && ret != LFS_ERR_OK) {
+        ret = lfs_format(&lfs_, &fs_config_);
+        if (ret != LFS_ERR_OK) {
+            MA_LOGE(TAG, "Failed to format LFS storage");
+            return MA_EIO;
+        }
+        ret = lfs_mount(&lfs_, &fs_config_);
+    }
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to mount LFS storage");
         return MA_EIO;
