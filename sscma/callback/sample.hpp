@@ -76,16 +76,46 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
     }
 
-    inline void event_reply(std::string data) {
+    inline void event_reply(std::string data, std::string some_hack = "") {
         auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
                                _cmd,
                                "\", \"code\": ",
                                std::to_string(_ret),
                                ", \"data\": {\"count\": ",
                                std::to_string(_times),
-                               data,
-                               "}}\n")};
+                               data)};
         static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
+
+        if (!some_hack.empty()) {
+            const std::size_t len_unsafe_hdr = std::strlen("\"image\": \"");
+            static_cast<Transport*>(_caller)->send_bytes("\"image\": \"", len_unsafe_hdr);
+
+            void*       buffer = nullptr;
+            std::size_t size   = 0;
+            std::size_t index  = len_unsafe_hdr;
+
+            // Have no idea why the firmware maker can not generate the firmware with the success build
+            // and I need to make this dirty hack to make it work
+            const auto ptr_str = some_hack.substr(index, sizeof(void*) << 1);
+            index += (sizeof(void*) << 1);
+            const auto len_str = some_hack.substr(index, sizeof(std::size_t) << 1);
+            index += (sizeof(std::size_t) << 1);
+
+            static_assert(sizeof(void*) == sizeof(std::size_t));
+            buffer = reinterpret_cast<void*>(from_hex_string<std::size_t>(ptr_str));
+            size   = from_hex_string<std::size_t>(len_str);
+
+            if (buffer && size) [[likely]] {
+                static_cast<Transport*>(_caller)->send_bytes(reinterpret_cast<char const*>(buffer), size);
+            }
+
+            const auto remain_str = some_hack.substr(index);
+            if (!remain_str.empty()) [[likely]] {
+                static_cast<Transport*>(_caller)->send_bytes(remain_str.c_str(), remain_str.size());
+            }
+        }
+
+        static_cast<Transport*>(_caller)->send_bytes("}}\n", sizeof("}}\n"));
     }
 
     inline void event_loop() {
@@ -131,7 +161,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
-        event_reply(concat_strings(", ", img_res_2_json_str(&frame), ", ", std::move(encoded_frame_str)));
+        event_reply(concat_strings(", ", img_res_2_json_str(&frame), ", "), std::move(encoded_frame_str));
 
         static_resource->executor->add_task(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->event_loop_cam(); });

@@ -133,7 +133,7 @@ class StaticResource final {
         boot_count             = 0;
         current_model_id       = 1;
         current_sensor_id      = 1;
-        current_sensor_opt     = 0;
+        current_sensor_opt     = 1;
         current_algorithm_type = EL_ALGO_TYPE_UNDEFINED;
 
         current_task_id = 0;

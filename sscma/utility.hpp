@@ -103,6 +103,21 @@ template <typename T> decltype(auto) to_hex_string(T dec) {
     return hex;
 }
 
+template <typename T> decltype(auto) from_hex_string(const std::string& hex) {
+    static_assert(std::is_unsigned<T>::value);
+    T dec = 0;
+    for (char c : hex) {
+        dec <<= 4;
+        if ((c >= '0') & (c <= '9'))
+            dec |= c - '0';
+        else if ((c >= 'a') & (c <= 'f'))
+            dec |= c - 'a' + 10;
+        else if ((c >= 'A') & (c <= 'F'))
+            dec |= c - 'A' + 10;
+    }
+    return dec;
+}
+
 decltype(auto) model_info_2_json_str(const el_model_info_t& model_info) {
     return concat_strings("{\"id\": ",
                           std::to_string(model_info.id),
@@ -266,8 +281,12 @@ inline decltype(auto) img_res_2_json_str(const el_img_t* img) {
 }
 
 inline decltype(auto) img_2_json_str(const el_img_t* img) {
-    if (!img || !img->data || !img->size) [[unlikely]]
-        return std::string("\"image\": \"\"");
+    int         rotate = 0;
+    std::string no_copy_hack((sizeof(void*) + sizeof(std::size_t)) << 1, '0');
+
+    if (!img || !img->data || !img->size) [[unlikely]] {
+        return concat_strings("\"image\": \"", no_copy_hack, "\"", ", \"rotate\": ", std::to_string(rotate));
+    }
 
 #if SSCMA_SHARED_BASE64_BUFFER
     static char*       buffer      = reinterpret_cast<char*>(SSCMA_SHARED_BASE64_BUFFER_BASE);
@@ -275,7 +294,7 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
 
     if ((((img->size + 2u) / 3u) << 2u) + 1u > buffer_size) {
         EL_LOGW("Error: shared base64 buffer exhausted");
-        return std::string{"\"image\": \"\""};
+        return concat_strings("\"image\": \"", no_copy_hack, "\"", ", \"rotate\": ", std::to_string(rotate));
     }
 #else
     static char*       buffer      = nullptr;
@@ -296,8 +315,21 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
     std::memset(buffer, 0, buffer_size);
     el_base64_encode(img->data, img->size, buffer);
 
-    int rotate = (360 - (static_cast<int>(img->rotate) * 90)) % 360;
-    return concat_strings("\"image\": \"", buffer, "\"", ", \"rotate\": ", std::to_string(rotate));
+    void const*       addr = buffer;
+    std::size_t const len  = std::strlen(buffer);
+
+    {
+        static_assert(sizeof(void*) == sizeof(std::size_t));
+        auto addr_str = to_hex_string(reinterpret_cast<std::size_t>(addr));
+        no_copy_hack  = std::move(addr_str);
+    }
+    {
+        auto len_str = to_hex_string(len);
+        no_copy_hack += std::move(len_str);
+    }
+
+    rotate = (360 - (static_cast<int>(img->rotate) * 90)) % 360;
+    return concat_strings("\"image\": \"", no_copy_hack, "\"", ", \"rotate\": ", std::to_string(rotate));
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
