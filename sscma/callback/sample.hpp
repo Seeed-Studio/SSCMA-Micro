@@ -115,7 +115,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
             }
         }
 
-        static_cast<Transport*>(_caller)->send_bytes("}}\n", sizeof("}}\n"));
+        static_cast<Transport*>(_caller)->send_bytes("}}\n", sizeof("}}\n") - 1);
     }
 
     inline void event_loop() {
