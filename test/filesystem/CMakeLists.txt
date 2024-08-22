@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.12.4)
 
-file(GLOB test_filesystem_srcs "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+file(GLOB srcs "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 
-set(MA_TEST_FILESYSTEM_SRCS ${test_filesystem_srcs})
+add_test(
+        NAME test_filesystem
+        SRCS ${srcs}
+        INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}
+        EMBED_FILES ${files})

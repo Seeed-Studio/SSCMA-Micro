@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <sscma.h>
-
 #define TAG "main"
 
 int main(int argc, char** argv) {

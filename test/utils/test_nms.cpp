@@ -19,6 +19,7 @@ TEST(UTILS, NMS) {
 
     std::cout << "current_path: " << current_path << std::endl;
     std::string npy_dir = current_path + "/test_data";
+    int i               = 0;
 
     std::string raw_file  = npy_dir + "/random_bboxes.npy";
     npy::npy_data raw_out = npy::read_npy<float>(raw_file);
@@ -29,7 +30,7 @@ TEST(UTILS, NMS) {
     EXPECT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[1], 6);
 
-    std::vector<ma_bbox_t> detections;
+    std::forward_list<ma_bbox_t> detections;
     for (size_t i = 0; i < shape[0]; i++) {
         ma_bbox_t box;
 
@@ -40,16 +41,17 @@ TEST(UTILS, NMS) {
         box.score  = data[i * shape[1] + 4];
         box.target = data[i * shape[1] + 5];
 
-        detections.push_back(box);
+        detections.emplace_front(box);
     }
 
-    EXPECT_EQ(detections.size(), shape[0]);
+    EXPECT_EQ(std::distance(detections.begin(), detections.end()), shape[0]);
 
     auto detections_multi_target = detections;
     ma::utils::nms(detections_multi_target, 0.2, 0.1, false, true);
 
-    EXPECT_NE(detections_multi_target.size(), 0);
-    EXPECT_NE(detections_multi_target.size(), shape[0]);
+    EXPECT_NE(std::distance(detections_multi_target.begin(), detections_multi_target.end()), 0);
+    EXPECT_NE(std::distance(detections_multi_target.begin(), detections_multi_target.end()),
+              shape[0]);
 
     std::string nms_file                 = npy_dir + "/nms_bboxes.npy";
     npy::npy_data nms_out                = npy::read_npy<float>(nms_file);
@@ -58,48 +60,45 @@ TEST(UTILS, NMS) {
 
     EXPECT_EQ(nms_shape.size(), 2);
     EXPECT_EQ(nms_shape[1], 6);
-    EXPECT_EQ(nms_shape[0], detections_multi_target.size());
+    EXPECT_EQ(nms_shape[0],
+              std::distance(detections_multi_target.begin(), detections_multi_target.end()));
 
-    for (size_t i = 0; i < detections_multi_target.size(); i++) {
-        EXPECT_NEAR(detections_multi_target[i].x, nms_data[i * nms_shape[1] + 0], 1e-6);
-        EXPECT_NEAR(detections_multi_target[i].y, nms_data[i * nms_shape[1] + 1], 1e-6);
-        EXPECT_NEAR(detections_multi_target[i].w, nms_data[i * nms_shape[1] + 2], 1e-6);
-        EXPECT_NEAR(detections_multi_target[i].h, nms_data[i * nms_shape[1] + 3], 1e-6);
-        EXPECT_NEAR(detections_multi_target[i].score, nms_data[i * nms_shape[1] + 4], 1e-6);
-
+    i = 0;
+    for (auto obj : detections_multi_target) {
+        EXPECT_NEAR(obj.x, nms_data[i * nms_shape[1] + 0], 1e-6);
+        EXPECT_NEAR(obj.y, nms_data[i * nms_shape[1] + 1], 1e-6);
+        EXPECT_NEAR(obj.w, nms_data[i * nms_shape[1] + 2], 1e-6);
+        EXPECT_NEAR(obj.h, nms_data[i * nms_shape[1] + 3], 1e-6);
+        EXPECT_NEAR(obj.score, nms_data[i * nms_shape[1] + 4], 1e-6);
         auto target = static_cast<int>(nms_data[i * nms_shape[1] + 5]);
-        EXPECT_EQ(detections_multi_target[i].target, target);
+        EXPECT_EQ(obj.target, target);
     }
 
     auto detections_single_target = detections;
     ma::utils::nms(detections_single_target, 0.2, 0.1, false, false);
 
-    EXPECT_NE(detections_single_target.size(), 0);
-    EXPECT_NE(detections_single_target.size(), shape[0]);
+    EXPECT_NE(std::distance(detections_single_target.begin(), detections_single_target.end()), 0);
+    EXPECT_NE(std::distance(detections_single_target.begin(), detections_single_target.end()),
+              shape[0]);
 
-    std::string nms_single_file                 = npy_dir + "/nms_bboxes_single_target.npy";
+    std::string nms_single_file                 = npy_dir + "/nms_bboxes_single_targe->npy";
     npy::npy_data nms_single_out                = npy::read_npy<float>(nms_single_file);
     std::vector<float> nms_single_data          = nms_single_out.data;
     std::vector<unsigned long> nms_single_shape = nms_single_out.shape;
 
     EXPECT_EQ(nms_single_shape.size(), 2);
     EXPECT_EQ(nms_single_shape[1], 6);
-    EXPECT_EQ(nms_single_shape[0], detections_single_target.size());
-
-    for (size_t i = 0; i < detections_single_target.size(); i++) {
-        EXPECT_NEAR(
-            detections_single_target[i].x, nms_single_data[i * nms_single_shape[1] + 0], 1e-6);
-        EXPECT_NEAR(
-            detections_single_target[i].y, nms_single_data[i * nms_single_shape[1] + 1], 1e-6);
-        EXPECT_NEAR(
-            detections_single_target[i].w, nms_single_data[i * nms_single_shape[1] + 2], 1e-6);
-        EXPECT_NEAR(
-            detections_single_target[i].h, nms_single_data[i * nms_single_shape[1] + 3], 1e-6);
-        EXPECT_NEAR(
-            detections_single_target[i].score, nms_single_data[i * nms_single_shape[1] + 4], 1e-6);
-
+    EXPECT_EQ(nms_single_shape[0],
+              std::distance(detections_single_target.begin(), detections_single_target.end()));
+    i = 0;
+    for (auto obj : detections_single_target) {
+        EXPECT_NEAR(obj.x, nms_single_data[i * nms_single_shape[1] + 0], 1e-6);
+        EXPECT_NEAR(obj.y, nms_single_data[i * nms_single_shape[1] + 1], 1e-6);
+        EXPECT_NEAR(obj.w, nms_single_data[i * nms_single_shape[1] + 2], 1e-6);
+        EXPECT_NEAR(obj.h, nms_single_data[i * nms_single_shape[1] + 3], 1e-6);
+        EXPECT_NEAR(obj.score, nms_single_data[i * nms_single_shape[1] + 4], 1e-6);
         auto target = static_cast<int>(nms_single_data[i * nms_single_shape[1] + 5]);
-        EXPECT_EQ(detections_single_target[i].target, target);
+        EXPECT_EQ(obj.target, target);
     }
 }
 

@@ -14,7 +14,7 @@ file(GLOB_RECURSE SREVER_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/server/*.c ${SSCM
 
 file(GLOB_RECURSE CLIENT_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/client/*.c ${SSCMA_ROOT_DIR}/sscma/client/*.cpp)
 
-file(GLOB_RECURSE PORT_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.c ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.cpp)
+file(GLOB_RECURSE PORT_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.c ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.cpp ${SSCMA_ROOT_DIR}/sscma/porting/osal/ma_osal_pthread.cpp)
 
 set(EXTENSION_SSCMA_SOURCES "")
 
@@ -29,7 +29,7 @@ set(SSCMA_SOURCES
     ${CLIENT_SSCMA_SOURCES}
     ${PORT_SSCMA_SOURCES}
     ${EXTENSION_SSCMA_SOURCES}
-    ${SSCMA_ROOT_DIR}/sscma/porting/osal/ma_osal_pthread.cpp)
+   )
 
 set(SSCMA_INCLUDES 
     ${SSCMA_ROOT_DIR}/sscma

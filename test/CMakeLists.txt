@@ -15,10 +15,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-set(srcs "")
-set(include_dirs "")
-set(private_include_dirs "")
-
 set(SSCMA_ENGINE_TFLITE ON)
 
 get_filename_component(SSCMA_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../" ABSOLUTE)
@@ -33,57 +29,57 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g")
 
 include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
-# include(math/CMakeLists.txt)
-# include(misc/CMakeLists.txt)
+set(TEST_MAIN ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+function(add_test)
+    set(one_value_args NAME)
+    set(multi_value_args SRCS INCLUDE_DIRS PRIVATE_INCLUDE_DIRS REQUIREDS PRIVATE_REQUIREDS LIBRARY_DIRS EMBED_FILES)
+
+    cmake_parse_arguments(TEST "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
+
+    message(STATUS "Adding ${TEST_NAME}")
+
+    message(STATUS "private_include_dirs: ${TEST_PRIVATE_INCLUDE_DIRS}")
+    message(STATUS "include_dirs: ${TEST_INCLUDE_DIRS}")
+    message(STATUS "srcs: ${TEST_SRCS}")
+
+    foreach(lib_dir IN LISTS TEST_LIBRARY_DIRS)
+        message(STATUS "Linking ${lib_dir}")
+        link_directories(${lib_dir})
+    endforeach()
+
+    foreach(inc IN LISTS TEST_INCLUDE_DIRS)
+        message(STATUS "Including ${inc}")
+        include_directories(${inc})
+    endforeach()
+
+    foreach(file IN LISTS TEST_EMBED_FILES)
+        message(STATUS "Including ${file}")
+        file(COPY ${file} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin)
+    endforeach(file IN LISTS TEST_EMBED_FILES)
+    
+    
+    if(DEFINED TEST_SRCS)
+        add_executable(${TEST_NAME} ${TEST_SRCS} ${TEST_MAIN})
+        set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+        target_include_directories(${TEST_NAME} PRIVATE ${TEST_PRIVATE_INCLUDE_DIRS})
+        target_link_libraries(${TEST_NAME} PUBLIC ${TEST_REQUIREDS})
+        target_link_libraries(${TEST_NAME} PUBLIC sscma tflm gtest mosquitto)
+        target_link_libraries(${TEST_NAME} PRIVATE ${TEST_PRIVATE_REQUIREDS})
+    endif()
+
+endfunction()
+
+include(core/CMakeLists.txt)
+include(model/CMakeLists.txt)
+include(math/CMakeLists.txt)
 # include(utils/CMakeLists.txt)
+# include(misc/CMakeLists.txt)
 # include(extension/CMakeLists.txt)
-# include(model/CMakeLists.txt)
 
-if (SSCMA_FILESYSTEM_LITTLEFS)
-    include(filesystem/CMakeLists.txt)
-    list(APPEND srcs ${MA_TEST_FILESYSTEM_SRCS})
-endif()
 
-if(POSIX_PLATFORM)
-    include(${CMAKE_CURRENT_LIST_DIR}/porting/posix/CMakeLists.txt)
-    list(APPEND srcs ${MA_TEST_PORTING_POSIX_SRCS})
-endif()
 
-list(APPEND srcs
-    ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_os.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_codec.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_engine.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_data.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_server.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_storage.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test_pipeline.cpp
-)
 
-list(APPEND srcs
-    ${MA_TEST_MATH_SRCS}
-    ${MA_TEST_MISC_SRCS}
-    ${MA_TEST_UTILS_SRCS}
-    ${MA_TEST_EXTENSION_SRCS}
-    ${MA_TEST_MODEL_SRCS}
-)
 
-list(APPEND include_dirs
-    ${CMAKE_CURRENT_LIST_DIR}/
-)
-
-message(STATUS "private_include_dirs: ${private_include_dirs}")
-message(STATUS "include_dirs: ${include_dirs}")
-message(STATUS "srcs: ${srcs}")
-
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/yolo_meter.tflite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/mnist.tflite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/meter.bmp DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-add_executable(${PROJECT_NAME} ${srcs})
-target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
-target_include_directories(${PROJECT_NAME} PRIVATE ${private_include_dirs})
-target_link_libraries(${PROJECT_NAME} PRIVATE sscma)
-target_link_libraries(${PROJECT_NAME} PRIVATE tflm)
-target_link_libraries(${PROJECT_NAME} PRIVATE gtest mosquitto)
