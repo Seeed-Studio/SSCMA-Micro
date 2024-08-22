@@ -27,10 +27,10 @@ public:
 
     ma_err_t run() override;
 
-    ma_err_t loadModel(const void* model_data, size_t model_size) override;
+    ma_err_t load(const void* model_data, size_t model_size) override;
 #if MA_USE_FILESYSTEM
-    ma_err_t loadModel(const char* model_path) override;
-    ma_err_t loadModel(const std::string& model_path) override;
+    ma_err_t load(const char* model_path) override;
+    ma_err_t load(const std::string& model_path) override;
 #endif
 
     int32_t getInputSize() override;

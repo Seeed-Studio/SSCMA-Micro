@@ -17,19 +17,19 @@ bool postprocess_done_flag = false;
 bool inference_done_flag   = false;
 
 void preprocess_done(void* ctx) {
-    MA_LOGI(TAG, "preprocess done");
+    MA_LOGD(TAG, "preprocess done");
     preprocess_done_flag = true;
 }
 
 
 void postprocess_done(void* ctx) {
-    MA_LOGI(TAG, "postprocess done");
+    MA_LOGD(TAG, "postprocess done");
     postprocess_done_flag = true;
 }
 
 
 void inference_done(void* ctx) {
-    MA_LOGI(TAG, "inference done");
+    MA_LOGD(TAG, "inference done");
     inference_done_flag = true;
 }
 
@@ -37,7 +37,7 @@ void inference_done(void* ctx) {
 TEST(Model, YOLO) {
     auto* engine = new engine::EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
+    EXPECT_EQ(MA_OK, engine->load("yolo_meter.tflite"));
     Detector* detector = static_cast<Detector*>(new ma::model::YoloV5(engine));
     ma_img_t img;
     img.data   = (uint8_t*)gImage_meter;
@@ -66,16 +66,15 @@ TEST(Model, YOLO) {
     EXPECT_EQ(true, postprocess_done_flag);
 
     auto perf = detector->getPerf();
-    MA_LOGI(TAG,
+    MA_LOGD(TAG,
             "pre: %ldms, infer: %ldms, post: %ldms",
             perf.preprocess,
             perf.inference,
             perf.postprocess);
     auto _results = detector->getResults();
     int value     = 0;
-    for (int i = 0; i < _results.size(); i++) {
-        auto result = _results[i];
-        MA_LOGI(TAG,
+    for (auto& result : _results) {
+        MA_LOGD(TAG,
                 "class: %d, score: %f, x: %f, y: %f, w: %f, h: %f",
                 result.target,
                 result.score,
@@ -94,7 +93,7 @@ TEST(Model, YOLO) {
 TEST(Model, Classifier) {
     auto* engine = new engine::EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel("mnist.tflite"));
+    EXPECT_EQ(MA_OK, engine->load("mnist.tflite"));
     Classifier* classifier = static_cast<Classifier*>(new ma::model::Classifier(engine));
     ma_img_t img;
     img.data   = (uint8_t*)gImage_mnist_7;
@@ -114,19 +113,17 @@ TEST(Model, Classifier) {
     EXPECT_EQ(MA_OK, classifier->run(&img));
 
     auto perf = classifier->getPerf();
-    MA_LOGI(TAG,
+    MA_LOGD(TAG,
             "pre: %ldms, infer: %ldms, post: %ldms",
             perf.preprocess,
             perf.inference,
             perf.postprocess);
     auto _results = classifier->getResults();
     int value     = 0;
-    for (int i = 0; i < _results.size(); i++) {
-        auto result = _results[i];
-        MA_LOGI(TAG, "class: %d, score: %f", result.target, result.score);
+    for (auto& result : _results) {
+        MA_LOGD(TAG, "class: %d, score: %f", result.target, result.score);
+        EXPECT_EQ(7, result.target - 1);
     }
-
-    EXPECT_EQ(7, _results[0].target - 1);  // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     delete engine;
 }

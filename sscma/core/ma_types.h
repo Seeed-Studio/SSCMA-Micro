@@ -23,7 +23,7 @@ typedef enum {
     MA_OK       = 0,   // No error
     MA_AGAIN    = 1,   // Not ready yet
     MA_ELOG     = 2,   // logic error
-    MA_ETIMOUT  = 3,   // Timeout
+    MA_ETIMEOUT  = 3,   // Timeout
     MA_EIO      = 4,   // IO error
     MA_EINVAL   = 5,   // Invalid argument
     MA_ENOMEM   = 6,   // Not enough memory
@@ -97,14 +97,15 @@ typedef struct {
 } ma_tensor_t;
 
 typedef enum {
-    MA_PIXEL_FORMAT_RGB888 = 0,
+    MA_PIXEL_FORMAT_AUTO = 0,
+    MA_PIXEL_FORMAT_RGB888,
     MA_PIXEL_FORMAT_RGB565,
     MA_PIXEL_FORMAT_YUV422,
     MA_PIXEL_FORMAT_GRAYSCALE,
     MA_PIXEL_FORMAT_JPEG,
-    MA_PIXEL_FORMAT_RGB888_PLANAR,
     MA_PIXEL_FORMAT_H264,
     MA_PIXEL_FORMAT_H265,
+    MA_PIXEL_FORMAT_RGB888_PLANAR,
     MA_PIXEL_FORMAT_UNKNOWN,
 } ma_pixel_format_t;
 
@@ -123,6 +124,9 @@ typedef struct {
     uint16_t          height;
     ma_pixel_format_t format;
     ma_pixel_rotate_t rotate;
+    float std[3];
+    float mean[3];
+    uint32_t timestamp;
 } ma_img_t;
 
 typedef struct {
@@ -231,6 +235,8 @@ typedef enum {
     MA_MSG_TYPE_RESP = 0,
     MA_MSG_TYPE_EVT  = 1,
     MA_MSG_TYPE_LOG  = 2,
+    MA_MSG_TYPE_REQ  = 3,
+    MA_MSG_TYPE_HB   = 4
 } ma_msg_type_t;
 
 typedef enum {

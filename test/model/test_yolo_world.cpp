@@ -18,16 +18,16 @@ public:
 
     ~FakeEngine() override = default;
 
-    ma_err_t loadModel(const void* model_data, size_t model_size) override {
+    ma_err_t load(const void* model_data, size_t model_size) override {
         return MA_OK;
     }
 
 #if MA_USE_FILESYSTEM
-    ma_err_t loadModel(const char* model_path) override {
+    ma_err_t load(const char* model_path) override {
         return MA_OK;
     }
 
-    ma_err_t loadModel(const std::string& model_path) override {
+    ma_err_t load(const std::string& model_path) override {
         return MA_OK;
     }
 #endif

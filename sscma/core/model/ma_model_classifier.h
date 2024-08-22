@@ -17,7 +17,7 @@ protected:
     bool is_nhwc_;
     const ma_img_t* input_img_;
     double threshold_score_;
-    std::vector<ma_class_t> results_;
+    std::forward_list<ma_class_t> results_;
 
 protected:
     ma_err_t preprocess() override;
@@ -27,7 +27,7 @@ public:
     Classifier(Engine* engine);
     virtual ~Classifier();
     static bool isValid(Engine* engine);
-    const std::vector<ma_class_t>& getResults();
+    const std::forward_list<ma_class_t>& getResults();
     ma_err_t run(const ma_img_t* img);
     ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) override;
     ma_err_t getConfig(ma_model_cfg_opt_t opt, ...) override;

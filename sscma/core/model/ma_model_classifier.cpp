@@ -85,26 +85,6 @@ ma_err_t Classifier::preprocess() {
         }
     }
 
-#if MA_ENGINE_TENSOR_SHAPE_ORDER_NCHW
-    // TODO: use opencv
-    if (input_.shape.dims[1] == 3) {
-        char* r_channel = new char[img_.width * img_.height];
-        char* g_channel = new char[img_.width * img_.height];
-        char* b_channel = new char[img_.width * img_.height];
-        for (int i = 0; i < img_.width * img_.height; i++) {
-            r_channel[i] = img_.data[3 * i];
-            g_channel[i] = img_.data[3 * i + 1];
-            b_channel[i] = img_.data[3 * i + 2];
-        }
-        memcpy(img_.data, r_channel, img_.width * img_.height);
-        memcpy(img_.data + img_.width * img_.height, g_channel, img_.width * img_.height);
-        memcpy(img_.data + 2 * img_.width * img_.height, b_channel, img_.width * img_.height);
-        delete[] r_channel;
-        delete[] g_channel;
-        delete[] b_channel;
-    }
-#endif
-
     return ret;
 }
 
@@ -123,21 +103,19 @@ ma_err_t Classifier::postprocess() {
             auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
             score = rescale ? score : score / 100.f;
             if (score > threshold_score_)
-                results_.push_back({score, i});
+                results_.emplace_front(ma_class_t{score, i});
         }
     } else {
         return MA_ENOTSUP;
     }
 
-    std::sort(results_.begin(), results_.end(), [](const ma_class_t& a, const ma_class_t& b) {
-        return a.score > b.score;
-    });
+    results_.sort([](const ma_class_t& a, const ma_class_t& b) { return a.score > b.score; });
 
     return MA_OK;
 }
 
 
-const std::vector<ma_class_t>& Classifier::getResults() {
+const std::forward_list<ma_class_t>& Classifier::getResults() {
     return results_;
 }
 

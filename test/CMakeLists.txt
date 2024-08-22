@@ -27,13 +27,17 @@ message(STATUS "SSCMA_ROOT_DIR: ${SSCMA_ROOT_DIR}")
 
 set(SSCMA_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/ma_config.h")
 
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g")
+
 include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
-include(math/CMakeLists.txt)
-include(misc/CMakeLists.txt)
-include(utils/CMakeLists.txt)
-include(extension/CMakeLists.txt)
-include(model/CMakeLists.txt)
+# include(math/CMakeLists.txt)
+# include(misc/CMakeLists.txt)
+# include(utils/CMakeLists.txt)
+# include(extension/CMakeLists.txt)
+# include(model/CMakeLists.txt)
 
 if (SSCMA_FILESYSTEM_LITTLEFS)
     include(filesystem/CMakeLists.txt)
@@ -82,4 +86,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
 target_include_directories(${PROJECT_NAME} PRIVATE ${private_include_dirs})
 target_link_libraries(${PROJECT_NAME} PRIVATE sscma)
 target_link_libraries(${PROJECT_NAME} PRIVATE tflm)
-target_link_libraries(${PROJECT_NAME} PRIVATE gtest)
+target_link_libraries(${PROJECT_NAME} PRIVATE gtest mosquitto)

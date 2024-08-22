@@ -56,9 +56,10 @@ static void nms_impl(Container& bboxes, float threshold_iou, float threshold_sco
     }
 }
 
-void nms(std::vector<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+void nms(std::forward_list<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
     nms_impl(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
 }
+
 
 void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
          float                             threshold_iou,

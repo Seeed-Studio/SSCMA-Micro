@@ -21,7 +21,7 @@ ma_tick_t Tick::fromSeconds(uint32_t sec) {
     return (sec * 1000) / portTICK_PERIOD_MS;
 }
 
-void Tick::sleep(ma_tick_t tick) {
+void Thread::sleep(ma_tick_t tick) {
     vTaskDelay(tick);
 }
 
@@ -59,16 +59,33 @@ Thread::operator bool() const {
     return m_thread != nullptr;
 }
 
-void Thread::start(void* arg) {
+bool Thread::start(void* arg) {
 
     m_arg = arg;
 
-    xTaskCreate(threadEntryPointStub,
-                (m_name.empty() ? "Thread" : m_name.c_str()),
-                (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
-                this,
-                m_priority,
-                &m_thread);
+    if (m_thread != nullptr) {
+        return false;
+    }
+
+    if (xTaskCreate(
+            threadEntryPointStub,
+            (m_name.empty() ? "Thread" : m_name.c_str()),
+            (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
+            this,
+            m_priority,
+            &m_thread) != pdPASS) {
+        return false;
+    }
+
+    return true;
+}
+
+bool Thread::stop() {
+    if (m_thread != nullptr) {
+        vTaskDelete(m_thread);
+        m_thread = nullptr;
+    }
+    return true;
 }
 
 bool Thread::operator==(const Thread& other) const {

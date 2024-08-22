@@ -72,9 +72,9 @@ public:
                      mqtt_cfg.client_id);
 
 #if MA_USE_TRANSPORT_MQTT
-            MQTT* transport =
-                new MQTT(mqtt_cfg.client_id, mqtt_topic.pub_topic, mqtt_topic.sub_topic);
-            MA_LOGD(TAG, "MQTT Transport: %p", transport);
+            TransportMQTT* transport =
+                new TransportMQTT(mqtt_cfg.client_id, mqtt_topic.pub_topic, mqtt_topic.sub_topic);
+            MA_LOGD(TAG, "TransportMQTT Transport: %p", transport);
             transport->connect(mqtt_cfg.host, mqtt_cfg.port, mqtt_cfg.username, mqtt_cfg.password);
 
             transports.push_front(transport);
@@ -82,12 +82,12 @@ public:
         }
 
 
-        MA_LOGD(TAG, "MQTT Host: %s:%d", mqtt_cfg.host, mqtt_cfg.port);
-        MA_LOGD(TAG, "MQTT Client ID: %s", mqtt_cfg.client_id);
-        MA_LOGD(TAG, "MQTT User: %s", mqtt_cfg.username);
-        MA_LOGD(TAG, "MQTT Pwd: %s", mqtt_cfg.password);
-        MA_LOGD(TAG, "MQTT Pub Topic: %s", mqtt_topic.pub_topic);
-        MA_LOGD(TAG, "MQTT Sub Topic: %s", mqtt_topic.sub_topic);
+        MA_LOGD(TAG, "TransportMQTT Host: %s:%d", mqtt_cfg.host, mqtt_cfg.port);
+        MA_LOGD(TAG, "TransportMQTT Client ID: %s", mqtt_cfg.client_id);
+        MA_LOGD(TAG, "TransportMQTT User: %s", mqtt_cfg.username);
+        MA_LOGD(TAG, "TransportMQTT Pwd: %s", mqtt_cfg.password);
+        MA_LOGD(TAG, "TransportMQTT Pub Topic: %s", mqtt_topic.pub_topic);
+        MA_LOGD(TAG, "TransportMQTT Sub Topic: %s", mqtt_topic.sub_topic);
 
         storage->get(MA_STORAGE_KEY_WIFI_SSID, wifi_cfg.ssid, "");
         storage->get(MA_STORAGE_KEY_WIFI_BSSID, wifi_cfg.bssid, "");

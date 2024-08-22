@@ -6,7 +6,9 @@
 
 namespace ma::model {
 
-FOMO::FOMO(Engine* p_engine_) : Detector(p_engine_, "fomo", MA_MODEL_TYPE_FOMO) { MA_ASSERT(p_engine_ != nullptr); }
+FOMO::FOMO(Engine* p_engine_) : Detector(p_engine_, "fomo", MA_MODEL_TYPE_FOMO) {
+    MA_ASSERT(p_engine_ != nullptr);
+}
 
 FOMO::~FOMO() {}
 
@@ -59,17 +61,19 @@ bool FOMO::isValid(Engine* engine) {
     return true;
 }
 
-const char* FOMO::getTag() { return "ma::model::fomo"; }
+const char* FOMO::getTag() {
+    return "ma::model::fomo";
+}
 
 ma_err_t FOMO::postprocess() {
     const auto out = this->p_engine_->getOutput(0);
 
     switch (out.type) {
-    case MA_TENSOR_TYPE_S8:
-        return postProcessI8();
+        case MA_TENSOR_TYPE_S8:
+            return postProcessI8();
 
-    default:
-        return MA_ENOTSUP;
+        default:
+            return MA_ENOTSUP;
     }
 
     return MA_ENOTSUP;
@@ -78,8 +82,8 @@ ma_err_t FOMO::postprocess() {
 ma_err_t FOMO::postProcessI8() {
     results_.clear();
 
-    const auto  output = p_engine_->getOutput(0);
-    const auto* data   = output.data.s8;
+    const auto output = p_engine_->getOutput(0);
+    const auto* data  = output.data.s8;
 
     const auto width  = input_img_->width;
     const auto height = input_img_->height;
@@ -99,10 +103,11 @@ ma_err_t FOMO::postProcessI8() {
 
     for (int i = 0; i < pred_h; ++i) {
         for (int j = 0; j < pred_w; ++j) {
-            float max_score  = score_threshold;
-            int   max_target = -1;
+            float max_score = score_threshold;
+            int max_target  = -1;
             for (int t = 0; t < pred_t; ++t) {
-                const auto score = (data[i * pred_w * pred_t + j * pred_t + t] - zero_point) * scale;
+                const auto score =
+                    (data[i * pred_w * pred_t + j * pred_t + t] - zero_point) * scale;
                 if (score > max_score) {
                     max_score  = score;
                     max_target = t;
@@ -122,11 +127,11 @@ ma_err_t FOMO::postProcessI8() {
             box.score  = max_score;
             box.target = max_target;
 
-            results_.push_back(std::move(box));
+            results_.emplace_front(std::move(box));
         }
     }
 
-    results_.shrink_to_fit();
+    results_.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });
 
     return MA_OK;
 }

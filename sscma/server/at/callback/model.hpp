@@ -11,16 +11,16 @@ namespace ma::server::callback {
 
 using namespace ma::model;
 
-void get_available_models(const std::string& cmd, Transport& transport, Encoder& codec) {
+void get_available_models(const std::string& cmd, Transport& transport, Encoder& encoder) {
     auto& models = Engine::getModels();
-    codec.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
-    codec.write(models);
-    codec.end();
-    transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
+    encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
+    encoder.write(models);
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 void set_model(const std::string& cmd,
                Transport& transport,
-               Encoder& codec,
+               Encoder& encoder,
                uint8_t model_id,
                bool called_by_event = false) {
 
@@ -37,7 +37,7 @@ void set_model(const std::string& cmd,
         goto exit;
 
     // load model from flash to tensor arena (memory)
-    ret = static_resource->engine->loadModel(models[model_id + 1].addr);
+    ret = static_resource->engine->load(models[model_id + 1].addr);
     if (ret != MA_OK) [[unlikely]]
         goto exit;
 
@@ -50,24 +50,24 @@ void set_model(const std::string& cmd,
     }
 
 exit:
-    codec.begin(MA_MSG_TYPE_RESP, ret, cmd);
+    encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
     if (static_resource->cur_model_id) {
-        codec.write("model", models[static_resource->cur_model_id]);
+        encoder.write("model", models[static_resource->cur_model_id]);
     }
-    codec.end();
-    transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_model_info(const std::string& cmd, Transport& transport, Encoder& codec) {
+void get_model_info(const std::string& cmd, Transport& transport, Encoder& encoder) {
 
     auto& models = Engine::getModels();
 
-    codec.begin(MA_MSG_TYPE_RESP, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
+    encoder.begin(MA_MSG_TYPE_RESP, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
     if (static_resource->cur_model_id) {
-        codec.write("model", models[static_resource->cur_model_id]);
+        encoder.write("model", models[static_resource->cur_model_id]);
     }
-    codec.end();
-    transport.send(reinterpret_cast<const char*>(codec.data()), codec.size());
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
 }  // namespace ma::server::callback

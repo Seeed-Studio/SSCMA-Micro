@@ -11,12 +11,20 @@ namespace ma {
 
 class Camera {
 public:
-    Camera()          = default;
+    Camera(uint8_t index = 0)
+        : m_opened(false),
+          m_streaming(false),
+          m_capturing(false),
+          m_index(index),
+          m_format(MA_PIXEL_FORMAT_RGB888) {};
     virtual ~Camera() = default;
 
-    virtual ma_err_t open()       = 0;
-    virtual ma_err_t close()      = 0;
-    virtual operator bool() const = 0;
+    virtual ma_err_t open(uint16_t width,
+                          uint16_t height,
+                          ma_pixel_format_t format = MA_PIXEL_FORMAT_RGB888,
+                          int fps                  = -1) = 0;
+    virtual ma_err_t close()            = 0;
+    virtual operator bool() const       = 0;
 
     bool isOpened() const {
         return m_opened.load();
@@ -35,6 +43,11 @@ public:
 protected:
     std::atomic<bool> m_opened;
     std::atomic<bool> m_streaming;
+    std::atomic<bool> m_capturing;
+    uint16_t m_width;
+    uint16_t m_height;
+    uint8_t m_index;
+    ma_pixel_format_t m_format;
 };
 
 class CameraProvider {

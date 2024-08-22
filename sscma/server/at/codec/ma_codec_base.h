@@ -8,13 +8,12 @@
 
 #include "core/ma_common.h"
 
-
 namespace ma {
 
 class Encoder {
 public:
     Encoder()          = default;
-    virtual ~Encoder() = default; 
+    virtual ~Encoder() = default;
 
     /*!
      * @brief Encoder is valid.
@@ -231,12 +230,12 @@ public:
     virtual ma_err_t write(ma_perf_t value) = 0;
 
     /*!
-     * @brief Encoder type for write std::vector<ma_class_t> value.
+     * @brief Encoder type for write std::forward_list<ma_class_t> value.
      *
-     * @param[in] value std::vector<ma_class_t> typed value to write.
+     * @param[in] value std::forward_list<ma_class_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::vector<ma_class_t>& value) = 0;
+    virtual ma_err_t write(std::forward_list<ma_class_t>& value) = 0;
 
     /*!
      * @brief Encoder type for write std::vector<ma_point_t> value.
@@ -244,15 +243,15 @@ public:
      * @param[in] value std::vector<ma_point_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::vector<ma_point_t>& value) = 0;
+    virtual ma_err_t write(std::forward_list<ma_point_t>& value) = 0;
 
     /*!
-     * @brief Encoder type for write std::vector<ma_bbox_t> value.
+     * @brief Encoder type for write std::forward_list<ma_bbox_t> value.
      *
-     * @param[in] value std::vector<ma_bbox_t> typed value to write.
+     * @param[in] value std::forward_list<ma_bbox_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::vector<ma_bbox_t>& value) = 0;
+    virtual ma_err_t write(std::forward_list<ma_bbox_t>& value) = 0;
 
     /*!
      * @brief Encoder type for write std::forward_list<ma_model_t> value.
@@ -290,9 +289,9 @@ public:
     virtual ma_err_t read(const std::string& key, double& value) const      = 0;
     virtual ma_err_t read(const std::string& key, std::string& value) const = 0;
     virtual ma_err_t read(ma_perf_t& value)                                 = 0;
-    virtual ma_err_t read(std::vector<ma_class_t>& value)                   = 0;
-    virtual ma_err_t read(std::vector<ma_point_t>& value)                   = 0;
-    virtual ma_err_t read(std::vector<ma_bbox_t>& value)                    = 0;
+    virtual ma_err_t read(std::forward_list<ma_class_t>& value)             = 0;
+    virtual ma_err_t read(std::forward_list<ma_point_t>& value)             = 0;
+    virtual ma_err_t read(std::forward_list<ma_bbox_t>& value)              = 0;
 };
 
 }  // namespace ma

@@ -1,14 +1,18 @@
+#include <cstdlib>
+#include <cstring>
+
 #include "ma_model_detector.h"
+
 
 namespace ma::model {
 
 constexpr char TAG[] = "ma::model::detecor";
 
 Detector::Detector(Engine* p_engine, const char* name, ma_model_type_t type)
-    : Model(p_engine, name, type) {
-    input_           = p_engine_->getInput(0);
-    threshold_nms_   = 0.45;
-    threshold_score_ = 0.25;
+    : Model(p_engine, name, type),
+      input_(p_engine->getInput(0)),  // Use direct method call instead of p_engine_->
+      threshold_nms_(0.45),
+      threshold_score_(0.25) {
 
     is_nhwc_ = input_.shape.dims[3] == 3 || input_.shape.dims[3] == 1;
 
@@ -18,17 +22,16 @@ Detector::Detector(Engine* p_engine, const char* name, ma_model_type_t type)
         img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
         img_.format =
             input_.shape.dims[3] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
-
     } else {
         img_.height = input_.shape.dims[2];
         img_.width  = input_.shape.dims[3];
         img_.size   = input_.shape.dims[3] * input_.shape.dims[2] * input_.shape.dims[1];
         img_.format =
-            input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
+            input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888_PLANAR : MA_PIXEL_FORMAT_GRAYSCALE;
     }
 
     img_.data = input_.data.u8;
-};
+}
 
 ma_err_t Detector::preprocess() {
 
@@ -38,34 +41,18 @@ ma_err_t Detector::preprocess() {
     if (ret != MA_OK) {
         return ret;
     }
+
+    // TODO do this in convert
     if (input_.type == MA_TENSOR_TYPE_S8) {
         for (int i = 0; i < input_.size; i++) {
             input_.data.u8[i] -= 128;
         }
     }
 
-    // TODO: use opencv
-    if (!is_nhwc_) {
-        char* r_channel = new char[img_.width * img_.height];
-        char* g_channel = new char[img_.width * img_.height];
-        char* b_channel = new char[img_.width * img_.height];
-        for (int i = 0; i < img_.width * img_.height; i++) {
-            r_channel[i] = img_.data[3 * i];
-            g_channel[i] = img_.data[3 * i + 1];
-            b_channel[i] = img_.data[3 * i + 2];
-        }
-        memcpy(img_.data, r_channel, img_.width * img_.height);
-        memcpy(img_.data + img_.width * img_.height, g_channel, img_.width * img_.height);
-        memcpy(img_.data + 2 * img_.width * img_.height, b_channel, img_.width * img_.height);
-        delete[] r_channel;
-        delete[] g_channel;
-        delete[] b_channel;
-    }
-
     return ret;
 }
 
-const std::vector<ma_bbox_t>& Detector::getResults() {
+const std::forward_list<ma_bbox_t>& Detector::getResults() {
     return results_;
 }
 

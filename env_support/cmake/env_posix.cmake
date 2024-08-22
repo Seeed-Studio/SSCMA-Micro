@@ -5,6 +5,8 @@ if(SSCMA_CONF_PATH)
     get_filename_component(SSCMA_CONF_DIR ${SSCMA_CONF_PATH} DIRECTORY)
 endif(SSCMA_CONF_PATH)
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
 
 file(GLOB_RECURSE CORE_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/core/*.c ${SSCMA_ROOT_DIR}/sscma/core/*.cpp)
 
@@ -16,10 +18,10 @@ file(GLOB_RECURSE PORT_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.c $
 
 set(EXTENSION_SSCMA_SOURCES "")
 
-if(SSCMA_EXTENSION_BYTETRACK)
-    file(GLOB_RECURSE BYTETRACK_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.c ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.cpp)
-    list(APPEND EXTENSION_SSCMA_SOURCES ${BYTETRACK_SSCMA_SOURCES})
-endif()
+# if(SSCMA_EXTENSION_BYTETRACK)
+#     file(GLOB_RECURSE BYTETRACK_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.c ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.cpp)
+#     list(APPEND EXTENSION_SSCMA_SOURCES ${BYTETRACK_SSCMA_SOURCES})
+# endif()
 
 set(SSCMA_SOURCES
     ${CORE_SSCMA_SOURCES}

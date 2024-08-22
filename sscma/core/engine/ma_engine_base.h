@@ -25,10 +25,10 @@ public:
 
     virtual ma_err_t run() = 0;
 
-    virtual ma_err_t loadModel(const void* model_data, size_t model_size) = 0;
+    virtual ma_err_t load(const void* model_data, size_t model_size) = 0;
 #if MA_USE_FILESYSTEM
-    virtual ma_err_t loadModel(const char* model_path) = 0;
-    virtual ma_err_t loadModel(const std::string& model_path) = 0;
+    virtual ma_err_t load(const char* model_path) = 0;
+    virtual ma_err_t load(const std::string& model_path) = 0;
 #endif
 
     virtual int32_t getInputSize()  = 0;

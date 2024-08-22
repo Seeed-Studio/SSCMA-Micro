@@ -17,7 +17,7 @@ protected:
     double threshold_nms_;
     double threshold_score_;
     bool is_nhwc_;
-    std::vector<ma_bbox_t> results_;
+    std::forward_list<ma_bbox_t> results_;
 
 protected:
     ma_err_t preprocess() override;
@@ -25,7 +25,7 @@ protected:
 public:
     Detector(Engine* engine, const char* name, ma_model_type_t type);
     virtual ~Detector();
-    const std::vector<ma_bbox_t>& getResults();
+    const std::forward_list<ma_bbox_t>& getResults();
     ma_err_t run(const ma_img_t* img);
     ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) override;
     ma_err_t getConfig(ma_model_cfg_opt_t opt, ...) override;

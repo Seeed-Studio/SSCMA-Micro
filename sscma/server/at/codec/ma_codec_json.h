@@ -46,9 +46,9 @@ public:
     ma_err_t write(const std::string& key, const std::string& value) override;
     ma_err_t write(const std::string& key, ma_model_t value) override;
     ma_err_t write(ma_perf_t value) override;
-    ma_err_t write(std::vector<ma_class_t>& value) override;
-    ma_err_t write(std::vector<ma_point_t>& value) override;
-    ma_err_t write(std::vector<ma_bbox_t>& value) override;
+    ma_err_t write(std::forward_list<ma_class_t>& value) override;
+    ma_err_t write(std::forward_list<ma_point_t>& value) override;
+    ma_err_t write(std::forward_list<ma_bbox_t>& value) override;
     ma_err_t write(std::vector<ma_model_t>& value) override;
 
     const std::string& toString() const override;
@@ -90,10 +90,9 @@ public:
     ma_err_t read(const std::string& key, double& value) const override;
     ma_err_t read(const std::string& key, std::string& value) const override;
     ma_err_t read(ma_perf_t& value) override;
-    ma_err_t read(std::vector<ma_class_t>& value) override;
-    ma_err_t read(std::vector<ma_point_t>& value) override;
-    ma_err_t read(std::vector<ma_bbox_t>& value) override;
-
+    ma_err_t read(std::forward_list<ma_class_t>& value) override;
+    ma_err_t read(std::forward_list<ma_point_t>& value) override;
+    ma_err_t read(std::forward_list<ma_bbox_t>& value) override;
 
 private:
     std::string m_string;

@@ -437,7 +437,7 @@ ma_err_t EngineTFLite::run() {
     return MA_OK;
 }
 
-ma_err_t EngineTFLite::loadModel(const void* model_data, size_t model_size) {
+ma_err_t EngineTFLite::load(const void* model_data, size_t model_size) {
     model = tflite::GetModel(model_data);
 
     if (model == nullptr) {
@@ -596,7 +596,7 @@ ma_quant_param_t EngineTFLite::getOutputQuantParam(int32_t index) {
 }
 
 #if MA_USE_FILESYSTEM
-ma_err_t EngineTFLite::loadModel(const char* model_path) {
+ma_err_t EngineTFLite::load(const char* model_path) {
     ma_err_t ret = MA_OK;
     size_t size  = 0;
 #ifdef MA_USE_FILESYSTEM_POSIX
@@ -616,7 +616,7 @@ ma_err_t EngineTFLite::loadModel(const char* model_path) {
     file.seekg(0, std::ios::beg);
     file.read(model_file, size);
     file.close();
-    ret = loadModel(model_file, size);
+    ret = load(model_file, size);
     if (ret != MA_OK) {
         delete model_file;
         model_file = nullptr;
@@ -628,8 +628,8 @@ ma_err_t EngineTFLite::loadModel(const char* model_path) {
 #endif
 }
 
-ma_err_t EngineTFLite::loadModel(const std::string& model_path) {
-    return loadModel(model_path.c_str());
+ma_err_t EngineTFLite::load(const std::string& model_path) {
+    return load(model_path.c_str());
 }
 #endif
 

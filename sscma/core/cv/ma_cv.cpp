@@ -1,6 +1,12 @@
 #include "core/cv/ma_cv.h"
 
+#if MA_USE_LIB_JPEGENC
+#include "JPEGENC.h"
+#endif
+
 namespace ma::cv {
+
+static const char* TAG = "ma::cv";
 
 const static uint8_t RGB565_TO_RGB888_LOOKUP_TABLE_5[] = {
     0x00, 0x08, 0x10, 0x19, 0x21, 0x29, 0x31, 0x3A, 0x42, 0x4A, 0x52, 0x5A, 0x63, 0x6B, 0x73, 0x7B,
@@ -154,6 +160,82 @@ MA_ATTR_WEAK void rgb888_to_rgb888(const ma_img_t* src, ma_img_t* dst) {
 
                     *reinterpret_cast<b24_t*>(dst_p + (index * 3)) =
                         *reinterpret_cast<const b24_t*>(src_p + (init_index * 3));
+                }
+            }
+            break;
+    }
+}
+
+MA_ATTR_WEAK void rgb888_to_rgb888_planar(const ma_img_t* src, ma_img_t* dst) {
+    uint16_t sw = src->width;
+    uint16_t sh = src->height;
+    uint16_t dw = dst->width;
+    uint16_t dh = dst->height;
+
+    uint32_t beta_w = (sw << 16) / dw;
+    uint32_t beta_h = (sh << 16) / dh;
+
+    uint32_t i_mul_bh_sw = 0;
+
+    uint32_t init_index  = 0;
+    uint32_t index       = 0;
+    uint32_t planar_size = dw * dh;
+
+    const uint8_t* src_p = src->data;
+    uint8_t* dst_p       = dst->data;
+
+
+    switch (dst->rotate) {
+        case MA_PIXEL_ROTATE_90:
+            for (uint16_t i = 0; i < dh; ++i) {
+                i_mul_bh_sw = ((i * beta_h) >> 16) * sw;
+
+                for (uint16_t j = 0; j < dw; ++j) {
+                    init_index                     = (((j * beta_w) >> 16) + i_mul_bh_sw) * 3;
+                    index                          = (j % dw) * dh + ((dh - 1) - ((j / dw) + i));
+                    dst_p[index]                   = src_p[init_index + 0];
+                    dst_p[index + planar_size]     = src_p[init_index + 1];
+                    dst_p[index + planar_size * 2] = src_p[init_index + 2];
+                }
+            }
+            break;
+
+        case MA_PIXEL_ROTATE_180:
+            for (uint16_t i = 0; i < dh; ++i) {
+                i_mul_bh_sw = ((i * beta_h) >> 16) * sw;
+                for (uint16_t j = 0; j < dw; ++j) {
+                    init_index   = (((j * beta_w) >> 16) + i_mul_bh_sw) * 3;
+                    index        = ((dw - 1) - (j % dw)) + ((dh - 1) - ((j / dw) + i)) * dw;
+                    dst_p[index] = src_p[init_index + 0];
+                    dst_p[index + planar_size]     = src_p[init_index + 1];
+                    dst_p[index + planar_size * 2] = src_p[init_index + 2];
+                }
+            }
+            break;
+
+        case MA_PIXEL_ROTATE_270:
+            for (uint16_t i = 0; i < dh; ++i) {
+                i_mul_bh_sw = ((i * beta_h) >> 16) * sw;
+
+                for (uint16_t j = 0; j < dw; ++j) {
+                    init_index                     = (((j * beta_w) >> 16) + i_mul_bh_sw) * 3;
+                    index                          = ((dw - 1) - (j % dw)) * dh + (j / dw) + i;
+                    dst_p[index]                   = src_p[init_index + 0];
+                    dst_p[index + planar_size]     = src_p[init_index + 1];
+                    dst_p[index + planar_size * 2] = src_p[init_index + 2];
+                }
+            }
+            break;
+
+        default:
+            for (uint16_t i = 0; i < dh; ++i) {
+                i_mul_bh_sw = ((i * beta_h) >> 16) * sw;
+                for (uint16_t j = 0; j < dw; ++j) {
+                    init_index                     = (((j * beta_w) >> 16) + i_mul_bh_sw) * 3;
+                    index                          = (j + i * dw);
+                    dst_p[index]                   = src_p[init_index + 0];
+                    dst_p[index + planar_size]     = src_p[init_index + 1];
+                    dst_p[index + planar_size * 2] = src_p[init_index + 2];
                 }
             }
             break;
@@ -889,14 +971,18 @@ MA_ATTR_WEAK void gray_to_gray(const ma_img_t* src, ma_img_t* dst) {
 }
 
 // Note: Current downscaling algorithm implementation is INTER_NEARST
-MA_ATTR_WEAK void rgb_to_rgb(const ma_img_t* src, ma_img_t* dst) {
+MA_ATTR_WEAK ma_err_t rgb_to_rgb(const ma_img_t* src, ma_img_t* dst) {
     if (src->format == MA_PIXEL_FORMAT_RGB888) {
         if (dst->format == MA_PIXEL_FORMAT_RGB888)
             rgb888_to_rgb888(src, dst);
+        else if (dst->format == MA_PIXEL_FORMAT_RGB888_PLANAR)
+            rgb888_to_rgb888_planar(src, dst);
         else if (dst->format == MA_PIXEL_FORMAT_RGB565)
             rgb888_to_rgb565(src, dst);
         else if (dst->format == MA_PIXEL_FORMAT_GRAYSCALE)
             rgb888_to_gray(src, dst);
+        else
+            return MA_ENOTSUP;
     }
 
     else if (src->format == MA_PIXEL_FORMAT_RGB565) {
@@ -906,6 +992,8 @@ MA_ATTR_WEAK void rgb_to_rgb(const ma_img_t* src, ma_img_t* dst) {
             rgb565_to_rgb565(src, dst);
         else if (dst->format == MA_PIXEL_FORMAT_GRAYSCALE)
             rgb565_to_gray(src, dst);
+        else
+            return MA_ENOTSUP;
     }
 
     else if (src->format == MA_PIXEL_FORMAT_GRAYSCALE) {
@@ -915,10 +1003,14 @@ MA_ATTR_WEAK void rgb_to_rgb(const ma_img_t* src, ma_img_t* dst) {
             gray_to_rgb565(src, dst);
         else if (dst->format == MA_PIXEL_FORMAT_GRAYSCALE)
             gray_to_gray(src, dst);
+        else
+            return MA_ENOTSUP;
     }
+
+    return MA_OK;
 }
 
-#if CONFIG_MA_LIB_JPEGENC
+#if MA_USE_LIB_JPEGENC
 
 MA_ATTR_WEAK ma_err_t rgb_to_jpeg(const ma_img_t* src, ma_img_t* dst) {
     static JPEG jpg;
@@ -929,17 +1021,18 @@ MA_ATTR_WEAK ma_err_t rgb_to_jpeg(const ma_img_t* src, ma_img_t* dst) {
     int pitch         = 0;
     int bytesPerPixel = 0;
     int pixelFormat   = 0;
+    MA_LOGD(TAG, "rgb_to_jpeg");
     MA_ASSERT(src->format == MA_PIXEL_FORMAT_GRAYSCALE || src->format == MA_PIXEL_FORMAT_RGB565 ||
               src->format == MA_PIXEL_FORMAT_RGB888);
     if (src->format == MA_PIXEL_FORMAT_GRAYSCALE) {
         bytesPerPixel = 1;
-        pixelFormat   = JPEG_PIXMA_GRAYSCALE;
+        pixelFormat   = JPEG_PIXEL_GRAYSCALE;
     } else if (src->format == MA_PIXEL_FORMAT_RGB565) {
         bytesPerPixel = 2;
-        pixelFormat   = JPEG_PIXMA_RGB565;
+        pixelFormat   = JPEG_PIXEL_RGB565;
     } else if (src->format == MA_PIXEL_FORMAT_RGB888) {
         bytesPerPixel = 3;
-        pixelFormat   = JPEG_PIXMA_RGB888;
+        pixelFormat   = JPEG_PIXEL_RGB888;
     }
     pitch = src->width * bytesPerPixel;
     rc    = jpg.open(dst->data, dst->size);
@@ -978,18 +1071,23 @@ MA_ATTR_WEAK ma_err_t convert(const ma_img_t* src, ma_img_t* dst) {
     if (!dst || !dst->data) [[unlikely]]
         return MA_EINVAL;
 
+    if (src->format == dst->format && src->width == dst->width &&
+        src->height == dst->height & src->data != dst->data) {
+        memcpy(dst->data, src->data, src->size);
+        return MA_OK;
+    }
+
     if (src->format == MA_PIXEL_FORMAT_RGB565 || src->format == MA_PIXEL_FORMAT_RGB888 ||
         src->format == MA_PIXEL_FORMAT_GRAYSCALE) {
-#if CONFIG_MA_LIB_JPEGENC
+#if MA_USE_LIB_JPEGENC
         if (dst->format == MA_PIXEL_FORMAT_JPEG) {
             return rgb_to_jpeg(src, dst);
         }
 #endif
 
         if (dst->format == MA_PIXEL_FORMAT_RGB565 || dst->format == MA_PIXEL_FORMAT_RGB888 ||
-            dst->format == MA_PIXEL_FORMAT_GRAYSCALE) {
-            rgb_to_rgb(src, dst);
-            return MA_OK;
+            MA_PIXEL_FORMAT_RGB888_PLANAR || dst->format == MA_PIXEL_FORMAT_GRAYSCALE) {
+            return rgb_to_rgb(src, dst);
         }
     }
 

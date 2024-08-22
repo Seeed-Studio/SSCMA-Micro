@@ -93,7 +93,7 @@ ma_err_t EngineCVI::init(void* pool, size_t size) {
     return MA_OK;
 }
 
-ma_err_t EngineCVI::loadModel(const char* model_path) {
+ma_err_t EngineCVI::load(const char* model_path) {
     ma_err_t ret = MA_OK;
     CVI_RC _ret  = CVI_RC_SUCCESS;
 
@@ -119,11 +119,11 @@ ma_err_t EngineCVI::loadModel(const char* model_path) {
 }
 
 
-ma_err_t EngineCVI::loadModel(const std::string& model_path) {
-    return loadModel(model_path.c_str());
+ma_err_t EngineCVI::load(const std::string& model_path) {
+    return load(model_path.c_str());
 }
 
-ma_err_t EngineCVI::loadModel(const void* model_data, size_t model_size) {
+ma_err_t EngineCVI::load(const void* model_data, size_t model_size) {
     ma_err_t ret = MA_OK;
     CVI_RC _ret  = CVI_RC_SUCCESS;
 

@@ -66,8 +66,8 @@ void threadEntry(void*) {
     // Thread entry function
     while (1) {
         entryCalled = true;
-        printf("Hello from thread!\n");
-        Tick::sleep(Tick::fromMilliseconds(100));
+        MA_LOGD("test","Hello from thread!");
+        Thread::sleep(Tick::fromMilliseconds(100));
     }
 }
 

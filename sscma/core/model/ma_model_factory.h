@@ -11,7 +11,7 @@
 #include "ma_model_yolov5.h"
 
 
-namespace ma::model {
+namespace ma {
 
 using namespace ma::engine;
 
@@ -21,7 +21,7 @@ public:
     static ma_err_t remove(Model* model);
 };
 
-}  // namespace ma::model
+}  // namespace ma
 
 
 #endif  // _MA_MODEL_FACTORY_H_

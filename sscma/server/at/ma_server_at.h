@@ -7,6 +7,8 @@
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
 
+#include "codec/ma_codec.h"
+
 #ifndef MA_SEVER_AT_EXECUTOR_STACK_SIZE
 #define MA_SEVER_AT_EXECUTOR_STACK_SIZE 20 * 1024
 #endif
@@ -67,7 +69,7 @@ protected:
 private:
     static void threadEntryStub(void* arg);
     Thread* m_thread;
-    Encoder& m_codec;
+    Encoder& m_encoder;
     std::vector<ATService> m_services;
 };
 

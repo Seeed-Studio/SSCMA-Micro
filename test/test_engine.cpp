@@ -27,17 +27,17 @@ TEST(Engine, Init) {
     delete engine3;
 }
 
-TEST(Engine, LoadModel) {
+TEST(Engine, load) {
     auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel(g_yolo_meter_model_data, g_yolo_meter_model_data_len));
+    EXPECT_EQ(MA_OK, engine->load(g_yolo_meter_model_data, g_yolo_meter_model_data_len));
     delete engine;
 }
 
 TEST(Engine, Run) {
     auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel(g_yolo_meter_model_data, g_yolo_meter_model_data_len));
+    EXPECT_EQ(MA_OK, engine->load(g_yolo_meter_model_data, g_yolo_meter_model_data_len));
     auto input_shape = engine->getInputShape(0);
     EXPECT_EQ(4, input_shape.size);
     EXPECT_EQ(1, input_shape.dims[0]);
@@ -54,17 +54,17 @@ TEST(Engine, Run) {
 }
 
 #ifdef MA_USE_FILESYSTEM
-TEST(Engine, LoadModelFile) {
+TEST(Engine, loadFile) {
     auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
+    EXPECT_EQ(MA_OK, engine->load("yolo_meter.tflite"));
     delete engine;
 }
 
 TEST(Engine, RunFile) {
     auto* engine = new EngineTFLite();
     EXPECT_EQ(MA_OK, engine->init(TENSOR_ARENA_SIZE));
-    EXPECT_EQ(MA_OK, engine->loadModel("yolo_meter.tflite"));
+    EXPECT_EQ(MA_OK, engine->load("yolo_meter.tflite"));
     auto input_shape = engine->getInputShape(0);
     EXPECT_EQ(4, input_shape.size);
     EXPECT_EQ(1, input_shape.dims[0]);

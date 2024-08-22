@@ -73,12 +73,22 @@
 #define MA_AT_EVENT_INVOKE             "INVOKE"
 #define MA_AT_EVENT_SAMPLE             "SAMPLE"
 #define MA_AT_EVENT_WIFI               "WIFI"
-#define MA_AT_EVENT_MQTT               "MQTT"
+#define MA_AT_EVENT_MQTT               "TransportMQTT"
 #define MA_AT_EVENT_SUPERVISOR         "SUPERVISOR"
 #define MA_AT_EVENT_INIT               "INIT@STAT"
 
 #define MA_AT_LOG_AT                   "AT"
 #define MA_AT_LOG_LOG                  "LOG"
 
+
+#define MA_NODE_TOPIC_IN_FMT           "sscma/v0/%d/node/in/%s"
+#define MA_NODE_TOPIC_OUT_FMT          "sscma/v0/%d/node/out/%s"
+
+#define MA_NODE_CMD_CLEAR              "clear"
+#define MA_NODE_CMD_CREATE             "create"
+#define MA_NODE_CMD_DESTROY            "destroy"
+#define MA_NODE_CMD_CONFIG             "config"
+#define MA_NODE_CMD_STREAM             "stream"
+#define MA_NODE_CMD_INVOKE             "invoke"
 
 #endif

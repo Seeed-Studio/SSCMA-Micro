@@ -293,7 +293,7 @@ ma_err_t EncoderJSON::write(ma_perf_t value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::vector<ma_class_t>& value) {
+ma_err_t EncoderJSON::write(std::forward_list<ma_class_t>& value) {
     if (cJSON_GetObjectItem(m_data, "classes") != nullptr) {
         return MA_EEXIST;
     }
@@ -314,7 +314,7 @@ ma_err_t EncoderJSON::write(std::vector<ma_class_t>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::vector<ma_point_t>& value) {
+ma_err_t EncoderJSON::write(std::forward_list<ma_point_t>& value) {
     if (cJSON_GetObjectItem(m_data, "points") != nullptr) {
         return MA_EEXIST;
     }
@@ -335,7 +335,7 @@ ma_err_t EncoderJSON::write(std::vector<ma_point_t>& value) {
     }
     return MA_OK;
 }
-ma_err_t EncoderJSON::write(std::vector<ma_bbox_t>& value) {
+ma_err_t EncoderJSON::write(std::forward_list<ma_bbox_t>& value) {
     if (cJSON_GetObjectItem(m_data, "boxes") != nullptr) {
         return MA_EEXIST;
     }
@@ -588,7 +588,7 @@ ma_err_t DecoderJSON::read(ma_perf_t& value) {
     value.postprocess = cJSON_GetArrayItem(item, 2)->valueint;
     return MA_OK;
 };
-ma_err_t DecoderJSON::read(std::vector<ma_class_t>& value) {
+ma_err_t DecoderJSON::read(std::forward_list<ma_class_t>& value) {
     value.clear();
     cJSON* item = cJSON_GetObjectItem(m_data, "classes");
     if (item == nullptr || item->type != cJSON_Array) {
@@ -602,11 +602,11 @@ ma_err_t DecoderJSON::read(std::vector<ma_class_t>& value) {
         ma_class_t t;
         t.score  = cJSON_GetArrayItem(it, 0)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 1)->valueint;
-        value.push_back(std::move(t));
+        value.emplace_front(std::move(t));
     }
     return MA_OK;
 };
-ma_err_t DecoderJSON::read(std::vector<ma_point_t>& value) {
+ma_err_t DecoderJSON::read(std::forward_list<ma_point_t>& value) {
     value.clear();
     cJSON* item = cJSON_GetObjectItem(m_data, "points");
     if (item == nullptr || item->type != cJSON_Array) {
@@ -621,11 +621,11 @@ ma_err_t DecoderJSON::read(std::vector<ma_point_t>& value) {
         t.y      = cJSON_GetArrayItem(it, 1)->valuedouble;
         t.score  = cJSON_GetArrayItem(it, 2)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 3)->valueint;
-        value.push_back(std::move(t));
+        value.emplace_front(std::move(t));
     }
     return MA_OK;
 };
-ma_err_t DecoderJSON::read(std::vector<ma_bbox_t>& value) {
+ma_err_t DecoderJSON::read(std::forward_list<ma_bbox_t>& value) {
     value.clear();
     cJSON* item = cJSON_GetObjectItem(m_data, "boxes");
     if (item == nullptr || item->type != cJSON_Array) {
@@ -642,7 +642,7 @@ ma_err_t DecoderJSON::read(std::vector<ma_bbox_t>& value) {
         t.h      = cJSON_GetArrayItem(it, 3)->valuedouble;
         t.score  = cJSON_GetArrayItem(it, 4)->valuedouble;
         t.target = cJSON_GetArrayItem(it, 5)->valueint;
-        value.push_back(std::move(t));
+        value.emplace_front(std::move(t));
     }
     return MA_OK;
 };

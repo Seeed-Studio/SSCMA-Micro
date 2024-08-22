@@ -5,10 +5,9 @@
 
 #include "core/engine/ma_engine.h"
 
-namespace ma::model {
+namespace ma {
 
 using namespace ma::engine;
-
 class Model {
 private:
     ma_perf_t perf_;
@@ -38,7 +37,6 @@ public:
     void setRunDone(void (*fn)(void* ctx));
     void setUserCtx(void* ctx);
 };
-
 }  // namespace ma::model
 
 #endif /* _MA_ALGO_H_ */

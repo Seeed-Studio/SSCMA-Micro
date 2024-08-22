@@ -21,7 +21,6 @@ public:
     static ma_tick_t fromMicroseconds(uint32_t us);
     static ma_tick_t fromMilliseconds(uint32_t ms);
     static ma_tick_t fromSeconds(uint32_t sec);
-    static void sleep(ma_tick_t tick);
     static const ma_tick_t waitForever = MA_WAIT_FOREVER;
 };
 
@@ -34,10 +33,12 @@ public:
            ma_stack_t* stack = nullptr) noexcept;
     ~Thread() noexcept;
     operator bool() const;
-    void start(void* arg = nullptr);
+    bool start(void* arg = nullptr);
+    bool stop();
     bool operator==(const Thread& other) const;
 
 public:
+    static void sleep(ma_tick_t tick);
     static void yield();
     static ma_thread_t* self();
 

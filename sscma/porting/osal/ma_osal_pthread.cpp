@@ -44,7 +44,7 @@ ma_tick_t Tick::fromSeconds(uint32_t sec) {
     return sec * 1000 * 1000 * 1000;
 }
 
-void Tick::sleep(ma_tick_t tick) {
+void Thread::sleep(ma_tick_t tick) {
     struct timespec ts;
     struct timespec remain;
 
@@ -88,19 +88,26 @@ Thread::operator bool() const {
     return true;
 }
 
-void Thread::start(void* arg) {
+bool Thread::start(void* arg) {
 
     int result = 0;
     m_arg      = arg;
-    result     = pthread_create(&m_thread, nullptr, threadEntryPointStub, this);
+
+    result = pthread_create(&m_thread, nullptr, threadEntryPointStub, this);
     pthread_setname_np(m_thread, m_name.c_str());
     pthread_detach(m_thread);
+
+    return result == 0;
+}
+
+bool Thread::stop() {
+    pthread_cancel(m_thread);
+    return true;
 }
 
 bool Thread::operator==(const Thread& other) const {
     return pthread_equal(m_thread, other.m_thread) != 0;
 }
-
 
 void Thread::yield() {
     sched_yield();
@@ -109,7 +116,6 @@ void Thread::yield() {
 ma_thread_t* Thread::self() {
     return reinterpret_cast<ma_thread_t*>(pthread_self());
 }
-
 
 Mutex::Mutex(bool recursive) noexcept {
     pthread_mutexattr_t attr;
@@ -160,7 +166,6 @@ Guard::operator bool() const {
     return true;
 }
 
-
 Semaphore::Semaphore(size_t count) noexcept {
     pthread_condattr_t cattr;
     pthread_condattr_init(&cattr);
@@ -174,11 +179,9 @@ Semaphore::~Semaphore() noexcept {
     pthread_cond_destroy(&m_sem.cond);
 }
 
-
 Semaphore::operator bool() const {
     return true;
 }
-
 
 bool Semaphore::wait(ma_tick_t timeout) {
     struct timespec ts;
@@ -208,7 +211,6 @@ bool Semaphore::wait(ma_tick_t timeout) {
     return true;
 }
 
-
 uint32_t Semaphore::getCount() const {
     return m_sem.count;
 }
@@ -220,7 +222,6 @@ void Semaphore::signal() {
     }
     m_sem.count++;
 }
-
 
 Event::Event() noexcept {
     pthread_condattr_t cattr;
@@ -238,7 +239,6 @@ Event::~Event() noexcept {
 Event::operator bool() const {
     return true;
 }
-
 
 bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, bool waitAll) {
     struct timespec ts;
@@ -284,7 +284,6 @@ bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, 
     return true;
 }
 
-
 void Event::clear(uint32_t value) {
     Guard guard(m_mutex);
     m_event.value &= ~value;
@@ -299,7 +298,6 @@ void Event::set(uint32_t value) {
 uint32_t Event::get() const {
     return m_event.value;
 }
-
 
 MessageBox::MessageBox(size_t size) noexcept {
     pthread_condattr_t cattr;
@@ -320,7 +318,6 @@ MessageBox::~MessageBox() noexcept {
 MessageBox::operator bool() const {
     return true;
 }
-
 
 bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     struct timespec ts;
@@ -351,7 +348,6 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     return true;
 }
 
-
 bool MessageBox::post(void* msg, ma_tick_t timeout) {
     struct timespec ts;
     int error = 0;
@@ -366,13 +362,11 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
     while (m_mbox.count == m_mbox.size) {
         if (timeout != Tick::waitForever) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
-            MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
-            MA_ASSERT(error != EINVAL);
         }
     }
     m_mbox.msg[m_mbox.w] = msg;

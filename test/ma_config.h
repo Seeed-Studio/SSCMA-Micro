@@ -11,5 +11,9 @@
 #define CONFIG_MA_FILESYSTEM          1
 #define CONFIG_MA_FILESYSTEM_POSIX    1
 
+#ifndef CONFIG_MA_TRANSPORT_MQTT
+#define CONFIG_MA_TRANSPORT_MQTT 1
+#endif
+
 
 #endif /* _EL_CONFIG_H_ */

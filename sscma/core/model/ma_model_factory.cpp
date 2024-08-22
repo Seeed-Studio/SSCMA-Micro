@@ -1,8 +1,10 @@
 #include "ma_model_factory.h"
 
 
-namespace ma::model {
+namespace  ma{
 constexpr char TAG[] = "ma::model::factory";
+
+using namespace ma::model;
 
 Model* ModelFactory::create(Engine* engine) {
 
@@ -31,4 +33,4 @@ ma_err_t ModelFactory::remove(Model* model) {
     return MA_OK;
 }
 
-}  // namespace ma::model
+}  // namespace ma

@@ -1,7 +1,6 @@
-#ifndef _MA_PORTING_EXTRA_H_
-#define _MA_PORTING_EXTRA_H_
+#ifndef _MA_PORTING_POSIX_H_
+#define _MA_PORTING_POSIX_H_
 
-#include "ma_camera_mqtt.h"
 #include "ma_device_posix.h"
 #include "ma_storage_file.h"
 #include "ma_transport_console.h"

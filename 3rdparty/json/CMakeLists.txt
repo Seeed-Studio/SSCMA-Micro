@@ -45,7 +45,7 @@ set(INCS_CJSON
     ${CJSON_DIR}
 )
 
-if(SG200X_PLATFORM)
+if(SOPHGO_PLATFORM)
 component_register(
     COMPONENT_NAME cjson
     SRCS ${SRCS_CJSON}
