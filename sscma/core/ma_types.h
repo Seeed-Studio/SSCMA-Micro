@@ -11,9 +11,9 @@
 
 #ifdef __cplusplus
 
-    #include <cstddef>
-    #include <cstdint>
-    #include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 extern "C" {
 #endif
@@ -23,7 +23,7 @@ typedef enum {
     MA_OK       = 0,   // No error
     MA_AGAIN    = 1,   // Not ready yet
     MA_ELOG     = 2,   // logic error
-    MA_ETIMEOUT  = 3,   // Timeout
+    MA_ETIMEOUT = 3,   // Timeout
     MA_EIO      = 4,   // IO error
     MA_EINVAL   = 5,   // Invalid argument
     MA_ENOMEM   = 6,   // Not enough memory
@@ -36,19 +36,19 @@ typedef enum {
 } ma_err_t;
 
 typedef struct {
-    void*  pool;
+    void* pool;
     size_t size;
-    bool   own;
+    bool own;
 } ma_memory_pool_t;
 
 typedef struct {
-    float   scale;
+    float scale;
     int32_t zero_point;
 } ma_quant_param_t;
 
 typedef struct {
     uint32_t size;
-    int32_t  dims[MA_ENGINE_SHAPE_MAX_DIM];
+    int32_t dims[MA_ENGINE_SHAPE_MAX_DIM];
 } ma_shape_t;
 
 typedef enum {
@@ -70,10 +70,10 @@ typedef enum {
 } ma_tensor_type_t;
 
 typedef struct {
-    ma_shape_t       shape;
+    ma_shape_t shape;
     ma_quant_param_t quant_param;
     ma_tensor_type_t type;
-    size_t           size;
+    size_t size;
 #if MA_USE_ENGINE_TENSOR_INDEX
     size_t index;
 #endif
@@ -81,17 +81,17 @@ typedef struct {
     const char* name;
 #endif
     union {
-        void*     data;
-        uint8_t*  u8;
-        int8_t*   s8;
+        void* data;
+        uint8_t* u8;
+        int8_t* s8;
         uint16_t* u16;
-        int16_t*  s16;
+        int16_t* s16;
         uint32_t* u32;
-        int32_t*  s32;
+        int32_t* s32;
         uint64_t* u64;
-        int64_t*  s64;
-        float*    f32;
-        double*   f64;
+        int64_t* s64;
+        float* f32;
+        double* f64;
     } data;
     bool is_variable;  // For constant tensor
 } ma_tensor_t;
@@ -117,16 +117,14 @@ typedef enum {
     MA_PIXEL_ROTATE_UNKNOWN,
 } ma_pixel_rotate_t;
 
-typedef struct {
-    uint8_t*          data;
-    uint32_t          size;
-    uint16_t          width;
-    uint16_t          height;
+typedef struct  {
+    uint32_t size;
+    uint16_t width;
+    uint16_t height;
     ma_pixel_format_t format;
     ma_pixel_rotate_t rotate;
-    float std[3];
-    float mean[3];
     uint32_t timestamp;
+    uint8_t* data;
 } ma_img_t;
 
 typedef struct {
@@ -164,12 +162,12 @@ typedef struct {
     float x;
     float y;
     float score;
-    int   target;
+    int target;
 } ma_point_t;
 
 typedef struct {
     float score;
-    int   target;
+    int target;
 } ma_class_t;
 
 struct ma_bbox_t {
@@ -178,7 +176,7 @@ struct ma_bbox_t {
     float w;
     float h;
     float score;
-    int   target;
+    int target;
 };
 
 #ifdef __cplusplus
@@ -194,17 +192,17 @@ struct ma_types {
 
 #ifdef __cplusplus
 struct ma_keypoint2f_t {
-    ma_bbox_t              box;
+    ma_bbox_t box;
     std::vector<ma_pt2f_t> pts;
 };
 
 struct ma_keypoint3f_t {
-    ma_bbox_t              box;
+    ma_bbox_t box;
     std::vector<ma_pt3f_t> pts;
 };
 
 struct ma_keypoint4f_t {
-    ma_bbox_t              box;
+    ma_bbox_t box;
     std::vector<ma_pt4f_t> pts;
 };
 #endif
@@ -252,10 +250,10 @@ typedef enum {
 } ma_model_type_t;
 
 typedef struct {
-    uint8_t         id;
-    uint32_t        size;
-    char*           name;
-    char*           addr;
+    uint8_t id;
+    uint32_t size;
+    char* name;
+    char* addr;
     ma_model_type_t type;
 } ma_model_t;
 
@@ -269,31 +267,31 @@ typedef enum {
 } ma_wifi_security_t;
 
 typedef struct {
-    char   ssid[MA_MAX_WIFI_SSID_LENGTH];
-    char   bssid[MA_MAX_WIFI_BSSID_LENGTH];
-    char   password[MA_MAX_WIFI_PASSWORD_LENGTH];
+    char ssid[MA_MAX_WIFI_SSID_LENGTH];
+    char bssid[MA_MAX_WIFI_BSSID_LENGTH];
+    char password[MA_MAX_WIFI_PASSWORD_LENGTH];
     int8_t security;
 } ma_wifi_config_t;
 
 typedef struct {
-    char  alpn[MA_MQTT_MAX_BROKER_LENGTH];
+    char alpn[MA_MQTT_MAX_BROKER_LENGTH];
     char* certification_authority;
     char* client_cert;
     char* client_key;
 } ma_mqtt_ssl_config_t;
 
 typedef struct {
-    char   host[MA_MQTT_MAX_BROKER_LENGTH];
-    int    port;
-    char   client_id[MA_MQTT_MAX_CLIENT_ID_LENGTH];
-    char   username[MA_MQTT_MAX_USERNAME_LENGTH];
-    char   password[MA_MQTT_MAX_PASSWORD_LENGTH];
+    char host[MA_MQTT_MAX_BROKER_LENGTH];
+    int port;
+    char client_id[MA_MQTT_MAX_CLIENT_ID_LENGTH];
+    char username[MA_MQTT_MAX_USERNAME_LENGTH];
+    char password[MA_MQTT_MAX_PASSWORD_LENGTH];
     int8_t use_ssl;
 } ma_mqtt_config_t;
 
 typedef struct {
-    char   pub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
-    char   sub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
+    char pub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
+    char sub_topic[MA_MQTT_MAX_TOPIC_LENGTH];
     int8_t pub_qos;
     int8_t sub_qos;
 } ma_mqtt_topic_config_t;

@@ -65,13 +65,10 @@ public:
     }
 
 protected:
-    inline void yield() const {
-        Thread::sleep(Tick::fromMilliseconds(5));
-        Thread::yield();
-    }
-
     void run() {
         while (true) {
+            Thread::sleep(Tick::fromMilliseconds(10));
+            Thread::yield();
             task_t task{};
             const Guard guard(_task_queue_lock);
             if (!_task_queue.empty()) [[likely]] {
@@ -84,7 +81,6 @@ protected:
                 if (_task_reload.load()) [[unlikely]]
                     _task_queue.push(std::move(task));  // put back the task
             }
-            yield();
         }
     }
 

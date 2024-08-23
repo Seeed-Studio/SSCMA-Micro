@@ -33,15 +33,27 @@ ma_tick_t Tick::current() {
 }
 
 ma_tick_t Tick::fromMicroseconds(uint32_t us) {
-    return us * 1000;
+    return static_cast<ma_tick_t>(us) * 1000;
 }
 
 ma_tick_t Tick::fromMilliseconds(uint32_t ms) {
-    return ms * 1000 * 1000;
+    return static_cast<ma_tick_t>(ms) * 1000 * 1000;
 }
 
 ma_tick_t Tick::fromSeconds(uint32_t sec) {
-    return sec * 1000 * 1000 * 1000;
+    return static_cast<ma_tick_t>(sec) * 1000 * 1000 * 1000;
+}
+
+uint32_t Tick::toMicroseconds(ma_tick_t tick) {
+    return tick / 1000;
+}
+
+uint32_t Tick::toMilliseconds(ma_tick_t tick) {
+    return tick / (1000 * 1000);
+}
+
+uint32_t Tick::toSeconds(ma_tick_t tick) {
+    return tick / (1000 * 1000 * 1000);
 }
 
 void Thread::sleep(ma_tick_t tick) {
@@ -65,7 +77,8 @@ Thread::Thread(const char* name,
       m_entry(entry),
       m_priority(priority),
       m_stackSize(stackSize),
-      m_stack(stack) {}
+      m_stack(stack),
+      m_started(false) {}
 
 
 void Thread::threadEntryPoint(void) {
@@ -82,7 +95,9 @@ void* Thread::threadEntryPointStub(void* arg) {
     return nullptr;
 }
 
-Thread::~Thread() noexcept {}
+Thread::~Thread() noexcept {
+    stop();
+}
 
 Thread::operator bool() const {
     return true;
@@ -95,13 +110,20 @@ bool Thread::start(void* arg) {
 
     result = pthread_create(&m_thread, nullptr, threadEntryPointStub, this);
     pthread_setname_np(m_thread, m_name.c_str());
-    pthread_detach(m_thread);
+    m_started = (result == 0);
 
     return result == 0;
 }
 
 bool Thread::stop() {
+    if (!m_started) {
+        return false;
+    }
+    MA_LOGD(TAG, "Thread::stop: %s", m_name.c_str());
     pthread_cancel(m_thread);
+    pthread_join(m_thread, nullptr);
+    m_started = false;
+    MA_LOGD(TAG, "Thread::stop: %s done", m_name.c_str());
     return true;
 }
 
@@ -110,6 +132,7 @@ bool Thread::operator==(const Thread& other) const {
 }
 
 void Thread::yield() {
+    pthread_testcancel();
     sched_yield();
 }
 

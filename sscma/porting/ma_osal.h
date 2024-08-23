@@ -21,6 +21,9 @@ public:
     static ma_tick_t fromMicroseconds(uint32_t us);
     static ma_tick_t fromMilliseconds(uint32_t ms);
     static ma_tick_t fromSeconds(uint32_t sec);
+    static uint32_t toMicroseconds(ma_tick_t tick);
+    static uint32_t toMilliseconds(ma_tick_t tick);
+    static uint32_t toSeconds(ma_tick_t tick);
     static const ma_tick_t waitForever = MA_WAIT_FOREVER;
 };
 
@@ -62,6 +65,7 @@ private:
     uint32_t m_priority;
     size_t m_stackSize;
     ma_stack_t* m_stack;
+    bool m_started;
 };
 
 class Mutex {
