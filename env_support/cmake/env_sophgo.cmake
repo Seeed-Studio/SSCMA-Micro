@@ -28,5 +28,5 @@ component_register(
     COMPONENT_NAME sscma
     SRCS ${SOURCES}
     INCLUDE_DIRS ${INCS}
-    PRIVATE_REQUIREDS cjson mosquitto ssl crypto cviruntime video jpegenc
+    PRIVATE_REQUIREDS cjson mosquitto ssl crypto cviruntime video jpegenc cares
 ) 
