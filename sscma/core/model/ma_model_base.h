@@ -1,6 +1,8 @@
 #ifndef _MA_MODEL_BASE_H_
 #define _MA_MODEL_BASE_H_
 
+#include <string>
+
 #include "core/ma_common.h"
 
 #include "core/engine/ma_engine.h"
