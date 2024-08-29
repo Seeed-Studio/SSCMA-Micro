@@ -6,14 +6,19 @@
 
 #include "core/ma_common.h"
 
+#ifndef MA_STORAGE_CHECK_NULL_PTR
+    #define MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage) \
+        if (!p_storage) {                              \
+            break;                                     \
+        }
+#endif
+
 #if defined(MA_STORAGE_SET_POD)
     #undef MA_STORAGE_SET_POD
 #endif
 #define MA_STORAGE_SET_POD(ret, p_storage, key, value)    \
     do {                                                  \
-        if (!p_storage) {                                 \
-            break;                                        \
-        }                                                 \
+        MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)        \
         ret = p_storage->set(key, &value, sizeof(value)); \
     } while (0)
 
@@ -31,9 +36,7 @@
 #endif
 #define MA_STORAGE_SET_RVPOD(ret, p_storage, key, value)              \
     do {                                                              \
-        if (!p_storage) {                                             \
-            break;                                                    \
-        }                                                             \
+        MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                    \
         decltype(value) tmp = value;                                  \
         ret                 = p_storage->set(key, &tmp, sizeof(tmp)); \
     } while (0)
@@ -47,14 +50,27 @@
         MA_STORAGE_SET_RVPOD(ret, p_storage, key, value); \
     } while (0)
 
+#if defined(MA_STORAGE_GET_STR)
+    #undef MA_STORAGE_GET_STR
+#endif
+#define MA_STORAGE_GET_STR(p_storage, key, value, _default) \
+    do {                                                    \
+        MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)          \
+        std::string buffer;                                 \
+        auto        ret = p_storage->get(key, buffer);      \
+        if (ret != MA_OK) {                                 \
+            value = _default;                               \
+            break;                                          \
+        }                                                   \
+        value = std::move(buffer);                          \
+    } while (0)
+
 #if defined(MA_STORAGE_GET_CSTR)
     #undef MA_STORAGE_GET_CSTR
 #endif
 #define MA_STORAGE_GET_CSTR(p_storage, key, value, size, _default) \
     do {                                                           \
-        if (!p_storage) {                                          \
-            break;                                                 \
-        }                                                          \
+        MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                 \
         std::string buffer;                                        \
         auto        ret = p_storage->get(key, buffer);             \
         if (ret != MA_OK) {                                        \
@@ -63,14 +79,18 @@
         std::strncpy(value, buffer.c_str(), size);                 \
     } while (0)
 
+#if defined(MA_STORAGE_GET_ASTR)
+    #undef MA_STORAGE_GET_ASTR
+#endif
+#define MA_STORAGE_GET_ASTR(p_storage, key, value, _default) \
+    MA_STORAGE_GET_CSTR(p_storage, key, value, sizeof(value) - 1, _default)
+
 #if defined(MA_STORAGE_GET_POD)
     #undef MA_STORAGE_GET_POD
 #endif
 #define MA_STORAGE_GET_POD(p_storage, key, value, _default)         \
     do {                                                            \
-        if (!p_storage) {                                           \
-            break;                                                  \
-        }                                                           \
+        MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                  \
         std::string buffer;                                         \
         ma_err_t    err = p_storage->get(key, buffer);              \
         if (err != MA_OK) {                                         \

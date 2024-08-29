@@ -16,7 +16,6 @@ namespace ma {
 
 class StorageLfs : public Storage {
    public:
-    StorageLfs();
     StorageLfs(const std::string& mount_point, size_t bd_size = 8 * 1024 * 1024);
     virtual ~StorageLfs();
 
@@ -32,6 +31,8 @@ class StorageLfs : public Storage {
     virtual bool     exists(const std::string& key) override;
 
    protected:
+    StorageLfs();
+
     std::list<std::string> keyToPath(const std::string& key, size_t break_size);
 
     ma_err_t setImpl(std::string key, void const* data, size_t size);

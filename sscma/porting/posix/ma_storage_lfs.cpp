@@ -98,7 +98,7 @@ ma_err_t StorageLfs::mount(bool force) {
 
     int ret = lfs_filebd_create(&fs_config_, mount_point_.c_str(), &bd_config_);
     if (ret != LFS_ERR_OK) {
-        MA_LOGE(TAG, "Failed to create LFS storage");
+        MA_LOGE(TAG, "Failed to create LFS storage %s", mount_point_.c_str());
         return MA_EIO;
     }
 
