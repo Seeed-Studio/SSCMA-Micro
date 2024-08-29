@@ -1,47 +1,101 @@
 #ifndef _MA_STORAGE_H_
 #define _MA_STORAGE_H_
 
+#include <cstring>
+#include <string>
+
 #include "core/ma_common.h"
 
-#include <string>
+#if defined(MA_STORAGE_SET_POD)
+    #undef MA_STORAGE_SET_POD
+#endif
+#define MA_STORAGE_SET_POD(ret, p_storage, key, value)    \
+    do {                                                  \
+        if (!p_storage) {                                 \
+            break;                                        \
+        }                                                 \
+        ret = p_storage->set(key, &value, sizeof(value)); \
+    } while (0)
+
+#if defined(MA_STORAGE_NOSTA_SET_POD)
+    #undef MA_STORAGE_NOSTA_SET_POD
+#endif
+#define MA_STORAGE_NOSTA_SET_POD(p_storage, key, value) \
+    do {                                                \
+        [[maybe_unused]] int ret;                       \
+        MA_STORAGE_SET_POD(ret, p_storage, key, value); \
+    } while (0)
+
+#if defined(MA_STORAGE_SET_RVPOD)
+    #undef MA_STORAGE_SET_RVPOD
+#endif
+#define MA_STORAGE_SET_RVPOD(ret, p_storage, key, value)              \
+    do {                                                              \
+        if (!p_storage) {                                             \
+            break;                                                    \
+        }                                                             \
+        decltype(value) tmp = value;                                  \
+        ret                 = p_storage->set(key, &tmp, sizeof(tmp)); \
+    } while (0)
+
+#if defined(MA_STORAGE_NOSTA_SET_RVPOD)
+    #undef MA_STORAGE_NOSTA_SET_RVPOD
+#endif
+#define MA_STORAGE_NOSTA_SET_RVPOD(p_storage, key, value) \
+    do {                                                  \
+        [[maybe_unused]] int ret;                         \
+        MA_STORAGE_SET_RVPOD(ret, p_storage, key, value); \
+    } while (0)
+
+#if defined(MA_STORAGE_GET_CSTR)
+    #undef MA_STORAGE_GET_CSTR
+#endif
+#define MA_STORAGE_GET_CSTR(p_storage, key, value, size, _default) \
+    do {                                                           \
+        if (!p_storage) {                                          \
+            break;                                                 \
+        }                                                          \
+        std::string buffer;                                        \
+        auto        ret = p_storage->get(key, buffer);             \
+        if (ret != MA_OK) {                                        \
+            std::strncpy(value, _default, size);                   \
+        }                                                          \
+        std::strncpy(value, buffer.c_str(), size);                 \
+    } while (0)
+
+#if defined(MA_STORAGE_GET_POD)
+    #undef MA_STORAGE_GET_POD
+#endif
+#define MA_STORAGE_GET_POD(p_storage, key, value, _default)         \
+    do {                                                            \
+        if (!p_storage) {                                           \
+            break;                                                  \
+        }                                                           \
+        std::string buffer;                                         \
+        ma_err_t    err = p_storage->get(key, buffer);              \
+        if (err != MA_OK) {                                         \
+            value = _default;                                       \
+            break;                                                  \
+        }                                                           \
+        value = *reinterpret_cast<decltype(value)*>(buffer.data()); \
+    } while (0)
 
 namespace ma {
 
 class Storage {
-public:
+   public:
     Storage()          = default;
     virtual ~Storage() = default;
 
-    // virtual ma_err_t set(const std::string& key, bool value)               = 0;
-    virtual ma_err_t set(const std::string& key, int8_t value)             = 0;
-    virtual ma_err_t set(const std::string& key, int16_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, int32_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, int64_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, uint8_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, uint16_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, uint32_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, uint64_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, float value)              = 0;
-    virtual ma_err_t set(const std::string& key, double value)             = 0;
-    virtual ma_err_t set(const std::string& key, const std::string& value) = 0;
-    virtual ma_err_t set(const std::string& key, void* value, size_t size) = 0;
-    // virtual ma_err_t get(const std::string& key, bool& value)              = 0;
-    virtual ma_err_t get(const std::string& key, int8_t& value, int8_t default_ = 0)            = 0;
-    virtual ma_err_t get(const std::string& key, int16_t& value, int16_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, int32_t& value, int32_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, int64_t& value, int64_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, uint8_t& value, uint8_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, uint16_t& value, uint16_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, uint32_t& value, uint32_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, uint64_t& value, uint64_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, float& value, float default_ = 0)              = 0;
-    virtual ma_err_t get(const std::string& key, double& value, double default_ = 0)            = 0;
-    virtual ma_err_t get(const std::string& key, std::string& value, const std::string default_ = "") = 0;
-    virtual ma_err_t get(const std::string& key, char* value, const char* default_ = "")              = 0;
+    virtual ma_err_t set(const std::string& key, const std::string& value)       = 0;
+    virtual ma_err_t set(const std::string& key, const void* value, size_t size) = 0;
+
+    virtual ma_err_t get(const std::string& key, std::string& value) = 0;
 
     virtual ma_err_t remove(const std::string& key) = 0;
-    virtual bool exists(const std::string& key)     = 0;
+    virtual bool     exists(const std::string& key) = 0;
 };
+
 }  // namespace ma
 
 #endif  // _MA_STORAGE_H_

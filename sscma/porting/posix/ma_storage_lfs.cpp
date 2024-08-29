@@ -218,7 +218,7 @@ ma_err_t StorageLfs::setImpl(std::string key, void const* data, size_t size) {
     return MA_OK;
 }
 
-ma_err_t StorageLfs::getImpl(std::string key, std::string& buffer, size_t chunk_size) {
+ma_err_t StorageLfs::getImpl(std::string key, std::string& buffer) {
     if (!is_mounted_) {
         return MA_EPERM;
     }
@@ -243,21 +243,22 @@ ma_err_t StorageLfs::getImpl(std::string key, std::string& buffer, size_t chunk_
         return MA_EIO;
     }
 
-    std::vector<uint8_t> chunk(chunk_size, 0);
-    lfs_ssize_t          read = 0;
-    do {
-        read = lfs_file_read(&lfs_, &file, chunk.data(), chunk.size());
-        if (read == 0) {
-            break;
-        } else if (read < 0) {
-            MA_LOGE(TAG, "Failed to read from file %s, code %d", path.c_str(), read);
+    lfs_info info;
+    ret = lfs_stat(&lfs_, path.c_str(), &info);
+    if (ret != LFS_ERR_OK) {
+        MA_LOGE(TAG, "Failed to stat file %s", path.c_str());
+        return MA_EIO;
+    }
+    const size_t size = info.size;
+    buffer.resize(size);
+    lfs_size_t read = lfs_file_read(&lfs_, &file, buffer.data(), size);
+    if (read != size) {
+        MA_LOGE(TAG, "Failed to read from file %s, code %d", path.c_str(), read);
 
-            lfs_file_close(&lfs_, &file);
+        lfs_file_close(&lfs_, &file);
 
-            return MA_EIO;
-        }
-        buffer.append(chunk.begin(), chunk.begin() + read);
-    } while (read == chunk_size);
+        return MA_EIO;
+    }
 
     ret = lfs_file_close(&lfs_, &file);
     if (ret != LFS_ERR_OK) {
@@ -331,270 +332,20 @@ bool StorageLfs::exists(const std::string& key) {
     return false;
 }
 
-ma_err_t StorageLfs::set(const std::string& key, int8_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, int16_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, int32_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, int64_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, uint8_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, uint16_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, uint32_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, uint64_t value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, float value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
-ma_err_t StorageLfs::set(const std::string& key, double value) {
-    Guard guard(mutex_);
-    return setImpl(key, &value, sizeof(value));
-}
-
 ma_err_t StorageLfs::set(const std::string& key, const std::string& value) {
     Guard guard(mutex_);
     return setImpl(key, value.data(), value.size());
 }
 
-ma_err_t StorageLfs::set(const std::string& key, void* value, size_t size) {
+ma_err_t StorageLfs::set(const std::string& key, const void* value, size_t size) {
     Guard guard(mutex_);
     return setImpl(key, value, size);
 }
 
-ma_err_t StorageLfs::get(const std::string& key, int8_t& value, int8_t default_) {
+ma_err_t StorageLfs::get(const std::string& key, std::string& value) {
     Guard guard(mutex_);
 
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<int8_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, int16_t& value, int16_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<int16_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, int32_t& value, int32_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<int32_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, int64_t& value, int64_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<int64_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, uint8_t& value, uint8_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<uint8_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, uint16_t& value, uint16_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<uint16_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, uint32_t& value, uint32_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<uint32_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, uint64_t& value, uint64_t default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<uint64_t*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, float& value, float default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<float*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, double& value, double default_) {
-    Guard guard(mutex_);
-
-    std::string buffer;
-    auto        ret = getImpl(key, buffer, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    if (buffer.size() != sizeof(value)) {
-        value = default_;
-        return MA_EINVAL;
-    }
-    value = *reinterpret_cast<double*>(buffer.data());
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, std::string& value, const std::string default_) {
-    Guard guard(mutex_);
-
-    auto ret = getImpl(key, value, 128);
-    if (ret != MA_OK) {
-        value = default_;
-        return ret;
-    }
-
-    return MA_OK;
-}
-
-ma_err_t StorageLfs::get(const std::string& key, char* value, const char* default_) {
-    return MA_ENOTSUP;  // Copying data to a buffer with unknown size is damn dangerous, API change needed
+    return getImpl(key, value);
 }
 
 }  // namespace ma
