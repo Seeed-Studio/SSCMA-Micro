@@ -31,7 +31,7 @@ include(${SSCMA_ROOT_DIR}/CMakeLists.txt)
 
 set(TEST_MAIN ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 function(add_test)
     set(one_value_args NAME)
@@ -72,9 +72,10 @@ function(add_test)
 
 endfunction()
 
-include(core/CMakeLists.txt)
-include(model/CMakeLists.txt)
-include(math/CMakeLists.txt)
+# include(core/CMakeLists.txt)
+# include(model/CMakeLists.txt)
+# include(math/CMakeLists.txt)
+include(nodered/CMakeLists.txt)
 # include(utils/CMakeLists.txt)
 # include(misc/CMakeLists.txt)
 # include(extension/CMakeLists.txt)

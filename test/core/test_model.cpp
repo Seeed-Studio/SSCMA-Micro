@@ -83,6 +83,8 @@ TEST(Model, YOLO) {
                 result.w,
                 result.h);
         value = value * 10 + result.target;
+    Encoder encoder;
+    encoder.add("boxes", result);
     }
 
     EXPECT_EQ(179295, value);

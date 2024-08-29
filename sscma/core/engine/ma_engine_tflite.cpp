@@ -394,7 +394,7 @@ EngineTFLite::~EngineTFLite() {
     }
 #if MA_USE_FILESYSTEM
     if (model_file != nullptr) {
-        delete model_file;
+        delete[] model_file;
         model_file = nullptr;
     }
 #endif
@@ -600,7 +600,7 @@ ma_err_t EngineTFLite::load(const char* model_path) {
     ma_err_t ret = MA_OK;
     size_t size  = 0;
 #ifdef MA_USE_FILESYSTEM_POSIX
-    if(model_file != nullptr) {
+    if (model_file != nullptr) {
         delete model_file;
         model_file = nullptr;
     }
@@ -609,7 +609,7 @@ ma_err_t EngineTFLite::load(const char* model_path) {
         return MA_ELOG;
     }
     size       = file.tellg();
-    model_file = new char[size];
+    model_file = new char[size + 1];
     if (model_file == nullptr) {
         return MA_ENOMEM;
     }
@@ -618,7 +618,7 @@ ma_err_t EngineTFLite::load(const char* model_path) {
     file.close();
     ret = load(model_file, size);
     if (ret != MA_OK) {
-        delete model_file;
+        delete[] model_file;
         model_file = nullptr;
     }
 

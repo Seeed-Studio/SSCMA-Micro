@@ -69,7 +69,9 @@ bool Classifier::isValid(Engine* engine) {
 
     return true;
 }
-
+const ma_img_t* Classifier::getInputImg() {
+    return &img_;
+}
 
 ma_err_t Classifier::preprocess() {
     ma_err_t ret = MA_OK;

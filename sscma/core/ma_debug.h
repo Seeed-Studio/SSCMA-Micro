@@ -15,7 +15,7 @@
 #define MA_DEBUG_COLOR_RESET   "\033[0m"
 
 #if MA_USE_DEBUG_MORE_INFO
-#define MA_DEBUG_MORE_INFO(TAG) ma_printf("%s (%ld): ", TAG, ma_get_time_ms());
+#define MA_DEBUG_MORE_INFO(TAG) ma_printf("%s[%d] (%ld): ", TAG, __LINE__, ma_get_time_ms());
 #else
 #define MA_DEBUG_MORE_INFO(TAG)
 #endif
@@ -77,7 +77,7 @@
 #ifndef MA_LOGV
 #define MA_LOGV(TAG, ...)                       \
     do {                                        \
-        ma_printf(MA_DEBUG_COLOR_CYAN "V ");    \
+        ma_printf(MA_DEBUG_COLOR_MAGENTA "V "); \
         MA_DEBUG_MORE_INFO(TAG);                \
         ma_printf(__VA_ARGS__);                 \
         ma_printf(MA_DEBUG_COLOR_RESET "\r\n"); \

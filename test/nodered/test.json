@@ -1,0 +1,58 @@
+{
+    "type": 3,
+    "name": "create",
+    "data": {
+        "type": "model",
+        "config": {
+            "uri": "/home/lht/recamera/sscma-example-sg200x/components/sscma/test/core/yolo_meter.tflite"
+        }
+    }
+}
+
+{
+    "type": 3,
+    "name": "destroy",
+    "data": ""
+}
+
+{
+    "type": 3,
+    "name": "create",
+    "data": {
+        "type": "camera",
+        "config": {
+            "channels": [
+                {
+                    "channel": 0,
+                    "width": 0,
+                    "height": 0,
+                    "fps": 0,
+                    "enabled": true,
+                    "configured": false,
+                },
+                {
+                    "channel": 1,
+                    "width": 640,
+                    "height": 640,
+                    "fps": 30,
+                    "enabled": true,
+                    "configured": true
+                },
+                {
+                    "channel": 2,
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 30,
+                    "enabled": true,
+                    "configured": true
+                }
+            ]
+        }
+    }
+}
+
+{
+    "type": 3,
+    "name": "destroy",
+    "data": ""
+}

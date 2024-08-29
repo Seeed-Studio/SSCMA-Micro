@@ -28,6 +28,7 @@ public:
     virtual ~Classifier();
     static bool isValid(Engine* engine);
     const std::forward_list<ma_class_t>& getResults();
+    const ma_img_t* getInputImg();
     ma_err_t run(const ma_img_t* img);
     ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) override;
     ma_err_t getConfig(ma_model_cfg_opt_t opt, ...) override;

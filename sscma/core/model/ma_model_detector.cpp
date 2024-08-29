@@ -33,6 +33,10 @@ Detector::Detector(Engine* p_engine, const char* name, ma_model_type_t type)
     img_.data = input_.data.u8;
 }
 
+const ma_img_t* Detector::getInputImg() {
+    return &img_;
+}
+
 ma_err_t Detector::preprocess() {
 
     ma_err_t ret = MA_OK;

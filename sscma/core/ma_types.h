@@ -117,13 +117,12 @@ typedef enum {
     MA_PIXEL_ROTATE_UNKNOWN,
 } ma_pixel_rotate_t;
 
-typedef struct  {
+typedef struct {
     uint32_t size;
     uint16_t width;
     uint16_t height;
     ma_pixel_format_t format;
     ma_pixel_rotate_t rotate;
-    uint32_t timestamp;
     uint8_t* data;
 } ma_img_t;
 
@@ -247,7 +246,7 @@ typedef enum {
     MA_MODEL_TYPE_YOLOV8      = 6u,
     MA_MODEL_TYPE_NVIDIA_DET  = 7u,
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
-} ma_model_type_t;
+}  ma_model_type_t;
 
 typedef struct {
     uint8_t id;

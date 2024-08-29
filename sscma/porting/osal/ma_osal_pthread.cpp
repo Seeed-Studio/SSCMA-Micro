@@ -82,6 +82,9 @@ Thread::Thread(const char* name,
 
 
 void Thread::threadEntryPoint(void) {
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+    
+    //pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
     if (m_entry != nullptr) {
         m_entry(m_arg);
     }
@@ -127,12 +130,20 @@ bool Thread::stop() {
     return true;
 }
 
+bool Thread::join() {
+    if (!m_started) {
+        return false;
+    }
+    pthread_join(m_thread, nullptr);
+    m_started = false;
+    return true;
+}
+
 bool Thread::operator==(const Thread& other) const {
     return pthread_equal(m_thread, other.m_thread) != 0;
 }
 
 void Thread::yield() {
-    pthread_testcancel();
     sched_yield();
 }
 

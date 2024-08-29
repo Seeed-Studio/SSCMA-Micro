@@ -38,6 +38,7 @@ public:
     operator bool() const;
     bool start(void* arg = nullptr);
     bool stop();
+    bool join();
     bool operator==(const Thread& other) const;
 
 public:
