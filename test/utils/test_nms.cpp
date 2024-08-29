@@ -72,6 +72,7 @@ TEST(UTILS, NMS) {
         EXPECT_NEAR(obj.score, nms_data[i * nms_shape[1] + 4], 1e-6);
         auto target = static_cast<int>(nms_data[i * nms_shape[1] + 5]);
         EXPECT_EQ(obj.target, target);
+        ++i;
     }
 
     auto detections_single_target = detections;
@@ -81,7 +82,7 @@ TEST(UTILS, NMS) {
     EXPECT_NE(std::distance(detections_single_target.begin(), detections_single_target.end()),
               shape[0]);
 
-    std::string nms_single_file                 = npy_dir + "/nms_bboxes_single_targe->npy";
+    std::string nms_single_file                 = npy_dir + "/nms_bboxes_single_target.npy";
     npy::npy_data nms_single_out                = npy::read_npy<float>(nms_single_file);
     std::vector<float> nms_single_data          = nms_single_out.data;
     std::vector<unsigned long> nms_single_shape = nms_single_out.shape;
@@ -99,6 +100,7 @@ TEST(UTILS, NMS) {
         EXPECT_NEAR(obj.score, nms_single_data[i * nms_single_shape[1] + 4], 1e-6);
         auto target = static_cast<int>(nms_single_data[i * nms_single_shape[1] + 5]);
         EXPECT_EQ(obj.target, target);
+        ++i;
     }
 }
 

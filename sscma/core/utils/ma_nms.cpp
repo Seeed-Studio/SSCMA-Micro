@@ -11,19 +11,22 @@ namespace ma::utils {
 
 template <typename T, std::enable_if_t<std::is_base_of_v<ma_bbox_t, T>, bool> = true>
 static inline float compute_iou(const T& box1, const T& box2) {
-    float x1    = std::max(box1.x, box2.x);
-    float y1    = std::max(box1.y, box2.y);
-    float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
-    float y2    = std::min(box1.y + box1.h, box2.y + box2.h);
-    float w     = std::max(0.0f, x2 - x1);
-    float h     = std::max(0.0f, y2 - y1);
-    float inter = w * h;
-    float iou   = inter / (box1.w * box1.h + box2.w * box2.h - inter);
-    return iou;
+    const float x1    = std::max(box1.x, box2.x);
+    const float y1    = std::max(box1.y, box2.y);
+    const float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
+    const float y2    = std::min(box1.y + box1.h, box2.y + box2.h);
+    const float w     = std::max(0.0f, x2 - x1);
+    const float h     = std::max(0.0f, y2 - y1);
+    const float inter = w * h;
+    const float d     = box1.w * box1.h + box2.w * box2.h - inter;
+    if (std::abs(d) < std::numeric_limits<float>::epsilon()) [[unlikely]] {
+        return 0;
+    }
+    return inter / d;
 }
 
 template <typename Container, typename T = typename Container::value_type>
-static void nms_impl(Container& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+static constexpr void nms_impl(Container& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
     if constexpr (std::is_same_v<Container, std::forward_list<T>>) {
         bboxes.sort([](const auto& box1, const auto& box2) { return box1.score > box2.score; });
     } else {
@@ -56,10 +59,10 @@ static void nms_impl(Container& bboxes, float threshold_iou, float threshold_sco
     }
 }
 
-void nms(std::forward_list<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
+void nms(
+  std::forward_list<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
     nms_impl(bboxes, threshold_iou, threshold_score, soft_nms, multi_target);
 }
-
 
 void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
          float                             threshold_iou,
