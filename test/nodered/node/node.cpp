@@ -9,7 +9,7 @@ Node::Node(std::string type, std::string id)
       id_(std::move(id)),
       server_(nullptr),
       started_(false),
-      dependences_() {}
+      dependencies_() {}
 
 Node::~Node() = default;
 
@@ -25,15 +25,7 @@ Node* NodeFactory::create(const std::string id,
     std::string _type = type;
     std::transform(_type.begin(), _type.end(), _type.begin(), ::tolower);
 
-    // check dependences first
-    if (data.contains("dependences")) {
-        auto dependences = data["dependences"].get<std::vector<std::string>>();
-        for (auto& dependence : dependences) {
-            if (m_nodes.find(dependence) == m_nodes.end()) {  // if dependence not found
-                throw NodeException(MA_ENOENT, "dependence not found: " + dependence);
-            }
-        }
-    }
+    MA_LOGW(TAG, "create: %s ==> %s", id.c_str(), _type.c_str());
 
     if (m_nodes.find(id) != m_nodes.end()) {
         throw NodeException(MA_EEXIST, "node already exists: " + id);
@@ -52,10 +44,20 @@ Node* NodeFactory::create(const std::string id,
             }
         }
     }
+
+    if (data.contains("dependencies")) {
+        for (auto dep : data["dependencies"].get<std::vector<std::string>>()) {
+            if (m_nodes.find(dep) == m_nodes.end()) {
+                throw NodeException(MA_AGAIN, "node dependency not found: " + dep);
+            }
+        }
+    }
+
+
     Node* n    = it->second.create(id);
     n->server_ = server;
-    if (data.contains("dependences")) {
-        n->dependences_ = data["dependences"].get<std::vector<std::string>>();
+    if (data.contains("dependencies")) {
+        n->dependencies_ = data["dependencies"].get<std::vector<std::string>>();
     }
     m_nodes[id] = n;
 
@@ -66,28 +68,45 @@ Node* NodeFactory::create(const std::string id,
         m_nodes.erase(id);
         throw e;
     }
+
+    if (!n->dependencies_.empty()) {
+        for (auto dep : n->dependencies_) {
+            if (m_nodes.find(dep) == m_nodes.end()) {
+                throw NodeException(MA_ENOENT, "node dependency not found: " + dep);
+            }
+            m_nodes[dep]->onStart();
+        }
+    }
+
+    n->onStart();
+
     return n;
 }
 
 void NodeFactory::destroy(const std::string id) {
     Guard guard(m_mutex);
+
+    MA_LOGW(TAG, "destroy node: %s", id.c_str());
+
     auto node = m_nodes.find(id);
     if (node == m_nodes.end()) {
         throw NodeException(MA_ENOENT, "node not found: " + id);
     }
 
-    // check if the node has dependences
+    // check if the node has dependencies
     for (auto node : m_nodes) {
-        if (std::find(node.second->dependences_.begin(), node.second->dependences_.end(), id) !=
-            node.second->dependences_.end()) {
-            throw NodeException(MA_EBUSY, "node has dependences: " + id);
+        if (std::find(node.second->dependencies_.begin(), node.second->dependencies_.end(), id) !=
+            node.second->dependencies_.end()) {
+            MA_LOGV(TAG, "node has dependencies: %s, stop it", node.second->id().c_str());
+            node.second->onStop();
         }
     }
 
+    node->second->onStop();
     node->second->onDestroy();
 
     delete node->second;
-    m_nodes.erase(node);
+    m_nodes.erase(id);
 
     return;
 }

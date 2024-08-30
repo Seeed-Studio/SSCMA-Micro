@@ -69,10 +69,12 @@ protected:
             task_t task{};
             {
                 _task_queue_signal.wait();
-                Guard guard(_task_queue_lock);
-                if (!_task_queue.empty()) [[likely]] {
-                    task = std::move(_task_queue.front());
-                    _task_queue.pop();
+                {
+                    Guard guard(_task_queue_lock);
+                    if (!_task_queue.empty()) [[likely]] {
+                        task = std::move(_task_queue.front());
+                        _task_queue.pop();
+                    }
                 }
                 if (task) [[unlikely]] {
                     if (task()) {

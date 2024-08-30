@@ -42,7 +42,9 @@ public:
     ~CameraNode();
 
     ma_err_t onCreate(const json& config) override;
+    ma_err_t onStart() override;
     ma_err_t onMessage(const json& message) override;
+    ma_err_t onStop() override;
     ma_err_t onDestroy() override;
 
 protected:

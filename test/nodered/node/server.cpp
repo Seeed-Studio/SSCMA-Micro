@@ -30,8 +30,8 @@ void NodeServer::onMessage(struct mosquitto* mosq, const struct mosquitto_messag
         if (!payload.contains("name") || !payload.contains("data")) {
             throw NodeException(MA_EINVAL, "invalid payload");
         }
-        m_executor.submit([this, id, payload]() -> bool {
-            MA_LOGD(TAG, "Request: %s", payload.dump().c_str());
+        MA_LOGD(TAG, "Request: %s", payload.dump().c_str());
+        m_executor.submit([this, id = std::move(id), payload = std::move(payload)]() -> bool {
             std::string name = payload["name"].get<std::string>();
             const json& data = payload["data"];
             try {
@@ -43,7 +43,9 @@ void NodeServer::onMessage(struct mosquitto* mosq, const struct mosquitto_messag
                     const json& config = data.contains("config") ? data["config"] : json::object();
                     NodeFactory::create(id, type, data, this);
                 } else if (name == "destroy") {
+                    MA_LOGD(TAG, "22destroy: %s", id.c_str());
                     NodeFactory::destroy(id);
+                    MA_LOGD(TAG, "33destroy done: %s", id.c_str());
                 } else {
                     Node* node = NodeFactory::find(id);
                     if (node) {

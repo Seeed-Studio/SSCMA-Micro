@@ -40,7 +40,9 @@ public:
     virtual ~Node();
 
     virtual ma_err_t onCreate(const json& config)   = 0;
+    virtual ma_err_t onStart()                      = 0;
     virtual ma_err_t onMessage(const json& message) = 0;
+    virtual ma_err_t onStop()                       = 0;
     virtual ma_err_t onDestroy()                    = 0;
 
     const std::string& id() const {
@@ -49,8 +51,12 @@ public:
     const std::string& type() const {
         return type_;
     }
-    const std::vector<std::string>& dependences() const {
-        return dependences_;
+    const std::vector<std::string>& dependencies() const {
+        return dependencies_;
+    }
+
+    const std::string dump() const {
+        return json({{"id", id_}, {"type", type_}, {"dependencies", dependencies_}}).dump();
     }
 
 protected:
@@ -59,7 +65,7 @@ protected:
     std::string type_;
     NodeServer* server_;
     std::atomic_bool started_;
-    std::vector<std::string> dependences_;  // only create when all dependences are ready
+    std::vector<std::string> dependencies_;
 
     friend class NodeServer;
     friend class NodeFactory;
