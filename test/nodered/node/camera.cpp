@@ -1,10 +1,8 @@
 #include "camera.h"
 
-namespace ma::server::node {
+namespace ma::node {
 
-static constexpr char TAG[] = "ma::server::node::camera";
-
-CameraNode* CameraNode::instance_ = nullptr;
+static constexpr char TAG[] = "ma::node::camera";
 
 static uint8_t test_buf[32 * 32 * 3] = {0};
 
@@ -69,70 +67,68 @@ void CameraNode::threadEntryStub(void* obj) {
     reinterpret_cast<CameraNode*>(obj)->threadEntry();
 }
 
-ma_err_t CameraNode::onCreate(const json& config, const Response& response) {
+ma_err_t CameraNode::onCreate(const json& config) {
     Guard guard(mutex_);
     MA_LOGD(TAG, "onCreate: %s", config.dump().c_str());
 
-    if (!config["data"].contains("config")) {
-        response(json::object({{"type", MA_MSG_TYPE_RESP},
-                               {"name", "create"},
-                               {"code", MA_EINVAL},
-                               {"data", "uri missing"}}));
-        return MA_EINVAL;
-    }
-
-    if (config["data"].contains("wires")) {
-        for (auto& wires : config["data"]["wires"]) {
-            for (auto& wire : wires) {
-                wires_.push_back(wire);
+    if (config.is_array()) {
+        for (auto& item : config) {
+            int channel = item["channel"].get<int>();
+            if (channel < 0 || channel >= CHN_MAX) {
+                throw NodeException(MA_EINVAL, "invalid channel");
             }
+            channels_[channel].width       = item["width"];
+            channels_[channel].height      = item["height"];
+            channels_[channel].fps         = item["fps"];
+            channels_[channel].format      = item["format"];
+            channels_[channel].enabled     = item["enabled"];
+            channels_[CHN_H264].configured = item["configured"];
         }
     }
 
-    channels_[CHN_H264].enabled    = config["data"]["config"]["enabled"];
-    channels_[CHN_H264].width      = config["data"]["config"]["width"];
-    channels_[CHN_H264].height     = config["data"]["config"]["height"];
-    channels_[CHN_H264].fps        = config["data"]["config"]["fps"];
-    channels_[CHN_H264].format     = MA_PIXEL_FORMAT_H264;
-    channels_[CHN_H264].configured = true;
-
-
     thread_ = new Thread((type_ + "#" + id_).c_str(), threadEntryStub);
 
-    response(json::object(
-        {{"type", MA_MSG_TYPE_RESP}, {"name", "create"}, {"code", MA_OK}, {"data", ""}}));
-
-    instance_ = this;
-
+    if (thread_ == nullptr) {
+        throw NodeException(MA_ENOMEM, "thread create failed");
+    }
+    server_->response(
+        id_,
+        json::object(
+            {{"type", MA_MSG_TYPE_RESP}, {"name", "create"}, {"code", MA_OK}, {"data", ""}}));
 
     return MA_OK;
 }
 
-ma_err_t CameraNode::onMessage(const json& message, const Response& response) {
-    response(json::object(
-        {{"type", MA_MSG_TYPE_RESP}, {"name", "message"}, {"code", MA_OK}, {"data", ""}}));
+ma_err_t CameraNode::onMessage(const json& message) {
+    Guard guard(mutex_);
+    MA_LOGD(TAG, "onMessage: %s", message.dump().c_str());
+    server_->response(id_,
+                      json::object({{"type", MA_MSG_TYPE_RESP},
+                                    {"name", message["name"]},
+                                    {"code", MA_ENOTSUP},
+                                    {"data", ""}}));
     return MA_OK;
 }
 
-ma_err_t CameraNode::onDestroy(const Response& response) {
+ma_err_t CameraNode::onDestroy() {
+    Guard guard(mutex_);
+    MA_LOGD(TAG, "onDestroy");
     if (thread_ != nullptr) {
         delete thread_;
         thread_ = nullptr;
     }
-    response(json::object(
-        {{"type", MA_MSG_TYPE_RESP}, {"name", "destroy"}, {"code", MA_OK}, {"data", ""}}));
+
+    server_->response(
+        id_,
+        json::object(
+            {{"type", MA_MSG_TYPE_RESP}, {"name", "destroy"}, {"code", MA_OK}, {"data", ""}}));
+
     return MA_OK;
 }
 
 ma_err_t CameraNode::start() {
     if (started_) {
         return MA_OK;
-    }
-    for (auto& wire : wires_) {
-        if (NodeFactory::get(wire) == nullptr) {
-            MA_LOGW(TAG, "wire not found: %s", wire.c_str());
-            return MA_AGAIN;
-        }
     }
     for (int i = 0; i < CHN_MAX; i++) {
         if (channels_[i].enabled && !channels_[i].configured) {
@@ -189,11 +185,7 @@ ma_err_t CameraNode::detach(int chn, MessageBox* msgbox) {
     return MA_OK;
 }
 
-CameraNode* CameraNode::getInstance() {
-    return instance_;
-}
-
 REGISTER_NODE_SINGLETON("camera", CameraNode);
 
 
-}  // namespace ma::server::node
+}  // namespace ma::node

@@ -1,9 +1,9 @@
 
 #include "server.h"
 
-namespace ma::server {
+namespace ma::node {
 
-static constexpr char TAG[] = "ma::server::node";
+static constexpr char TAG[] = "ma::node::server";
 
 void NodeServer::onConnect(struct mosquitto* mosq, int rc) {
     MA_LOGD(TAG, "connect");
@@ -22,28 +22,64 @@ void NodeServer::onDisconnect(struct mosquitto* mosq, int rc) {
 void NodeServer::onMessage(struct mosquitto* mosq, const struct mosquitto_message* msg) {
     std::string topic = msg->topic;
     std::string id    = "";
+    json payload;
     try {
-        if (topic.length() > m_topic_in_prefix.length() + 1) [[likely]] {
-            id           = topic.substr(m_topic_in_prefix.length() + 1);
-            json payload = json::parse(static_cast<const char*>(msg->payload));
-            m_executor.submit(
-                [this, id = std::move(id), payload = std::move(payload)](
-                    const std::atomic<bool>& reload) { this->dispatch(id, payload); });
-        } else {
-            json payload = json::parse(static_cast<const char*>(msg->payload));
-            m_executor.submit([this, payload = std::move(payload)](const std::atomic<bool>&) {
-                this->dispatch("", payload);
-            });
-        }
+        id      = topic.substr(m_topic_in_prefix.length() + 1);
+        payload = json::parse(static_cast<const char*>(msg->payload), nullptr, false);
 
-    } catch (std::exception& e) {
+        if (!payload.contains("name") || !payload.contains("data")) {
+            throw NodeException(MA_EINVAL, "invalid payload");
+        }
+        m_executor.submit([this, id, payload]() -> bool {
+            MA_LOGD(TAG, "Request: %s", payload.dump().c_str());
+            std::string name = payload["name"].get<std::string>();
+            const json& data = payload["data"];
+            try {
+                if (name == "create") {
+                    if (!data.contains("type")) {
+                        throw NodeException(MA_EINVAL, "invalid payload");
+                    }
+                    std::string type   = data["type"].get<std::string>();
+                    const json& config = data.contains("config") ? data["config"] : json::object();
+                    NodeFactory::create(id, type, data, this);
+                } else if (name == "destroy") {
+                    NodeFactory::destroy(id);
+                } else {
+                    Node* node = NodeFactory::find(id);
+                    if (node) {
+                        node->onMessage(data);
+                    }
+                }
+            } catch (const NodeException& e) {
+                this->response(id,
+                               json::object({{"type", MA_MSG_TYPE_RESP},
+                                             {"name", name},
+                                             {"code", e.err()},
+                                             {"data", e.what()}}));
+                return e.err() == MA_AGAIN;
+            } catch (const std::exception& e) {
+                this->response(id,
+                               json::object({{"type", MA_MSG_TYPE_RESP},
+                                             {"name", name},
+                                             {"code", MA_EINVAL},
+                                             {"data", e.what()}}));
+                return false;
+            }
+            return false;
+        });
+
+    } catch (const NodeException& e) {
+        response(id,
+                 json::object({{"type", MA_MSG_TYPE_RESP},
+                               {"name", "request"},
+                               {"code", e.err()},
+                               {"data", e.what()}}));
+    } catch (const std::exception& e) {
         response(id,
                  json::object({{"type", MA_MSG_TYPE_RESP},
                                {"name", "request"},
                                {"code", MA_EINVAL},
                                {"data", e.what()}}));
-        MA_LOGW(TAG, "onMessage: %s", e.what());
-        return;
     }
 }
 
@@ -69,65 +105,6 @@ void NodeServer::onMessageStub(struct mosquitto* mosq,
     NodeServer* server = static_cast<NodeServer*>(obj);
     if (server) {
         server->onMessage(mosq, msg);
-    }
-}
-
-void NodeServer::dispatch(const std::string& id, const json& msg) {
-    try {
-        MA_LOGD(TAG, "dispatch: %s msg: %s", id.c_str(), msg.dump().c_str());
-        auto* node      = NodeFactory::get(id);
-        std::string cmd = msg["name"];
-        std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
-        auto _response = [this, id](const json& msg) {
-            this->response(id, msg);
-        };
-        if (cmd == "create") {
-            if (node != nullptr) {
-                MA_LOGW(TAG, "node already exists: %s", id.c_str());
-                _response(json::object({{"type", MA_MSG_TYPE_RESP},
-                                        {"name", cmd},
-                                        {"code", MA_EEXIST},
-                                        {"data", ""}}));
-                return;
-            }
-            MA_LOGD(TAG, "create node: %s", id.c_str());
-            node = NodeFactory::create(msg["data"]["type"], id);
-            if (node) {
-                if (node->onCreate(msg, _response) != MA_OK) {
-                    NodeFactory::destroy(id);
-                }
-            } else {
-                _response(json::object({{"type", MA_MSG_TYPE_RESP},
-                                        {"name", cmd},
-                                        {"code", MA_FAILED},
-                                        {"data", ""}}));
-            }
-        } else if (cmd == "destroy") {
-            if (node) {
-                MA_LOGD(TAG, "destroy node: %s", id.c_str());
-                node->onDestroy(_response);
-                NodeFactory::destroy(id);
-            } else {
-                MA_LOGW(TAG, "node not found: %s", id.c_str());
-                _response(json::object({{"type", MA_MSG_TYPE_RESP},
-                                        {"name", cmd},
-                                        {"code", MA_FAILED},
-                                        {"data", ""}}));
-            }
-        } else {
-            if (node) {
-                node->onMessage(msg, _response);
-            } else {
-                MA_LOGW(TAG, "node not found: %s", id.c_str());
-                _response(json::object({{"type", MA_MSG_TYPE_RESP},
-                                        {"name", cmd},
-                                        {"code", MA_FAILED},
-                                        {"data", ""}}));
-            }
-        }
-    } catch (std::exception& e) {
-        MA_LOGW(TAG, "dispatch: %s", e.what());
-        return;
     }
 }
 
@@ -192,4 +169,4 @@ ma_err_t NodeServer::stop() {
     return MA_OK;
 }
 
-}  // namespace ma::server
+}  // namespace ma::node

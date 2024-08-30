@@ -1,31 +1,31 @@
-#pragma once
+// #pragma once
 
-#include "camera.h"
-#include "node.h"
+// #include "camera.h"
+// #include "node.h"
 
-namespace ma::server::node {
+// namespace ma::node {
 
-class StreamNode : public Node {
+// class StreamNode : public Node {
 
-public:
-    StreamNode(std::string id);
-    ~StreamNode();
+// public:
+//     StreamNode(std::string id);
+//     ~StreamNode();
 
-    ma_err_t onCreate(const json& config, const Response& response) override;
+//     ma_err_t onCreate(const json& config, const Response& response) override;
 
-    ma_err_t onMessage(const json& message, const Response& response) override;
+//     ma_err_t onMessage(const json& message, const Response& response) override;
 
-    ma_err_t onDestroy(const Response& response) override;
+//     ma_err_t onDestroy(const Response& response) override;
 
-protected:
-    void threadEntry();
-    static void threadEntryStub(void* obj);
+// protected:
+//     void threadEntry();
+//     static void threadEntryStub(void* obj);
 
-protected:
-    std::string url_;
-    CameraNode* camera_;
-    MessageBox frame_;
-    Thread* thread_;
-};
+// protected:
+//     std::string url_;
+//     CameraNode* camera_;
+//     MessageBox frame_;
+//     Thread* thread_;
+// };
 
-}  // namespace ma::server::node
+// }  // namespace ma::node

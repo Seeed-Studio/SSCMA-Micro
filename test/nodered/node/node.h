@@ -12,21 +12,36 @@
 
 using json = nlohmann::json;
 
-namespace ma::server {
+namespace ma::node {
 
 class NodeFactory;
 class NodeServer;
 
 using Response = std::function<void(const json&)>;
 
+class NodeException : public std::exception {
+private:
+    ma_err_t err_;
+    std::string msg_;
+
+public:
+    NodeException(ma_err_t err, const std::string& msg) : err_(err), msg_(msg) {}
+    ma_err_t err() const {
+        return err_;
+    }
+    const char* what() const noexcept override {
+        return msg_.c_str();
+    }
+};
+
 class Node {
 public:
     Node(std::string type, std::string id);
     virtual ~Node();
 
-    virtual ma_err_t onCreate(const json& config, const Response& response)   = 0;
-    virtual ma_err_t onMessage(const json& message, const Response& response) = 0;
-    virtual ma_err_t onDestroy(const Response& response)                      = 0;
+    virtual ma_err_t onCreate(const json& config)   = 0;
+    virtual ma_err_t onMessage(const json& message) = 0;
+    virtual ma_err_t onDestroy()                    = 0;
 
     const std::string& id() const {
         return id_;
@@ -34,12 +49,17 @@ public:
     const std::string& type() const {
         return type_;
     }
+    const std::vector<std::string>& dependences() const {
+        return dependences_;
+    }
 
 protected:
     Mutex mutex_;
     std::string id_;
     std::string type_;
-    std::vector<std::string> wires_;
+    NodeServer* server_;
+    std::atomic_bool started_;
+    std::vector<std::string> dependences_;  // only create when all dependences are ready
 
     friend class NodeServer;
     friend class NodeFactory;
@@ -55,17 +75,19 @@ class NodeFactory {
     };
 
 public:
-    static Node* create(const std::string& type, const std::string& id);
-    static void destroy(const std::string& id);
-    static Node* get(const std::string& id);
-    static std::vector<Node*> getNodes(const std::string& type);
-    static void clear();
+    static Node* create(const std::string id,
+                        const std::string type,
+                        const json& data,
+                        NodeServer* server);
+    static void destroy(const std::string id);
+    static Node* find(const std::string id);
 
-    static void registerNode(const std::string& type, CreateNode create, bool singleton = false);
+    static void registerNode(const std::string type, CreateNode create, bool singleton = false);
 
 private:
     static std::unordered_map<std::string, NodeCreator>& registry();
     static std::unordered_map<std::string, Node*> m_nodes;
+    static Mutex m_mutex;
 };
 
 #define REGISTER_NODE(type, node)                                                                \
@@ -87,4 +109,4 @@ private:
     };                                                                           \
     static node##Registrar g_##node##Registrar;
 
-}  // namespace ma::server
+}  // namespace ma::node

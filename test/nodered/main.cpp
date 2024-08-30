@@ -1,7 +1,7 @@
 #include "node/server.h"
 #include <gtest/gtest.h>
 
-namespace ma::server {
+namespace ma::node {
 
 
 TEST(Server, Node) {

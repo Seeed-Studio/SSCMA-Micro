@@ -5,8 +5,9 @@
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
 
+#include "executor.hpp"
 #include "node.h"
-namespace ma::server {
+namespace ma::node {
 
 class NodeServer {
 public:
@@ -19,7 +20,7 @@ public:
                    std::string password = "");
     ma_err_t stop();
 
-    void dispatch(const std::string& id, const json& msg);
+    // void dispatch(const std::string& id, const json& msg);
     void response(const std::string& id, const json& msg);
 
 protected:
@@ -43,4 +44,4 @@ private:
     Mutex m_mutex;
 };
 
-}
+}  // namespace ma::node
