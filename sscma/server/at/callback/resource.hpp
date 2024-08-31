@@ -53,7 +53,7 @@ class staticResource final {
                          MA_MQTT_CLIENTID_FMT,
                          device->name().c_str(),
                          device->id().c_str());
-                storage->set(MA_STORAGE_KEY_MQTT_CLIENTID, mqtt_cfg.client_id);
+                MA_STORAGE_NOSTA_SET_ASTR(storage, MA_STORAGE_KEY_MQTT_CLIENTID, mqtt_cfg.client_id);
             }
 
             snprintf(mqtt_topic.pub_topic,

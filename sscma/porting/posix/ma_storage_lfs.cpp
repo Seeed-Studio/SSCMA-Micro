@@ -332,11 +332,6 @@ bool StorageLfs::exists(const std::string& key) {
     return false;
 }
 
-ma_err_t StorageLfs::set(const std::string& key, const std::string& value) {
-    Guard guard(mutex_);
-    return setImpl(key, value.data(), value.size());
-}
-
 ma_err_t StorageLfs::set(const std::string& key, const void* value, size_t size) {
     Guard guard(mutex_);
     return setImpl(key, value, size);

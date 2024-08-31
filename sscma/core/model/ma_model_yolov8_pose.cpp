@@ -16,7 +16,8 @@ namespace ma::model {
 
 static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
     if (shape.size != 4) {
-        return std::make_pair(0, 0);
+        int32_t ph = 0;
+        return std::make_pair(ph, ph);
     }
     const auto is_nhwc{shape.dims[3] == 3 || shape.dims[3] == 1};
 

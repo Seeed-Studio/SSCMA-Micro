@@ -44,9 +44,11 @@ void set_model(const std::string& cmd,
     // if model id changed, update current model id
     if (static_resource->cur_model_id != model_id + 1) {
         static_resource->cur_model_id = model_id + 1;
-        if (!called_by_event)
-            ret = static_resource->storage->set(MA_STORAGE_KEY_MODEL_ID,
-                                                static_resource->cur_model_id);
+        if (!called_by_event) {
+            MA_STORAGE_SET_POD(ret, static_resource->storage, MA_STORAGE_KEY_MODEL_ID,
+                               static_resource->cur_model_id);
+        }
+            
     }
 
 exit:

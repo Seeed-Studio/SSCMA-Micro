@@ -22,7 +22,6 @@ class StorageLfs : public Storage {
     ma_err_t mount(bool force = true);
     ma_err_t uMount();
 
-    virtual ma_err_t set(const std::string& key, const std::string& value) override;
     virtual ma_err_t set(const std::string& key, const void* value, size_t size) override;
 
     virtual ma_err_t get(const std::string& key, std::string& value) override;
