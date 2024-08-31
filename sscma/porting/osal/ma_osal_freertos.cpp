@@ -1,35 +1,23 @@
 #include "core/ma_common.h"
 #include "porting/ma_osal.h"
 
+#if MA_OSAL_FREERTOS
+
 namespace ma {
 
-#define MS_TO_TICKS(ms) ((ms == Tick::waitForever) ? portMAX_DELAY : (ms) / portTICK_PERIOD_MS)
+    #define MS_TO_TICKS(ms) ((ms == Tick::waitForever) ? portMAX_DELAY : (ms) / portTICK_PERIOD_MS)
 
-ma_tick_t Tick::current() {
-    return xTaskGetTickCount() * portTICK_PERIOD_MS;
-}
+ma_tick_t Tick::current() { return xTaskGetTickCount() * portTICK_PERIOD_MS; }
 
-ma_tick_t Tick::fromMicroseconds(uint32_t us) {
-    return (us / 1000) / portTICK_PERIOD_MS;
-}
+ma_tick_t Tick::fromMicroseconds(uint32_t us) { return (us / 1000) / portTICK_PERIOD_MS; }
 
-ma_tick_t Tick::fromMilliseconds(uint32_t ms) {
-    return ms / portTICK_PERIOD_MS;
-}
+ma_tick_t Tick::fromMilliseconds(uint32_t ms) { return ms / portTICK_PERIOD_MS; }
 
-ma_tick_t Tick::fromSeconds(uint32_t sec) {
-    return (sec * 1000) / portTICK_PERIOD_MS;
-}
+ma_tick_t Tick::fromSeconds(uint32_t sec) { return (sec * 1000) / portTICK_PERIOD_MS; }
 
-void Thread::sleep(ma_tick_t tick) {
-    vTaskDelay(tick);
-}
+void Thread::sleep(ma_tick_t tick) { vTaskDelay(tick); }
 
-Thread::Thread(const char* name,
-               void (*entry)(void*),
-               uint32_t priority,
-               size_t stackSize,
-               ma_stack_t* stack) noexcept
+Thread::Thread(const char* name, void (*entry)(void*), uint32_t priority, size_t stackSize, ma_stack_t* stack) noexcept
     : m_thread(nullptr),
       m_arg(nullptr),
       m_name(name),
@@ -37,7 +25,6 @@ Thread::Thread(const char* name,
       m_priority(priority),
       m_stackSize(stackSize),
       m_stack(stack) {}
-
 
 void Thread::threadEntryPoint(void) {
     if (m_entry != nullptr) {
@@ -55,25 +42,21 @@ void Thread::threadEntryPointStub(void* arg) {
 
 Thread::~Thread() noexcept {}
 
-Thread::operator bool() const {
-    return m_thread != nullptr;
-}
+Thread::operator bool() const { return m_thread != nullptr; }
 
 bool Thread::start(void* arg) {
-
     m_arg = arg;
 
     if (m_thread != nullptr) {
         return false;
     }
 
-    if (xTaskCreate(
-            threadEntryPointStub,
-            (m_name.empty() ? "Thread" : m_name.c_str()),
-            (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
-            this,
-            m_priority,
-            &m_thread) != pdPASS) {
+    if (xTaskCreate(threadEntryPointStub,
+                    (m_name.empty() ? "Thread" : m_name.c_str()),
+                    (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
+                    this,
+                    m_priority,
+                    &m_thread) != pdPASS) {
         return false;
     }
 
@@ -88,19 +71,11 @@ bool Thread::stop() {
     return true;
 }
 
-bool Thread::operator==(const Thread& other) const {
-    return m_thread == other.m_thread;
-}
+bool Thread::operator==(const Thread& other) const { return m_thread == other.m_thread; }
 
+void Thread::yield() { portYIELD(); }
 
-void Thread::yield() {
-    portYIELD();
-}
-
-ma_thread_t* Thread::self() {
-    return reinterpret_cast<ma_thread_t*>(xTaskGetCurrentTaskHandle());
-}
-
+ma_thread_t* Thread::self() { return reinterpret_cast<ma_thread_t*>(xTaskGetCurrentTaskHandle()); }
 
 Mutex::Mutex(bool recursive) noexcept : m_mutex(nullptr) {
     if (recursive) {
@@ -110,71 +85,50 @@ Mutex::Mutex(bool recursive) noexcept : m_mutex(nullptr) {
     }
 }
 
-Mutex::operator ma_mutex_t*() const {
-    return &m_mutex;
-}
+Mutex::operator ma_mutex_t*() const { return &m_mutex; }
 
-Mutex::~Mutex() noexcept {
+Mutex::~Mutex() noexcept { vSemaphoreDelete(m_mutex); }
 
-    vSemaphoreDelete(m_mutex);
-}
-
-Mutex::operator bool() const {
-    return m_mutex != nullptr;
-}
+Mutex::operator bool() const { return m_mutex != nullptr; }
 
 bool Mutex::tryLock(ma_tick_t timeout) {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         return false;
     }
     return (xSemaphoreTakeRecursive(m_mutex, 0) == pdTRUE);
 }
 
 bool Mutex::lock() const {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         return false;
     }
     return (xSemaphoreTakeRecursive(m_mutex, portMAX_DELAY) == pdTRUE);
 }
 
 bool Mutex::unlock() const {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         return false;
     }
     return (xSemaphoreGiveRecursive(m_mutex) == pdTRUE);
 }
 
+Guard::Guard(const Mutex& mutex) noexcept : m_mutex(mutex) { m_mutex.lock(); }
 
-Guard::Guard(const Mutex& mutex) noexcept : m_mutex(mutex) {
-    m_mutex.lock();
-}
+Guard::~Guard() noexcept { m_mutex.unlock(); }
 
-Guard::~Guard() noexcept {
-    m_mutex.unlock();
-}
-
-Guard::operator bool() const {
-    return m_mutex;
-}
-
+Guard::operator bool() const { return m_mutex; }
 
 Semaphore::Semaphore(size_t count) noexcept : m_sem(nullptr) {
     m_sem = xSemaphoreCreateCounting(0x7fffffffu, static_cast<UBaseType_t>(count));
 }
 
-Semaphore::~Semaphore() noexcept {
-    vSemaphoreDelete(m_sem);
-}
+Semaphore::~Semaphore() noexcept { vSemaphoreDelete(m_sem); }
 
-
-Semaphore::operator bool() const {
-    return m_sem != nullptr;
-}
-
+Semaphore::operator bool() const { return m_sem != nullptr; }
 
 bool Semaphore::wait(ma_tick_t timeout) {
     BaseType_t yield;
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         if (xSemaphoreTakeFromISR(m_sem, &yield) != pdPASS) {
             return false;
         } else {
@@ -189,9 +143,8 @@ bool Semaphore::wait(ma_tick_t timeout) {
     return true;
 }
 
-
 uint32_t Semaphore::getCount() const {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         return static_cast<uint32_t>(uxQueueMessagesWaitingFromISR(m_sem));
     } else {
         return static_cast<uint32_t>(uxSemaphoreGetCount(m_sem));
@@ -200,7 +153,7 @@ uint32_t Semaphore::getCount() const {
 
 void Semaphore::signal() {
     BaseType_t yield;
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         if (xSemaphoreGiveFromISR(m_sem, &yield) != pdPASS) {
             return;
         } else {
@@ -211,35 +164,26 @@ void Semaphore::signal() {
     }
 }
 
+Event::Event() noexcept : m_event(nullptr) { m_event = xEventGroupCreate(); }
 
-Event::Event() noexcept : m_event(nullptr) {
-    m_event = xEventGroupCreate();
-}
+Event::~Event() noexcept { vEventGroupDelete(m_event); }
 
-Event::~Event() noexcept {
-    vEventGroupDelete(m_event);
-}
-
-Event::operator bool() const {
-    return m_event != nullptr;
-}
-
+Event::operator bool() const { return m_event != nullptr; }
 
 bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, bool waitAll) {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         *value = 0;
         return false;
     }
     Guard guard(m_mutex);
-    *value = xEventGroupWaitBits(
-        m_event, mask, waitAll ? pdTRUE : pdFALSE, clear ? pdTRUE : pdFALSE, MS_TO_TICKS(timeout));
+    *value =
+      xEventGroupWaitBits(m_event, mask, waitAll ? pdTRUE : pdFALSE, clear ? pdTRUE : pdFALSE, MS_TO_TICKS(timeout));
     *value &= mask;
     return (*value == mask);
 }
 
-
 void Event::clear(uint32_t value) {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         xEventGroupClearBitsFromISR(m_event, value);
     } else {
         Guard guard(m_mutex);
@@ -249,7 +193,7 @@ void Event::clear(uint32_t value) {
 
 void Event::set(uint32_t value) {
     BaseType_t yield;
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         if (xEventGroupSetBitsFromISR(m_event, value, &yield) == pdPASS) {
             portYIELD_FROM_ISR(yield);
         }
@@ -260,7 +204,7 @@ void Event::set(uint32_t value) {
 }
 
 uint32_t Event::get() const {
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         return static_cast<uint32_t>(xEventGroupGetBitsFromISR(m_event));
     } else {
         Guard guard(m_mutex);
@@ -268,23 +212,15 @@ uint32_t Event::get() const {
     }
 }
 
+MessageBox::MessageBox(size_t size) noexcept : m_mbox(nullptr) { m_mbox = xQueueCreate(size, sizeof(void*)); }
 
-MessageBox::MessageBox(size_t size) noexcept : m_mbox(nullptr) {
-    m_mbox = xQueueCreate(size, sizeof(void*));
-}
+MessageBox::~MessageBox() noexcept { vQueueDelete(m_mbox); }
 
-MessageBox::~MessageBox() noexcept {
-    vQueueDelete(m_mbox);
-}
-
-MessageBox::operator bool() const {
-    return m_mbox != nullptr;
-}
-
+MessageBox::operator bool() const { return m_mbox != nullptr; }
 
 bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     BaseType_t yield;
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         if (xQueueReceiveFromISR(m_mbox, msg, &yield) != pdPASS) {
             return false;
         } else {
@@ -299,10 +235,9 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     return true;
 }
 
-
 bool MessageBox::post(void* msg, ma_tick_t timeout) {
     BaseType_t yield;
-    if (xPortInIsrContext()) {
+    if (xPortIsInsideInterrupt()) {
         if (xQueueSendFromISR(m_mbox, &msg, &yield) != pdPASS) {
             return false;
         } else {
@@ -317,5 +252,6 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
     return true;
 }
 
-
 }  // namespace ma
+
+#endif

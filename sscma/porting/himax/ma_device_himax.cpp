@@ -1,14 +1,14 @@
-#include "ma_device_posix.h"
+#include "ma_device_himax.h"
 
 #include <random>
 
 #include "core/ma_common.h"
 #include "ma_storage_lfs.h"
-#include "ma_transport_mqtt.h"
+// #include "ma_transport_mqtt.h"
 
 namespace ma {
 
-DevicePosix::DevicePosix() {
+DeviceHimax::DeviceHimax() {
     static StorageLfs storage(MA_CONFIG_FILE);
 
     m_storage = &storage;
@@ -25,14 +25,14 @@ DevicePosix::DevicePosix() {
     m_id = std::to_string(dis(gen));
 }
 
-DevicePosix::~DevicePosix() {}
+DeviceHimax::~DeviceHimax() {}
 
-ma_err_t DevicePosix::init() { return MA_OK; }
+ma_err_t DeviceHimax::init() { return MA_OK; }
 
-ma_err_t DevicePosix::deinit() { return MA_OK; }
+ma_err_t DeviceHimax::deinit() { return MA_OK; }
 
 Device* Device::getInstance() {
-    static DevicePosix Device;
+    static DeviceHimax Device;
     return &Device;
 }
 

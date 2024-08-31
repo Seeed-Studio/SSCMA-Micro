@@ -1,20 +1,19 @@
-#include <limits.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#if MA_OSAL_PTHREAD
 
-#include <pthread.h>
+    #include <assert.h>
+    #include <errno.h>
+    #include <limits.h>
+    #include <pthread.h>
+    #include <signal.h>
+    #include <stdarg.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <sys/syscall.h>
+    #include <time.h>
+    #include <unistd.h>
 
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <sys/syscall.h>
-
-#include "core/ma_common.h"
-#include "porting/ma_osal.h"
+    #include "core/ma_common.h"
+    #include "porting/ma_osal.h"
 
 namespace ma {
 
@@ -22,7 +21,7 @@ constexpr char TAG[] = "ma::osal::pthread";
 
 ma_tick_t Tick::current() {
     struct timespec ts;
-    ma_tick_t tick;
+    ma_tick_t       tick;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     tick = ts.tv_sec;
@@ -32,29 +31,17 @@ ma_tick_t Tick::current() {
     return tick;
 }
 
-ma_tick_t Tick::fromMicroseconds(uint32_t us) {
-    return static_cast<ma_tick_t>(us) * 1000;
-}
+ma_tick_t Tick::fromMicroseconds(uint32_t us) { return static_cast<ma_tick_t>(us) * 1000; }
 
-ma_tick_t Tick::fromMilliseconds(uint32_t ms) {
-    return static_cast<ma_tick_t>(ms) * 1000 * 1000;
-}
+ma_tick_t Tick::fromMilliseconds(uint32_t ms) { return static_cast<ma_tick_t>(ms) * 1000 * 1000; }
 
-ma_tick_t Tick::fromSeconds(uint32_t sec) {
-    return static_cast<ma_tick_t>(sec) * 1000 * 1000 * 1000;
-}
+ma_tick_t Tick::fromSeconds(uint32_t sec) { return static_cast<ma_tick_t>(sec) * 1000 * 1000 * 1000; }
 
-uint32_t Tick::toMicroseconds(ma_tick_t tick) {
-    return tick / 1000;
-}
+uint32_t Tick::toMicroseconds(ma_tick_t tick) { return tick / 1000; }
 
-uint32_t Tick::toMilliseconds(ma_tick_t tick) {
-    return tick / (1000 * 1000);
-}
+uint32_t Tick::toMilliseconds(ma_tick_t tick) { return tick / (1000 * 1000); }
 
-uint32_t Tick::toSeconds(ma_tick_t tick) {
-    return tick / (1000 * 1000 * 1000);
-}
+uint32_t Tick::toSeconds(ma_tick_t tick) { return tick / (1000 * 1000 * 1000); }
 
 void Thread::sleep(ma_tick_t tick) {
     struct timespec ts;
@@ -67,11 +54,7 @@ void Thread::sleep(ma_tick_t tick) {
     }
 }
 
-Thread::Thread(const char* name,
-               void (*entry)(void*),
-               uint32_t priority,
-               size_t stackSize,
-               ma_stack_t* stack) noexcept
+Thread::Thread(const char* name, void (*entry)(void*), uint32_t priority, size_t stackSize, ma_stack_t* stack) noexcept
     : m_arg(nullptr),
       m_name(name),
       m_entry(entry),
@@ -79,7 +62,6 @@ Thread::Thread(const char* name,
       m_stackSize(stackSize),
       m_stack(stack),
       m_started(false) {}
-
 
 void Thread::threadEntryPoint(void) {
     if (m_entry != nullptr) {
@@ -95,16 +77,11 @@ void* Thread::threadEntryPointStub(void* arg) {
     return nullptr;
 }
 
-Thread::~Thread() noexcept {
-    stop();
-}
+Thread::~Thread() noexcept { stop(); }
 
-Thread::operator bool() const {
-    return true;
-}
+Thread::operator bool() const { return true; }
 
 bool Thread::start(void* arg) {
-
     int result = 0;
     m_arg      = arg;
 
@@ -127,18 +104,14 @@ bool Thread::stop() {
     return true;
 }
 
-bool Thread::operator==(const Thread& other) const {
-    return pthread_equal(m_thread, other.m_thread) != 0;
-}
+bool Thread::operator==(const Thread& other) const { return pthread_equal(m_thread, other.m_thread) != 0; }
 
 void Thread::yield() {
     pthread_testcancel();
     sched_yield();
 }
 
-ma_thread_t* Thread::self() {
-    return reinterpret_cast<ma_thread_t*>(pthread_self());
-}
+ma_thread_t* Thread::self() { return reinterpret_cast<ma_thread_t*>(pthread_self()); }
 
 Mutex::Mutex(bool recursive) noexcept {
     pthread_mutexattr_t attr;
@@ -151,43 +124,23 @@ Mutex::Mutex(bool recursive) noexcept {
     pthread_mutexattr_destroy(&attr);
 }
 
-Mutex::operator ma_mutex_t*() const {
-    return &m_mutex;
-}
+Mutex::operator ma_mutex_t*() const { return &m_mutex; }
 
-Mutex::~Mutex() noexcept {
+Mutex::~Mutex() noexcept { pthread_mutex_destroy(&m_mutex); }
 
-    pthread_mutex_destroy(&m_mutex);
-}
+Mutex::operator bool() const { return true; }
 
-Mutex::operator bool() const {
-    return true;
-}
+bool Mutex::tryLock(ma_tick_t timeout) { return pthread_mutex_trylock(&m_mutex) == 0; }
 
-bool Mutex::tryLock(ma_tick_t timeout) {
-    return pthread_mutex_trylock(&m_mutex) == 0;
-}
+bool Mutex::lock() const { return pthread_mutex_lock(&m_mutex) == 0; }
 
-bool Mutex::lock() const {
-    return pthread_mutex_lock(&m_mutex) == 0;
-}
+bool Mutex::unlock() const { return pthread_mutex_unlock(&m_mutex) == 0; }
 
-bool Mutex::unlock() const {
-    return pthread_mutex_unlock(&m_mutex) == 0;
-}
+Guard::Guard(const Mutex& mutex) noexcept : m_mutex(mutex) { m_mutex.lock(); }
 
+Guard::~Guard() noexcept { m_mutex.unlock(); }
 
-Guard::Guard(const Mutex& mutex) noexcept : m_mutex(mutex) {
-    m_mutex.lock();
-}
-
-Guard::~Guard() noexcept {
-    m_mutex.unlock();
-}
-
-Guard::operator bool() const {
-    return true;
-}
+Guard::operator bool() const { return true; }
 
 Semaphore::Semaphore(size_t count) noexcept {
     pthread_condattr_t cattr;
@@ -198,17 +151,13 @@ Semaphore::Semaphore(size_t count) noexcept {
     m_sem.count = count;
 }
 
-Semaphore::~Semaphore() noexcept {
-    pthread_cond_destroy(&m_sem.cond);
-}
+Semaphore::~Semaphore() noexcept { pthread_cond_destroy(&m_sem.cond); }
 
-Semaphore::operator bool() const {
-    return true;
-}
+Semaphore::operator bool() const { return true; }
 
 bool Semaphore::wait(ma_tick_t timeout) {
     struct timespec ts;
-    int error = 0;
+    int             error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -234,9 +183,7 @@ bool Semaphore::wait(ma_tick_t timeout) {
     return true;
 }
 
-uint32_t Semaphore::getCount() const {
-    return m_sem.count;
-}
+uint32_t Semaphore::getCount() const { return m_sem.count; }
 
 void Semaphore::signal() {
     Guard guard(m_mutex);
@@ -255,17 +202,13 @@ Event::Event() noexcept {
     m_event.value = 0;
 }
 
-Event::~Event() noexcept {
-    pthread_cond_destroy(&m_event.cond);
-}
+Event::~Event() noexcept { pthread_cond_destroy(&m_event.cond); }
 
-Event::operator bool() const {
-    return true;
-}
+Event::operator bool() const { return true; }
 
 bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, bool waitAll) {
     struct timespec ts;
-    int error = 0;
+    int             error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -318,9 +261,7 @@ void Event::set(uint32_t value) {
     pthread_cond_signal(&m_event.cond);
 }
 
-uint32_t Event::get() const {
-    return m_event.value;
-}
+uint32_t Event::get() const { return m_event.value; }
 
 MessageBox::MessageBox(size_t size) noexcept {
     pthread_condattr_t cattr;
@@ -334,17 +275,13 @@ MessageBox::MessageBox(size_t size) noexcept {
     m_mbox.size  = size;
 }
 
-MessageBox::~MessageBox() noexcept {
-    pthread_cond_destroy(&m_mbox.cond);
-}
+MessageBox::~MessageBox() noexcept { pthread_cond_destroy(&m_mbox.cond); }
 
-MessageBox::operator bool() const {
-    return true;
-}
+MessageBox::operator bool() const { return true; }
 
 bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     struct timespec ts;
-    int error = 0;
+    int             error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -373,7 +310,7 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
 
 bool MessageBox::post(void* msg, ma_tick_t timeout) {
     struct timespec ts;
-    int error = 0;
+    int             error = 0;
 
     if (timeout != Tick::waitForever) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -419,22 +356,18 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 //     sigprocmask(SIG_BLOCK, &sigset, NULL);
 // }
 
-
 // Timer::~Timer() noexcept {
 //     pthread_cond_destroy(&m_timer.cond);
 // }
-
 
 // Timer::operator bool() const {
 //     return true;
 // }
 
-
 // void Timer::set(uint32_t ms) {
 //     Guard guard(m_mutex);
 //     m_timer.ms = ms;
 // }
-
 
 // void Timer::start() {
 //     Guard guard(m_mutex);
@@ -448,5 +381,6 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 //     pthread_cond_signal(&m_timer.cond);
 // }
 
-
 }  // namespace ma
+
+#endif

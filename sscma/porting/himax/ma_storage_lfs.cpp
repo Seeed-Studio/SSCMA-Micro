@@ -68,23 +68,23 @@ ma_err_t StorageLfs::mount(bool force) {
         return MA_EINVAL;
     }
 
-    bd_config_.read_size   = 16;
-    bd_config_.prog_size   = 16;
-    bd_config_.erase_size  = default_block_size;
-    bd_config_.erase_count = block_count;
+    // bd_config_.read_size   = 16;
+    // bd_config_.prog_size   = 16;
+    // bd_config_.erase_size  = default_block_size;
+    // bd_config_.erase_count = block_count;
 
     fs_config_ = lfs_config{
       .context = &bd_,
-      .read    = lfs_filebd_read,
-      .prog    = lfs_filebd_prog,
-      .erase   = lfs_filebd_erase,
-      .sync    = lfs_filebd_sync,
+      .read    = lfs_flashbd_read,
+      .prog    = lfs_flashbd_prog,
+      .erase   = lfs_flashbd_erase,
+      .sync    = lfs_flashbd_sync,
 #ifdef LFS_THREADSAFE
       .lock   = _lfs_llvl_lock,
       .unlock = _lfs_llvl_unlock,
 #endif
-      .read_size        = bd_config_.read_size,
-      .prog_size        = bd_config_.prog_size,
+    //   .read_size        = bd_config_.read_size,
+    //   .prog_size        = bd_config_.prog_size,
       .block_size       = default_block_size,
       .block_count      = block_count,
       .block_cycles     = 500,
@@ -96,7 +96,7 @@ ma_err_t StorageLfs::mount(bool force) {
       .name_max         = 255,
     };
 
-    int ret = lfs_filebd_create(&fs_config_, mount_point_.c_str(), &bd_config_);
+    int ret = lfs_flashbd_create(&fs_config_,  &bd_config_);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to create LFS storage %s", mount_point_.c_str());
         return MA_EIO;
@@ -134,7 +134,7 @@ ma_err_t StorageLfs::uMount() {
         return MA_EIO;
     }
 
-    ret = lfs_filebd_destroy(&fs_config_);
+    ret = lfs_flashbd_destroy(&fs_config_);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to destroy LFS storage");
         return MA_EIO;
@@ -330,11 +330,6 @@ bool StorageLfs::exists(const std::string& key) {
     }
 
     return false;
-}
-
-ma_err_t StorageLfs::set(const std::string& key, const std::string& value) {
-    Guard guard(mutex_);
-    return setImpl(key, value.data(), value.size());
 }
 
 ma_err_t StorageLfs::set(const std::string& key, const void* value, size_t size) {

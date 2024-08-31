@@ -353,8 +353,8 @@ std::vector<ma_model_t>& Engine::findModels(const char* address, size_t size) {
             ma_model_t model;
             model.id   = std::distance(m_models.begin(), m_models.end());
             model.type = MA_MODEL_TYPE_UNDEFINED;
-            model.name = i;
-            model.addr = data;
+            model.name = "";
+            model.addr = "";
             m_models.push_back(model);
         }
     }

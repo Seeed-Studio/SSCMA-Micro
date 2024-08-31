@@ -5,7 +5,7 @@
 #include <list>
 #include <string>
 
-#include "bd/lfs_filebd.h"
+#include "bd/lfs_flashbd.h"
 #include "core/ma_common.h"
 #include "core/ma_types.h"
 #include "lfs.h"
@@ -22,7 +22,6 @@ class StorageLfs : public Storage {
     ma_err_t mount(bool force = true);
     ma_err_t uMount();
 
-    virtual ma_err_t set(const std::string& key, const std::string& value) override;
     virtual ma_err_t set(const std::string& key, const void* value, size_t size) override;
 
     virtual ma_err_t get(const std::string& key, std::string& value) override;
@@ -45,11 +44,11 @@ class StorageLfs : public Storage {
     std::string mount_point_;
     size_t      bd_size_;
 
-    lfs_filebd_t bd_;
-    lfs_t        lfs_;
+    lfs_flashbd_t bd_;
+    lfs_t         lfs_;
 
-    lfs_filebd_config bd_config_;
-    lfs_config        fs_config_;
+    lfs_flashbd_config bd_config_;
+    lfs_config         fs_config_;
 };
 
 }  // namespace ma

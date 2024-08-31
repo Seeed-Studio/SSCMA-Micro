@@ -27,7 +27,7 @@ void get_device_name(const std::string& cmd, Transport& transport, Encoder& enco
 void get_device_status(const std::string& cmd, Transport& transport, Encoder& encoder) {
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     encoder.write("boot_count", static_resource->boot_count);
-    encoder.write("is_ready", static_resource->is_ready.load() ? 1 : 0);
+    encoder.write("is_ready", static_cast<int32_t>(static_resource->is_ready.load() ? 1 : 0));
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
