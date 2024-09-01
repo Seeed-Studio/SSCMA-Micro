@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+
+extern void xip_ownership_acquire();
+extern void xip_ownership_release();
+
 extern bool xip_safe_enable();
 extern bool xip_safe_disable();
 

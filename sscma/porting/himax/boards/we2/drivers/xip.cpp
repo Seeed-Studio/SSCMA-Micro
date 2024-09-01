@@ -14,11 +14,19 @@ extern "C" {
 
 #define XIP_STA_CHANGE_RETRY 10
 
-static volatile bool __xip_enabled = false;
-static ma::Mutex     __xip_mutex;
+static ma::Mutex            __owner_mutex;
+static volatile bool        __xip_enabled = false;
+
+
+void xip_ownership_acquire() {
+    __owner_mutex.lock();
+}
+
+void xip_ownership_release() {
+    __owner_mutex.unlock();
+}
 
 bool xip_safe_enable() {
-    ma::Guard guard(__xip_mutex);
     if (!__xip_enabled) {
         int retry = XIP_STA_CHANGE_RETRY;
         while (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, true, FLASH_QUAD, true) != E_OK) {
@@ -34,7 +42,6 @@ bool xip_safe_enable() {
 }
 
 bool xip_safe_disable() {
-    ma::Guard guard(__xip_mutex);
     if (__xip_enabled) {
         int retry = XIP_STA_CHANGE_RETRY;
         while (hx_lib_spi_eeprom_enable_XIP(USE_DW_SPI_MST_Q, false, FLASH_QUAD, false) != E_OK) {

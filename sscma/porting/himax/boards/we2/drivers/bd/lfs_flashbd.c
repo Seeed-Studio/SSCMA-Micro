@@ -39,7 +39,9 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
     }
 
     int retry = LFS_FLASHBD_CREATE_RETRY;
+    xip_ownership_acquire();
     while (hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q) != E_OK) {
+        xip_ownership_release();
         if (--retry < 0) {
             LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", LFS_ERR_IO);
             return LFS_ERR_IO;
@@ -73,13 +75,18 @@ int lfs_flashbd_read(const struct lfs_config* cfg, lfs_block_t block, lfs_off_t 
     LFS_ASSERT(size % bd->cfg->read_size == 0);
     LFS_ASSERT(off + size <= bd->cfg->erase_size);
 
+    xip_ownership_acquire();
+
     if (!xip_safe_enable()) {
         LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
+        xip_ownership_release();
         return LFS_ERR_IO;
     }
 
     // read data
     memcpy(buffer, &bd->flash_addr[block * bd->cfg->erase_size + off], size);
+
+    xip_ownership_release();
 
     LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", 0);
     return 0;
@@ -102,8 +109,11 @@ int lfs_flashbd_prog(
     LFS_ASSERT(size % bd->cfg->prog_size == 0);
     LFS_ASSERT(off + size <= bd->cfg->erase_size);
 
+    xip_ownership_acquire();
+
     if (!xip_safe_disable()) {
         LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
+        xip_ownership_release();
         return LFS_ERR_IO;
     }
 
@@ -111,6 +121,8 @@ int lfs_flashbd_prog(
                  USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size + off], buffer, size) == E_OK)
                 ? 0
                 : LFS_ERR_IO;
+
+    xip_ownership_release();
 
     LFS_FLASHBD_TRACE("lfs_flashbd_prog -> %d", ret);
     return ret;
@@ -127,8 +139,11 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
     LFS_ASSERT(block < bd->cfg->erase_count);
     LFS_ASSERT(block == 4096);
 
+    xip_ownership_acquire();
+
     if (!xip_safe_disable()) {
         LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
+        xip_ownership_release();
         return LFS_ERR_IO;
     }
 
@@ -136,9 +151,12 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
     while (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, i, FLASH_SECTOR) != E_OK) {
         if (--i < 0) {
             LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", LFS_ERR_IO);
+            xip_ownership_release();
             return LFS_ERR_IO;
         }
     }
+
+    xip_ownership_release();
 
     LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", 0);
     return 0;
