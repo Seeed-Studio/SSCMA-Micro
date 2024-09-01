@@ -155,7 +155,7 @@
             MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                  \
             std::string buffer;                                         \
             ma_err_t    err = p_storage->get(key, buffer);              \
-            if (err != MA_OK) {                                         \
+            if (err != MA_OK || sizeof(value) > buffer.size()) {        \
                 value = _default;                                       \
                 break;                                                  \
             }                                                           \
