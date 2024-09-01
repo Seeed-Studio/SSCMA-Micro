@@ -32,19 +32,18 @@ struct lfs_flashbd_config {
     // Number of erase blocks on the device.
     lfs_size_t erase_count;
 
-    // Optional statically allocated buffer for the block device.
-    void* buffer;
+    lfs_size_t flash_size;
+
+    void* flash_addr;
 };
 
 // flashbd state
 typedef struct lfs_flashbd {
-    uint8_t*                         buffer;
+    void*                            flash_addr;
     const struct lfs_flashbd_config* cfg;
 } lfs_flashbd_t;
 
-
 int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_config* bdcfg);
-
 
 int lfs_flashbd_destroy(const struct lfs_config* cfg);
 
