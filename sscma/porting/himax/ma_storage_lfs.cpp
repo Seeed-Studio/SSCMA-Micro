@@ -4,9 +4,9 @@
 #include <list>
 #include <vector>
 
-extern "C" {
+#include "porting/ma_osal.h"
 
-#ifdef LFS_THREADSAFE
+extern "C" {
 
 static ma::Mutex _lfs_llvl_mutex;
 
@@ -19,22 +19,16 @@ static int _lfs_llvl_unlock(const struct lfs_config* c) {
     _lfs_llvl_mutex.unlock();
     return LFS_ERR_OK;
 }
-
-#endif
 }
 
 namespace ma {
 
 static constexpr char TAG[] = "ma::storage::lfs";
 
-static const std::string default_filename   = "sscma.lfs";
-static const size_t      default_block_size = 4096;
-static const char        hex_digits[]       = "0123456789abcdef";
+static const size_t default_block_size = 4096;
+static const char   hex_digits[]       = "0123456789abcdef";
 
-StorageLfs::StorageLfs() : StorageLfs(default_filename) {}
-
-StorageLfs::StorageLfs(const std::string& mount_point, size_t bd_size)
-    : is_mounted_(false), mutex_(), mount_point_(mount_point), bd_size_(bd_size) {
+StorageLfs::StorageLfs(size_t bd_size) : is_mounted_(false), mutex_(), bd_size_(bd_size) {
 #ifndef MA_STORAGE_NO_AUTO_MOUNT
     auto ret = mount();
     if (ret != MA_OK) {
@@ -55,10 +49,6 @@ StorageLfs::~StorageLfs() {
 ma_err_t StorageLfs::mount(bool force) {
     Guard guard(mutex_);
 
-    if (mount_point_.empty()) {
-        return MA_EINVAL;
-    }
-
     if (is_mounted_) {
         return MA_OK;
     }
@@ -68,10 +58,12 @@ ma_err_t StorageLfs::mount(bool force) {
         return MA_EINVAL;
     }
 
-    // bd_config_.read_size   = 16;
-    // bd_config_.prog_size   = 16;
-    // bd_config_.erase_size  = default_block_size;
-    // bd_config_.erase_count = block_count;
+    bd_config_.read_size   = 16;
+    bd_config_.prog_size   = 16;
+    bd_config_.erase_size  = default_block_size;
+    bd_config_.erase_count = block_count;
+    bd_config_.flash_size  = bd_size_;
+    bd_config_.flash_addr  = reinterpret_cast<void*>(0x3A300000);
 
     fs_config_ = lfs_config{
       .context = &bd_,
@@ -83,11 +75,11 @@ ma_err_t StorageLfs::mount(bool force) {
       .lock   = _lfs_llvl_lock,
       .unlock = _lfs_llvl_unlock,
 #endif
-    //   .read_size        = bd_config_.read_size,
-    //   .prog_size        = bd_config_.prog_size,
+      .read_size        = bd_config_.read_size,
+      .prog_size        = bd_config_.prog_size,
       .block_size       = default_block_size,
       .block_count      = block_count,
-      .block_cycles     = 500,
+      .block_cycles     = 1000,
       .cache_size       = 16,
       .lookahead_size   = 16,
       .read_buffer      = nullptr,
@@ -96,9 +88,9 @@ ma_err_t StorageLfs::mount(bool force) {
       .name_max         = 255,
     };
 
-    int ret = lfs_flashbd_create(&fs_config_,  &bd_config_);
+    int ret = lfs_flashbd_create(&fs_config_, &bd_config_);
     if (ret != LFS_ERR_OK) {
-        MA_LOGE(TAG, "Failed to create LFS storage %s", mount_point_.c_str());
+        MA_LOGE(TAG, "Failed to create LFS storage");
         return MA_EIO;
     }
 

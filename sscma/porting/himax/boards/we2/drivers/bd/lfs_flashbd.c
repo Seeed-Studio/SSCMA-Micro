@@ -14,7 +14,7 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
                       ".read=%p, .prog=%p, .erase=%p, .sync=%p}, "
                       "%p {.read_size=%" PRIu32 ", .prog_size=%" PRIu32 ", "
                       ".erase_size=%" PRIu32 ", .erase_count=%" PRIu32 ", "
-                      ".buffer=%p})",
+                      ".flash_addr=%p})",
                       (void*)cfg,
                       cfg->context,
                       (void*)(uintptr_t)cfg->read,
@@ -26,7 +26,7 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
                       bdcfg->prog_size,
                       bdcfg->erase_size,
                       bdcfg->erase_count,
-                      bdcfg->buffer);
+                      bdcfg->flash_addr);
 
     lfs_flashbd_t* bd = cfg->context;
     bd->cfg           = bdcfg;
@@ -137,7 +137,6 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
 
     // check if erase is valid
     LFS_ASSERT(block < bd->cfg->erase_count);
-    LFS_ASSERT(block == 4096);
 
     xip_ownership_acquire();
 
@@ -148,7 +147,7 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
     }
 
     int i = LFS_FLASHBD_CREATE_RETRY;
-    while (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, i, FLASH_SECTOR) != E_OK) {
+    while (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size], FLASH_SECTOR) != E_OK) {
         if (--i < 0) {
             LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", LFS_ERR_IO);
             xip_ownership_release();

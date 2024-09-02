@@ -16,7 +16,7 @@ namespace ma {
 
 class StorageLfs : public Storage {
    public:
-    StorageLfs(const std::string& mount_point, size_t bd_size = 8 * 1024 * 1024);
+    StorageLfs(size_t bd_size);
     virtual ~StorageLfs();
 
     ma_err_t mount(bool force = true);
@@ -41,7 +41,6 @@ class StorageLfs : public Storage {
     bool  is_mounted_;
     Mutex mutex_;
 
-    std::string mount_point_;
     size_t      bd_size_;
 
     lfs_flashbd_t bd_;

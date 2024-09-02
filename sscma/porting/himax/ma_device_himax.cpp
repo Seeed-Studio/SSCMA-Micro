@@ -9,7 +9,7 @@
 namespace ma {
 
 DeviceHimax::DeviceHimax() {
-    static StorageLfs storage(MA_CONFIG_FILE);
+    static StorageLfs storage(256 * 1024);
 
     m_storage = &storage;
     m_name    = MA_BOARD_NAME;
