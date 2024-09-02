@@ -4,7 +4,6 @@
 
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
-
 #include "resource.hpp"
 
 namespace ma::server::callback {
@@ -18,14 +17,10 @@ void get_available_models(const std::string& cmd, Transport& transport, Encoder&
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
-void set_model(const std::string& cmd,
-               Transport& transport,
-               Encoder& encoder,
-               uint8_t model_id,
-               bool called_by_event = false) {
-
-    ma_err_t ret = MA_OK;
-    auto& models = Engine::getModels();
+void set_model(
+  const std::string& cmd, Transport& transport, Encoder& encoder, uint8_t model_id, bool called_by_event = false) {
+    ma_err_t ret    = MA_OK;
+    auto&    models = Engine::getModels();
 
     if (model_id >= models.size()) {
         ret = MA_EINVAL;
@@ -36,19 +31,21 @@ void set_model(const std::string& cmd,
     if (ret != MA_OK) [[unlikely]]
         goto exit;
 
-    // load model from flash to tensor arena (memory)
-    ret = static_resource->engine->load(models[model_id + 1].addr);
+// load model from flash to tensor arena (memory)
+#if MA_USE_FILESYSTEM_POSIX
+    ret = static_resource->engine->load(static_cast<const char*>(models[model_id].addr));
+#else
+    ret = static_resource->engine->load(models[model_id].addr, models[model_id].size);
+#endif
     if (ret != MA_OK) [[unlikely]]
         goto exit;
 
     // if model id changed, update current model id
-    if (static_resource->cur_model_id != model_id + 1) {
-        static_resource->cur_model_id = model_id + 1;
+    if (static_resource->cur_model_id != model_id) {
+        static_resource->cur_model_id = model_id;
         if (!called_by_event) {
-            MA_STORAGE_SET_POD(ret, static_resource->storage, MA_STORAGE_KEY_MODEL_ID,
-                               static_resource->cur_model_id);
+            MA_STORAGE_SET_POD(ret, static_resource->storage, MA_STORAGE_KEY_MODEL_ID, static_resource->cur_model_id);
         }
-            
     }
 
 exit:
@@ -61,7 +58,6 @@ exit:
 }
 
 void get_model_info(const std::string& cmd, Transport& transport, Encoder& encoder) {
-
     auto& models = Engine::getModels();
 
     encoder.begin(MA_MSG_TYPE_RESP, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
