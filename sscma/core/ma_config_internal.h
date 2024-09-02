@@ -77,7 +77,7 @@
 #endif
 
 /* porting config check */
-#ifndef CONFIG_MA_OSAL_PTHREAD
+#ifdef CONFIG_MA_OSAL_PTHREAD
     #if defined(__unix__) || defined(__APPLE__)
         #define MA_OSAL_PTHREAD 1
         #ifndef MA_USE_FILESYSTEM
@@ -87,7 +87,7 @@
             #define MA_USE_FILESYSTEM_POSIX 1
         #endif
     #else
-        #define MA_OSAL_PTHREAD 1
+        #define MA_OSAL_PTHREAD 0
     #endif
 #elif defined(CONFIG_MA_OSAL_FREERTOS)
     #define MA_OSAL_PTHREAD 0
