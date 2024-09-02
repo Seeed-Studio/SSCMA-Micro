@@ -28,7 +28,13 @@ extern "C" {
             #include <timers.h>
         #endif
     #else
-        #error "Plese specify freeRTOS header file"
+        #include <FreeRTOS.h>
+        #include <event_groups.h>
+        #include <portmacro.h>
+        #include <queue.h>
+        #include <semphr.h>
+        #include <task.h>
+        #include <timers.h>
     #endif
 
     #define MA_WAIT_FOREVER portMAX_DELAY
