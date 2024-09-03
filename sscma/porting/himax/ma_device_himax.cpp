@@ -4,7 +4,7 @@
 
 #include "core/ma_common.h"
 #include "ma_storage_lfs.h"
-// #include "ma_transport_mqtt.h"
+#include "ma_transport_console.h"
 
 namespace ma {
 
@@ -14,6 +14,12 @@ DeviceHimax::DeviceHimax() {
     m_storage = &storage;
     m_name    = MA_BOARD_NAME;
     m_version = "v1";
+
+    static Console console;
+    console.open();
+
+    m_transports.push_front(&console);
+
 
     // TODO: read id from system
     // Create a random device and seed it
