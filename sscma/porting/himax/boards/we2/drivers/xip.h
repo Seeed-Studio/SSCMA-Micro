@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-
 extern void xip_ownership_acquire();
 extern void xip_ownership_release();
 

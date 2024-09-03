@@ -41,7 +41,7 @@ class StorageLfs : public Storage {
     bool  is_mounted_;
     Mutex mutex_;
 
-    size_t      bd_size_;
+    size_t bd_size_;
 
     lfs_flashbd_t bd_;
     lfs_t         lfs_;

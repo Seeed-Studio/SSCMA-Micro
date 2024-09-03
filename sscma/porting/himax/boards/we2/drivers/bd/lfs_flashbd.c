@@ -3,8 +3,8 @@
 
 #include <spi_eeprom_comm.h>
 
-#ifndef LFS_FLASHBD_CREATE_RETRY
-    #define LFS_FLASHBD_CREATE_RETRY 10
+#ifndef LFS_FLASHBD_LIB_RETRY
+    #define LFS_FLASHBD_LIB_RETRY 10
 #endif
 
 #include "xip.h"
@@ -38,7 +38,7 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
         return LFS_ERR_INVAL;
     }
 
-    int retry = LFS_FLASHBD_CREATE_RETRY;
+    int retry = LFS_FLASHBD_LIB_RETRY;
     xip_ownership_acquire();
     while (hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q) != E_OK) {
         xip_ownership_release();
@@ -146,7 +146,7 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
         return LFS_ERR_IO;
     }
 
-    int i = LFS_FLASHBD_CREATE_RETRY;
+    int i = LFS_FLASHBD_LIB_RETRY;
     while (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size], FLASH_SECTOR) != E_OK) {
         if (--i < 0) {
             LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", LFS_ERR_IO);
