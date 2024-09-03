@@ -3,6 +3,28 @@
 
 #if MA_OSAL_FREERTOS
 
+__attribute__((weak)) void* operator new(size_t size) {
+    void* ptr = pvPortMalloc(size);
+    MA_ASSERT(ptr);
+    return ptr;
+}
+
+__attribute__((weak)) void* operator new[](size_t size) {
+    void* ptr = pvPortMalloc(size);
+    MA_ASSERT(ptr);
+    return ptr;
+}
+
+__attribute__((weak)) void operator delete(void* ptr) {
+    MA_ASSERT(ptr);
+    vPortFree(ptr);
+}
+
+__attribute__((weak)) void operator delete[](void* ptr) {
+    MA_ASSERT(ptr);
+    vPortFree(ptr);
+}
+
 namespace ma {
 
     #define MS_TO_TICKS(ms) ((ms == Tick::waitForever) ? portMAX_DELAY : (ms) / portTICK_PERIOD_MS)
