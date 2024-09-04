@@ -17,6 +17,7 @@ template <typename T> class SPSCRingBuffer {
         assert(size > 0);
         m_buffer = new T[m_size];
         assert(m_buffer);
+        std::memset(m_buffer, 0, m_size * sizeof(T));
     }
 
     ~SPSCRingBuffer() noexcept {

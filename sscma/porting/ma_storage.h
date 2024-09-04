@@ -4,7 +4,7 @@
 #include <cstring>
 #include <string>
 
-#include "core/ma_common.h"
+#include "ma_config_board.h"
 
 #define MA_STORAGE_ENABLE
 
@@ -197,9 +197,13 @@ class Storage {
     Storage()          = default;
     virtual ~Storage() = default;
 
-    virtual ma_err_t set(const std::string& key, const void* value, size_t size) = 0;
+    virtual operator bool() const = 0;
 
-    virtual ma_err_t get(const std::string& key, std::string& value) = 0;
+    Storage(const Storage&)            = delete;
+    Storage& operator=(const Storage&) = delete;
+
+    virtual ma_err_t set(const std::string& key, const void* value, size_t size) = 0;
+    virtual ma_err_t get(const std::string& key, std::string& value)             = 0;
 
     virtual ma_err_t remove(const std::string& key) = 0;
     virtual bool     exists(const std::string& key) = 0;

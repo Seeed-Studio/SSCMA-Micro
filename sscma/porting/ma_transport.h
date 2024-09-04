@@ -1,12 +1,14 @@
 #ifndef _MA_TRANSPORT_H_
 #define _MA_TRANSPORT_H_
 
+#include <cstdint>
+
 #include "core/ma_common.h"
 
 namespace ma {
 
 class Transport {
-public:
+   public:
     Transport(ma_transport_type_t type) : m_type(type) {}
     virtual ~Transport() = default;
 
@@ -17,7 +19,7 @@ public:
     virtual size_t receive(char* data, size_t length, int timeout = 1)                     = 0;
     virtual size_t receiveUtil(char* data, size_t length, char delimiter, int timeout = 1) = 0;
 
-protected:
+   protected:
     ma_transport_type_t m_type;
 };
 

@@ -132,7 +132,7 @@ ma_err_t ATServer::init() {
                      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
                          static_resource->executor->submit(
                              [cmd = std::move(args[0]), &transport, &encoder](
-                                 const std::atomic<bool>&) { ma_reset(); });
+                                 const std::atomic<bool>&) { });
                          return MA_OK;
                      });
 

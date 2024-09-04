@@ -22,7 +22,7 @@ typedef enum {
     MA_FAILED   = -1,  // UNKOWN ERROR
     MA_OK       = 0,   // No error
     MA_AGAIN    = 1,   // Not ready yet
-    MA_ELOG     = 2,   // logic error
+    MA_ELOG     = 2,   // Logic error
     MA_ETIMEOUT = 3,   // Timeout
     MA_EIO      = 4,   // IO error
     MA_EINVAL   = 5,   // Invalid argument
@@ -31,8 +31,8 @@ typedef enum {
     MA_ENOTSUP  = 8,   // Not supported yet
     MA_EPERM    = 9,   // Operation not permitted
     MA_ENOENT   = 10,  // No such entity
-    MA_EEXIST   = 11,  // the entity already exists
-    MA_OVERFLOW = 12,  // overflow
+    MA_EEXIST   = 11,  // Entity already exists
+    MA_OVERFLOW = 12,  // Overflow
 } ma_err_t;
 
 typedef struct {

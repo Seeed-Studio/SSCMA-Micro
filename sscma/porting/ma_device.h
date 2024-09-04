@@ -4,64 +4,48 @@
 #include <forward_list>
 
 #include "core/ma_common.h"
-
 #include "ma_camera.h"
 #include "ma_storage.h"
 #include "ma_transport.h"
 
 namespace ma {
 
-class Device {
-public:
-    // singleton
-    Device()                         = default;
-    virtual ~Device()                = default;
+class Device final {
+   private:
+    Device();
+
+   public:
+    static Device* getInstance();
+    ~Device();
+
+   public:
     Device(const Device&)            = delete;
     Device& operator=(const Device&) = delete;
 
-    virtual ma_err_t init()   = 0;
-    virtual ma_err_t deinit() = 0;
+    std::string name() const { return m_name; }
 
-    static Device* getInstance();
+    std::string id() const { return m_id; }
 
-    std::string name() const {
-        return m_name;
-    }
-    std::string id() const {
-        return m_id;
-    }
-    std::string version() const {
-        return m_version;
-    }
+    std::string version() const { return m_version; }
 
-    std::forward_list<Transport*>& getTransports() {
-        return m_transports;
-    }
-    Storage* getStorage() {
-        return m_storage;
-    }
+    const std::forward_list<Transport*>& getTransports() { return m_transports; }
 
-    std::forward_list<Camera*>& getCameras() {
-        return m_cameras;
-    }
+    Storage* getStorage() { return m_storage; }
 
-    std::forward_list<ma_model_t>& getModels() {
-        return m_models;
-    }
+    const std::forward_list<Camera*>& getCameras() { return m_cameras; }
 
-protected:
-    std::forward_list<Transport*> m_transports;
-    std::forward_list<Camera*> m_cameras;
-    std::forward_list<ma_model_t> m_models;
-    Storage* m_storage;
+    const std::forward_list<ma_model_t>& getModels() { return m_models; }
+
+   private:
     std::string m_name;
     std::string m_id;
     std::string m_version;
 
-private:
-    static Device* s_instance;
+    std::forward_list<Transport*> m_transports;
+    std::forward_list<Camera*>    m_cameras;
+    std::forward_list<ma_model_t> m_models;
+    Storage*                      m_storage;
 };
-
 
 }  // namespace ma
 

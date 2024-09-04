@@ -1,4 +1,7 @@
+// #ifdef MA_FILESYSTEM_LITTLEFS
+
 #include "ma_storage_lfs.h"
+
 
 #include <cctype>
 #include <list>
@@ -7,7 +10,7 @@
 #include "porting/ma_osal.h"
 
 extern "C" {
-
+#ifdef LFS_THREADSAFE
 static ma::Mutex _lfs_llvl_mutex;
 
 static int _lfs_llvl_lock(const struct lfs_config* c) {
@@ -19,51 +22,32 @@ static int _lfs_llvl_unlock(const struct lfs_config* c) {
     _lfs_llvl_mutex.unlock();
     return LFS_ERR_OK;
 }
+#endif
 }
 
 namespace ma {
 
-static constexpr char TAG[] = "ma::storage::lfs";
+static constexpr char TAG[]              = "ma::storage::lfs";
+static const char     hex_digits[]       = "0123456789abcdef";
 
-static const size_t default_block_size = 4096;
-static const char   hex_digits[]       = "0123456789abcdef";
-
-StorageLfs::StorageLfs(size_t bd_size) : is_mounted_(false), mutex_(), bd_size_(bd_size) {
-#ifndef MA_STORAGE_NO_AUTO_MOUNT
-    auto ret = mount();
-    if (ret != MA_OK) {
-        MA_LOGE(TAG, "Failed to mount LFS storage");
-    }
-#endif
-}
-
-StorageLfs::~StorageLfs() {
-#ifndef MA_STORAGE_NO_AUTO_MOUNT
-    auto ret = uMount();
-    if (ret != MA_OK) {
-        MA_LOGE(TAG, "Failed to unmount LFS storage");
-    }
-#endif
-}
-
-ma_err_t StorageLfs::mount(bool force) {
+StorageLfs::StorageLfs(size_t bd_size, bool force) : is_mounted_(false), mutex_() {
     Guard guard(mutex_);
 
     if (is_mounted_) {
-        return MA_OK;
+        return;
     }
 
-    const uint32_t block_count = bd_size_ / default_block_size;
+    const uint32_t block_count = bd_size / default_block_size;
     if (block_count == 0) {
-        return MA_EINVAL;
+        return;
     }
 
     bd_config_.read_size   = 16;
     bd_config_.prog_size   = 16;
     bd_config_.erase_size  = default_block_size;
     bd_config_.erase_count = block_count;
-    bd_config_.flash_size  = bd_size_;
-    bd_config_.flash_addr  = reinterpret_cast<void*>(0x3A300000);
+    bd_config_.flash_size  = bd_size;
+    bd_config_.flash_addr  = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00300000);
 
     fs_config_ = lfs_config{
       .context = &bd_,
@@ -91,7 +75,7 @@ ma_err_t StorageLfs::mount(bool force) {
     int ret = lfs_flashbd_create(&fs_config_, &bd_config_);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to create LFS storage");
-        return MA_EIO;
+        return;
     }
 
     ret = lfs_mount(&lfs_, &fs_config_);
@@ -99,43 +83,41 @@ ma_err_t StorageLfs::mount(bool force) {
         ret = lfs_format(&lfs_, &fs_config_);
         if (ret != LFS_ERR_OK) {
             MA_LOGE(TAG, "Failed to format LFS storage");
-            return MA_EIO;
+            return;
         }
         ret = lfs_mount(&lfs_, &fs_config_);
     }
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to mount LFS storage");
-        return MA_EIO;
+        return;
     }
 
     is_mounted_ = true;
-
-    return MA_OK;
 }
 
-ma_err_t StorageLfs::uMount() {
+StorageLfs::~StorageLfs() {
     Guard guard(mutex_);
 
     if (!is_mounted_) {
-        return MA_OK;
+        return;
     }
 
     int ret = lfs_unmount(&lfs_);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to unmount LFS storage");
-        return MA_EIO;
+        return;
     }
 
     ret = lfs_flashbd_destroy(&fs_config_);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to destroy LFS storage");
-        return MA_EIO;
+        return;
     }
 
     is_mounted_ = false;
-
-    return MA_OK;
 }
+
+StorageLfs::operator bool() const { return is_mounted_; }
 
 std::list<std::string> StorageLfs::keyToPath(const std::string& key, size_t break_size) {
     std::string encoded_key;
@@ -336,3 +318,6 @@ ma_err_t StorageLfs::get(const std::string& key, std::string& value) {
 }
 
 }  // namespace ma
+
+
+// #endif

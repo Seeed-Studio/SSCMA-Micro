@@ -3,26 +3,37 @@
 
 #if MA_OSAL_FREERTOS
 
-__attribute__((weak)) void* operator new(size_t size) {
+MA_ATTR_WEAK void* operator new(size_t size) {
     void* ptr = pvPortMalloc(size);
     MA_ASSERT(ptr);
     return ptr;
 }
 
-__attribute__((weak)) void* operator new[](size_t size) {
+MA_ATTR_WEAK void* operator new[](size_t size) {
     void* ptr = pvPortMalloc(size);
     MA_ASSERT(ptr);
     return ptr;
 }
 
-__attribute__((weak)) void operator delete(void* ptr) {
+MA_ATTR_WEAK void operator delete(void* ptr) {
     MA_ASSERT(ptr);
     vPortFree(ptr);
 }
 
-__attribute__((weak)) void operator delete[](void* ptr) {
+MA_ATTR_WEAK void operator delete[](void* ptr) {
     MA_ASSERT(ptr);
     vPortFree(ptr);
+}
+
+extern "C" {
+
+MA_ATTR_WEAK void ma_usleep(uint32_t usec) { vTaskDelay(usec / 1000 / portTICK_PERIOD_MS); }
+
+MA_ATTR_WEAK void ma_sleep(uint32_t msec) { ma_usleep(msec * 1000); }
+
+MA_ATTR_WEAK int64_t ma_get_time_us(void) { return xTaskGetTickCount() * portTICK_PERIOD_MS * 1000; }
+
+MA_ATTR_WEAK int64_t ma_get_time_ms(void) { return xTaskGetTickCount() * portTICK_PERIOD_MS; }
 }
 
 namespace ma {

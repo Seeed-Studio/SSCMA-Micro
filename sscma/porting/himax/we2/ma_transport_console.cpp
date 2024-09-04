@@ -3,6 +3,7 @@
 #include "ma_transport_console.h"
 
 #include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -31,7 +32,7 @@ static void _uart_dma_recv(void*) {
         return;
     }
     _rb_rx->push(_rx_buf, 1);
-    _uart->uart_read_udma(_rx_buf, 1, (void*)_uart_dma_recv);
+    _uart->uart_read_udma(_rx_buf, 1, reinterpret_cast<void*>(_uart_dma_recv));
 }
 
 static void _uart_dma_send(void*) {
@@ -39,12 +40,11 @@ static void _uart_dma_send(void*) {
         _tx_busy = false;
         return;
     }
-    size_t remain = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
-    _tx_busy      = remain != 0;
-    if (remain != 0) {
+    size_t remain = std::min(_rb_tx->size(), static_cast<size_t>(4095));
+    if ((_tx_busy = (remain != 0))) {
         remain = _rb_tx->pop(_tx_buf, remain);
-        SCB_CleanDCache_by_Addr((volatile void*)_tx_buf, remain);
-        _uart->uart_write_udma(_tx_buf, remain, (void*)_uart_dma_send);
+        SCB_CleanDCache_by_Addr(_tx_buf, remain);
+        _uart->uart_write_udma(_tx_buf, remain, reinterpret_cast<void*>(_uart_dma_send));
     }
 }
 
@@ -92,7 +92,7 @@ ma_err_t Console::open() {
 
     _is_opened = true;
 
-    _uart->uart_read_udma(_rx_buf, 1, (void*)_uart_dma_recv);
+    _uart->uart_read_udma(_rx_buf, 1, reinterpret_cast<void*>(_uart_dma_recv));
 
     return MA_OK;
 }
@@ -117,6 +117,8 @@ ma_err_t Console::close() {
         if (ret != 0) {
             return MA_EIO;
         }
+
+        _uart = nullptr;
     }
 
     if (_rb_rx) {
@@ -163,10 +165,12 @@ size_t Console::send(const char* data, size_t length, int timeout) {
 
         if (!_tx_busy) {
             _tx_busy      = true;
-            bytes_to_send = _rb_tx->size() < 4095 ? _rb_tx->size() : 4095;
+            bytes_to_send = std::min(_rb_tx->size(), static_cast<size_t>(4095));
             _rb_tx->pop(_tx_buf, bytes_to_send);
-            SCB_CleanDCache_by_Addr((volatile void*)_tx_buf, bytes_to_send);
-            _uart->uart_write_udma(_tx_buf, bytes_to_send, (void*)_uart_dma_send);
+            SCB_CleanDCache_by_Addr(_tx_buf, bytes_to_send);
+            _uart->uart_write_udma(_tx_buf, bytes_to_send, reinterpret_cast<void*>(_uart_dma_send));
+        } else {
+            ma::Thread::yield();
         }
 
         if (ma::Tick::current() - time_start > static_cast<ma_tick_t>(timeout)) {
@@ -205,6 +209,7 @@ size_t Console::receiveUtil(char* data, size_t length, char delimiter, int timeo
         read += _rb_rx->popIf(data + read, length - read, delimiter);
         ma::Thread::yield();
     }
+
     return read;
 }
 
