@@ -29,7 +29,11 @@ int ma_printf(const char* fmt, ...) {
     return ret;
 }
 
-void ma_abort(void) { vTaskSuspendAll(); }
+void ma_abort(void) {
+    vTaskSuspendAll();
+    while (1) {
+    }
+}
 
 void ma_usleep(uint32_t usec) { vTaskDelay(usec / 1000 / portTICK_PERIOD_MS); }
 

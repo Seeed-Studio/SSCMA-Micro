@@ -15,8 +15,9 @@
 
     #ifdef MA_STORAGE_LFS_USE_FLASHBD
         #include "bd/lfs_flashbd.h"
-        #define ma_lfs_bd_t     lfs_flashbd_t
-        #define ma_lfs_bd_cfg_t lfs_flashbd_config
+        #define ma_lfs_bd_t       lfs_flashbd_t
+        #define ma_lfs_bd_cfg_t   lfs_flashbd_config
+        #define ma_lfs_bd_destory lfs_flashbd_destroy
     #elif defined(MA_STORAGE_LFS_USE_FILEBD)
         #include "bd/lfs_filebd.h"
         #define ma_lfs_bd_t     lfs_filebd_t
@@ -33,10 +34,11 @@ namespace ma {
 
 class StorageLfs final : public Storage {
    public:
-    StorageLfs(ma_lfs_bd_cfg_t bd_cfg, bool force = true);
+    StorageLfs();
     virtual ~StorageLfs();
 
-    operator bool() const override;
+    ma_err_t init(void* config) override;
+    ma_err_t deInit() override;
 
     virtual ma_err_t set(const std::string& key, const void* value, size_t size) override;
     virtual ma_err_t get(const std::string& key, std::string& value) override;
@@ -44,23 +46,18 @@ class StorageLfs final : public Storage {
     virtual ma_err_t remove(const std::string& key) override;
     virtual bool     exists(const std::string& key) override;
 
-   protected:
-    StorageLfs();
-
+   private:
     std::list<std::string> keyToPath(const std::string& key, size_t break_size);
 
     ma_err_t setImpl(std::string key, void const* data, size_t size);
     ma_err_t getImpl(std::string key, std::string& buffer);
 
    private:
-    bool  is_mounted_;
-    Mutex mutex_;
+    Mutex m_mutex;
 
-    ma_lfs_bd_t bd_;
-    lfs_t       lfs_;
-
-    ma_lfs_bd_cfg_t bd_config_;
-    lfs_config      fs_config_;
+    ma_lfs_bd_t m_bd;
+    lfs_t       m_lfs;
+    lfs_config  m_fs_config;
 };
 
 }  // namespace ma

@@ -5,11 +5,13 @@
 extern "C" {
 #endif
 
-extern void xip_ownership_acquire();
-extern void xip_ownership_release();
+void xip_drv_init();
 
-extern bool xip_safe_enable();
-extern bool xip_safe_disable();
+void xip_ownership_acquire();
+void xip_ownership_release();
+
+bool xip_safe_enable();
+bool xip_safe_disable();
 
 #ifdef __cplusplus
 }

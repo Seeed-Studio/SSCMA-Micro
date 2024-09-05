@@ -28,7 +28,7 @@ static DEV_UART*             _uart      = nullptr;
 static volatile bool         _is_opened = false;
 
 static void _uart_dma_recv(void*) {
-    if (!_is_opened) {
+    if (!_is_opened || !_rb_rx || !_rx_buf || !_uart) {
         return;
     }
     _rb_rx->push(_rx_buf, 1);
@@ -36,7 +36,7 @@ static void _uart_dma_recv(void*) {
 }
 
 static void _uart_dma_send(void*) {
-    if (!_is_opened) {
+    if (!_is_opened || !_rb_tx || !_tx_buf || !_uart) {
         _tx_busy = false;
         return;
     }
@@ -48,14 +48,16 @@ static void _uart_dma_send(void*) {
     }
 }
 
-Console::Console() : Transport(MA_TRANSPORT_CONSOLE) { _is_opened = false; }
+Console::Console() : Transport(MA_TRANSPORT_CONSOLE) {}
 
-Console::~Console() {}
+Console::~Console() { deInit(); }
 
-ma_err_t Console::open() {
-    if (_is_opened) {
+ma_err_t Console::init(void* config) {
+    if (_is_opened || m_initialized) {
         return MA_OK;
     }
+
+    (void)config;
 
     _uart = hx_drv_uart_get_dev(USE_DW_UART_0);
     if (_uart == nullptr) {
@@ -90,19 +92,18 @@ ma_err_t Console::open() {
     std::memset(_rx_buf, 0, 32);
     std::memset(_tx_buf, 0, 4096);
 
-    _is_opened = true;
+    _is_opened = m_initialized = true;
 
     _uart->uart_read_udma(_rx_buf, 1, reinterpret_cast<void*>(_uart_dma_recv));
 
     return MA_OK;
 }
 
-ma_err_t Console::close() {
-    if (!_is_opened) {
+ma_err_t Console::deInit() {
+    if (!_is_opened || !m_initialized) {
         return MA_OK;
     }
 
-    _is_opened = false;
     while (_tx_busy) {
         ma::Thread::yield();
     }
@@ -141,14 +142,14 @@ ma_err_t Console::close() {
         _tx_buf = nullptr;
     }
 
-    _is_opened = false;
+    _is_opened = m_initialized = false;
 
     return MA_OK;
 }
 size_t Console::available() const { return _rb_rx->size(); }
 
 size_t Console::send(const char* data, size_t length, int timeout) {
-    if (!_is_opened || length == 0) {
+    if (!m_initialized || data == nullptr || length == 0) {
         return 0;
     }
 
@@ -181,8 +182,16 @@ size_t Console::send(const char* data, size_t length, int timeout) {
     return sent;
 }
 
+size_t Console::flush() {
+    if (!m_initialized) {
+        return -1;
+    }
+
+    return 0;
+}
+
 size_t Console::receive(char* data, size_t length, int timeout) {
-    if (!_is_opened || length == 0) {
+    if (!m_initialized || length == 0) {
         return 0;
     }
 
@@ -197,8 +206,8 @@ size_t Console::receive(char* data, size_t length, int timeout) {
     return _rb_rx->pop(data, length);
 }
 
-size_t Console::receiveUtil(char* data, size_t length, char delimiter, int timeout) {
-    if (!_is_opened || length == 0) {
+size_t Console::receiveUntil(char* data, size_t length, char delimiter, int timeout) {
+    if (!m_initialized || length == 0) {
         return 0;
     }
 
@@ -212,7 +221,5 @@ size_t Console::receiveUtil(char* data, size_t length, char delimiter, int timeo
 
     return read;
 }
-
-Console::operator bool() const { return _is_opened; }
 
 }  // namespace ma

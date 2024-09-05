@@ -38,6 +38,7 @@ LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/core/utils
 
 LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting
 LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting/drivers
+LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting/drivers/bd
 LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting/osal
 LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting/himax/we2
 LIB_SSCMA_MICRO_SRCS_DIR += $(LIB_SSCMA_MICRO_DIR)/sscma/porting/himax/we2/configs

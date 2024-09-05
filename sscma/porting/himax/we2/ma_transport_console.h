@@ -10,15 +10,14 @@ class Console final : public Transport {
     Console();
     ~Console();
 
-    ma_err_t open();
-    ma_err_t close();
-
-    operator bool() const override;
+    ma_err_t init(void* config) override;
+    ma_err_t deInit() override;
 
     size_t available() const override;
     size_t send(const char* data, size_t length, int timeout = -1) override;
+    size_t flush() override;
     size_t receive(char* data, size_t length, int timeout = 1) override;
-    size_t receiveUtil(char* data, size_t length, char delimiter, int timeout = 1) override;
+    size_t receiveUntil(char* data, size_t length, char delimiter, int timeout = 1) override;
 };
 
 }  // namespace ma

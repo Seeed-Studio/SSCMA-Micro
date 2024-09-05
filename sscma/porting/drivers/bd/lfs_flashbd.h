@@ -22,7 +22,6 @@ struct lfs_flashbd_config {
     lfs_size_t prog_size;
     lfs_size_t erase_size;
     lfs_size_t erase_count;
-    lfs_size_t flash_size;
     void*      flash_addr;
 };
 

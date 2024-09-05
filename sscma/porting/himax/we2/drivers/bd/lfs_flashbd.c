@@ -1,5 +1,5 @@
 
-#include "lfs_flashbd.h"
+#include "bd/lfs_flashbd.h"
 
 #include <spi_eeprom_comm.h>
 
