@@ -25,7 +25,6 @@ class Device final {
 
     const std::vector<Transport*>& getTransports() { return m_transports; }
     const std::vector<Sensor*>&    getSensors() { return m_sensors; }
-    const std::vector<ma_model_t>& getModels() { return m_models; }
     Storage*                       getStorage() { return m_storage; }
 
    private:
@@ -42,7 +41,6 @@ class Device final {
 
     std::vector<Transport*> m_transports;
     std::vector<Sensor*>    m_sensors;
-    std::vector<ma_model_t> m_models;
     Storage*                m_storage;
 };
 
