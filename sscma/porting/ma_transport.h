@@ -1,10 +1,10 @@
 #ifndef _MA_TRANSPORT_H_
 #define _MA_TRANSPORT_H_
 
+#include <core/ma_types.h>
+
 #include <cstddef>
 #include <cstdint>
-
-#include "core/ma_types.h"
 
 namespace ma {
 

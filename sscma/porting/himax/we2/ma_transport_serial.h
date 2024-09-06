@@ -1,14 +1,14 @@
-#ifndef _MA_TRANSPORT_CONSOLE_H_
-#define _MA_TRANSPORT_CONSOLE_H_
+#ifndef _MA_TRANSPORT_SERIAL_H_
+#define _MA_TRANSPORT_SERIAL_H_
 
 #include <porting/ma_transport.h>
 
 namespace ma {
 
-class Console final : public Transport {
+class Serial final : public Transport {
    public:
-    Console();
-    ~Console();
+    Serial();
+    ~Serial();
 
     ma_err_t init(void* config) override;
     ma_err_t deInit() override;

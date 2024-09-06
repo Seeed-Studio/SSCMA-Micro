@@ -1,11 +1,10 @@
-#include "ma_misc.h"
-
+#include <osal/ma_osal_freertos.h>
+#include <porting/ma_misc.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "ma_config_board.h"
-#include "osal/ma_osal_freertos.h"
 
 void* ma_malloc(size_t size) { return pvPortMalloc(size); }
 

@@ -1,6 +1,6 @@
 
 
-#include "ma_transport_console.h"
+#include "ma_transport_serial.h"
 
 #include <cctype>
 #include <cmath>
@@ -10,6 +10,7 @@
 
 extern "C" {
 #include <console_io.h>
+#include <hx_drv_scu.h>
 #include <hx_drv_uart.h>
 }
 
@@ -51,18 +52,24 @@ static void _uart_dma_send(void*) {
     }
 }
 
-Console::Console() : Transport(MA_TRANSPORT_CONSOLE) {}
+Serial::Serial() : Transport(MA_TRANSPORT_SERIAL) {}
 
-Console::~Console() { deInit(); }
+Serial::~Serial() { deInit(); }
 
-ma_err_t Console::init(void* config) {
+ma_err_t Serial::init(void* config) {
     if (_is_opened || m_initialized) {
         return MA_OK;
     }
 
     (void)config;
 
-    _uart = hx_drv_uart_get_dev(USE_DW_UART_0);
+    if (!(hx_drv_scu_set_PB6_pinmux(SCU_PB6_PINMUX_UART1_RX, 0) == 0 &&
+          hx_drv_scu_set_PB7_pinmux(SCU_PB7_PINMUX_UART1_TX, 0) == 0 &&
+          hx_drv_uart_init(USE_DW_UART_1, HX_UART1_BASE) == 0)) {
+        return MA_EIO;
+    }
+
+    _uart = hx_drv_uart_get_dev(USE_DW_UART_1);
     if (_uart == nullptr) {
         return MA_EIO;
     }
@@ -102,7 +109,7 @@ ma_err_t Console::init(void* config) {
     return MA_OK;
 }
 
-ma_err_t Console::deInit() {
+ma_err_t Serial::deInit() {
     if (!_is_opened || !m_initialized) {
         return MA_OK;
     }
@@ -150,9 +157,9 @@ ma_err_t Console::deInit() {
     return MA_OK;
 }
 
-size_t Console::available() const { return _rb_rx->size(); }
+size_t Serial::available() const { return _rb_rx->size(); }
 
-size_t Console::send(const char* data, size_t length, int timeout) {
+size_t Serial::send(const char* data, size_t length, int timeout) {
     if (!m_initialized || data == nullptr || length == 0) {
         return 0;
     }
@@ -185,7 +192,7 @@ size_t Console::send(const char* data, size_t length, int timeout) {
     return sent;
 }
 
-size_t Console::flush() {
+size_t Serial::flush() {
     if (!m_initialized) {
         return -1;
     }
@@ -193,7 +200,7 @@ size_t Console::flush() {
     return 0;
 }
 
-size_t Console::receive(char* data, size_t length, int timeout) {
+size_t Serial::receive(char* data, size_t length, int timeout) {
     if (!m_initialized || length == 0) {
         return 0;
     }
@@ -209,7 +216,7 @@ size_t Console::receive(char* data, size_t length, int timeout) {
     return _rb_rx->pop(data, length);
 }
 
-size_t Console::receiveUntil(char* data, size_t length, char delimiter, int timeout) {
+size_t Serial::receiveUntil(char* data, size_t length, char delimiter, int timeout) {
     if (!m_initialized || length == 0) {
         return 0;
     }

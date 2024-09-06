@@ -11,8 +11,8 @@ extern "C" {
 #include <cstdio>
 #include <cstring>
 
-#include "core/ma_debug.h"
-#include "porting/ma_osal.h"
+#include <core/ma_debug.h>
+#include <porting/ma_osal.h>
 
 static const char*   TAG = "device::xip";
 static ma::Mutex     __owner_mutex;

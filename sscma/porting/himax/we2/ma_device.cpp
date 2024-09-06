@@ -1,14 +1,15 @@
 #include <WE2_device_addr.h>
+#include <core/ma_debug.h>
 #include <hx_drv_scu.h>
+#include <porting/ma_device.h>
 
 #include <cstring>
 
-#include "core/ma_debug.h"
+#include "drivers/xip.h"
 #include "ma_config_board.h"
-#include "ma_device.h"
 #include "ma_storage_lfs.h"
 #include "ma_transport_console.h"
-#include "xip.h"
+#include "ma_transport_serial.h"
 
 namespace ma {
 
@@ -67,6 +68,10 @@ Device::Device() {
         static Console console;
         console.init(nullptr);
         m_transports.push_front(&console);
+
+        static Serial serial;
+        serial.init(nullptr);
+        m_transports.push_front(&serial);
     }
 }
 

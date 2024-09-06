@@ -1,15 +1,12 @@
 
-#include "bd/lfs_flashbd.h"
-
+#include <bd/lfs_flashbd.h>
 #include <spi_eeprom_comm.h>
-
-#ifndef LFS_FLASHBD_LIB_RETRY
-    #define LFS_FLASHBD_LIB_RETRY 10
-#endif
 
 #include "xip.h"
 
 int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_config* bdcfg) {
+    LFS_ASSERT(cfg && bdcfg);
+
     LFS_FLASHBD_TRACE("lfs_flashbd_create(%p {.context=%p, "
                       ".read=%p, .prog=%p, .erase=%p, .sync=%p}, "
                       "%p {.read_size=%" PRIu32 ", .prog_size=%" PRIu32 ", "
@@ -38,18 +35,9 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
         return LFS_ERR_INVAL;
     }
 
-    int retry = LFS_FLASHBD_LIB_RETRY;
-    xip_ownership_acquire();
-    while (hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q) != E_OK) {
-        xip_ownership_release();
-        if (--retry < 0) {
-            LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", LFS_ERR_IO);
-            return LFS_ERR_IO;
-        }
-    }
+    xip_drv_init();
 
     LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", 0);
-
     return 0;
 }
 
@@ -78,8 +66,8 @@ int lfs_flashbd_read(const struct lfs_config* cfg, lfs_block_t block, lfs_off_t 
     xip_ownership_acquire();
 
     if (!xip_safe_enable()) {
-        LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
         xip_ownership_release();
+        LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
         return LFS_ERR_IO;
     }
 
@@ -87,7 +75,6 @@ int lfs_flashbd_read(const struct lfs_config* cfg, lfs_block_t block, lfs_off_t 
     memcpy(buffer, &bd->flash_addr[block * bd->cfg->erase_size + off], size);
 
     xip_ownership_release();
-
     LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", 0);
     return 0;
 }
@@ -111,21 +98,18 @@ int lfs_flashbd_prog(
 
     xip_ownership_acquire();
 
-    if (!xip_safe_disable()) {
-        LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
+    if (!xip_safe_enable()) {
         xip_ownership_release();
+        LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
         return LFS_ERR_IO;
     }
 
-    int ret = (hx_lib_spi_eeprom_word_write(
-                 USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size + off], buffer, size) == E_OK)
-                ? 0
-                : LFS_ERR_IO;
+    memcpy(&bd->flash_addr[block * bd->cfg->erase_size + off], buffer, size);
+
 
     xip_ownership_release();
-
     LFS_FLASHBD_TRACE("lfs_flashbd_prog -> %d", ret);
-    return ret;
+    return 0;
 }
 
 int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
@@ -141,22 +125,20 @@ int lfs_flashbd_erase(const struct lfs_config* cfg, lfs_block_t block) {
     xip_ownership_acquire();
 
     if (!xip_safe_disable()) {
+        xip_ownership_release();
         LFS_FLASHBD_TRACE("lfs_flashbd_read -> %d", LFS_ERR_IO);
+        return LFS_ERR_IO;
+    }
+
+    int ret =
+      hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size], FLASH_SECTOR);
+    if (ret != 0) {
+        LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", LFS_ERR_IO);
         xip_ownership_release();
         return LFS_ERR_IO;
     }
 
-    int i = LFS_FLASHBD_LIB_RETRY;
-    while (hx_lib_spi_eeprom_erase_sector(USE_DW_SPI_MST_Q, &bd->flash_addr[block * bd->cfg->erase_size], FLASH_SECTOR) != E_OK) {
-        if (--i < 0) {
-            LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", LFS_ERR_IO);
-            xip_ownership_release();
-            return LFS_ERR_IO;
-        }
-    }
-
     xip_ownership_release();
-
     LFS_FLASHBD_TRACE("lfs_flashbd_erase -> %d", 0);
     return 0;
 }

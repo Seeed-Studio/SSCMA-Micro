@@ -1,9 +1,9 @@
 #ifndef _MA_OSAL_FREERTOS_H_
 #define _MA_OSAL_FREERTOS_H_
 
-#if MA_OSAL_FREERTOS
+#include <core/ma_common.h>
 
-    #include "core/ma_common.h"
+#if MA_OSAL_FREERTOS
 
     #ifdef __cplusplus
 extern "C" {

@@ -1,10 +1,10 @@
 #ifndef _MA_STORAGE_H_
 #define _MA_STORAGE_H_
 
+#include <ma_config_board.h>
+
 #include <cstring>
 #include <string>
-
-#include "ma_config_board.h"
 
 #define MA_STORAGE_ENABLE
 

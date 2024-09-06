@@ -3,27 +3,28 @@
 
 #ifdef MA_FILESYSTEM_LITTLEFS
 
+    #include <core/ma_types.h>
+    #include <lfs.h>
+    #include <porting/ma_osal.h>
+    #include <porting/ma_storage.h>
+
     #include <cstdint>
     #include <list>
     #include <string>
 
-    #include "core/ma_types.h"
-    #include "lfs.h"
     #include "ma_config_board.h"
-    #include "ma_osal.h"
-    #include "ma_storage.h"
 
     #ifdef MA_STORAGE_LFS_USE_FLASHBD
-        #include "bd/lfs_flashbd.h"
+        #include <bd/lfs_flashbd.h>
         #define ma_lfs_bd_t       lfs_flashbd_t
         #define ma_lfs_bd_cfg_t   lfs_flashbd_config
         #define ma_lfs_bd_destory lfs_flashbd_destroy
     #elif defined(MA_STORAGE_LFS_USE_FILEBD)
-        #include "bd/lfs_filebd.h"
+        #include <bd/lfs_filebd.h>
         #define ma_lfs_bd_t     lfs_filebd_t
         #define ma_lfs_bd_cfg_t lfs_filebd_config
     #elif defined(MA_STORAGE_LFS_USE_RAMBD)
-        #include "bd/lfs_rambd.h"
+        #include <bd/lfs_rambd.h>
         #define ma_lfs_bd_t     lfs_rambd_t
         #define ma_lfs_bd_cfg_t lfs_rambd_config
     #else

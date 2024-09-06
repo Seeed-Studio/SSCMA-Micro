@@ -1,9 +1,10 @@
 #ifndef _MA_DEVICE_H_
 #define _MA_DEVICE_H_
 
+#include <core/ma_common.h>
+
 #include <forward_list>
 
-#include "core/ma_common.h"
 #include "ma_camera.h"
 #include "ma_storage.h"
 #include "ma_transport.h"
