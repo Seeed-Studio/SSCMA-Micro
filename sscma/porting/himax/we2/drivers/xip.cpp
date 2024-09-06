@@ -6,32 +6,29 @@ extern "C" {
 #include <spi_eeprom_comm.h>
 }
 
+#include <core/ma_debug.h>
+#include <porting/ma_osal.h>
+
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-
-#include <core/ma_debug.h>
-#include <porting/ma_osal.h>
 
 static const char*   TAG = "device::xip";
 static ma::Mutex     __owner_mutex;
 static volatile bool __xip_initialized = false;
 static volatile bool __xip_enabled     = false;
 
-void xip_drv_init() {
+bool xip_drv_init() {
     xip_ownership_acquire();
     if (__xip_initialized) {
         xip_ownership_release();
-        return;
+        return true;
     }
     __xip_initialized = true;
     int ret           = hx_lib_spi_eeprom_open(USE_DW_SPI_MST_Q);
-    if (ret != E_OK) {
-        MA_LOGE(TAG, "Failed to open SPI EEPROM");
-        ma_abort();
-    }
     xip_ownership_release();
+    return ret == E_OK;
 }
 
 void xip_ownership_acquire() { __owner_mutex.lock(); }

@@ -35,10 +35,10 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
         return LFS_ERR_INVAL;
     }
 
-    xip_drv_init();
+    bool success = xip_drv_init();
 
-    LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", 0);
-    return 0;
+    LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", success ? 0 : LFS_ERR_IO);
+    return success ? 0 : LFS_ERR_IO;
 }
 
 int lfs_flashbd_destroy(const struct lfs_config* cfg) {
@@ -105,7 +105,6 @@ int lfs_flashbd_prog(
     }
 
     memcpy(&bd->flash_addr[block * bd->cfg->erase_size + off], buffer, size);
-
 
     xip_ownership_release();
     LFS_FLASHBD_TRACE("lfs_flashbd_prog -> %d", ret);

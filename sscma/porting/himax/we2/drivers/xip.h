@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-void xip_drv_init();
+bool xip_drv_init();
 
 void xip_ownership_acquire();
 void xip_ownership_release();

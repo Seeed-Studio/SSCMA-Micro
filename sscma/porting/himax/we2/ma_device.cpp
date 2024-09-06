@@ -18,7 +18,8 @@ static const char* TAG = "ma::device";
 Device::Device() {
     MA_LOGD(TAG, "Initializing device: %s", MA_BOARD_NAME);
     {
-        xip_drv_init();
+        bool success = xip_drv_init();
+        MA_ASSERT(success && "Failed to initialize XIP");
         m_name = MA_BOARD_NAME;
     }
 
