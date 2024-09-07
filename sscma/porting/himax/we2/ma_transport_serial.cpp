@@ -56,7 +56,7 @@ Serial::Serial() : Transport(MA_TRANSPORT_SERIAL) {}
 
 Serial::~Serial() { deInit(); }
 
-ma_err_t Serial::init(void* config) {
+ma_err_t Serial::init(const void* config) {
     if (_is_opened || m_initialized) {
         return MA_OK;
     }
@@ -109,9 +109,9 @@ ma_err_t Serial::init(void* config) {
     return MA_OK;
 }
 
-ma_err_t Serial::deInit() {
+void Serial::deInit() {
     if (!_is_opened || !m_initialized) {
-        return MA_OK;
+        return;
     }
 
     while (_tx_busy) {
@@ -119,16 +119,8 @@ ma_err_t Serial::deInit() {
     }
 
     if (_uart) {
-        int ret = _uart->uart_close();
-        if (ret != 0) {
-            return MA_EIO;
-        }
-
-        ret = hx_drv_uart_deinit(USE_DW_UART_0);
-        if (ret != 0) {
-            return MA_EIO;
-        }
-
+        _uart->uart_close();
+        hx_drv_uart_deinit(USE_DW_UART_1);
         _uart = nullptr;
     }
 
@@ -153,8 +145,6 @@ ma_err_t Serial::deInit() {
     }
 
     _is_opened = m_initialized = false;
-
-    return MA_OK;
 }
 
 size_t Serial::available() const { return _rb_rx->size(); }

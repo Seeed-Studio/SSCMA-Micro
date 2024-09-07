@@ -32,13 +32,13 @@ class Sensor {
     }
     virtual ~Sensor() = default;
 
-    virtual ma_err_t init(size_t preset_idx) = 0;
-    virtual ma_err_t deInit()                = 0;
+    virtual ma_err_t init(size_t preset_idx) noexcept = 0;
+    virtual void     deInit() noexcept                = 0;
 
-    operator bool() const { return m_initialized; }
+    operator bool() const noexcept { return m_initialized; }
 
-    const ma_sensor_presets_t& availablePresets() const { return m_presets; }
-    const ma_sensor_preset_t&  currentPreset() const {
+    const ma_sensor_presets_t& availablePresets() const noexcept { return m_presets; }
+    const ma_sensor_preset_t&  currentPreset() const noexcept {
         if (m_preset_idx < m_presets.presets.size()) {
             return m_presets.presets[m_preset_idx];
         }

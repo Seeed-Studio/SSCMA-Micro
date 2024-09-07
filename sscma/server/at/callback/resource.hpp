@@ -37,7 +37,7 @@ class staticResource final {
         MA_STORAGE_GET_ASTR(storage, MA_STORAGE_KEY_MODEL_DIR, model_path, MA_SSCMA_MODEL_DEFAULT_PATH);
         Engine::findModels(model_path, 0);
 #endif
-        MA_STORAGE_GET_STR(storage, MA_STORAGE_KEY_ID, device->id(), device->id());
+        // MA_STORAGE_GET_STR(storage, MA_STORAGE_KEY_ID, device->id(), device->id());
         MA_STORAGE_GET_POD(storage, MA_STORAGE_KEY_MODEL_ID, cur_model_id, 0);
         MA_STORAGE_GET_ASTR(storage, MA_STORAGE_KEY_MQTT_HOST, mqtt_cfg.host, "");
 

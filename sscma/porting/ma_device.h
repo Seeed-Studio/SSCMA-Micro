@@ -14,24 +14,24 @@ namespace ma {
 
 class Device final {
    public:
-    static Device* getInstance();
+    static Device* getInstance() noexcept;
     ~Device();
 
    public:
-    const std::string& name() const { return m_name; }
-    const std::string& id() const { return m_id; }
-    const std::string& version() const { return m_version; }
-    size_t             bootCount() const { return m_bootcount; }
+    const std::string& name() const noexcept { return m_name; }
+    const std::string& id() const noexcept { return m_id; }
+    const std::string& version() const noexcept { return m_version; }
+    size_t             bootCount() const noexcept { return m_bootcount; }
 
-    const std::vector<Transport*>& getTransports() { return m_transports; }
-    const std::vector<Sensor*>&    getSensors() { return m_sensors; }
-    Storage*                       getStorage() { return m_storage; }
+    const std::vector<Transport*>& getTransports() noexcept { return m_transports; }
+    const std::vector<Sensor*>&    getSensors() noexcept { return m_sensors; }
+    Storage*                       getStorage() noexcept { return m_storage; }
 
    private:
     Device(const Device&)            = delete;
     Device& operator=(const Device&) = delete;
 
-    Device();
+    Device() noexcept;
 
    private:
     std::string m_name;

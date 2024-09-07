@@ -68,11 +68,11 @@ Device::Device() {
     {
         static Console console;
         console.init(nullptr);
-        m_transports.push_front(&console);
+        m_transports.push_back(&console);
 
         static Serial serial;
         serial.init(nullptr);
-        m_transports.push_front(&serial);
+        m_transports.push_back(&serial);
     }
 }
 

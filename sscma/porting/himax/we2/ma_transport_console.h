@@ -10,8 +10,8 @@ class Console final : public Transport {
     Console();
     ~Console();
 
-    ma_err_t init(void* config) override;
-    ma_err_t deInit() override;
+    ma_err_t init(const void* config) override;
+    void     deInit() override;
 
     size_t available() const override;
     size_t send(const char* data, size_t length, int timeout = 10) override;

@@ -55,7 +55,7 @@ Console::Console() : Transport(MA_TRANSPORT_CONSOLE) {}
 
 Console::~Console() { deInit(); }
 
-ma_err_t Console::init(void* config) {
+ma_err_t Console::init(const void* config) {
     if (_is_opened || m_initialized) {
         return MA_OK;
     }
@@ -102,9 +102,9 @@ ma_err_t Console::init(void* config) {
     return MA_OK;
 }
 
-ma_err_t Console::deInit() {
-    if (!_is_opened || !m_initialized) {
-        return MA_OK;
+void Console::deInit() {
+   if (!_is_opened || !m_initialized) {
+        return;
     }
 
     while (_tx_busy) {
@@ -112,16 +112,8 @@ ma_err_t Console::deInit() {
     }
 
     if (_uart) {
-        int ret = _uart->uart_close();
-        if (ret != 0) {
-            return MA_EIO;
-        }
-
-        ret = hx_drv_uart_deinit(USE_DW_UART_0);
-        if (ret != 0) {
-            return MA_EIO;
-        }
-
+        _uart->uart_close();
+        hx_drv_uart_deinit(USE_DW_UART_0);
         _uart = nullptr;
     }
 
@@ -146,8 +138,6 @@ ma_err_t Console::deInit() {
     }
 
     _is_opened = m_initialized = false;
-
-    return MA_OK;
 }
 
 size_t Console::available() const { return _rb_rx->size(); }

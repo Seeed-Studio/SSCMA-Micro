@@ -38,20 +38,20 @@ class StorageLfs final : public Storage {
     StorageLfs();
     virtual ~StorageLfs();
 
-    ma_err_t init(void* config) override;
-    ma_err_t deInit() override;
+    ma_err_t init(const void* config) noexcept override;
+    void deInit() noexcept override;
 
-    virtual ma_err_t set(const std::string& key, const void* value, size_t size) override;
-    virtual ma_err_t get(const std::string& key, std::string& value) override;
+    virtual ma_err_t set(const std::string& key, const void* value, size_t size) noexcept override;
+    virtual ma_err_t get(const std::string& key, std::string& value) noexcept override;
 
-    virtual ma_err_t remove(const std::string& key) override;
-    virtual bool     exists(const std::string& key) override;
+    virtual ma_err_t remove(const std::string& key) noexcept override;
+    virtual bool     exists(const std::string& key) noexcept override;
 
    private:
-    std::list<std::string> keyToPath(const std::string& key, size_t break_size);
+    std::list<std::string> keyToPath(const std::string& key, size_t break_size) noexcept;
 
-    ma_err_t setImpl(std::string key, void const* data, size_t size);
-    ma_err_t getImpl(std::string key, std::string& buffer);
+    ma_err_t setImpl(std::string key, void const* data, size_t size) noexcept;
+    ma_err_t getImpl(std::string key, std::string& buffer) noexcept;
 
    private:
     Mutex m_mutex;

@@ -38,7 +38,7 @@ StorageLfs::StorageLfs() : Storage(), m_mutex() {}
 StorageLfs::~StorageLfs() { deInit(); }
 
     #ifdef MA_STORAGE_LFS_USE_FLASHBD
-ma_err_t StorageLfs::init(void* config) {
+ma_err_t StorageLfs::init(const void* config) {
     Guard guard(m_mutex);
 
     if (m_initialized) {
@@ -49,7 +49,7 @@ ma_err_t StorageLfs::init(void* config) {
         return MA_EINVAL;
     }
 
-    auto* bd_config = reinterpret_cast<ma_lfs_bd_cfg_t*>(config);
+    const auto* bd_config = reinterpret_cast<const ma_lfs_bd_cfg_t*>(config);
 
     m_fs_config = lfs_config{
       .context = &m_bd,
@@ -113,7 +113,7 @@ ma_err_t StorageLfs::init(void* config) {
         return MA_EINVAL;
     }
 
-    auto* bd_config = reinterpret_cast<ma_lfs_bd_cfg_t*>(config);
+    const auto* bd_config = reinterpret_cast<const ma_lfs_bd_cfg_t*>(config);
 
     m_fs_config = lfs_config{
       .context = &m_bd,
@@ -174,7 +174,7 @@ ma_err_t StorageLfs::init(void* config) {
         return MA_EINVAL;
     }
 
-    auto* bd_config = reinterpret_cast<ma_lfs_bd_cfg_t*>(config);
+    const auto* bd_config = reinterpret_cast<const ma_lfs_bd_cfg_t*>(config);
 
     m_fs_config = lfs_config{
       .context = &m_bd,
@@ -225,28 +225,24 @@ ma_err_t StorageLfs::init(void* config) {
 }
     #endif
 
-ma_err_t StorageLfs::deInit() {
+void StorageLfs::deInit() {
     Guard guard(m_mutex);
 
     if (!m_initialized) {
-        return MA_OK;
+        return;
     }
 
     int ret = lfs_unmount(&m_lfs);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to unmount LFS storage");
-        return MA_EIO;
     }
 
     ret = ma_lfs_bd_destory(&m_fs_config);
     if (ret != LFS_ERR_OK) {
         MA_LOGE(TAG, "Failed to destroy LFS storage");
-        return MA_EIO;
     }
 
     m_initialized = false;
-
-    return MA_OK;
 }
 
 std::list<std::string> StorageLfs::keyToPath(const std::string& key, size_t break_size) {

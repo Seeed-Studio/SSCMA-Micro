@@ -194,25 +194,25 @@ namespace ma {
 
 class Storage {
    public:
-    Storage()          = default;
+    Storage() : m_initialized(false) {}
     virtual ~Storage() = default;
 
     Storage(const Storage&)            = delete;
     Storage& operator=(const Storage&) = delete;
 
-    virtual ma_err_t init(void* config) = 0;
-    virtual ma_err_t deInit()           = 0;
+    virtual ma_err_t init(const void* config) noexcept = 0;
+    virtual void     deInit() noexcept                 = 0;
 
-    operator bool() const { return m_initialized; }
+    operator bool() const noexcept { return m_initialized; }
 
-    virtual ma_err_t set(const std::string& key, const void* value, size_t size) = 0;
-    virtual ma_err_t get(const std::string& key, std::string& value)             = 0;
+    virtual ma_err_t set(const std::string& key, const void* value, size_t size) noexcept = 0;
+    virtual ma_err_t get(const std::string& key, std::string& value) noexcept             = 0;
 
-    virtual ma_err_t remove(const std::string& key) = 0;
-    virtual bool     exists(const std::string& key) = 0;
+    virtual ma_err_t remove(const std::string& key) noexcept = 0;
+    virtual bool     exists(const std::string& key) noexcept = 0;
 
    protected:
-    bool m_initialized = false;
+    bool m_initialized;
 };
 
 }  // namespace ma

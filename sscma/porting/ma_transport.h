@@ -16,10 +16,10 @@ class Transport {
     Transport(const Transport&)            = delete;
     Transport& operator=(const Transport&) = delete;
 
-    virtual ma_err_t init(void* config) = 0;
-    virtual ma_err_t deInit()           = 0;
+    virtual ma_err_t init(const void* config) = 0;
+    virtual void     deInit()                 = 0;
 
-    operator bool() const { return m_initialized; }
+    operator bool() const noexcept { return m_initialized; }
 
     virtual size_t available() const                                                         = 0;
     virtual size_t send(const char* data, size_t length, int timeout = -1)                   = 0;
