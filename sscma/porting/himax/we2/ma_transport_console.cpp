@@ -103,7 +103,7 @@ ma_err_t Console::init(const void* config) {
 }
 
 void Console::deInit() {
-   if (!_is_opened || !m_initialized) {
+    if (!_is_opened || !m_initialized) {
         return;
     }
 
@@ -142,16 +142,15 @@ void Console::deInit() {
 
 size_t Console::available() const { return _rb_rx->size(); }
 
-size_t Console::send(const char* data, size_t length, int timeout) {
+size_t Console::send(const char* data, size_t length) {
     if (!m_initialized || data == nullptr || length == 0) {
         return 0;
     }
 
     Guard guard(_tx_mutex);
 
-    ma_tick_t time_start    = ma::Tick::current();
-    size_t    bytes_to_send = 0;
-    size_t    sent          = 0;
+    size_t bytes_to_send = 0;
+    size_t sent          = 0;
 
     while (length) {
         bytes_to_send = _rb_tx->push(data + sent, length);
@@ -166,9 +165,6 @@ size_t Console::send(const char* data, size_t length, int timeout) {
             _uart->uart_write_udma(_tx_buf, bytes_to_send, reinterpret_cast<void*>(_uart_dma_send));
         } else {
             ma::Thread::yield();
-            if (ma::Tick::current() - time_start > static_cast<ma_tick_t>(timeout)) {
-                return sent;
-            }
         }
     }
 
@@ -183,35 +179,20 @@ size_t Console::flush() {
     return 0;
 }
 
-size_t Console::receive(char* data, size_t length, int timeout) {
+size_t Console::receive(char* data, size_t length) {
     if (!m_initialized || length == 0) {
         return 0;
-    }
-
-    ma_tick_t time_start = ma::Tick::current();
-    while (_rb_rx->size() == 0) {
-        if (ma::Tick::current() - time_start > static_cast<ma_tick_t>(timeout)) {
-            return 0;
-        }
-        ma::Thread::yield();
     }
 
     return _rb_rx->pop(data, length);
 }
 
-size_t Console::receiveUntil(char* data, size_t length, char delimiter, int timeout) {
+size_t Console::receiveIf(char* data, size_t length, char delimiter) {
     if (!m_initialized || length == 0) {
         return 0;
     }
 
-    ma_tick_t time_start = ma::Tick::current();
-    size_t    read       = 0;
-    while (read == 0 && read < length && ma::Tick::current() - time_start <= static_cast<ma_tick_t>(timeout)) {
-        read = _rb_rx->popIf(data, length, delimiter);
-        ma::Thread::yield();
-    }
-
-    return read;
+    return _rb_rx->popIf(data, length, delimiter);
 }
 
 }  // namespace ma

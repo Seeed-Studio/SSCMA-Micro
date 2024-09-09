@@ -7,19 +7,19 @@ namespace ma {
 
 class Console final : public Transport {
    public:
-    Console();
-    ~Console();
+    Console() noexcept;
+    ~Console() noexcept;
 
-    ma_err_t init(const void* config) override;
-    void     deInit() override;
+    ma_err_t init(const void* config) noexcept override;
+    void     deInit() noexcept override;
 
-    size_t available() const override;
-    size_t send(const char* data, size_t length, int timeout = 10) override;
-    size_t flush() override;
-    size_t receive(char* data, size_t length, int timeout = 10) override;
-    size_t receiveUntil(char* data, size_t length, char delimiter, int timeout = 5) override;
+    size_t available() const noexcept override;
+    size_t send(const char* data, size_t length) noexcept override;
+    size_t flush() noexcept override;
+    size_t receive(char* data, size_t length) noexcept override;
+    size_t receiveIf(char* data, size_t length, char delimiter) noexcept override;
 };
 
 }  // namespace ma
 
-#endif  // _MA_CONSOLE_H_
+#endif

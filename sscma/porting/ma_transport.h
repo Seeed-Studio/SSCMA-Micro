@@ -10,22 +10,22 @@ namespace ma {
 
 class Transport {
    public:
-    Transport(ma_transport_type_t type) : m_initialized(false), m_type(type) {}
+    explicit Transport(ma_transport_type_t type) noexcept : m_initialized(false), m_type(type) {}
     virtual ~Transport() = default;
 
     Transport(const Transport&)            = delete;
     Transport& operator=(const Transport&) = delete;
 
-    virtual ma_err_t init(const void* config) = 0;
-    virtual void     deInit()                 = 0;
+    [[nodiscard]] virtual ma_err_t init(const void* config) noexcept = 0;
+    virtual void                   deInit() noexcept                 = 0;
 
-    operator bool() const noexcept { return m_initialized; }
+    [[nodiscard]] operator bool() const noexcept { return m_initialized; }
 
-    virtual size_t available() const                                                         = 0;
-    virtual size_t send(const char* data, size_t length, int timeout = -1)                   = 0;
-    virtual size_t flush()                                                                   = 0;
-    virtual size_t receive(char* data, size_t length, int timeout = -1)                      = 0;
-    virtual size_t receiveUntil(char* data, size_t length, char delimiter, int timeout = -1) = 0;
+    [[nodiscard]] virtual size_t available() const noexcept                                    = 0;
+    virtual size_t               send(const char* data, size_t length) noexcept                = 0;
+    virtual size_t               flush() noexcept                                              = 0;
+    virtual size_t               receive(char* data, size_t length) noexcept                   = 0;
+    virtual size_t               receiveIf(char* data, size_t length, char delimiter) noexcept = 0;
 
    protected:
     bool                m_initialized;

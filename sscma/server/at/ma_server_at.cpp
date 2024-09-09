@@ -57,11 +57,11 @@ void ATServer::threadEntry() {
     while (true) {
         for (auto& transport : static_resource->transports) {
             if (*transport) {
-                int len = transport->receiveUntil(buf, MA_SEVER_AT_CMD_MAX_LENGTH, 0x0D);
+                int len = transport->receiveIf(buf, MA_SEVER_AT_CMD_MAX_LENGTH, 0x0D);
                 if (len > 1) {
                     execute(buf, transport);
                 }
-                len = transport->receiveUntil(buf, MA_SEVER_AT_CMD_MAX_LENGTH, 0x0A);
+                len = transport->receiveIf(buf, MA_SEVER_AT_CMD_MAX_LENGTH, 0x0A);
                 if (len > 1) {
                     execute(buf, transport);
                 }
