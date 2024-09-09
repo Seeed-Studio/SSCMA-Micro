@@ -16,7 +16,7 @@ class CameraHimax final : public Camera {
     void     deInit() noexcept override;
 
     ma_err_t startStream(ma_camera_stream_mode_e mode) noexcept override;
-    ma_err_t stopStream() noexcept override;
+    void     stopStream() noexcept override;
 
     ma_err_t commandCtrl(ma_camera_ctrl_e        ctrl,
                          ma_camera_ctrl_model_e  mode,

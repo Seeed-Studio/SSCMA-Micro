@@ -52,20 +52,21 @@ union ma_camera_ctrl_value_t {
 
 class Camera : public Sensor {
    public:
-    Camera() : Sensor(MA_SENSOR_TYPE_CAMERA), m_streaming(false), m_stream_mode(MA_CAMERA_STREAM_MODE_UNKNOWN) {}
+    Camera() noexcept
+        : Sensor(MA_SENSOR_TYPE_CAMERA), m_streaming(false), m_stream_mode(MA_CAMERA_STREAM_MODE_UNKNOWN) {}
     virtual ~Camera() = default;
 
-    virtual ma_err_t startStream(ma_camera_stream_mode_e mode) noexcept = 0;
-    virtual ma_err_t stopStream() noexcept                              = 0;
+    [[nodiscard]] virtual ma_err_t startStream(ma_camera_stream_mode_e mode) noexcept = 0;
+    virtual void                   stopStream() noexcept                              = 0;
 
-    virtual ma_err_t commandCtrl(ma_camera_ctrl_e        ctrl,
-                                 ma_camera_ctrl_model_e  mode,
-                                 ma_camera_ctrl_value_t& value) noexcept = 0;
+    [[nodiscard]] virtual ma_err_t commandCtrl(ma_camera_ctrl_e        ctrl,
+                                               ma_camera_ctrl_model_e  mode,
+                                               ma_camera_ctrl_value_t& value) noexcept = 0;
 
-    virtual ma_err_t retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) noexcept = 0;
-    virtual void     returnFrame(ma_img_t& frame) noexcept                             = 0;
+    [[nodiscard]] virtual ma_err_t retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) noexcept = 0;
+    virtual void                   returnFrame(ma_img_t& frame) noexcept                             = 0;
 
-    bool isStreaming() const noexcept { return m_streaming; }
+    [[nodiscard]] bool isStreaming() const noexcept { return m_streaming; }
 
    private:
     Camera(const Camera&)            = delete;

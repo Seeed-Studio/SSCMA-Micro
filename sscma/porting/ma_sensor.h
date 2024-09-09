@@ -19,37 +19,35 @@ struct ma_sensor_preset_t {
     const char* description;
 };
 
-struct ma_sensor_presets_t {
-    std::vector<ma_sensor_preset_t> presets;
-};
+using ma_sensor_presets_t = std::vector<ma_sensor_preset_t>;
 
 class Sensor {
    public:
-    Sensor(ma_sensor_type_e type) : m_type(type), m_initialized(false), m_preset_idx(0) {
-        if (m_presets.presets.empty()) {
-            m_presets.presets.push_back({.description = "Default"});
+    explicit Sensor(ma_sensor_type_e type) noexcept : m_type(type), m_initialized(false), m_preset_idx(0) {
+        if (m_presets.empty()) {
+            m_presets.push_back({.description = "Default"});
         }
     }
     virtual ~Sensor() = default;
 
-    virtual ma_err_t init(size_t preset_idx) noexcept = 0;
-    virtual void     deInit() noexcept                = 0;
+    [[nodiscard]] virtual ma_err_t init(size_t preset_idx) noexcept = 0;
+    virtual void                   deInit() noexcept                = 0;
 
-    operator bool() const noexcept { return m_initialized; }
+    [[nodiscard]] operator bool() const noexcept { return m_initialized; }
 
     const ma_sensor_presets_t& availablePresets() const noexcept { return m_presets; }
     const ma_sensor_preset_t&  currentPreset() const noexcept {
-        if (m_preset_idx < m_presets.presets.size()) {
-            return m_presets.presets[m_preset_idx];
+        if (m_preset_idx < m_presets.size()) {
+            return m_presets[m_preset_idx];
         }
-        return m_presets.presets[0];
+        return m_presets[0];
     }
 
    protected:
-    ma_sensor_type_e    m_type;
-    bool                m_initialized;
-    size_t              m_preset_idx;
-    ma_sensor_presets_t m_presets;
+    const ma_sensor_type_e m_type;
+    bool                   m_initialized;
+    size_t                 m_preset_idx;
+    ma_sensor_presets_t    m_presets;
 };
 
 }  // namespace ma
