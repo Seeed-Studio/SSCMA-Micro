@@ -28,6 +28,7 @@ static const presets_wrapper_t _presets[] = {
 
 static ma_pixel_rotate_t _rotation_override      = MA_PIXEL_ROTATE_0;
 static int               _frame_shared_ref_count = 0;
+// ^ shared pointer or unique pointer would be better but currently is not allowed
 
 CameraHimax::CameraHimax() : Camera() {
     for (const auto& preset : _presets) {
@@ -198,6 +199,7 @@ void CameraHimax::returnFrame(ma_img_t& frame) noexcept {
     frame.data = nullptr;
     frame.size = 0;
     --_frame_shared_ref_count;
+    // ^ ref count is not thread safe and we don't have a simple way to check if the frame is really borrowed from here
 
     if (_frame_shared_ref_count == 0) {
         switch (m_stream_mode) {
