@@ -34,6 +34,7 @@ class Sensor {
     virtual void                   deInit() noexcept                = 0;
 
     [[nodiscard]] operator bool() const noexcept { return m_initialized; }
+    [[nodiscard]] ma_sensor_type_e getType() const noexcept { return m_type; }
 
     const ma_sensor_presets_t& availablePresets() const noexcept { return m_presets; }
     const ma_sensor_preset_t&  currentPreset() const noexcept {

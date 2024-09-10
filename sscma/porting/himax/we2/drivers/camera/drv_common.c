@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "drv_shared_cfg.h"
+#include "drv_shared_state.h"
 
 volatile bool     _initiated_before  = false;
 volatile bool     _frame_ready       = false;
@@ -44,7 +45,7 @@ void _reset_all_wdma_buffer() {
 }
 
 void (*_drv_dp_event_cb_on_frame_ready)() = NULL;
-void (*_drv_dp_on_stop_stream)()          = NULL;
+void (*_drv_dp_on_next_stream)()          = NULL;
 
 void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
     switch (event) {
@@ -68,7 +69,7 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
     }
 }
 
-ma_err_t _drv_capture(uint64_t timeout) {
+ma_err_t drv_capture(uint64_t timeout) {
     uint64_t start = ma_get_time_ms();
 
     while (!_frame_ready) {
@@ -84,9 +85,9 @@ ma_err_t _drv_capture(uint64_t timeout) {
     return MA_OK;
 }
 
-ma_err_t _drv_capture_stop() {
-    if (_drv_dp_on_stop_stream != NULL) {
-        _drv_dp_on_stop_stream();
+ma_err_t drv_capture_next() {
+    if (_drv_dp_on_next_stream != NULL) {
+        _drv_dp_on_next_stream();
     }
 
     _frame_ready = false;
@@ -95,13 +96,13 @@ ma_err_t _drv_capture_stop() {
     return MA_OK;
 }
 
-ma_img_t _drv_get_frame() {
+ma_img_t drv_get_frame() {
     hx_InvalidateDCache_by_Addr((volatile void*)_frame.data, _frame.size);
 
     return _frame;
 }
 
-ma_img_t _drv_get_jpeg() {
+ma_img_t drv_get_jpeg() {
     uint8_t  frame_no  = 0;
     uint8_t  buffer_no = 0;
     uint32_t reg_val   = 0;
