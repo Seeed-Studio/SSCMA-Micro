@@ -46,9 +46,10 @@ enum ma_camera_ctrl_model_e {
 };
 
 union ma_camera_ctrl_value_t {
-    uint8_t bytes[4];
-    int32_t i32;
-    float   f32;
+    uint8_t  bytes[4];
+    uint16_t u16[2];
+    int32_t  i32;
+    float    f32;
 };
 
 class Camera : public Sensor {

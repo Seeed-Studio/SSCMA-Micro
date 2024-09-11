@@ -5,6 +5,7 @@
 #include <WE2_core.h>
 #include <core/ma_debug.h>
 #include <core/ma_types.h>
+#include <hx_drv_CIS_common.h>
 #include <hx_drv_gpio.h>
 #include <hx_drv_inp.h>
 #include <hx_drv_jpeg.h>
@@ -67,6 +68,24 @@ void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event) {
         _initiated_before = false;
         MA_LOGE(MA_TAG, "Bad sensor event: %d", event);
     }
+}
+
+ma_err_t drv_set_reg(uint16_t addr, uint8_t value) {
+    int ec = hx_drv_cis_set_reg(addr, value, 1);
+    if (ec != HX_CIS_NO_ERROR) {
+        MA_LOGE(MA_TAG, "Set Reg %x to %x Fail: %d", addr, value, ec);
+        return MA_EIO;
+    }
+    return MA_OK;
+}
+
+ma_err_t drv_get_reg(uint16_t addr, uint8_t* value) {
+    int ec = hx_drv_cis_get_reg(addr, value);
+    if (ec != HX_CIS_NO_ERROR) {
+        MA_LOGE(MA_TAG, "Get Reg %x Fail: %d", addr, ec);
+        return MA_EIO;
+    }
+    return MA_OK;
 }
 
 ma_err_t drv_capture(uint64_t timeout) {

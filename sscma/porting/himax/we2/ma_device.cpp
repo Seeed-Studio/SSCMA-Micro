@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "drivers/xip.h"
+#include "ma_camera_himax.h"
 #include "ma_config_board.h"
 #include "ma_storage_lfs.h"
 #include "ma_transport_console.h"
@@ -73,6 +74,12 @@ Device::Device() {
         static Serial serial;
         serial.init(nullptr);
         m_transports.push_back(&serial);
+    }
+
+    MA_LOGD(TAG, "Initializing sensors");
+    {
+        static CameraHimax camera;
+        m_sensors.push_back(&camera);
     }
 }
 

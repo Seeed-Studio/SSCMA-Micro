@@ -38,8 +38,6 @@ extern "C" {
 ma_err_t drv_ov5647_probe();
 ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression);
 void     drv_ov5647_deinit();
-ma_err_t drv_ov5647_set_reg(uint16_t addr, uint8_t value);
-ma_err_t drv_ov5647_get_reg(uint16_t addr, uint8_t* value);
 
 #ifdef __cplusplus
 }

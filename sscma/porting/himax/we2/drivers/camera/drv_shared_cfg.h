@@ -1,6 +1,8 @@
 #ifndef _DRV_SHARED_CFG_H_
 #define _DRV_SHARED_CFG_H_
 
+#include <WE2_device_addr.h>
+
 #define DEAULT_XHSUTDOWN_PIN      AON_GPIO2
 
 #define ENABLE_SENSOR_FAST_SWITCH 1
@@ -15,8 +17,8 @@
 #define SRAM_1_TAIL_ADDR          0x3416A000
 #define SRAM_1_TAIL_SIZE          (0x34200000 - 0x3416A000)  // 600KB
 
-#define SRAM_2_START_ADDR         0x36000000
-#define SRAM_2_SIZE               (0x36060000 - 0x36000000)  // 384KB
+#define SRAM_2_START_ADDR         BASE_ADDR_SRAM2_ALIAS
+#define SRAM_2_SIZE               (0x36060000 - BASE_ADDR_SRAM2_ALIAS)  // 384KB
 
 #define YUV422_SIZE_EXP(w, h)     (w * h * 2)
 

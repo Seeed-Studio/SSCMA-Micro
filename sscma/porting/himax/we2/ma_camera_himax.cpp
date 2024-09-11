@@ -2,6 +2,9 @@
 
 #include <core/ma_debug.h>
 
+#include "drivers/camera/drv_common.h"
+#include "drivers/camera/drv_imx219.h"
+#include "drivers/camera/drv_imx708.h"
 #include "drivers/camera/drv_ov5647.h"
 
 namespace ma {
@@ -27,7 +30,7 @@ static const presets_wrapper_t _presets[] = {
 };
 
 static ma_pixel_rotate_t _rotation_override      = MA_PIXEL_ROTATE_0;
-static int               _frame_shared_ref_count = 0;
+static volatile int      _frame_shared_ref_count = 0;
 // ^ shared pointer or unique pointer would be better but currently is not allowed
 
 CameraHimax::CameraHimax() : Camera() {
@@ -53,6 +56,9 @@ ma_err_t CameraHimax::init(size_t preset_idx) noexcept {
     if (drv_ov5647_probe() == MA_OK) {
         _drv_cam_init   = drv_ov5647_init;
         _drv_cam_deinit = drv_ov5647_deinit;
+    } else if (drv_imx708_probe() == MA_OK) {
+        _drv_cam_init   = drv_imx708_init;
+        _drv_cam_deinit = drv_imx708_deinit;
     } else {
         return MA_ENOTSUP;
     }
@@ -121,15 +127,28 @@ ma_err_t CameraHimax::commandCtrl(ma_camera_ctrl_e        ctrl,
     }
 
     switch (ctrl) {
-    case MA_CAMERA_CTRL_ROTATE:
-        if (mode == MA_CAMERA_CTRL_MODEL_WRITE) {
+    case MA_CAMERA_CTRL_ROTATE: {
+        switch (mode) {
+        case MA_CAMERA_CTRL_MODEL_WRITE:
             _rotation_override = static_cast<ma_pixel_rotate_t>(value.i32);
-        } else if (mode == MA_CAMERA_CTRL_MODEL_READ) {
+            break;
+        case MA_CAMERA_CTRL_MODEL_READ:
             value.i32 = _rotation_override;
-        } else {
+            break;
+        default:
             return MA_EINVAL;
         }
-        break;
+    } break;
+    case MA_CAMERA_CTRL_REGISTER: {
+        switch (mode) {
+        case MA_CAMERA_CTRL_MODEL_WRITE:
+            return drv_set_reg(value.u16[0], value.bytes[2]);
+        case MA_CAMERA_CTRL_MODEL_READ:
+            return drv_get_reg(value.u16[0], &value.bytes[2]);
+        default:
+            return MA_EINVAL;
+        }
+    } break;
     default:
         return MA_ENOTSUP;
     }

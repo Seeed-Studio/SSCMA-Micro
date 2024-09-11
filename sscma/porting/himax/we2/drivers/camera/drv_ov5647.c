@@ -28,7 +28,7 @@
 #define OV5647_MIPI_MODE      OV5647_MIPI_1296X972
 
 #if (OV5647_MIPI_MODE == OV5647_MIPI_640X480)
-    #define OV5647_MIPI_CLOCK_FEQ (220)  // MHz
+    #define OV5647_MIPI_CLOCK_FEQ 220  // MHz
     #define OV5647_SENSOR_WIDTH   640
     #define OV5647_SENSOR_HEIGHT  480
     #define OV5647_SUB_SAMPLE     INP_SUBSAMPLE_DISABLE
@@ -36,7 +36,7 @@
     #define OV5647_BINNING_1      INP_BINNING_4TO2_B
     #define OV5647_BINNING_2      INP_BINNING_8TO2_B
 #elif (OV5647_MIPI_MODE == OV5647_MIPI_2592X1944)
-    #define OV5647_MIPI_CLOCK_FEQ (350)  // MHz
+    #define OV5647_MIPI_CLOCK_FEQ 350  // MHz
     #define OV5647_SENSOR_WIDTH   2592
     #define OV5647_SENSOR_HEIGHT  1944
     #define OV5647_SUB_SAMPLE     INP_SUBSAMPLE_4TO2
@@ -44,7 +44,7 @@
     #define OV5647_BINNING_1      INP_BINNING_8TO2_B
     #define OV5647_BINNING_2      INP_BINNING_16TO2_B
 #elif (OV5647_MIPI_MODE == OV5647_MIPI_1296X972)
-    #define OV5647_MIPI_CLOCK_FEQ (350)  // MHz
+    #define OV5647_MIPI_CLOCK_FEQ 350  // MHz
     #define OV5647_SENSOR_WIDTH   1296
     #define OV5647_SENSOR_HEIGHT  972
     #define OV5647_SUB_SAMPLE     INP_SUBSAMPLE_DISABLE
@@ -55,13 +55,13 @@
     #error "OV5647_MIPI_MODE not defined"
 #endif
 
-#define OV5647_SENSOR_I2CID     (0x36)
-#define OV5647_MIPI_LANE_CNT    (2)
-#define OV5647_MIPI_DPP         (10)    // depth per pixel
-#define OV5647_MIPITX_CNTCLK_EN (1)     // continuous clock output enable
-#define OV5647_MIPI_CTRL_OFF    (0x01)  // MIPI OFF
-#define OV5647_MIPI_CTRL_ON     (0x14)  // MIPI ON
-#define OV5647_LANE_NB          (2)
+#define OV5647_SENSOR_I2CID     0x36
+#define OV5647_MIPI_LANE_CNT    2
+#define OV5647_MIPI_DPP         10    // depth per pixel
+#define OV5647_MIPITX_CNTCLK_EN 1     // continuous clock output enable
+#define OV5647_MIPI_CTRL_OFF    0x01  // MIPI OFF
+#define OV5647_MIPI_CTRL_ON     0x14  // MIPI ON
+#define OV5647_LANE_NB          2
 
 static HX_CIS_SensorSetting_t OV5647_init_setting[] = {
 #if (OV5647_MIPI_MODE == OV5647_MIPI_640X480)
@@ -95,12 +95,12 @@ static HX_CIS_SensorSetting_t OV5647_mirror_setting[] = {
 
 ma_err_t drv_ov5647_probe() {
     if (hx_drv_cis_init((CIS_XHSHUTDOWN_INDEX_E)DEAULT_XHSUTDOWN_PIN, SENSORCTRL_MCLK_DIV3) != HX_CIS_NO_ERROR) {
-        MA_LOGD(MA_TAG, "hx_drv_cis_init fail");
+        MA_LOGD(MA_TAG, "Camera CIS Init Fail");
         return MA_FAILED;
     }
 
     MA_CAMERA_PWR_CTRL_INIT_F;
-    hx_drv_timer_cm55x_delay_ms(5, TIMER_STATE_DC);
+    hx_drv_timer_cm55x_delay_ms(10, TIMER_STATE_DC);
 
     if (hx_drv_cis_set_slaveID(CIS_I2C_ID) != HX_CIS_NO_ERROR) {
         return MA_FAILED;
@@ -272,8 +272,8 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
     JPEG_CFG_T  jpeg_cfg;
     uint16_t    start_x;
     uint16_t    start_y;
-    uint16_t    width;
-    uint16_t    height;
+    uint16_t    w;
+    uint16_t    h;
     INP_CROP_T  crop;
 
 #if ENABLE_SENSOR_FAST_SWITCH
@@ -289,11 +289,16 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
         }
 
         MA_CAMERA_PWR_CTRL_INIT_F;
+        hx_drv_timer_cm55x_delay_ms(10, TIMER_STATE_DC);
 
         ec = hx_drv_cis_set_slaveID(CIS_I2C_ID);
         MA_LOGD(MA_TAG, "Camera Set Slave ID %d: %d", CIS_I2C_ID, ec);
+        if (ec != HX_CIS_NO_ERROR) {
+            ret = MA_EIO;
+            goto err;
+        }
 
-        hx_drv_timer_cm55x_delay_ms(5, TIMER_STATE_DC);
+        hx_drv_timer_cm55x_delay_ms(3, TIMER_STATE_DC);
 
         ec = hx_drv_cis_setRegTable(OV5647_stream_off, HX_CIS_SIZE_N(OV5647_stream_off, HX_CIS_SensorSetting_t));
         if (ec != HX_CIS_NO_ERROR) {
@@ -313,8 +318,6 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
           hx_drv_cis_setRegTable(OV5647_mirror_setting, HX_CIS_SIZE_N(OV5647_mirror_setting, HX_CIS_SensorSetting_t));
         if (ec != HX_CIS_NO_ERROR) {
             MA_LOGE(MA_TAG, "Camera Set Mirror Setting Fail: %d", ec);
-            ret = MA_EIO;
-            goto err;
         }
 
         set_mipi_csirx_enable();
@@ -332,9 +335,9 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
     int32_t min_f    = factor_w < factor_h ? factor_w : factor_h;
 
     if (min_f >= 8) {
-        width  = OV5647_SENSOR_WIDTH / 8;
-        height = OV5647_SENSOR_HEIGHT / 8;
-        ec     = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        w  = OV5647_SENSOR_WIDTH / 8;
+        h  = OV5647_SENSOR_HEIGHT / 8;
+        ec = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
                                                         SENSORDPLIB_STREAM_NONEAOS,
                                                         OV5647_SENSOR_WIDTH,
                                                         OV5647_SENSOR_HEIGHT,
@@ -342,9 +345,9 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
                                                         crop,
                                                         OV5647_BINNING_2);
     } else if (min_f >= 4) {
-        width  = OV5647_SENSOR_WIDTH / 4;
-        height = OV5647_SENSOR_HEIGHT / 4;
-        ec     = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        w  = OV5647_SENSOR_WIDTH / 4;
+        h  = OV5647_SENSOR_HEIGHT / 4;
+        ec = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
                                                         SENSORDPLIB_STREAM_NONEAOS,
                                                         OV5647_SENSOR_WIDTH,
                                                         OV5647_SENSOR_HEIGHT,
@@ -352,9 +355,9 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
                                                         crop,
                                                         OV5647_BINNING_1);
     } else if (min_f >= 2) {
-        width  = OV5647_SENSOR_WIDTH / 2;
-        height = OV5647_SENSOR_HEIGHT / 2;
-        ec     = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        w  = OV5647_SENSOR_WIDTH / 2;
+        h  = OV5647_SENSOR_HEIGHT / 2;
+        ec = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
                                                         SENSORDPLIB_STREAM_NONEAOS,
                                                         OV5647_SENSOR_WIDTH,
                                                         OV5647_SENSOR_HEIGHT,
@@ -362,9 +365,9 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
                                                         crop,
                                                         OV5647_BINNING_0);
     } else {
-        width  = OV5647_SENSOR_WIDTH;
-        height = OV5647_SENSOR_HEIGHT;
-        ec     = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
+        w  = OV5647_SENSOR_WIDTH;
+        h  = OV5647_SENSOR_HEIGHT;
+        ec = sensordplib_set_sensorctrl_inp_wi_crop_bin(SENSORDPLIB_SENSOR_OV5647,
                                                         SENSORDPLIB_STREAM_NONEAOS,
                                                         OV5647_SENSOR_WIDTH,
                                                         OV5647_SENSOR_HEIGHT,
@@ -379,8 +382,8 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
         goto err;
     }
 
-    start_x = (width - width) / 2;
-    start_y = (height - height) / 2;
+    start_x = (w - width) / 2;
+    start_y = (h - height) / 2;
 
     MA_LOGD(MA_TAG, "Start X: %d Start Y: %d Width: %d Height: %d", start_x, start_y, width, height);
 
@@ -465,12 +468,12 @@ ma_err_t drv_ov5647_init(uint16_t width, uint16_t height, int compression) {
     ec = sensordplib_set_sensorctrl_start();
     if (ec != 0) {
         MA_LOGE(MA_TAG, "Camera Set Sensor Control Start Fail: %d", ec);
-        ret = MA_EIO;
+        ret = MA_FAILED;
         goto err;
     }
 
     _frame_ready = false;
-    _frame_count = 0;
+    ++_frame_count;
     sensordplib_retrigger_capture();
 
     _initiated_before = true;
@@ -498,10 +501,7 @@ err:
 
 #endif
 
-    ec = hx_drv_sensorctrl_set_xSleep(1);
-    if (ec != 0) {
-        MA_LOGE(MA_TAG, "Camera Set XSleep Fail: %d", ec);
-    }
+    hx_drv_sensorctrl_set_xSleep(1);
 
     return ret;
 }
@@ -514,6 +514,8 @@ void drv_ov5647_deinit() {
     sensordplib_stop_capture();
 
 #if !ENABLE_SENSOR_FAST_SWITCH
+    _frame_count = 0;
+
     sensordplib_start_swreset();
     sensordplib_stop_swreset_WoSensorCtrl();
 
@@ -525,28 +527,7 @@ void drv_ov5647_deinit() {
     set_mipi_csirx_disable();
 #endif
 
-    ec = hx_drv_sensorctrl_set_xSleep(1);
-    if (ec != 0) {
-        MA_LOGE(MA_TAG, "Camera Set XSleep Fail: %d", ec);
-    }
+    hx_drv_sensorctrl_set_xSleep(1);
 
     hx_drv_timer_cm55x_delay_ms(3, TIMER_STATE_DC);
-}
-
-ma_err_t drv_ov5647_set_reg(uint16_t addr, uint8_t value) {
-    int ec = hx_drv_cis_set_reg(addr, value, 1);
-    if (ec != HX_CIS_NO_ERROR) {
-        MA_LOGE(MA_TAG, "Set Reg %x to %x Fail: %d", addr, value, ec);
-        return MA_EIO;
-    }
-    return MA_OK;
-}
-
-ma_err_t drv_ov5647_get_reg(uint16_t addr, uint8_t* value) {
-    int ec = hx_drv_cis_get_reg(addr, value);
-    if (ec != HX_CIS_NO_ERROR) {
-        MA_LOGE(MA_TAG, "Get Reg %x Fail: %d", addr, ec);
-        return MA_EIO;
-    }
-    return MA_OK;
 }

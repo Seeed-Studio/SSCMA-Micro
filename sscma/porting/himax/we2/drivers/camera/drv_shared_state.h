@@ -23,7 +23,7 @@ extern ma_img_t          _frame;
 extern ma_img_t          _jpeg;
 
 extern void (*_drv_dp_event_cb_on_frame_ready)();
-extern void (*_drv_dp_on_stop_stream)();
+extern void (*_drv_dp_on_next_stream)();
 
 void _reset_all_wdma_buffer();
 void _drv_dp_event_cb(SENSORDPLIB_STATUS_E event);
