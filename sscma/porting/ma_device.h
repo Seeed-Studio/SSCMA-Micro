@@ -25,6 +25,7 @@ class Device final {
 
     const std::vector<Transport*>& getTransports() noexcept { return m_transports; }
     const std::vector<Sensor*>&    getSensors() noexcept { return m_sensors; }
+    const std::vector<ma_model_t>& getModels() noexcept { return m_models; }
     Storage*                       getStorage() noexcept { return m_storage; }
 
    private:
@@ -41,6 +42,7 @@ class Device final {
 
     std::vector<Transport*> m_transports;
     std::vector<Sensor*>    m_sensors;
+    std::vector<ma_model_t> m_models;
     Storage*                m_storage;
 };
 

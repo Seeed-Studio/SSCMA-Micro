@@ -10,60 +10,69 @@
 
 namespace ma {
 
-enum ma_camera_stream_mode_e {
-    MA_CAMERA_STREAM_MODE_UNKNOWN = 0,
-    MA_CAMERA_STREAM_MODE_REFRESH_ON_RETURN,
-    MA_CAMERA_STREAM_MODE_REFRESH_ON_RETREIVE,
-};
-
-enum ma_camera_ctrl_e {
-    MA_CAMERA_CTRL_UNKNOWN = 0,
-    MA_CAMERA_CTRL_EXPOSURE,
-    MA_CAMERA_CTRL_GAIN,
-    MA_CAMERA_CTRL_WHITE_BALANCE,
-    MA_CAMERA_CTRL_FOCUS,
-    MA_CAMERA_CTRL_ZOOM,
-    MA_CAMERA_CTRL_PAN,
-    MA_CAMERA_CTRL_TILT,
-    MA_CAMERA_CTRL_IRIS,
-    MA_CAMERA_CTRL_SHUTTER,
-    MA_CAMERA_CTRL_BRIGHTNESS,
-    MA_CAMERA_CTRL_CONTRAST,
-    MA_CAMERA_CTRL_SATURATION,
-    MA_CAMERA_CTRL_HUE,
-    MA_CAMERA_CTRL_SHARPNESS,
-    MA_CAMERA_CTRL_GAMMA,
-    MA_CAMERA_CTRL_COLOR_TEMPERATURE,
-    MA_CAMERA_CTRL_BACKLIGHT_COMPENSATION,
-    MA_CAMERA_CTRL_ROTATE,
-    MA_CAMERA_CTRL_REGISTER
-};
-
-enum ma_camera_ctrl_model_e {
-    MA_CAMERA_CTRL_MODEL_UNKNOWN = 0,
-    MA_CAMERA_CTRL_MODEL_READ,
-    MA_CAMERA_CTRL_MODEL_WRITE,
-};
-
-union ma_camera_ctrl_value_t {
-    uint8_t  bytes[4];
-    uint16_t u16[2];
-    int32_t  i32;
-    float    f32;
-};
-
 class Camera : public Sensor {
    public:
-    Camera() noexcept
-        : Sensor(MA_SENSOR_TYPE_CAMERA), m_streaming(false), m_stream_mode(MA_CAMERA_STREAM_MODE_UNKNOWN) {}
+    enum StreamMode : int {
+        kUnknown,
+        kRefreshOnReturn,
+        kRefreshOnRetrieve,
+    };
+
+    static std::string __repr__(StreamMode mode) noexcept {
+        switch (mode) {
+        case StreamMode::kRefreshOnReturn:
+            return "RefreshOnReturn";
+        case StreamMode::kRefreshOnRetrieve:
+            return "RefreshOnRetrieve";
+        default:
+            return "Unknown";
+        }
+    }
+
+    enum CtrlType : int {
+        kExposure,
+        kGain,
+        kWhiteBalance,
+        kFocus,
+        kZoom,
+        kPan,
+        kTilt,
+        kIris,
+        kShutter,
+        kBrightness,
+        kContrast,
+        kSaturation,
+        kHue,
+        kSharpness,
+        kGamma,
+        kColorTemperature,
+        kBacklightCompensation,
+        kRotate,
+        kRegister,
+    };
+
+    enum CtrlMode : int {
+        kRead,
+        kWrite,
+    };
+
+    struct CtrlValue {
+        union {
+            uint8_t  bytes[4];
+            uint16_t u16s[2];
+            int32_t  i32;
+            float    f32;
+        };
+    };
+
+   public:
+    Camera(size_t id) noexcept : Sensor(id, Sensor::Type::kCamera), m_streaming(false), m_stream_mode(kUnknown) {}
     virtual ~Camera() = default;
 
-    [[nodiscard]] virtual ma_err_t startStream(ma_camera_stream_mode_e mode) noexcept = 0;
-    virtual void                   stopStream() noexcept                              = 0;
+    [[nodiscard]] virtual ma_err_t startStream(StreamMode mode) noexcept = 0;
+    virtual void                   stopStream() noexcept                 = 0;
 
-    [[nodiscard]] virtual ma_err_t commandCtrl(ma_camera_ctrl_e        ctrl,
-                                               ma_camera_ctrl_model_e  mode,
-                                               ma_camera_ctrl_value_t& value) noexcept = 0;
+    [[nodiscard]] virtual ma_err_t commandCtrl(CtrlType ctrl, CtrlMode mode, CtrlValue& value) noexcept = 0;
 
     [[nodiscard]] virtual ma_err_t retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) noexcept = 0;
     virtual void                   returnFrame(ma_img_t& frame) noexcept                             = 0;
@@ -75,8 +84,8 @@ class Camera : public Sensor {
     Camera& operator=(const Camera&) = delete;
 
    protected:
-    bool                    m_streaming;
-    ma_camera_stream_mode_e m_stream_mode;
+    bool       m_streaming;
+    StreamMode m_stream_mode;
 };
 
 }  // namespace ma

@@ -302,68 +302,6 @@ OpsResolver::OpsResolver() {
 
 namespace ma::engine {
 
-std::vector<ma_model_t> Engine::m_models;
-
-std::vector<ma_model_t>& Engine::findModels(const char* address, size_t size) {
-// search *.cvimodel in path
-#if MA_USE_FILESYSTEM_POSIX
-    if (size == 0) {
-
-        for (auto& model : m_models) {
-            if (model.addr != nullptr) {
-                ma_free(model.addr);
-            }
-
-            if (model.name != nullptr) {
-                ma_free(model.name);
-            }
-        }
-
-        m_models.clear();
-
-        DIR* dir;
-        struct dirent* ent;
-        if ((dir = opendir(address)) != nullptr) {
-            while ((ent = readdir(dir)) != nullptr) {
-                if (ent->d_type == DT_REG && strstr(ent->d_name, ".tflite") != nullptr) {
-                    if (size == 0 || strlen(ent->d_name) == size) {
-                        std::string model_path = address;
-                        model_path += "/";
-                        model_path += ent->d_name;
-                        ma_model_t model;
-                        model.id   = std::distance(m_models.begin(), m_models.end());
-                        model.type = MA_MODEL_TYPE_UNDEFINED;
-                        model.name = static_cast<char*>(ma_malloc(strlen(ent->d_name) + 1));
-                        strcpy(static_cast<char*>(model.name), ent->d_name);
-                        model.addr = static_cast<char*>(ma_malloc(strlen(model_path.c_str()) + 1));
-                        strcpy(static_cast<char*>(model.addr), model_path.c_str());
-                        model.size = ent->d_reclen;
-                        m_models.push_back(model);
-                    }
-                }
-            }
-            closedir(dir);
-        }
-    }
-#else
-    (void)size;
-    for (std::size_t i = 0; i < size; i += 4096) {
-        const void* data = static_cast<const void*>(address + i);
-        if (ma_ntohl(*(const uint32_t*)data) == 0x54464C33) {  // 'TFL3'
-            ma_model_t model;
-            model.id   = std::distance(m_models.begin(), m_models.end());
-            model.type = MA_MODEL_TYPE_UNDEFINED;
-            model.name = address;
-            model.addr = data;
-            m_models.push_back(model);
-        }
-    }
-#endif
-
-    return m_models;
-}
-
-
 static const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_NONE, MA_TENSOR_TYPE_F32, MA_TENSOR_TYPE_S32,  MA_TENSOR_TYPE_U8,
     MA_TENSOR_TYPE_S64,  MA_TENSOR_TYPE_STR, MA_TENSOR_TYPE_BOOL, MA_TENSOR_TYPE_S16,

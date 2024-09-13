@@ -33,7 +33,7 @@ static ma_pixel_rotate_t _rotation_override      = MA_PIXEL_ROTATE_0;
 static volatile int      _frame_shared_ref_count = 0;
 // ^ shared pointer or unique pointer would be better but currently is not allowed
 
-CameraHimax::CameraHimax() : Camera() {
+CameraHimax::CameraHimax(size_t id) : Camera(id) {
     for (const auto& preset : _presets) {
         m_presets.push_back({.description = preset.description});
     }
@@ -86,7 +86,7 @@ void CameraHimax::deInit() noexcept {
     m_initialized = false;
 }
 
-ma_err_t CameraHimax::startStream(ma_camera_stream_mode_e mode) noexcept {
+ma_err_t CameraHimax::startStream(StreamMode mode) noexcept {
     if (!m_initialized) [[unlikely]] {
         return MA_EPERM;
     }
@@ -119,32 +119,30 @@ void CameraHimax::stopStream() noexcept {
     m_streaming = false;
 }
 
-ma_err_t CameraHimax::commandCtrl(ma_camera_ctrl_e        ctrl,
-                                  ma_camera_ctrl_model_e  mode,
-                                  ma_camera_ctrl_value_t& value) noexcept {
+ma_err_t CameraHimax::commandCtrl(CtrlType ctrl, CtrlMode mode, CtrlValue& value) noexcept {
     if (!m_initialized) [[unlikely]] {
         return MA_EPERM;
     }
 
     switch (ctrl) {
-    case MA_CAMERA_CTRL_ROTATE: {
+    case kRotate: {
         switch (mode) {
-        case MA_CAMERA_CTRL_MODEL_WRITE:
+        case kWrite:
             _rotation_override = static_cast<ma_pixel_rotate_t>(value.i32);
             break;
-        case MA_CAMERA_CTRL_MODEL_READ:
+        case kRead:
             value.i32 = _rotation_override;
             break;
         default:
             return MA_EINVAL;
         }
     } break;
-    case MA_CAMERA_CTRL_REGISTER: {
+    case kRegister: {
         switch (mode) {
-        case MA_CAMERA_CTRL_MODEL_WRITE:
-            return drv_set_reg(value.u16[0], value.bytes[2]);
-        case MA_CAMERA_CTRL_MODEL_READ:
-            return drv_get_reg(value.u16[0], &value.bytes[2]);
+        case kWrite:
+            return drv_set_reg(value.u16s[0], value.bytes[2]);
+        case kRead:
+            return drv_get_reg(value.u16s[0], &value.bytes[2]);
         default:
             return MA_EINVAL;
         }
@@ -172,7 +170,7 @@ ma_err_t CameraHimax::retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) n
 
     if (_frame_shared_ref_count == 0) {
         switch (m_stream_mode) {
-        case MA_CAMERA_STREAM_MODE_REFRESH_ON_RETREIVE:
+        case kRefreshOnRetrieve:
             drv_capture_next();
             break;
         default:
@@ -222,7 +220,7 @@ void CameraHimax::returnFrame(ma_img_t& frame) noexcept {
 
     if (_frame_shared_ref_count == 0) {
         switch (m_stream_mode) {
-        case MA_CAMERA_STREAM_MODE_REFRESH_ON_RETURN:
+        case kRefreshOnReturn:
             drv_capture_next();
             break;
         default:

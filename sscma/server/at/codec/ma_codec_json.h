@@ -49,7 +49,11 @@ public:
     ma_err_t write(std::forward_list<ma_class_t>& value) override;
     ma_err_t write(std::forward_list<ma_point_t>& value) override;
     ma_err_t write(std::forward_list<ma_bbox_t>& value) override;
-    ma_err_t write(std::vector<ma_model_t>& value) override;
+    ma_err_t write(const std::vector<ma_model_t>& value) override;
+
+    ma_err_t write(const std::vector<Sensor*>& value) override;
+    ma_err_t write(const Sensor* value)  override;
+
 
     const std::string& toString() const override;
     const void* data() const override;

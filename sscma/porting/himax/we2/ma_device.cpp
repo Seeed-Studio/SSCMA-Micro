@@ -1,4 +1,5 @@
 #include <WE2_device_addr.h>
+#include <core/ma_compiler.h>
 #include <core/ma_debug.h>
 #include <hx_drv_scu.h>
 #include <porting/ma_device.h>
@@ -14,17 +15,15 @@
 
 namespace ma {
 
-static const char* TAG = "ma::device";
-
 Device::Device() {
-    MA_LOGD(TAG, "Initializing device: %s", MA_BOARD_NAME);
+    MA_LOGD(MA_TAG, "Initializing device: %s", MA_BOARD_NAME);
     {
         bool success = xip_drv_init();
         MA_ASSERT(success && "Failed to initialize XIP");
         m_name = MA_BOARD_NAME;
     }
 
-    MA_LOGD(TAG, "Initializing device version");
+    MA_LOGD(MA_TAG, "Initializing device version");
     {
         uint32_t chipid;
         uint32_t version;
@@ -36,14 +35,14 @@ Device::Device() {
         }
     }
 
-    MA_LOGD(TAG, "Initializing device ID");
+    MA_LOGD(MA_TAG, "Initializing device ID");
     {
         xip_ownership_acquire();
         uint8_t id_full[16];
         if (xip_safe_enable()) {
             std::memcpy(id_full, reinterpret_cast<const void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x003DF000), sizeof id_full);
         } else {
-            MA_LOGE(TAG, "Failed to read device ID, using default");
+            MA_LOGE(MA_TAG, "Failed to read device ID, using default");
         }
         xip_ownership_release();
         for (size_t i; i < sizeof id_full; ++i) {
@@ -51,21 +50,23 @@ Device::Device() {
         }
     }
 
-    MA_LOGD(TAG, "Initializing storage");
+    MA_LOGD(MA_TAG, "Initializing storage");
     {
         lfs_flashbd_config bd_config = {
           .read_size   = 16,
           .prog_size   = 16,
           .erase_size  = 4096,
           .erase_count = 128,
-          .flash_addr  = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00400000),
+          .flash_addr  = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00300000),
         };
         static StorageLfs storage;
         storage.init(&bd_config);
         m_storage = &storage;
+
+        { MA_STORAGE_GET_POD(m_storage, "ma#bootcount", m_bootcount, 1); }
     }
 
-    MA_LOGD(TAG, "Initializing transports");
+    MA_LOGD(MA_TAG, "Initializing transports");
     {
         static Console console;
         console.init(nullptr);
@@ -76,10 +77,32 @@ Device::Device() {
         m_transports.push_back(&serial);
     }
 
-    MA_LOGD(TAG, "Initializing sensors");
+    MA_LOGD(MA_TAG, "Initializing sensors");
     {
-        static CameraHimax camera;
+        static CameraHimax camera(0);
         m_sensors.push_back(&camera);
+    }
+
+    MA_LOGD(MA_TAG, "Initializing models");
+    {
+        xip_ownership_acquire();
+        if (xip_safe_enable()) {
+            const void*  address = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00400000);
+            const size_t size    = 4096;
+            size_t       id      = 0;
+            for (size_t i = 0; i < size; i += 4096) {
+                const void* data = address + i;
+                if (ma_ntohl(*(const uint32_t*)data) == 0x54464C33) {  // 'TFL3'
+                    ma_model_t model;
+                    model.id   = ++id;
+                    model.type = MA_MODEL_TYPE_UNDEFINED;
+                    model.name = address;
+                    model.addr = data;
+                    m_models.push_back(model);
+                }
+            }
+        }
+        xip_ownership_release();
     }
 }
 

@@ -4,26 +4,41 @@
 #include <core/ma_types.h>
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace ma {
 
-enum ma_sensor_type_e {
-    MA_SENSOR_TYPE_UNKNOWN    = 0,
-    MA_SENSOR_TYPE_CAMERA     = 1,
-    MA_SENSOR_TYPE_MICROPHONE = 2,
-    MA_SENSOR_TYPE_IMU        = 3,
-};
-
-struct ma_sensor_preset_t {
-    const char* description;
-};
-
-using ma_sensor_presets_t = std::vector<ma_sensor_preset_t>;
-
 class Sensor {
    public:
-    explicit Sensor(ma_sensor_type_e type) noexcept : m_type(type), m_initialized(false), m_preset_idx(0) {
+    enum class Type : int {
+        kUnknown    = 0,
+        kCamera     = 1,
+        kMicrophone = 2,
+        kIMU        = 3,
+    };
+
+    static std::string __repr__(Type type) noexcept {
+        switch (type) {
+        case Type::kCamera:
+            return "Camera";
+        case Type::kMicrophone:
+            return "Microphone";
+        case Type::kIMU:
+            return "IMU";
+        default:
+            return "Unknown";
+        }
+    }
+
+    struct Preset {
+        const char* description = nullptr;
+    };
+
+    using Presets = std::vector<Preset>;
+
+   public:
+    explicit Sensor(size_t id, Type type) noexcept : m_id(id), m_type(type), m_initialized(false), m_preset_idx(0) {
         if (m_presets.empty()) {
             m_presets.push_back({.description = "Default"});
         }
@@ -34,21 +49,25 @@ class Sensor {
     virtual void                   deInit() noexcept                = 0;
 
     [[nodiscard]] operator bool() const noexcept { return m_initialized; }
-    [[nodiscard]] ma_sensor_type_e getType() const noexcept { return m_type; }
 
-    const ma_sensor_presets_t& availablePresets() const noexcept { return m_presets; }
-    const ma_sensor_preset_t&  currentPreset() const noexcept {
+    [[nodiscard]] size_t getID() const noexcept { return m_id; }
+    [[nodiscard]] Type   getType() const noexcept { return m_type; }
+
+    const Presets& availablePresets() const noexcept { return m_presets; }
+    const Preset&  currentPreset() const noexcept {
         if (m_preset_idx < m_presets.size()) {
             return m_presets[m_preset_idx];
         }
         return m_presets[0];
     }
+    const size_t currentPresetIdx() const noexcept { return m_preset_idx; }
 
    protected:
-    const ma_sensor_type_e m_type;
-    bool                   m_initialized;
-    size_t                 m_preset_idx;
-    ma_sensor_presets_t    m_presets;
+    const size_t m_id;
+    const Type   m_type;
+    bool         m_initialized;
+    size_t       m_preset_idx;
+    Presets      m_presets;
 };
 
 }  // namespace ma

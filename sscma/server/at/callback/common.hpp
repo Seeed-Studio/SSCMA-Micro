@@ -5,7 +5,6 @@
 
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
-
 #include "resource.hpp"
 
 namespace ma::server::callback {
@@ -26,16 +25,13 @@ void get_device_name(const std::string& cmd, Transport& transport, Encoder& enco
 
 void get_device_status(const std::string& cmd, Transport& transport, Encoder& encoder) {
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
-    encoder.write("boot_count", static_resource->boot_count);
-    encoder.write("is_ready", static_cast<int32_t>(static_resource->is_ready.load() ? 1 : 0));
+    encoder.write("boot_count", static_cast<int32_t>(static_resource->device->bootCount()));
+    encoder.write("is_ready", static_cast<int32_t>(static_resource->is_ready ? 1 : 0));
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_version(const std::string& cmd,
-                 Transport& transport,
-                 Encoder& encoder,
-                 const std::string& version) {
+void get_version(const std::string& cmd, Transport& transport, Encoder& encoder, const std::string& version) {
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     encoder.write("at_api", version);
     encoder.write("software", MA_VERSION);
