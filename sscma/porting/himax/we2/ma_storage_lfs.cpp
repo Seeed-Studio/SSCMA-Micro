@@ -6,6 +6,8 @@
     #include <list>
     #include <vector>
 
+    #include "core/ma_debug.h"
+
     #ifdef MA_STORAGE_LFS_NO_FORCE_MOUNT
         #define __FORCE_MOUNT false
     #else

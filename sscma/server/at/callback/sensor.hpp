@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
@@ -10,23 +11,30 @@ namespace ma::server::callback {
 
 using namespace ma;
 
-void get_available_sensors(const std::string& cmd, Transport& transport, Encoder& encoder) {
+void getAvailableSensors(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
     auto& sensors = static_resource->device->getSensors();
+
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     encoder.write(sensors);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void set_sensor(const std::string& cmd,
-                size_t             sensor_id,
-                bool               enable,
-                size_t             opt_id,
-                Transport&         transport,
-                Encoder&           encoder,
-                bool               called_by_event = false) {
-    ma_err_t ret     = MA_OK;
-    auto&    sensors = static_resource->device->getSensors();
+void configureSensor(const std::vector<std::string>& args,
+                     Transport&                      transport,
+                     Encoder&                        encoder,
+                     bool                            called_by_event = false) {
+    MA_ASSERT(args.size() >= 4);
+    const auto& cmd       = args[0];
+    const auto  sensor_id = std::atoi(args[1].c_str());
+    const auto  enable    = std::atoi(args[2].c_str());
+    uint8_t     opt_id    = std::atoi(args[3].c_str());
+    auto&       sensors   = static_resource->device->getSensors();
+
+    ma_err_t ret = MA_OK;
 
     auto it = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) { return s->getID() == sensor_id; });
     if (it == sensors.end()) {
@@ -73,12 +81,16 @@ exit:
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_sensor_info(const std::string& cmd, Transport& transport, Encoder& encoder) {
+void getSensorStatus(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
     ma_err_t ret     = MA_OK;
     auto&    sensors = static_resource->device->getSensors();
 
-    auto it = std::find_if(
-      sensors.begin(), sensors.end(), [&](const Sensor* s) { return s->getID() == static_resource->current_sensor_id; });
+    auto it = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) {
+        return s->getID() == static_resource->current_sensor_id;
+    });
     if (it == sensors.end()) {
         ret = MA_ENOENT;
     }

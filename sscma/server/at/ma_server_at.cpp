@@ -1,16 +1,16 @@
+#include "ma_server_at.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <cstring>
 #include <stack>
 
-#include "ma_server_at.h"
-
 #include "callback/common.hpp"
 #include "callback/model.hpp"
 #include "callback/resource.hpp"
+#include "callback/sample.hpp"
 #include "callback/sensor.hpp"
-#include "callback/model.hpp"
 
 namespace ma {
 
@@ -18,14 +18,10 @@ using namespace ma::server::callback;
 
 // static constexpr char TAG[] = "ma::server::ATServer";
 
-ATService::ATService(const std::string& name,
-                     const std::string& desc,
-                     const std::string& args,
-                     ATServiceCallback cb)
+ATService::ATService(const std::string& name, const std::string& desc, const std::string& args, ATServiceCallback cb)
     : name(name), desc(desc), args(args), cb(cb) {
     argc = std::count(args.begin(), args.end(), ',') + 1;
 }
-
 
 ma_err_t ATServer::addService(ATService& service) {
     for (auto it = m_services.begin(); it != m_services.end(); ++it) {
@@ -43,7 +39,6 @@ ATServer::ATServer(Encoder* encoder) : m_encoder(*encoder) {
 }
 
 ATServer::ATServer(Encoder& encoder) : m_encoder(encoder) {
-
     m_thread = new Thread("ATServer", ATServer::threadEntryStub);
     MA_ASSERT(m_thread);
 }
@@ -75,7 +70,6 @@ void ATServer::threadEntry() {
 }
 
 ma_err_t ATServer::init() {
-
     ma_err_t err = MA_OK;
 
     // static_resource->init();
@@ -219,39 +213,67 @@ ma_err_t ATServer::init() {
     //                      return MA_OK;
     //                  });
 
+    addService(
+      "SENSORS?",
+      "Get available sensors",
+      "",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getAvailableSensors(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "SENSOR?",
+      "Get current sensor status",
+      "",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getSensorStatus(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService("SENSOR",
+               "Configure current sensor",
+               "SENSOR_ID,ENABLE,OPT_ID",
+               [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                   static_resource->executor->submit(
+                     [args = std::move(args),
+
+                      &transport,
+                      &encoder](const std::atomic<bool>&) { configureSensor(args, transport, encoder); });
+                   return MA_OK;
+               });
 
     return MA_OK;
 }
 
 ma_err_t ATServer::start() {
-
-    static_resource->executor->submit(
-        [](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
+    static_resource->executor->submit([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
     m_thread->start(this);
 
     return MA_OK;
 }
 
-ma_err_t ATServer::stop() {
-    return MA_OK;
-}
+ma_err_t ATServer::stop() { return MA_OK; }
 
 ma_err_t ATServer::addService(const std::string& name,
                               const std::string& desc,
                               const std::string& args,
-                              ATServiceCallback cb) {
+                              ATServiceCallback  cb) {
     ATService service(name, desc, args, cb);
     return addService(service);
 }
 
 ma_err_t ATServer::execute(std::string line, Transport& transport) {
-    ma_err_t ret = MA_OK;
+    ma_err_t    ret = MA_OK;
     std::string name;
     std::string args;
 
-    line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return !std::isprint(c); }),
-               line.end());
+    line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return !std::isprint(c); }), line.end());
 
     // find first '=' in AT command (<name>=<args>)
     size_t pos = line.find_first_of("=");
@@ -281,9 +303,8 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     std::string target_cmd = name.substr(cmd_body_pos, name.size());
 
     // find command in cmd list
-    auto it = std::find_if(m_services.begin(), m_services.end(), [&](const ATService& c) {
-        return c.name.compare(target_cmd) == 0;
-    });
+    auto it = std::find_if(
+      m_services.begin(), m_services.end(), [&](const ATService& c) { return c.name.compare(target_cmd) == 0; });
 
     if (it == m_services.end()) [[unlikely]] {
         m_encoder.begin(MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Uknown command: " + name);
@@ -296,32 +317,28 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     std::vector<std::string> argv;
     argv.push_back(name);
     std::stack<char> stk;
-    size_t index = 0;
-    size_t size  = args.size();
+    size_t           index = 0;
+    size_t           size  = args.size();
 
-    while (index < size &&
-           argv.size() < it->argc + 1u) {  // while not reach end of args and not enough args
+    while (index < size && argv.size() < it->argc + 1u) {  // while not reach end of args and not enough args
         char c = args.at(index);
         if (c == '\'' || c == '"') [[unlikely]] {  // if current char is a quote
             stk.push(c);                           // push the quote to stack
             std::string arg;
-            while (++index < size &&
-                   stk.size()) {     // while not reach end of args and stack is not empty
-                c = args.at(index);  // get next char
-                if (c == stk.top())  // if the char matches the top of stack, pop the stack
+            while (++index < size && stk.size()) {  // while not reach end of args and stack is not empty
+                c = args.at(index);                 // get next char
+                if (c == stk.top())                 // if the char matches the top of stack, pop the stack
                     stk.pop();
                 else if (c != '\\') [[likely]]  // if the char is not a backslash, append it to
                     arg += c;
-                else if (++index < size)
-                    [[likely]]  // if the char is a backslash, get next char, append it to arg
+                else if (++index < size) [[likely]]  // if the char is a backslash, get next char, append it to arg
                     arg += args.at(index);
             }
             argv.push_back(std::move(arg));
         } else if (c == '-' || std::isdigit(c)) {  // if current char is a digit or a minus sign
             size_t prev = index;
-            while (++index < size)  // while not reach end of args
-                if (!std::isdigit(args.at(index)))
-                    break;  // if current char is not a digit, break
+            while (++index < size)                            // while not reach end of args
+                if (!std::isdigit(args.at(index))) break;     // if current char is not a digit, break
             argv.push_back(args.substr(prev, index - prev));  // append the number string to argv
         } else
             ++index;  // if current char is not a quote or a digit, skip it
@@ -329,8 +346,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     argv.shrink_to_fit();
 
     if (argv.size() < it->argc) [[unlikely]] {
-        m_encoder.begin(
-            MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
+        m_encoder.begin(MA_MSG_TYPE_EVT, MA_EINVAL, "AT", "Command " + name + " got wrong arguments");
         m_encoder.end();
         transport.send(reinterpret_cast<const char*>(m_encoder.data()), m_encoder.size());
         return MA_EINVAL;
@@ -341,8 +357,6 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
     return ret;
 }
 
-ma_err_t ATServer::execute(std::string line, Transport* transport) {
-    return execute(line, *transport);
-}
+ma_err_t ATServer::execute(std::string line, Transport* transport) { return execute(line, *transport); }
 
 }  // namespace ma

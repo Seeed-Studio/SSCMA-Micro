@@ -72,7 +72,7 @@ class Thread {
 
 class Mutex {
    public:
-    Mutex(bool recursive = true) noexcept;
+    Mutex(bool recursive = false) noexcept;
     ~Mutex() noexcept;
     operator bool() const;
     bool tryLock(ma_tick_t timeout = Tick::waitForever);

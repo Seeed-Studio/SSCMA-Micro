@@ -10,7 +10,10 @@ namespace ma::server::callback {
 
 using namespace ma::model;
 
-void get_available_models(const std::string& cmd, Transport& transport, Encoder& encoder) {
+void getAvailableModels(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
     auto& models = static_resource->device->getModels();
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     encoder.write(models);
@@ -18,8 +21,14 @@ void get_available_models(const std::string& cmd, Transport& transport, Encoder&
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void set_model(
-  const std::string& cmd, Transport& transport, Encoder& encoder, uint8_t model_id, bool called_by_event = false) {
+void configureModel(const std::vector<std::string>& args,
+                    Transport&                      transport,
+                    Encoder&                        encoder,
+                    bool                            called_by_event = false) {
+    MA_ASSERT(args.size() >= 2);
+    const auto& cmd      = args[0];
+    const auto  model_id = std::atoi(args[1].c_str());
+
     ma_err_t ret    = MA_OK;
     auto&    models = static_resource->device->getModels();
 
@@ -54,7 +63,10 @@ exit:
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_model_info(const std::string& cmd, Transport& transport, Encoder& encoder) {
+void getModelInfo(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
     ma_err_t ret    = MA_OK;
     auto&    models = static_resource->device->getModels();
 
