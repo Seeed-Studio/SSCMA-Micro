@@ -52,7 +52,7 @@ Device::Device() {
 
     MA_LOGD(MA_TAG, "Initializing storage");
     {
-        ma_lfs_bd_cfg_t bd_config = {
+        static ma_lfs_bd_cfg_t bd_config = {
           .read_size   = 16,
           .prog_size   = 16,
           .erase_size  = 4096,
@@ -65,10 +65,8 @@ Device::Device() {
 
         {
             MA_STORAGE_GET_POD(m_storage, "ma#bootcount", m_bootcount, 0);
-            if (m_bootcount == 0) {
-                m_bootcount = 1;
-                MA_STORAGE_NOSTA_SET_POD(m_storage, "ma#bootcount", m_bootcount);
-            }
+            ++m_bootcount;
+            MA_STORAGE_NOSTA_SET_POD(m_storage, "ma#bootcount", m_bootcount);
         }
     }
 

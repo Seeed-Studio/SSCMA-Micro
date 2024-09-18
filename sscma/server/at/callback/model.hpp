@@ -77,7 +77,9 @@ void getModelInfo(const std::vector<std::string>& args, Transport& transport, En
     }
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
-    encoder.write("model", it == models.end() ? ma_model_t{} : *it);
+    if (it != models.end()) {
+        encoder.write("model", *it);
+    }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }

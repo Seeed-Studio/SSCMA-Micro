@@ -4,24 +4,26 @@
 #if MA_OSAL_FREERTOS
 
 MA_ATTR_WEAK void* operator new(size_t size) {
+    printf("new size: %d\n", size);
     void* ptr = pvPortMalloc(size);
-    MA_ASSERT(ptr);
+    MA_ASSERT(ptr!= nullptr);
     return ptr;
 }
 
 MA_ATTR_WEAK void* operator new[](size_t size) {
+     printf("new size: %d\n", size);
     void* ptr = pvPortMalloc(size);
-    MA_ASSERT(ptr);
+    MA_ASSERT(ptr!= nullptr);
     return ptr;
 }
 
 MA_ATTR_WEAK void operator delete(void* ptr) {
-    MA_ASSERT(ptr);
+    MA_ASSERT(ptr!= nullptr);
     vPortFree(ptr);
 }
 
 MA_ATTR_WEAK void operator delete[](void* ptr) {
-    MA_ASSERT(ptr);
+    MA_ASSERT(ptr!= nullptr);
     vPortFree(ptr);
 }
 
@@ -40,9 +42,9 @@ ma_tick_t Tick::fromSeconds(uint32_t sec) { return (sec * 1000) / portTICK_PERIO
 
 void Thread::sleep(ma_tick_t tick) { vTaskDelay(tick); }
 
-Thread::Thread(const char* name, void (*entry)(void*), uint32_t priority, size_t stackSize, ma_stack_t* stack) noexcept
+Thread::Thread(const char* name, void (*entry)(void*), void* arg, uint32_t priority, size_t stackSize, ma_stack_t* stack) noexcept
     : m_thread(nullptr),
-      m_arg(nullptr),
+      m_arg(arg),
       m_name(name),
       m_entry(entry),
       m_priority(priority),
@@ -51,7 +53,7 @@ Thread::Thread(const char* name, void (*entry)(void*), uint32_t priority, size_t
 
 void Thread::threadEntryPoint(void) {
     if (m_entry != nullptr) {
-        m_entry(m_arg);
+        m_entry(m_arg ? m_arg : nullptr);
     }
 }
 
@@ -68,18 +70,23 @@ Thread::~Thread() noexcept {}
 Thread::operator bool() const { return m_thread != nullptr; }
 
 bool Thread::start(void* arg) {
-    m_arg = arg;
+    if (arg) {
+        m_arg = arg;
+    }
 
     if (m_thread != nullptr) {
         return false;
     }
 
-    if (xTaskCreate(threadEntryPointStub,
+    auto err = xTaskCreate(threadEntryPointStub,
                     (m_name.empty() ? "Thread" : m_name.c_str()),
                     (configSTACK_DEPTH_TYPE)((m_stackSize + sizeof(uint32_t) - 1U) / sizeof(uint32_t)),
                     this,
                     m_priority,
-                    &m_thread) != pdPASS) {
+                    &m_thread);
+
+    if (err != pdPASS) {
+        MA_LOGE("Thread", "Thread creation failed: %d", static_cast<int>(err));
         return false;
     }
 

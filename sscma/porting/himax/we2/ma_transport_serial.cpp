@@ -88,7 +88,7 @@ ma_err_t Serial::init(const void* config) {
     }
 
     if (_rb_rx == nullptr) {
-        _rb_rx = new SPSCRingBuffer<char>(8192);
+        _rb_rx = new SPSCRingBuffer<char>(4096);
     }
 
     if (_rb_tx == nullptr) {

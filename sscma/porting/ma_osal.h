@@ -33,6 +33,7 @@ class Thread {
    public:
     Thread(const char* name,
            void (*entry)(void*),
+           void*       arg = nullptr,
            uint32_t    priority  = 0,
            size_t      stacksize = 0,
            ma_stack_t* stack     = nullptr) noexcept;

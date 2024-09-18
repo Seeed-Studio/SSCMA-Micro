@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <string>
+#include <forward_list>
 
 #include "codec/ma_codec.h"
 #include "core/ma_core.h"
@@ -66,7 +67,7 @@ class ATServer {
     static void            threadEntryStub(void* arg);
     Thread*                m_thread;
     Encoder&               m_encoder;
-    std::vector<ATService> m_services;
+    std::forward_list<ATService> m_services;
 };
 
 }  // namespace ma

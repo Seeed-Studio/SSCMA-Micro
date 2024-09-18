@@ -395,7 +395,7 @@ ma_err_t EncoderJSON::write(const std::vector<ma::Sensor*>& value) {
         size_t      j            = 0;
         for (auto pit = presets.begin(); pit != presets.end(); ++pit) {
             cJSON* preset_item = cJSON_CreateObject();
-            cJSON_AddItemToObject(preset_item, "id", cJSON_CreateNumber(j));
+            cJSON_AddItemToObject(preset_item, "id", cJSON_CreateNumber(j++));
             cJSON_AddItemToObject(preset_item, "description", cJSON_CreateString(pit->description));
             cJSON_AddItemToArray(preset_items, preset_item);
         }

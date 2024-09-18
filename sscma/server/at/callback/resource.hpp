@@ -16,6 +16,8 @@ struct StaticResource final {
    private:
     StaticResource() {
         device = Device::getInstance();
+
+        MA_LOGD(MA_TAG, "Initializing engine");
 #ifdef MA_USE_ENGINE_TFLITE
         static EngineTFLite engine_default;
 #elif MA_USE_ENGINE_CVI
@@ -29,6 +31,7 @@ struct StaticResource final {
             MA_LOGE(MA_TAG, "Engine init failed: %d", ret);
         }
 
+        MA_LOGD(MA_TAG, "Initializing executor");
         static Executor executor_default;
         executor = &executor_default;
 

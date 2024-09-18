@@ -16,7 +16,7 @@ typedef std::function<void(std::atomic<bool>&)> task_t;
 
 class Executor {
    public:
-    Executor(std::size_t stack_size = 0, std::size_t priority = 0)
+    Executor(std::size_t stack_size = MA_SEVER_AT_EXECUTOR_STACK_SIZE, std::size_t priority = MA_SEVER_AT_EXECUTOR_TASK_PRIO)
         : _task_queue_lock(), _task_reload(false), _worker_name(MA_EXECUTOR_WORKER_NAME_PREFIX), _worker_handler() {
         static uint8_t     worker_id    = 0u;
         static const char* hex_literals = "0123456789ABCDEF";
@@ -30,7 +30,7 @@ class Executor {
         _worker_name += hex_literals[worker_id >> 4];
         _worker_name += hex_literals[worker_id & 0x0f];
 
-        _worker_handler = new Thread(_worker_name.c_str(), &Executor::c_run, priority, stack_size);
+        _worker_handler = new Thread(_worker_name.c_str(), &Executor::c_run, this, priority, stack_size);
         MA_ASSERT(_worker_handler);
         if (!_worker_handler->start(this)) {
             delete _worker_handler;

@@ -10,7 +10,7 @@ namespace ma::server::callback {
 
 using namespace ma;
 
-void set_info(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+void storeInfo(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t    ret = MA_OK;
     std::string key = MA_AT_CMD_INFO;
 
@@ -20,20 +20,21 @@ void set_info(const std::vector<std::string>& argv, Transport& transport, Encode
     }
 
     key += '#';
-    key += std::to_string(static_cast<int>(static_resource->device->current_model_id));
+    key += std::to_string(static_cast<int>(static_resource->current_model_id));
 
-    MA_STORAGE_SET_STR(ret, static_resource->device->getStorage(), key, argv[2]);
+    MA_STORAGE_SET_STR(ret, static_resource->device->getStorage(), key, argv[1]);
 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("info", argv.size() < 2 ? argv[1] : "");
+    encoder.write("info", argv.size() < 2 ? "" : argv[1]);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_info(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+void readInfo(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t    ret = MA_OK;
     std::string key = MA_AT_CMD_INFO;
+    std::string value;
 
     if (argv.size() < 1) {
         ret = MA_EINVAL;
@@ -41,9 +42,8 @@ void get_info(const std::vector<std::string>& argv, Transport& transport, Encode
     }
 
     key += '#';
-    key += std::to_string(static_cast<int>(static_resource->device->current_model_id));
+    key += std::to_string(static_cast<int>(static_resource->current_model_id));
 
-    std::string value;
     MA_STORAGE_GET_STR(static_resource->device->getStorage(), key, value, "");
 
 exit:

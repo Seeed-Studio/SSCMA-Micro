@@ -2,6 +2,7 @@
 #define _MA_TRANSPORT_H_
 
 #include <core/ma_types.h>
+#include <ma_config_board.h>
 
 #include <cstddef>
 #include <cstdint>
