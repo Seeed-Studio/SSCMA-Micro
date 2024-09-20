@@ -35,11 +35,6 @@ struct StaticResource final {
         static Executor executor_default;
         executor = &executor_default;
 
-        current_task_id = 0;
-
-        is_ready  = false;
-        is_sample = false;
-        is_invoke = false;
     }
 
    public:
@@ -55,6 +50,7 @@ struct StaticResource final {
     std::atomic<std::size_t> current_task_id  = 0;
     size_t                   current_model_id = 0;
     size_t                   current_sensor_id = 0;
+    size_t                   current_algorithm_id = 0;
 
     std::atomic<bool> is_ready  = false;
     std::atomic<bool> is_sample = false;

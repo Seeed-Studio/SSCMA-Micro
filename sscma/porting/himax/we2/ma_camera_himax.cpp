@@ -183,6 +183,7 @@ ma_err_t CameraHimax::retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) n
     }
 
     switch (format) {
+    case MA_PIXEL_FORMAT_AUTO:
     case MA_PIXEL_FORMAT_YUV422:
         frame = drv_get_frame();
         break;

@@ -12,6 +12,7 @@
 #include "callback/sample.hpp"
 #include "callback/sensor.hpp"
 #include "callback/info.hpp"
+#include "callback/invoke.hpp"
 
 namespace ma {
 
@@ -284,6 +285,21 @@ ma_err_t ATServer::init() {
                             
                              });
                      return MA_OK;
+                });
+
+    addService("INVOKE",
+                "Invoke model",
+                "N_TIMES,RESULTS_ONLY",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                    static_resource->executor->submit(
+                        [args = std::move(args),
+                         &transport,
+                         &encoder](const std::atomic<bool>&) { 
+                            
+                            Invoke::create(args, transport, encoder, static_resource->current_task_id)->run();
+                            
+                             });
+                    return MA_OK;
                 });
 
 

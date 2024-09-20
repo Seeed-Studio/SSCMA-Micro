@@ -7,7 +7,7 @@
 
 #include "ma_model_classifier.h"
 #include "ma_model_detector.h"
-
+#include "ma_model_pose_detector.h"
 #include "ma_model_yolov5.h"
 
 
