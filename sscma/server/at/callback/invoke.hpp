@@ -125,7 +125,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!isEverythingOk()) {
             return false;
         }
-        _algorithm = ModelFactory::create(static_resource->engine);
+        _algorithm = ModelFactory::create(static_resource->engine, static_resource->current_model_id);
         if (_algorithm == nullptr) {
             _ret = MA_ENOTSUP;
         }

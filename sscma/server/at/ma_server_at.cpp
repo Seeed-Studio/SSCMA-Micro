@@ -13,6 +13,7 @@
 #include "callback/sensor.hpp"
 #include "callback/info.hpp"
 #include "callback/invoke.hpp"
+#include "callback/algorithm.hpp"
 
 namespace ma {
 
@@ -300,6 +301,26 @@ ma_err_t ATServer::init() {
                             
                              });
                     return MA_OK;
+                });
+
+    addService("ALGO",
+               "Set algorithm type",
+                "ALGO_ID",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                     static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                          configureAlgorithm(args, transport, encoder);
+                     });
+                     return MA_OK;
+                });
+    
+    addService("ALGO?",
+               "Get algorithm type",
+                "",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                     static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                          getAlgorithmInfo(args, transport, encoder);
+                     });
+                     return MA_OK;
                 });
 
 

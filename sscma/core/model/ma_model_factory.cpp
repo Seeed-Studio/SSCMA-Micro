@@ -6,7 +6,7 @@ constexpr char TAG[] = "ma::model::factory";
 
 using namespace ma::model;
 
-Model* ModelFactory::create(Engine* engine) {
+Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
 
     if (engine == nullptr) {
         return nullptr;
