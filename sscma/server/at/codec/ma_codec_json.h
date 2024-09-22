@@ -46,10 +46,12 @@ public:
     ma_err_t write(const std::string& key, const std::string& value) override;
     ma_err_t write(const std::string& key, ma_model_t value) override;
     ma_err_t write(ma_perf_t value) override;
-    ma_err_t write(std::forward_list<ma_class_t>& value) override;
-    ma_err_t write(std::forward_list<ma_point_t>& value) override;
-    ma_err_t write(std::forward_list<ma_bbox_t>& value) override;
+    ma_err_t write(const std::forward_list<ma_class_t>& value) override;
+    ma_err_t write(const std::forward_list<ma_point_t>& value) override;
+    ma_err_t write(const std::forward_list<ma_bbox_t>& value) override;
     ma_err_t write(const std::vector<ma_model_t>& value) override;
+
+    ma_err_t write(const std::vector<ma_keypoint3f_t>& value) override;
 
     ma_err_t write(const std::vector<Sensor*>& value) override;
     ma_err_t write(const Sensor* value)  override;

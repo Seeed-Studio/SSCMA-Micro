@@ -236,7 +236,7 @@ public:
      * @param[in] value std::forward_list<ma_class_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::forward_list<ma_class_t>& value) = 0;
+    virtual ma_err_t write(const std::forward_list<ma_class_t>& value) = 0;
 
     /*!
      * @brief Encoder type for write std::vector<ma_point_t> value.
@@ -244,7 +244,7 @@ public:
      * @param[in] value std::vector<ma_point_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::forward_list<ma_point_t>& value) = 0;
+    virtual ma_err_t write(const std::forward_list<ma_point_t>& value) = 0;
 
     /*!
      * @brief Encoder type for write std::forward_list<ma_bbox_t> value.
@@ -252,7 +252,7 @@ public:
      * @param[in] value std::forward_list<ma_bbox_t> typed value to write.
      * @retval MA_OK on success
      */
-    virtual ma_err_t write(std::forward_list<ma_bbox_t>& value) = 0;
+    virtual ma_err_t write(const std::forward_list<ma_bbox_t>& value) = 0;
 
     /*!
      * @brief Encoder type for write std::forward_list<ma_model_t> value.
@@ -264,6 +264,8 @@ public:
 
     
     virtual ma_err_t write(const std::vector<Sensor*>& value) = 0;
+
+    virtual ma_err_t write(const std::vector<ma_keypoint3f_t>& value) = 0;
 
        
     virtual ma_err_t write(const Sensor* value)  =0;
@@ -300,6 +302,7 @@ public:
     virtual ma_err_t read(std::forward_list<ma_class_t>& value)             = 0;
     virtual ma_err_t read(std::forward_list<ma_point_t>& value)             = 0;
     virtual ma_err_t read(std::forward_list<ma_bbox_t>& value)              = 0;
+
 
 
 };

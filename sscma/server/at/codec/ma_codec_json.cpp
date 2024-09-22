@@ -279,7 +279,7 @@ ma_err_t EncoderJSON::write(ma_perf_t value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::forward_list<ma_class_t>& value) {
+ma_err_t EncoderJSON::write(const  std::forward_list<ma_class_t>& value) {
     if (cJSON_GetObjectItem(m_data, "classes") != nullptr) {
         return MA_EEXIST;
     }
@@ -300,7 +300,42 @@ ma_err_t EncoderJSON::write(std::forward_list<ma_class_t>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::forward_list<ma_point_t>& value) {
+ma_err_t EncoderJSON::write(const std::vector<ma_keypoint3f_t>& value) {
+    cJSON* array = cJSON_CreateArray();
+    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "keypoints", array);
+    if (array == nullptr) {
+        return MA_FAILED;
+    }
+    for (auto it = value.begin(); it != value.end(); it++) {
+        cJSON* item = cJSON_CreateArray();
+        if (item == nullptr) {
+            return MA_FAILED;
+        }
+        // pts
+        cJSON* pts = cJSON_CreateArray();
+        for (const auto& pt : it->pts) {
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.x));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.y));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.z));
+        }
+        cJSON_AddItemToArray(item, pts);
+        // box
+        cJSON* box = cJSON_CreateArray();
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.x));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.y));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.w));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.h));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.score));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.target));
+        cJSON_AddItemToArray(item, box);
+        cJSON_AddItemToArray(array, item);
+    }
+
+    return MA_OK;
+
+}
+
+ma_err_t EncoderJSON::write(const  std::forward_list<ma_point_t>& value) {
     if (cJSON_GetObjectItem(m_data, "points") != nullptr) {
         return MA_EEXIST;
     }
@@ -321,7 +356,7 @@ ma_err_t EncoderJSON::write(std::forward_list<ma_point_t>& value) {
     }
     return MA_OK;
 }
-ma_err_t EncoderJSON::write(std::forward_list<ma_bbox_t>& value) {
+ma_err_t EncoderJSON::write(const std::forward_list<ma_bbox_t>& value) {
     if (cJSON_GetObjectItem(m_data, "boxes") != nullptr) {
         return MA_EEXIST;
     }

@@ -52,6 +52,9 @@ struct StaticResource final {
     size_t                   current_sensor_id = 0;
     size_t                   current_algorithm_id = 0;
 
+    float shared_threshold_score = 0.25;
+    float shared_threshold_nms   = 0.45;
+
     std::atomic<bool> is_ready  = false;
     std::atomic<bool> is_sample = false;
     std::atomic<bool> is_invoke = false;

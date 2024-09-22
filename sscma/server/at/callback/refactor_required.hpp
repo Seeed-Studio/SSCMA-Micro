@@ -19,7 +19,11 @@ ma_err_t setAlgorithmInput(Model* algorithm, ma_img_t& img) {
     if (algorithm == nullptr) {
         return MA_EINVAL;
     }
+
     switch (algorithm->getType()) {
+    case MA_MODEL_TYPE_PFLD:
+        return static_cast<PointDetector*>(algorithm)->run(&img);
+
     case MA_MODEL_TYPE_IMCLS:
         return static_cast<Classifier*>(algorithm)->run(&img);
 
@@ -38,7 +42,43 @@ ma_err_t setAlgorithmInput(Model* algorithm, ma_img_t& img) {
     }
 }
 
+ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
+    if (algorithm == nullptr || encoder == nullptr) {
+        return MA_EINVAL;
+    }
 
+    switch (algorithm->getType()) {
+    case MA_MODEL_TYPE_PFLD: {
+        const auto& results = static_cast<PointDetector*>(algorithm)->getResults();
+        // encoder->write(results);
+        return MA_OK;
+    }
 
+    case MA_MODEL_TYPE_IMCLS: {
+        const auto& results = static_cast<Classifier*>(algorithm)->getResults();
+        encoder->write(results);
+        return MA_OK;
+    }
+
+    case MA_MODEL_TYPE_FOMO:
+    case MA_MODEL_TYPE_YOLOV5:
+    case MA_MODEL_TYPE_YOLOV8:
+    case MA_MODEL_TYPE_NVIDIA_DET:
+    case MA_MODEL_TYPE_YOLO_WORLD: {
+        const auto& results = static_cast<Detector*>(algorithm)->getResults();
+        encoder->write(results);
+        return MA_OK;
+    }
+
+    case MA_MODEL_TYPE_YOLOV8_POSE: {
+        const auto& results = static_cast<PoseDetector*>(algorithm)->getResults();
+        encoder->write(results);
+        return MA_OK;
+    }
+
+    default:
+        return MA_ENOTSUP;
+    }
+}
 
 }  // namespace ma

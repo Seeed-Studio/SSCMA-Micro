@@ -143,6 +143,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
         _encoder->write("image", _buffer);
+        serializeAlgorithmOutput(_algorithm, _encoder);
         _encoder->write("width", w);
         _encoder->write("height", h);
         _encoder->end();
@@ -160,39 +161,45 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         auto raw_frame   = ma_img_t{};
         int  buffer_size = 0;
 
-        _ret = camera->retrieveFrame(frame, MA_PIXEL_FORMAT_JPEG);
-        if (!isEverythingOk()) [[unlikely]]
-            goto Err;
         _ret = camera->retrieveFrame(raw_frame, MA_PIXEL_FORMAT_AUTO);
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
+        if (!_results_only) {
+            _ret = camera->retrieveFrame(frame, MA_PIXEL_FORMAT_JPEG);
+            if (!isEverythingOk()) [[unlikely]]
+                goto Err;
 
-        buffer_size = 4 * ((frame.size + 2) / 3);
-        _buffer.resize(buffer_size);
+            buffer_size = 4 * ((frame.size + 2) / 3);
+            _buffer.resize(buffer_size);
 
-        ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
-                                 frame.size,
-                                 reinterpret_cast<char*>(_buffer.data()),
-                                 &buffer_size);
+            ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
+                                     frame.size,
+                                     reinterpret_cast<char*>(_buffer.data()),
+                                     &buffer_size);
 
-        camera->returnFrame(frame);
+            camera->returnFrame(frame);
+        }
         if (!_preprocess_done) {
             _preprocess_done = [camera, &raw_frame]() { camera->returnFrame(raw_frame); };
             _algorithm->setPreprocessDone(&_on_preprocess_done);
         }
 
+        // update configs TODO: refactor
+        _algorithm->setConfig(MA_MODEL_CFG_OPT_THRESHOLD, static_resource->shared_threshold_score);
+        _algorithm->setConfig(MA_MODEL_CFG_OPT_NMS, static_resource->shared_threshold_nms);
+
         _ret = setAlgorithmInput(_algorithm, raw_frame);
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
 
-        eventReply(frame.width, frame.height);
+        eventReply(raw_frame.width, raw_frame.height);
 
         static_resource->executor->submit(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
     Err:
-        eventReply(frame.width, frame.height);
+        eventReply(raw_frame.width, raw_frame.height);
     }
 
     inline bool isEverythingOk() const { return _ret == MA_OK; }

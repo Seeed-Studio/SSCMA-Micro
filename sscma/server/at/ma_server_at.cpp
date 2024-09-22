@@ -14,6 +14,7 @@
 #include "callback/info.hpp"
 #include "callback/invoke.hpp"
 #include "callback/algorithm.hpp"
+#include "callback/config.hpp"
 
 namespace ma {
 
@@ -321,6 +322,46 @@ ma_err_t ATServer::init() {
                           getAlgorithmInfo(args, transport, encoder);
                      });
                      return MA_OK;
+                });
+
+    addService("TIOU?",
+                "Get IOU threshold",
+                "",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                        getNMSThreshold(args, transport, encoder);
+                    });
+                    return MA_OK;
+                });
+    
+    addService("TSCORE?",
+                "Get score threshold",
+                "",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                        getScoreThreshold(args, transport, encoder);
+                    });
+                    return MA_OK;
+                });
+
+    addService("TIOU",
+                "Set IOU threshold",
+                "VALUE",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                        setNMSThreshold(args, transport, encoder);
+                    });
+                    return MA_OK;
+                });
+
+    addService("TSCORE",
+                "Set score threshold",
+                "VALUE",
+                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                        setScoreThreshold(args, transport, encoder);
+                    });
+                    return MA_OK;
                 });
 
 

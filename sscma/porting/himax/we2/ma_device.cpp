@@ -105,6 +105,8 @@ Device::Device() {
                     m_models.push_back(model);
                 }
             }
+        } else {
+            MA_LOGE(MA_TAG, "Failed to find models, using default");
         }
         xip_ownership_release();
     }
