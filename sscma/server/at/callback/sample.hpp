@@ -43,6 +43,8 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         _transport = &transport;
         _encoder   = &encoder;
 
+        _times = 0;
+
         _task_id = task_id;
 
         static_resource->is_sample = true;
@@ -83,7 +85,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
     void directReply() {
         _encoder->begin(MA_MSG_TYPE_RESP, _ret, _cmd);
-        _encoder->write(_sensor);
+        _encoder->write(_sensor, _sensor->currentPresetIdx());
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }

@@ -268,7 +268,7 @@ public:
     virtual ma_err_t write(const std::vector<ma_keypoint3f_t>& value) = 0;
 
        
-    virtual ma_err_t write(const Sensor* value)  =0;
+    virtual ma_err_t write(const Sensor* value, size_t preset )  =0;
 
 };
 

@@ -442,7 +442,7 @@ ma_err_t EncoderJSON::write(const std::vector<ma::Sensor*>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(const Sensor* value) {
+ma_err_t EncoderJSON::write(const Sensor* value, size_t preset ) {
     cJSON* array = cJSON_CreateArray();
     cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
     if (array == nullptr || value == nullptr) {
@@ -459,18 +459,19 @@ ma_err_t EncoderJSON::write(const Sensor* value) {
     const auto& type = ma::Sensor::__repr__(it->getType());
     cJSON_AddItemToObject(item, "type", cJSON_CreateString(type.c_str()));
     cJSON_AddItemToObject(item, "initialized", cJSON_CreateBool(static_cast<bool>(*it)));
-    cJSON*      preset_items = cJSON_CreateArray();
     const auto& presets      = it->availablePresets();
     size_t      j            = 0;
-    for (auto pit = presets.begin(); pit != presets.end(); ++pit) {
+    for (auto pit = presets.begin(); pit != presets.end(); ++pit, ++j) {
+        if (j != preset) {
+            continue;
+        }
         cJSON* preset_item = cJSON_CreateObject();
         cJSON_AddItemToObject(preset_item, "id", cJSON_CreateNumber(j));
         cJSON_AddItemToObject(preset_item, "description", cJSON_CreateString(pit->description));
-        cJSON_AddItemToArray(preset_items, preset_item);
+       cJSON_AddItemToObject(item, "current_preset", preset_item);
     }
-    cJSON_AddItemToObject(item, "presets", preset_items);
+    
     const auto& current_preset = it->currentPreset();
-    cJSON_AddItemToObject(item, "current_preset_index", cJSON_CreateNumber(it->currentPresetIdx()));
     cJSON_AddItemToArray(array, item);
     return MA_OK;
 }

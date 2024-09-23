@@ -75,7 +75,7 @@ void configureSensor(const std::vector<std::string>& args,
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
     if (it != sensors.end()) {
-        encoder.write(*it);
+        encoder.write(*it, (*it)->currentPresetIdx());
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
@@ -97,7 +97,7 @@ void getSensorStatus(const std::vector<std::string>& args, Transport& transport,
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
     if (it != sensors.end()) {
-        encoder.write(*it);
+        encoder.write(*it, (*it)->currentPresetIdx());
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());

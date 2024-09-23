@@ -6,6 +6,7 @@
 
 #include <cstring>
 
+#include "drivers/npu.h"
 #include "drivers/xip.h"
 #include "ma_camera_himax.h"
 #include "ma_config_board.h"
@@ -96,7 +97,7 @@ Device::Device() {
             size_t       id      = 0;
             for (size_t i = 0; i < size; i += 4096) {
                 const void* data = address + i;
-                if (ma_ntohl(*(const uint32_t*)data) == 0x54464C33) {  // 'TFL3'
+                if (ma_ntohl(*(static_cast<const uint32_t*>(data) + 1)) == 0x54464C33) {  // 'TFL3'
                     ma_model_t model;
                     model.id   = ++id;
                     model.type = MA_MODEL_TYPE_UNDEFINED;
@@ -110,6 +111,9 @@ Device::Device() {
         }
         xip_ownership_release();
     }
+
+    MA_LOGD(MA_TAG, "Initializing NPU driver");
+    { himax_arm_npu_init(true, true); }
 }
 
 Device* Device::getInstance() {

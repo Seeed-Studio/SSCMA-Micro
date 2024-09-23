@@ -215,6 +215,7 @@ ma_err_t ATServer::init() {
                          static_resource->executor->submit([args = std::move(args),
                                                               &transport,
                                                               &encoder](const std::atomic<bool>&) {
+                             static_resource->current_task_id += 1;
                              configureModel(args, transport, encoder);
                          });
                          return MA_OK;
@@ -270,7 +271,9 @@ ma_err_t ATServer::init() {
                    static_resource->executor->submit(
                      [args = std::move(args),
                       &transport,
-                      &encoder](const std::atomic<bool>&) { configureSensor(args, transport, encoder); });
+                      &encoder](const std::atomic<bool>&) { 
+                        static_resource->current_task_id += 1;
+                        configureSensor(args, transport, encoder); });
                    return MA_OK;
                });
 
@@ -282,7 +285,7 @@ ma_err_t ATServer::init() {
                         [args = std::move(args),
                          &transport,
                          &encoder](const std::atomic<bool>&) { 
-                            
+                            static_resource->current_task_id += 1;
                             Sample::create(args, transport, encoder, static_resource->current_task_id)->run();
                             
                              });
@@ -297,7 +300,7 @@ ma_err_t ATServer::init() {
                         [args = std::move(args),
                          &transport,
                          &encoder](const std::atomic<bool>&) { 
-                            
+                            static_resource->current_task_id += 1;
                             Invoke::create(args, transport, encoder, static_resource->current_task_id)->run();
                             
                              });

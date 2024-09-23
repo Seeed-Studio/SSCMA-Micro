@@ -61,6 +61,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _model     = ma_model_t{};
         _algorithm = nullptr;
 
+        _times = 0;
+
+
         _task_id = task_id;
 
         static_resource->is_sample = true;
@@ -134,7 +137,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     void directReply() {
         _encoder->begin(MA_MSG_TYPE_RESP, _ret, _cmd);
-        _encoder->write(_sensor);
+        _encoder->write(_sensor, _sensor->currentPresetIdx());
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
@@ -142,7 +145,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     void eventReply(int32_t w, int32_t h) {
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
-        _encoder->write("image", _buffer);
+        if (!_results_only) _encoder->write("image", _buffer);
         serializeAlgorithmOutput(_algorithm, _encoder);
         _encoder->write("width", w);
         _encoder->write("height", h);
@@ -151,10 +154,13 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     void eventLoopCamera() {
+        
         if ((_n_times >= 0) & (_times++ >= _n_times)) [[unlikely]]
             return;
         if (static_resource->current_task_id.load() != _task_id) [[unlikely]]
             return;
+
+        MA_LOGD(MA_TAG, "eventLoopCamera");
 
         auto camera      = static_cast<Camera*>(_sensor);
         auto frame       = ma_img_t{};

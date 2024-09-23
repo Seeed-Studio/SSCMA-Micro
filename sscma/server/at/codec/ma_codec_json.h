@@ -54,7 +54,7 @@ public:
     ma_err_t write(const std::vector<ma_keypoint3f_t>& value) override;
 
     ma_err_t write(const std::vector<Sensor*>& value) override;
-    ma_err_t write(const Sensor* value)  override;
+    ma_err_t write(const Sensor* value, size_t preset )  override;
 
 
     const std::string& toString() const override;
