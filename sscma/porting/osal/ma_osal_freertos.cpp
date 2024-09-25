@@ -4,14 +4,14 @@
 #if MA_OSAL_FREERTOS
 
 MA_ATTR_WEAK void* operator new(size_t size) {
-    printf("new size: %d\n", size);
+    // printf("new size: %d\n", size);
     void* ptr = pvPortMalloc(size);
     MA_ASSERT(ptr!= nullptr);
     return ptr;
 }
 
 MA_ATTR_WEAK void* operator new[](size_t size) {
-     printf("new size: %d\n", size);
+    // printf("new size: %d\n", size);
     void* ptr = pvPortMalloc(size);
     MA_ASSERT(ptr!= nullptr);
     return ptr;

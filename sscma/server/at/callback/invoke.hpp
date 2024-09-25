@@ -163,13 +163,14 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
 
-        if (!_results_only)
+        if (!_results_only) {
 #if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
             reinterpret_cast<char*>(_buffer)[_buffer_size] = '\0';
-        _encoder->write("image", reinterpret_cast<char*>(_buffer), _buffer_size);
+            _encoder->write("image", reinterpret_cast<const char*>(_buffer), _buffer_size);
 #else
             _encoder->write("image", _buffer);
 #endif
+        }
         serializeAlgorithmOutput(_algorithm, _encoder);
         auto perf = _algorithm->getPerf();
         _encoder->write(perf);
@@ -205,7 +206,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 MA_LOGE(MA_TAG, "buffer_size > MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE");
                 goto Err;
             }
-            _buffer_size = buffer_size;
+
 #else
             _buffer.resize(buffer_size);
 #endif
@@ -219,6 +220,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                                                     reinterpret_cast<char*>(_buffer.data()),
 #endif
                                                     &buffer_size);
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+                _buffer_size = buffer_size;
+#endif
                 if (ret != MA_OK) {
                     MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
                 }

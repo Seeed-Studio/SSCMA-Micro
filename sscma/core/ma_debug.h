@@ -5,11 +5,11 @@
 #include "porting/ma_misc.h"
 
 #ifndef MA_TAG
-#define MA_TAG_FILE __FILE__ ":" MA_STRINGIZE(__LINE__)
-#define MA_TAG      (strrchr(MA_TAG_FILE, '/') ? strrchr(MA_TAG_FILE, '/') + 1 : MA_TAG_FILE)
+    #define MA_TAG_FILE __FILE__ ":" MA_STRINGIZE(__LINE__)
+    #define MA_TAG      (strrchr(MA_TAG_FILE, '/') ? strrchr(MA_TAG_FILE, '/') + 1 : MA_TAG_FILE)
 #endif
 
-#if MA_DEBUG_LEVEL
+#ifdef MA_DEBUG_LEVEL
 
     #define MA_DEBUG_COLOR_RED     "\033[31m"
     #define MA_DEBUG_COLOR_GREEN   "\033[32m"
@@ -36,7 +36,7 @@
                 } while (0)
         #endif
     #else
-        #define MA_LOGE(TAG, ...)
+        #define MA_LOGE(TAG, ...) do {} while (0)
     #endif
 
     #if MA_DEBUG_LEVEL >= 2
@@ -50,7 +50,7 @@
                 } while (0)
         #endif
     #else
-        #define MA_LOGW(...)
+        #define MA_LOGW(...) do {} while(0)
     #endif
     #if MA_DEBUG_LEVEL >= 3
         #ifndef MA_LOGI
@@ -63,7 +63,7 @@
                 } while (0)
         #endif
     #else
-        #define MA_LOGI(TAG, ...)
+        #define MA_LOGI(TAG, ...) do {} while(0)
     #endif
     #if MA_DEBUG_LEVEL >= 4
         #ifndef MA_LOGD
@@ -76,7 +76,7 @@
                 } while (0)
         #endif
     #else
-        #define MA_LOGD(TAG, ...)
+        #define MA_LOGD(TAG, ...) do {} while(0)
     #endif
     #if MA_DEBUG_LEVEL >= 5
         #ifndef MA_LOGV
@@ -89,14 +89,14 @@
                 } while (0)
         #endif
     #else
-        #define MA_LOGV(TAG, ...)
+        #define MA_LOGV(TAG, ...) do {} while(0)
     #endif
 #else
-    #define MA_ELOG(...)
-    #define MA_LOGW(...)
-    #define MA_LOGI(...)
-    #define MA_LOGD(...)
-    #define MA_LOGV(...)
+    #define MA_ELOG(...) do {} while(0)
+    #define MA_LOGW(...) do {} while(0)
+    #define MA_LOGI(...) do {} while(0)
+    #define MA_LOGD(...) do {} while(0)
+    #define MA_LOGV(...) do {} while(0)
 #endif
 
 #if MA_USE_ASSERT

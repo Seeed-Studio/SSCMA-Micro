@@ -444,7 +444,7 @@ ma_err_t EncoderJSON::write(const std::string& key, const char* buffer, size_t s
     if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
         return MA_EEXIST;
     }
-    // add reference to buffer
+
     cJSON* item = cJSON_CreateStringReference(buffer);
     if (item == nullptr) {
         return MA_FAILED;
