@@ -47,17 +47,19 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
         return MA_EINVAL;
     }
 
+    auto ret = MA_OK;
+
     switch (algorithm->getType()) {
     case MA_MODEL_TYPE_PFLD: {
         const auto& results = static_cast<PointDetector*>(algorithm)->getResults();
         // encoder->write(results);
-        return MA_OK;
+        break;
     }
 
     case MA_MODEL_TYPE_IMCLS: {
         const auto& results = static_cast<Classifier*>(algorithm)->getResults();
-        encoder->write(results);
-        return MA_OK;
+        ret                 = encoder->write(results);
+        break;
     }
 
     case MA_MODEL_TYPE_FOMO:
@@ -66,19 +68,25 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
     case MA_MODEL_TYPE_NVIDIA_DET:
     case MA_MODEL_TYPE_YOLO_WORLD: {
         const auto& results = static_cast<Detector*>(algorithm)->getResults();
-        encoder->write(results);
-        return MA_OK;
+        ret                 = encoder->write(results);
+        break;
     }
 
     case MA_MODEL_TYPE_YOLOV8_POSE: {
         const auto& results = static_cast<PoseDetector*>(algorithm)->getResults();
-        encoder->write(results);
-        return MA_OK;
+        ret                 = encoder->write(results);
+        break;
     }
 
     default:
-        return MA_ENOTSUP;
+        ret = MA_ENOTSUP;
     }
+
+    if (ret != MA_OK) {
+        MA_LOGD(MA_TAG, "Failed to serialize algorithm output: %d", ret);
+    }
+
+    return ret;
 }
 
 }  // namespace ma

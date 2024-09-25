@@ -56,3 +56,14 @@ bool xip_safe_disable() {
     }
     return true;
 }
+
+extern "C" {
+    
+void ma_invoke_pre_hook(void*) {
+    xip_ownership_acquire();
+    xip_safe_enable();
+}
+
+void ma_invoke_post_hook(void*) { xip_ownership_release(); }
+
+}

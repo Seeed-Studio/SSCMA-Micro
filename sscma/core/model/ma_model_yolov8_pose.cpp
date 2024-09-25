@@ -68,7 +68,7 @@ YoloV8Pose::YoloV8Pose(Engine* p_engine_) : PoseDetector(p_engine_, "yolo_world"
 YoloV8Pose::~YoloV8Pose() {}
 
 bool YoloV8Pose::isValid(Engine* engine) {
-    const auto inputs_count = engine->getInputSize();
+    const auto inputs_count  = engine->getInputSize();
     const auto outputs_count = engine->getOutputSize();
 
     if (inputs_count != 1 || outputs_count != num_outputs_) {
@@ -182,8 +182,10 @@ ma_err_t YoloV8Pose::postprocess() {
     case 0:
         return postProcessI8();
 
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
     case 0b1111111:
         return postProcessF32();
+#endif
 
     default:
         return MA_ENOTSUP;
@@ -340,6 +342,7 @@ ma_err_t YoloV8Pose::postProcessI8() {
     return MA_OK;
 }
 
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
 ma_err_t YoloV8Pose::postProcessF32() {
     results_.clear();
 
@@ -472,5 +475,6 @@ ma_err_t YoloV8Pose::postProcessF32() {
 
     return MA_OK;
 }
+#endif
 
 }  // namespace ma::model

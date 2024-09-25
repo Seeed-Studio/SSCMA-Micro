@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 #define MA_USE_ENGINE_TFLITE               1
-#define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE (800 * 1024)
+#define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE (1100 * 1024)
 #define MA_USE_ENGINE_TENSOR_INDEX         1
 
 #define MA_TFLITE_OP_SOFTMAX               1
@@ -58,7 +58,12 @@ extern "C" {
 #define MA_TFLITE_OP_MAX_POOL_2D           1
 #define MA_TFLITE_OP_MUL                   1
 #define MA_TFLITE_OP_BROADCAST_TO          1
-#define MA_TFLITE_OP_MEAN                  1
+
+#define MA_INVOKE_ENABLE_RUN_HOOK          1
+
+#define MA_SENSOR_ENCODE_USE_STATIC_BUFFER 1
+#define MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR (0x36000000 + (150 * 1024))
+#define MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE (0x36060000 - BASE_ADDR_SRAM2_ALIAS - (150 * 1024))
 
 #define MA_FILESYSTEM_LITTLEFS             1
 #define MA_STORAGE_LFS_USE_FLASHBD         1

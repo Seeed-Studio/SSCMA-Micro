@@ -3,6 +3,7 @@
 
 #include <cstdarg>
 #include <string>
+#include <functional>
 
 #include "core/engine/ma_engine.h"
 #include "core/ma_common.h"
@@ -13,9 +14,9 @@ using namespace ma::engine;
 class Model {
    private:
     ma_perf_t perf_;
-    void (*p_preprocess_done_)(void* ctx);
-    void (*p_postprocess_done_)(void* ctx);
-    void (*p_underlying_run_done_)(void* ctx);
+    std::function<void(void*)> p_preprocess_done_     ;
+    std::function<void(void*)> p_postprocess_done_    ;
+    std::function<void(void*)> p_underlying_run_done_ ;
     void*           p_user_ctx_;
     ma_model_type_t m_type_;
 
@@ -34,9 +35,9 @@ class Model {
     ma_model_type_t  getType() const;
     virtual ma_err_t setConfig(ma_model_cfg_opt_t opt, ...) = 0;
     virtual ma_err_t getConfig(ma_model_cfg_opt_t opt, ...) = 0;
-    void             setPreprocessDone(void (*fn)(void* ctx));
-    void             setPostprocessDone(void (*fn)(void* ctx));
-    void             setRunDone(void (*fn)(void* ctx));
+    void             setPreprocessDone  (std::function<void(void*)> func);
+    void             setPostprocessDone (std::function<void(void*)> func);
+    void             setRunDone         (std::function<void(void*)> func);
     void             setUserCtx(void* ctx);
 };
 }  // namespace ma

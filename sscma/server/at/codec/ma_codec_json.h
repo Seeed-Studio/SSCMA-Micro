@@ -33,6 +33,9 @@ public:
 
     ma_err_t remove(const std::string& key) override;
 
+    ma_err_t write(const std::string& key, const char* buffer, size_t size) override;
+    
+
     ma_err_t write(const std::string& key, int8_t value) override;
     ma_err_t write(const std::string& key, int16_t value) override;
     ma_err_t write(const std::string& key, int32_t value) override;

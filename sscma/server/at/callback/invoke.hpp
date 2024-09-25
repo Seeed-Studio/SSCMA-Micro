@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ma_config_board.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -13,9 +15,12 @@
 #include "refactor_required.hpp"
 #include "resource.hpp"
 
-static std::function<void()> _preprocess_done;
-static void                  _on_preprocess_done(void*) {
-    if (_preprocess_done) _preprocess_done();
+extern "C" {
+
+#if MA_INVOKE_ENABLE_RUN_HOOK
+extern void ma_invoke_pre_hook(void*);
+extern void ma_invoke_post_hook(void*);
+#endif
 }
 
 namespace ma::server::callback {
@@ -63,8 +68,14 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         _times = 0;
 
-
         _task_id = task_id;
+
+        _preprocess_hook_injected = false;
+
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+        _buffer      = reinterpret_cast<void*>(MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR);
+        _buffer_size = 0;
+#endif
 
         static_resource->is_sample = true;
     }
@@ -132,29 +143,42 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (_algorithm == nullptr) {
             _ret = MA_ENOTSUP;
         }
+#if MA_INVOKE_ENABLE_RUN_HOOK
+        _algorithm->setRunDone([](void*) { ma_invoke_post_hook(nullptr); });
+#endif
         return isEverythingOk();
     }
 
     void directReply() {
         _encoder->begin(MA_MSG_TYPE_RESP, _ret, _cmd);
         _encoder->write(_sensor, _sensor->currentPresetIdx());
+        std::vector<ma_model_t> model{_model};
+        _encoder->write(model);
+        _encoder->write("algorithm", static_cast<uint32_t>(static_resource->current_algorithm_id));
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
 
-    void eventReply(int32_t w, int32_t h) {
+    void eventReply() {
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
-        if (!_results_only) _encoder->write("image", _buffer);
+
+        if (!_results_only)
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+            reinterpret_cast<char*>(_buffer)[_buffer_size] = '\0';
+        _encoder->write("image", reinterpret_cast<char*>(_buffer), _buffer_size);
+#else
+            _encoder->write("image", _buffer);
+#endif
         serializeAlgorithmOutput(_algorithm, _encoder);
-        _encoder->write("width", w);
-        _encoder->write("height", h);
+        auto perf = _algorithm->getPerf();
+        _encoder->write(perf);
+        if (_event_hook) _event_hook(*_encoder);
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
 
     void eventLoopCamera() {
-        
         if ((_n_times >= 0) & (_times++ >= _n_times)) [[unlikely]]
             return;
         if (static_resource->current_task_id.load() != _task_id) [[unlikely]]
@@ -176,18 +200,49 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                 goto Err;
 
             buffer_size = 4 * ((frame.size + 2) / 3);
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+            if (buffer_size > MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE) {
+                MA_LOGE(MA_TAG, "buffer_size > MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE");
+                goto Err;
+            }
+            _buffer_size = buffer_size;
+#else
             _buffer.resize(buffer_size);
+#endif
 
-            ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
-                                     frame.size,
-                                     reinterpret_cast<char*>(_buffer.data()),
-                                     &buffer_size);
+            {
+                auto ret = ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
+                                                    frame.size,
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+                                                    reinterpret_cast<char*>(_buffer),
+#else
+                                                    reinterpret_cast<char*>(_buffer.data()),
+#endif
+                                                    &buffer_size);
+                if (ret != MA_OK) {
+                    MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
+                }
+            }
 
             camera->returnFrame(frame);
         }
-        if (!_preprocess_done) {
-            _preprocess_done = [camera, &raw_frame]() { camera->returnFrame(raw_frame); };
-            _algorithm->setPreprocessDone(&_on_preprocess_done);
+        if (!_preprocess_hook_injected) {
+            _preprocess_hook_injected = true;
+            _algorithm->setPreprocessDone([camera, &raw_frame](void*) {
+                camera->returnFrame(raw_frame);
+#if MA_INVOKE_ENABLE_RUN_HOOK
+                ma_invoke_pre_hook(nullptr);
+#endif
+            });
+        }
+
+        if (!_event_hook) {
+            _event_hook = [&frame](Encoder& encoder) {
+                int16_t rotation = static_cast<int>(frame.rotate) * 90;
+                encoder.write("rotation", rotation);
+                encoder.write("width", frame.width);
+                encoder.write("height", frame.height);
+            };
         }
 
         // update configs TODO: refactor
@@ -198,14 +253,14 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
 
-        eventReply(raw_frame.width, raw_frame.height);
+        eventReply();
 
         static_resource->executor->submit(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
     Err:
-        eventReply(raw_frame.width, raw_frame.height);
+        eventReply();
     }
 
     inline bool isEverythingOk() const { return _ret == MA_OK; }
@@ -226,7 +281,21 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     int32_t _times;
     bool    _results_only;
 
+    bool                          _preprocess_hook_injected;
+    std::function<void(Encoder&)> _event_hook;
+
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
+        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
+    #endif
+    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
+        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
+    #endif
+    void*  _buffer;
+    size_t _buffer_size;
+#else
     std::string _buffer;
+#endif
 };
 
 }  // namespace ma::server::callback

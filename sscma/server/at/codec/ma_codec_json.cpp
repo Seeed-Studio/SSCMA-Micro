@@ -285,7 +285,7 @@ ma_err_t EncoderJSON::write(const  std::forward_list<ma_class_t>& value) {
     }
     cJSON* array = cJSON_AddArrayToObject(m_data, "classes");
     if (array == nullptr) {
-        MA_LOGD(TAG, "1cJSON_AddArrayToObject failed");
+        MA_LOGD(TAG, "cJSON_AddArrayToObject failed");
         return MA_FAILED;
     }
     for (auto it = value.begin(); it != value.end(); it++) {
@@ -384,8 +384,7 @@ ma_err_t EncoderJSON::write(const std::forward_list<ma_bbox_t>& value) {
 }
 
 ma_err_t EncoderJSON::write(const std::vector<ma_model_t>& value) {
-    cJSON* array = cJSON_CreateArray();
-    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
+    cJSON* array = cJSON_AddArrayToObject(m_data, "models");
     if (array == nullptr) {
         return MA_FAILED;
     }
@@ -411,8 +410,7 @@ ma_err_t EncoderJSON::write(const std::vector<ma_model_t>& value) {
 }
 
 ma_err_t EncoderJSON::write(const std::vector<ma::Sensor*>& value) {
-    cJSON* array = cJSON_CreateArray();
-    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
+    cJSON* array = cJSON_AddArrayToObject(m_data, "sensors");
     if (array == nullptr) {
         return MA_FAILED;
     }
@@ -442,9 +440,21 @@ ma_err_t EncoderJSON::write(const std::vector<ma::Sensor*>& value) {
     return MA_OK;
 }
 
+ma_err_t EncoderJSON::write(const std::string& key, const char* buffer, size_t size) {
+    if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
+        return MA_EEXIST;
+    }
+    // add reference to buffer
+    cJSON* item = cJSON_CreateStringReference(buffer);
+    if (item == nullptr) {
+        return MA_FAILED;
+    }
+    cJSON_AddItemToObject(m_data, key.c_str(), item);
+    return MA_OK;
+}
+
 ma_err_t EncoderJSON::write(const Sensor* value, size_t preset ) {
-    cJSON* array = cJSON_CreateArray();
-    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
+    cJSON* array = cJSON_AddArrayToObject(m_data, "sensors");
     if (array == nullptr || value == nullptr) {
         return MA_FAILED;
     }

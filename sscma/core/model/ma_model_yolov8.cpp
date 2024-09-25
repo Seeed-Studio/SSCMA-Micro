@@ -75,20 +75,20 @@ bool YoloV8::isValid(Engine* engine) {
     return true;
 }
 
-const char* YoloV8::getTag() {
-    return "ma::model::yolov8";
-}
+const char* YoloV8::getTag() { return "ma::model::yolov8"; }
 
 ma_err_t YoloV8::postprocess() {
     switch (output_.type) {
-        case MA_TENSOR_TYPE_S8:
-            return postProcessI8();
+    case MA_TENSOR_TYPE_S8:
+        return postProcessI8();
 
-        case MA_TENSOR_TYPE_F32:
-            return postProcessF32();
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
+    case MA_TENSOR_TYPE_F32:
+        return postProcessF32();
+#endif
 
-        default:
-            return MA_ENOTSUP;
+    default:
+        return MA_ENOTSUP;
     }
 
     return MA_ENOTSUP;
@@ -101,12 +101,11 @@ ma_err_t YoloV8::postProcessI8() {
 
     const auto scale{output_.quant_param.scale};
     const auto zero_point{output_.quant_param.zero_point};
-    const bool normalized{
-        (scale * (std::numeric_limits<int8_t>::max() - std::numeric_limits<int8_t>::min())) <= 1.0};
+    const bool normalized{(scale * (std::numeric_limits<int8_t>::max() - std::numeric_limits<int8_t>::min())) <= 1.0};
 
     for (decltype(num_record_) i = 0; i < num_record_; ++i) {
         uint16_t target = 0;
-        auto max        = std::numeric_limits<int8_t>::min();
+        auto     max    = std::numeric_limits<int8_t>::min();
 
         for (decltype(num_class_) t = 0; t < num_class_; ++t) {
             const auto n = data[i + (t + INDEX_T) * num_record_];
@@ -116,8 +115,8 @@ ma_err_t YoloV8::postProcessI8() {
             }
         }
 
-        float score = ma::math::dequantizeValue(
-            static_cast<int32_t>(data[i + INDEX_S * num_record_]), scale, zero_point);
+        float score =
+          ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_S * num_record_]), scale, zero_point);
         score = normalized ? score : std::round(score / 100.f);
 
         if (score > threshold_score_) {
@@ -127,14 +126,14 @@ ma_err_t YoloV8::postProcessI8() {
             box.target = target;
 
             // get box position, int8_t - int32_t (narrowing)
-            float x = ma::math::dequantizeValue(
-                static_cast<int32_t>(data[i + INDEX_X * num_record_]), scale, zero_point);
-            float y = ma::math::dequantizeValue(
-                static_cast<int32_t>(data[i + INDEX_Y * num_record_]), scale, zero_point);
-            float w = ma::math::dequantizeValue(
-                static_cast<int32_t>(data[i + INDEX_W * num_record_]), scale, zero_point);
-            float h = ma::math::dequantizeValue(
-                static_cast<int32_t>(data[i + INDEX_H * num_record_]), scale, zero_point);
+            float x =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_X * num_record_]), scale, zero_point);
+            float y =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_Y * num_record_]), scale, zero_point);
+            float w =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_W * num_record_]), scale, zero_point);
+            float h =
+              ma::math::dequantizeValue(static_cast<int32_t>(data[i + INDEX_H * num_record_]), scale, zero_point);
 
             if (!normalized) {
                 x = x / img_.width;
@@ -154,6 +153,7 @@ ma_err_t YoloV8::postProcessI8() {
     return MA_OK;
 }
 
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
 ma_err_t YoloV8::postProcessF32() {
     results_.clear();
 
@@ -161,7 +161,7 @@ ma_err_t YoloV8::postProcessF32() {
 
     for (decltype(num_record_) i = 0; i < num_record_; ++i) {
         uint16_t target = 0;
-        auto max        = std::numeric_limits<float>::min();
+        auto     max    = std::numeric_limits<float>::min();
 
         for (decltype(num_class_) t = 0; t < num_class_; ++t) {
             const auto n = data[i + (t + INDEX_T) * num_record_];
@@ -195,5 +195,6 @@ ma_err_t YoloV8::postProcessF32() {
 
     return MA_OK;
 }
+#endif
 
 }  // namespace ma::model

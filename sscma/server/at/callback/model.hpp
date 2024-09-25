@@ -26,8 +26,8 @@ void configureModel(const std::vector<std::string>& args,
                     Encoder&                        encoder,
                     bool                            called_by_event = false) {
     MA_ASSERT(args.size() >= 2);
-    const auto& cmd      = args[0];
-    const auto  model_id = std::atoi(args[1].c_str());
+    const auto&  cmd      = args[0];
+    const size_t model_id = std::atoi(args[1].c_str());
 
     ma_err_t ret    = MA_OK;
     auto&    models = static_resource->device->getModels();
@@ -63,6 +63,24 @@ exit:
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
+void initDefaultModel(Encoder& encoder) {
+    if (static_resource->device->getTransports().empty()) {
+        MA_LOGD(MA_TAG, "No transport available");
+    }
+    auto& transport = static_resource->device->getTransports().front();
+    if (!transport || !*transport) {
+        MA_LOGD(MA_TAG, "Transport not available");
+        return;
+    }
+
+    size_t model_id = 0;
+
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MODEL_ID, model_id, 0);
+
+    std::vector<std::string> args{"INIT@MODEL", std::to_string(static_cast<int>(model_id))};
+    configureModel(args, *transport, encoder, true);
+}
+
 void getModelInfo(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
     MA_ASSERT(args.size() >= 1);
     const auto& cmd = args[0];
@@ -78,7 +96,8 @@ void getModelInfo(const std::vector<std::string>& args, Transport& transport, En
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
     if (it != models.end()) {
-        encoder.write("model", *it);
+        std::vector<ma_model_t> model{*it};
+        encoder.write(model);
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());

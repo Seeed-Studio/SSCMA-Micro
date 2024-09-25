@@ -6,15 +6,15 @@
 #include <cstring>
 #include <stack>
 
+#include "callback/algorithm.hpp"
 #include "callback/common.hpp"
+#include "callback/config.hpp"
+#include "callback/info.hpp"
+#include "callback/invoke.hpp"
 #include "callback/model.hpp"
 #include "callback/resource.hpp"
 #include "callback/sample.hpp"
 #include "callback/sensor.hpp"
-#include "callback/info.hpp"
-#include "callback/invoke.hpp"
-#include "callback/algorithm.hpp"
-#include "callback/config.hpp"
 
 namespace ma {
 
@@ -38,12 +38,14 @@ ma_err_t ATServer::addService(ATService& service) {
 }
 
 ATServer::ATServer(Encoder* encoder) : m_encoder(*encoder) {
-    m_thread = new Thread("ATServer", ATServer::threadEntryStub, this, MA_SEVER_AT_EXECUTOR_TASK_PRIO, MA_SEVER_AT_EXECUTOR_STACK_SIZE);
+    m_thread = new Thread(
+      "ATServer", ATServer::threadEntryStub, this, MA_SEVER_AT_EXECUTOR_TASK_PRIO, MA_SEVER_AT_EXECUTOR_STACK_SIZE);
     MA_ASSERT(m_thread);
 }
 
 ATServer::ATServer(Encoder& encoder) : m_encoder(encoder) {
-    m_thread = new Thread("ATServer", ATServer::threadEntryStub, this, MA_SEVER_AT_EXECUTOR_TASK_PRIO, MA_SEVER_AT_EXECUTOR_STACK_SIZE);
+    m_thread = new Thread(
+      "ATServer", ATServer::threadEntryStub, this, MA_SEVER_AT_EXECUTOR_TASK_PRIO, MA_SEVER_AT_EXECUTOR_STACK_SIZE);
     MA_ASSERT(m_thread);
 }
 
@@ -54,6 +56,13 @@ void ATServer::threadEntryStub(void* arg) {
 }
 
 void ATServer::threadEntry() {
+    // Startup
+    {
+        initDefaultSensor(m_encoder);
+        initDefaultModel(m_encoder);
+        initDefaultAlgorithm(m_encoder);
+    }
+
     char* buf = static_cast<char*>(ma_malloc(MA_SEVER_AT_CMD_MAX_LENGTH + 1));
     std::memset(buf, 0, MA_SEVER_AT_CMD_MAX_LENGTH + 1);
     while (true) {
@@ -79,168 +88,126 @@ void ATServer::threadEntry() {
 ma_err_t ATServer::init() {
     ma_err_t err = MA_OK;
 
-    this->addService("ID?",
-                     "Get device ID",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([cmd = std::move(args[0]),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             get_device_id(cmd, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("NAME?",
-                     "Get device name",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([cmd = std::move(args[0]),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             get_device_name(cmd, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("STAT?",
-                     "Get device status",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([cmd = std::move(args[0]),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             get_device_status(cmd, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("VER?",
-                     "Get device version",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([cmd = std::move(args[0]),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             get_version(cmd, transport, encoder, MA_AT_API_VERSION);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("RST",
-                     "Reset device",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit(
-                             [cmd = std::move(args[0]), &transport, &encoder](
-                                 const std::atomic<bool>&) { 
-                                    static_resource->device->~Device();
-
-                                 });
-                         return MA_OK;
-                     });
+    this->addService(
+      "ID?", "Get device ID", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+              get_device_id(cmd, transport, encoder);
+          });
+          return MA_OK;
+      });
 
     this->addService(
-        "BREAK",
-        "Stop all running tasks",
-        "",
-        [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-            if (static_resource->is_ready.load()) [[likely]] {
-                static_resource->executor->submit(
-                    [cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
-                        static_resource->current_task_id.fetch_add(1);
-                        break_task(cmd, transport, encoder);
-                    });
-            }
-            return MA_OK;
-        });
+      "NAME?", "Get device name", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+              get_device_name(cmd, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    this->addService(
+      "STAT?", "Get device status", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+              get_device_status(cmd, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    this->addService(
+      "VER?", "Get device version", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+              get_version(cmd, transport, encoder, MA_AT_API_VERSION);
+          });
+          return MA_OK;
+      });
+
+    this->addService(
+      "RST", "Reset device", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+              static_resource->device->~Device();
+          });
+          return MA_OK;
+      });
+
+    this->addService(
+      "BREAK", "Stop all running tasks", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          if (static_resource->is_ready.load()) [[likely]] {
+              static_resource->executor->submit(
+                [cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) {
+                    static_resource->current_task_id.fetch_add(1);
+                    break_task(cmd, transport, encoder);
+                });
+          }
+          return MA_OK;
+      });
 
     this->addService("YIELD",
                      "Yield running tasks for a period time",
                      "TIME_S",
                      [](std::vector<std::string> args, Transport& Transport, Encoder& Encoder) {
                          static_resource->executor->submit(
-                             [cmd    = std::move(args[0]),
-                              period = std::atoi(args[1].c_str()),
-                              &Transport,
-                              &Encoder](const std::atomic<bool>& stop_token) mutable {
-                                 while (stop_token.load(std::memory_order_seq_cst) && period > 0) {
-                                     Thread::yield();
-                                     period -= 1;
-                                 }
-                             });
+                           [cmd = std::move(args[0]), period = std::atoi(args[1].c_str()), &Transport, &Encoder](
+                             const std::atomic<bool>& stop_token) mutable {
+                               while (stop_token.load(std::memory_order_seq_cst) && period > 0) {
+                                   Thread::yield();
+                                   period -= 1;
+                               }
+                           });
+                         return MA_OK;
+                     });
+
+    this->addService("LED",
+                     "Set LED status",
+                     "ENABLE/DISABLE",
+                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+                         static_resource->executor->submit(
+                           [cmd = std::move(args[0]), sta = std::atoi(args[1].c_str()), &transport, &encoder](
+                             const std::atomic<bool>&) { task_status(cmd, sta, transport, encoder); });
+
                          return MA_OK;
                      });
 
     this->addService(
-        "LED",
-        "Set LED status",
-        "ENABLE/DISABLE",
-        [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-            static_resource->executor->submit(
-                [cmd = std::move(args[0]), sta = std::atoi(args[1].c_str()), &transport, &encoder](
-                    const std::atomic<bool>&) { task_status(cmd, sta, transport, encoder); });
+      "MODELS?", "Get available models", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getAvailableModels(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
-            return MA_OK;
+    this->addService(
+      "MODEL?", "Get current model", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getModelInfo(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    this->addService(
+      "MODEL",
+      "Set current model",
+      "MODEL_ID",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              static_resource->current_task_id += 1;
+              configureModel(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "INFO?", "Get stored info", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              readInfo(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService("INFO", "Set info", "VALUE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            storeInfo(args, transport, encoder);
         });
-
-    this->addService("MODELS?",
-                     "Get available models",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([args = std::move(args),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             getAvailableModels(args, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("MODEL?",
-                     "Get current model",
-                     "",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([args = std::move(args),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             getModelInfo(args, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-    this->addService("MODEL",
-                     "Set current model",
-                     "MODEL_ID",
-                     [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                         static_resource->executor->submit([args = std::move(args),
-                                                              &transport,
-                                                              &encoder](const std::atomic<bool>&) {
-                             static_resource->current_task_id += 1;
-                             configureModel(args, transport, encoder);
-                         });
-                         return MA_OK;
-                     });
-
-
-    addService("INFO?",
-               "Get stored info",
-               "",
-               [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                   static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                       readInfo(args, transport, encoder);
-                   });
-                   return MA_OK;
-               });
-
-    addService("INFO",
-               "Set info",
-               "VALUE",
-               [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                   static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                       storeInfo(args, transport, encoder);
-                   });
-                   return MA_OK;
-               });
+        return MA_OK;
+    });
 
     addService(
       "SENSORS?",
@@ -264,109 +231,95 @@ ma_err_t ATServer::init() {
           return MA_OK;
       });
 
-    addService("SENSOR",
-               "Configure current sensor",
-               "SENSOR_ID,ENABLE,OPT_ID",
-               [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                   static_resource->executor->submit(
-                     [args = std::move(args),
-                      &transport,
-                      &encoder](const std::atomic<bool>&) { 
-                        static_resource->current_task_id += 1;
-                        configureSensor(args, transport, encoder); });
-                   return MA_OK;
-               });
+    addService(
+      "SENSOR",
+      "Configure current sensor",
+      "SENSOR_ID,ENABLE,OPT_ID",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              static_resource->current_task_id += 1;
+              configureSensor(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
-    addService("SAMPLE",
-                "Sample sensor data",
-                "N_TIMES",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                     static_resource->executor->submit(
-                        [args = std::move(args),
-                         &transport,
-                         &encoder](const std::atomic<bool>&) { 
-                            static_resource->current_task_id += 1;
-                            Sample::create(args, transport, encoder, static_resource->current_task_id)->run();
-                            
-                             });
-                     return MA_OK;
-                });
+    addService(
+      "SAMPLE",
+      "Sample sensor data",
+      "N_TIMES",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              static_resource->current_task_id += 1;
+              Sample::create(args, transport, encoder, static_resource->current_task_id)->run();
+          });
+          return MA_OK;
+      });
 
-    addService("INVOKE",
-                "Invoke model",
-                "N_TIMES,RESULTS_ONLY",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                    static_resource->executor->submit(
-                        [args = std::move(args),
-                         &transport,
-                         &encoder](const std::atomic<bool>&) { 
-                            static_resource->current_task_id += 1;
-                            Invoke::create(args, transport, encoder, static_resource->current_task_id)->run();
-                            
-                             });
-                    return MA_OK;
-                });
+    addService(
+      "INVOKE",
+      "Invoke model",
+      "N_TIMES,RESULTS_ONLY",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              static_resource->current_task_id += 1;
+              Invoke::create(args, transport, encoder, static_resource->current_task_id)->run();
+          });
+          return MA_OK;
+      });
 
-    addService("ALGO",
-               "Set algorithm type",
-                "ALGO_ID",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                     static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                          configureAlgorithm(args, transport, encoder);
-                     });
-                     return MA_OK;
-                });
-    
-    addService("ALGO?",
-               "Get algorithm type",
-                "",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                     static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                          getAlgorithmInfo(args, transport, encoder);
-                     });
-                     return MA_OK;
-                });
+    addService(
+      "ALGO",
+      "Set algorithm type",
+      "ALGO_ID",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              configureAlgorithm(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
-    addService("TIOU?",
-                "Get IOU threshold",
-                "",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                        getNMSThreshold(args, transport, encoder);
-                    });
-                    return MA_OK;
-                });
-    
-    addService("TSCORE?",
-                "Get score threshold",
-                "",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                        getScoreThreshold(args, transport, encoder);
-                    });
-                    return MA_OK;
-                });
+    addService(
+      "ALGO?", "Get algorithm type", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getAlgorithmInfo(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
-    addService("TIOU",
-                "Set IOU threshold",
-                "VALUE",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                        setNMSThreshold(args, transport, encoder);
-                    });
-                    return MA_OK;
-                });
+    addService(
+      "TIOU?", "Get IOU threshold", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getNMSThreshold(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
-    addService("TSCORE",
-                "Set score threshold",
-                "VALUE",
-                [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
-                    static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
-                        setScoreThreshold(args, transport, encoder);
-                    });
-                    return MA_OK;
-                });
+    addService(
+      "TSCORE?", "Get score threshold", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getScoreThreshold(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
+    addService(
+      "TIOU", "Set IOU threshold", "VALUE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setNMSThreshold(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "TSCORE",
+      "Set score threshold",
+      "VALUE",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setScoreThreshold(args, transport, encoder);
+          });
+          return MA_OK;
+      });
 
     return MA_OK;
 }

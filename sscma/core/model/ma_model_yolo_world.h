@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "ma_model_detector.h"
 #include "core/ma_types.h"
+#include "ma_model_detector.h"
 
 namespace ma::model {
 
@@ -27,7 +27,9 @@ class YoloWorld : public Detector {
     ma_err_t postprocess() override;
 
     ma_err_t postProcessI8();
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
     ma_err_t postProcessF32();
+#endif
 
    public:
     YoloWorld(Engine* engine);

@@ -20,6 +20,7 @@
 #define MA_STORAGE_KEY_MODEL_DIR       "model#addr"
 
 #define MA_STORAGE_KEY_SENSOR_ID       "sensor#id"
+#define MA_STORAGE_KEY_SENSOR_OPT_ID   "sensor#opt_id"
 
 #define MA_STORAGE_KEY_WIFI_SSID       "wifi#ssid"
 #define MA_STORAGE_KEY_WIFI_BSSID      "wifi#bssid"

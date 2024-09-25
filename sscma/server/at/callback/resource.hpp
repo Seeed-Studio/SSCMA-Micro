@@ -34,7 +34,6 @@ struct StaticResource final {
         MA_LOGD(MA_TAG, "Initializing executor");
         static Executor executor_default;
         executor = &executor_default;
-
     }
 
    public:
@@ -51,7 +50,7 @@ struct StaticResource final {
     size_t                   current_model_id = 0;
     size_t                   current_sensor_id = 0;
     size_t                   current_algorithm_id = 0;
-
+    
     float shared_threshold_score = 0.25;
     float shared_threshold_nms   = 0.45;
 

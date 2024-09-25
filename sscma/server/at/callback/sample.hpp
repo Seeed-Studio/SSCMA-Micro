@@ -47,6 +47,11 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
         _task_id = task_id;
 
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+        _buffer      = reinterpret_cast<void*>(MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR);
+        _buffer_size = 0;
+#endif
+
         static_resource->is_sample = true;
     }
 
@@ -90,12 +95,16 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
 
-    void eventReply(int32_t w, int32_t h) {
+    void eventReply() {
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+        reinterpret_cast<char*>(_buffer)[_buffer_size] = '\0';
+        _encoder->write("image", reinterpret_cast<char*>(_buffer), _buffer_size);
+#else
         _encoder->write("image", _buffer);
-        _encoder->write("width", w);
-        _encoder->write("height", h);
+#endif
+        if (_event_hook) _event_hook(*_encoder);
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
@@ -115,23 +124,49 @@ class Sample final : public std::enable_shared_from_this<Sample> {
             goto Err;
 
         buffer_size = 4 * ((frame.size + 2) / 3);
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+        if (buffer_size > MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE) {
+            MA_LOGE(MA_TAG, "buffer_size > MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE");
+            goto Err;
+        }
+        _buffer_size = buffer_size;
+#else
         _buffer.resize(buffer_size);
+#endif
 
-        ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
-                                 frame.size,
-                                 reinterpret_cast<char*>(_buffer.data()),
-                                 &buffer_size);
+        {
+            auto ret = ma::utils::base64_encode(reinterpret_cast<unsigned char*>(frame.data),
+                                                frame.size,
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+                                                reinterpret_cast<char*>(_buffer),
+#else
+                                                reinterpret_cast<char*>(_buffer.data()),
+#endif
+                                                &buffer_size);
+            if (ret != MA_OK) {
+                MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
+            }
+        }
 
         camera->returnFrame(frame);
 
-        eventReply(frame.width, frame.height);
+        if (!_event_hook) {
+            _event_hook = [&frame](Encoder& encoder) {
+                int16_t rotation = static_cast<int>(frame.rotate) * 90;
+                encoder.write("rotation", rotation);
+                encoder.write("width", frame.width);
+                encoder.write("height", frame.height);
+            };
+        }
+
+        eventReply();
 
         static_resource->executor->submit(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
     Err:
-        eventReply(frame.width, frame.height);
+        eventReply();
     }
 
     inline bool isEverythingOk() const { return _ret == MA_OK; }
@@ -149,7 +184,20 @@ class Sample final : public std::enable_shared_from_this<Sample> {
     size_t  _task_id;
     int32_t _times;
 
+    std::function<void(Encoder&)> _event_hook;
+
+#if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
+    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
+        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
+    #endif
+    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
+        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
+    #endif
+    void*  _buffer;
+    size_t _buffer_size;
+#else
     std::string _buffer;
+#endif
 };
 
 }  // namespace ma::server::callback

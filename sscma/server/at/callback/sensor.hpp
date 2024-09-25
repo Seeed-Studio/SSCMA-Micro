@@ -28,11 +28,11 @@ void configureSensor(const std::vector<std::string>& args,
                      Encoder&                        encoder,
                      bool                            called_by_event = false) {
     MA_ASSERT(args.size() >= 4);
-    const auto& cmd       = args[0];
-    const auto  sensor_id = std::atoi(args[1].c_str());
-    const auto  enable    = std::atoi(args[2].c_str());
-    uint8_t     opt_id    = std::atoi(args[3].c_str());
-    auto&       sensors   = static_resource->device->getSensors();
+    const auto&  cmd       = args[0];
+    const size_t sensor_id = std::atoi(args[1].c_str());
+    const size_t enable    = std::atoi(args[2].c_str());
+    const size_t opt_id    = std::atoi(args[3].c_str());
+    auto&        sensors   = static_resource->device->getSensors();
 
     ma_err_t ret = MA_OK;
 
@@ -64,12 +64,12 @@ void configureSensor(const std::vector<std::string>& args,
         goto exit;
     }
 
-    if (static_resource->current_sensor_id != sensor_id) {
-        static_resource->current_sensor_id = sensor_id;
-        if (!called_by_event) {
-            MA_STORAGE_SET_POD(
-              ret, static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_ID, static_resource->current_sensor_id);
-        }
+    static_resource->current_sensor_id = sensor_id;
+
+    if (!called_by_event) {
+        MA_STORAGE_SET_POD(
+          ret, static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_ID, static_resource->current_sensor_id);
+        MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_OPT_ID, opt_id);
     }
 
 exit:
@@ -79,6 +79,27 @@ exit:
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
+}
+
+void initDefaultSensor(Encoder& encoder) {
+    if (static_resource->device->getTransports().empty()) {
+        MA_LOGD(MA_TAG, "No transport available");
+    }
+    auto& transport = static_resource->device->getTransports().front();
+    if (!transport || !*transport) {
+        MA_LOGD(MA_TAG, "Transport not available");
+        return;
+    }
+
+    size_t sensor_id = 0;
+    size_t opt_id    = 0;
+
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_ID, sensor_id, 0);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_OPT_ID, opt_id, 0);
+
+    std::vector<std::string> args{
+      "INIT@SENSOR", std::to_string(static_cast<int>(sensor_id)), "1", std::to_string(static_cast<int>(opt_id))};
+    configureSensor(args, *transport, encoder, true);
 }
 
 void getSensorStatus(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {

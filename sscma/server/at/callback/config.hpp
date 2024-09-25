@@ -18,11 +18,11 @@ void setScoreThreshold(const std::vector<std::string>& argv, Transport& transpor
         goto exit;
     }
 
-    static_resource->shared_threshold_score = std::stof(argv[1]);
+    static_resource->shared_threshold_score = std::atoi(argv[1].c_str()) / 100.0;
 
 exit:
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("threshold", std::to_string(static_resource->shared_threshold_score));
+    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_score * 100));
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
@@ -35,11 +35,11 @@ void setNMSThreshold(const std::vector<std::string>& argv, Transport& transport,
         goto exit;
     }
 
-    static_resource->shared_threshold_nms = std::stof(argv[1]);
+    static_resource->shared_threshold_nms = std::atoi(argv[1].c_str()) / 100.0;
 
 exit:
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("threshold", std::to_string(static_resource->shared_threshold_nms));
+    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_nms * 100));
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
@@ -47,8 +47,8 @@ exit:
 void getScoreThreshold(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("threshold", std::to_string(static_resource->shared_threshold_score));
+    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_score * 100));
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
@@ -56,8 +56,8 @@ void getScoreThreshold(const std::vector<std::string>& argv, Transport& transpor
 void getNMSThreshold(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("threshold", std::to_string(static_resource->shared_threshold_nms));
+    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_nms * 100));
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
