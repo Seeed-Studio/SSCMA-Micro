@@ -97,6 +97,11 @@ template <typename T> class SPSCRingBuffer {
         return size;
     }
 
+    void clear() noexcept {
+        m_head.store(0);
+        m_tail.store(0);
+    }
+
    private:
     alignas(32) std::atomic<size_t> m_head;
     alignas(32) std::atomic<size_t> m_tail;

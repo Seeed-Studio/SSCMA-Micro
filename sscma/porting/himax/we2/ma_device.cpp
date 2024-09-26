@@ -12,6 +12,7 @@
 #include "ma_config_board.h"
 #include "ma_storage_lfs.h"
 #include "ma_transport_console.h"
+#include "ma_transport_i2c.h"
 #include "ma_transport_serial.h"
 
 namespace ma {
@@ -80,6 +81,12 @@ Device::Device() {
         static Serial serial;
         serial.init(nullptr);
         m_transports.push_back(&serial);
+
+#ifdef MA_CONFIG_BOARD_I2C_SLAVE
+        static I2C i2c;
+        i2c.init(nullptr);
+        m_transports.push_back(&i2c);
+#endif
     }
 
     MA_LOGD(MA_TAG, "Initializing sensors");
