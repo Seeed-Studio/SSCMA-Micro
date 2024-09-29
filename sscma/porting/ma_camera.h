@@ -1,82 +1,93 @@
-#ifndef MA_CAMERA_H_
-#define MA_CAMERA_H_
+#ifndef _MA_CAMERA_H_
+#define _MA_CAMERA_H_
 
-#include <atomic>
-#include <functional>
+#include <core/ma_config_internal.h>
+#include <core/ma_types.h>
 
-#include "core/ma_common.h"
-#include "porting/ma_osal.h"
+#include <string>
+
+#include "ma_sensor.h"
 
 namespace ma {
 
-class Camera {
-public:
-    Camera(uint8_t index = 0)
-        : m_opened(false),
-          m_streaming(false),
-          m_capturing(false),
-          m_index(index),
-          m_format(MA_PIXEL_FORMAT_RGB888) {};
+class Camera : public Sensor {
+   public:
+    enum StreamMode : int {
+        kUnknown,
+        kRefreshOnReturn,
+        kRefreshOnRetrieve,
+    };
+
+    static std::string __repr__(StreamMode mode) noexcept {
+        switch (mode) {
+        case StreamMode::kRefreshOnReturn:
+            return "RefreshOnReturn";
+        case StreamMode::kRefreshOnRetrieve:
+            return "RefreshOnRetrieve";
+        default:
+            return "Unknown";
+        }
+    }
+
+    enum CtrlType : int {
+        kExposure,
+        kGain,
+        kWhiteBalance,
+        kFocus,
+        kZoom,
+        kPan,
+        kTilt,
+        kIris,
+        kShutter,
+        kBrightness,
+        kContrast,
+        kSaturation,
+        kHue,
+        kSharpness,
+        kGamma,
+        kColorTemperature,
+        kBacklightCompensation,
+        kRotate,
+        kRegister,
+    };
+
+    enum CtrlMode : int {
+        kRead,
+        kWrite,
+    };
+
+    struct CtrlValue {
+        union {
+            uint8_t  bytes[4];
+            uint16_t u16s[2];
+            int32_t  i32;
+            float    f32;
+        };
+    };
+
+   public:
+    Camera(size_t id) noexcept : Sensor(id, Sensor::Type::kCamera), m_streaming(false), m_stream_mode(kUnknown) {}
     virtual ~Camera() = default;
 
-    virtual ma_err_t open(uint16_t width,
-                          uint16_t height,
-                          ma_pixel_format_t format = MA_PIXEL_FORMAT_RGB888,
-                          int fps                  = -1) = 0;
-    virtual ma_err_t close()            = 0;
-    virtual operator bool() const       = 0;
+    [[nodiscard]] virtual ma_err_t startStream(StreamMode mode) noexcept = 0;
+    virtual void                   stopStream() noexcept                 = 0;
 
-    bool isOpened() const {
-        return m_opened.load();
-    }
+    [[nodiscard]] virtual ma_err_t commandCtrl(CtrlType ctrl, CtrlMode mode, CtrlValue& value) noexcept = 0;
 
-    bool isStreaming() const {
-        return m_streaming.load();
-    }
+    [[nodiscard]] virtual ma_err_t retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) noexcept = 0;
+    virtual void                   returnFrame(ma_img_t& frame) noexcept                             = 0;
 
-    virtual ma_err_t start()                                = 0;  // start streaming
-    virtual ma_err_t stop()                                 = 0;  // stop streaming
-    virtual ma_err_t capture()                              = 0;  // capture a frame
-    virtual ma_err_t read(ma_img_t* img, ma_tick_t timeout) = 0;  // read a frame if available
-    virtual ma_err_t release(ma_img_t* img)                 = 0;  // release a frame
+    [[nodiscard]] bool isStreaming() const noexcept { return m_streaming; }
 
-protected:
-    std::atomic<bool> m_opened;
-    std::atomic<bool> m_streaming;
-    std::atomic<bool> m_capturing;
-    uint16_t m_width;
-    uint16_t m_height;
-    uint8_t m_index;
-    ma_pixel_format_t m_format;
-};
+   private:
+    Camera(const Camera&)            = delete;
+    Camera& operator=(const Camera&) = delete;
 
-class CameraProvider {
-public:
-    CameraProvider()          = default;
-    virtual ~CameraProvider() = default;
-
-    virtual operator bool() const = 0;
-
-    bool isOpened() const {
-        return m_opened.load();
-    }
-
-    bool isStreaming() const {
-        return m_streaming.load();
-    }
-
-    void setCallback(std::function<ma_err_t(ma_camera_event_t)> callback) {
-        m_callback = std::move(callback);
-    }
-
-    virtual ma_err_t write(const ma_img_t* img) = 0;
-
-protected:
-    std::atomic<bool> m_opened;
-    std::atomic<bool> m_streaming;
-    std::function<ma_err_t(ma_camera_event_t)> m_callback;
+   protected:
+    bool       m_streaming;
+    StreamMode m_stream_mode;
 };
 
 }  // namespace ma
 
-#endif  // MA_CAMERA_H_
+#endif

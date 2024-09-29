@@ -4,67 +4,100 @@
 
 #include "core/ma_core.h"
 #include "porting/ma_porting.h"
-
 #include "resource.hpp"
 
 namespace ma::server::callback {
 
 using namespace ma::model;
 
-void get_available_models(const std::string& cmd, Transport& transport, Encoder& encoder) {
-    auto& models = Engine::getModels();
+void getAvailableModels(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
+    auto& models = static_resource->device->getModels();
     encoder.begin(MA_MSG_TYPE_RESP, MA_OK, cmd);
     encoder.write(models);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
-void set_model(const std::string& cmd,
-               Transport& transport,
-               Encoder& encoder,
-               uint8_t model_id,
-               bool called_by_event = false) {
 
-    ma_err_t ret = MA_OK;
-    auto& models = Engine::getModels();
+void configureModel(const std::vector<std::string>& args,
+                    Transport&                      transport,
+                    Encoder&                        encoder,
+                    bool                            called_by_event = false) {
+    MA_ASSERT(args.size() >= 2);
+    const auto&  cmd      = args[0];
+    const size_t model_id = std::atoi(args[1].c_str());
 
-    if (model_id >= models.size()) {
-        ret = MA_EINVAL;
+    ma_err_t ret    = MA_OK;
+    auto&    models = static_resource->device->getModels();
+
+    auto it = std::find_if(models.begin(), models.end(), [&](const ma_model_t& m) { return m.id == model_id; });
+    if (it == models.end()) {
+        ret = MA_ENOENT;
         goto exit;
     }
-    // init engine with tensor arena
-    ret = static_resource->engine->init();
+
+#if MA_USE_FILESYSTEM_POSIX
+    ret = static_resource->engine->load(static_cast<const char*>(it->addr));
+#else
+    ret = static_resource->engine->load(it->addr, it->size);
+#endif
     if (ret != MA_OK) [[unlikely]]
         goto exit;
 
-    // load model from flash to tensor arena (memory)
-    ret = static_resource->engine->load(models[model_id + 1].addr);
-    if (ret != MA_OK) [[unlikely]]
-        goto exit;
-
-    // if model id changed, update current model id
-    if (static_resource->cur_model_id != model_id + 1) {
-        static_resource->cur_model_id = model_id + 1;
-        if (!called_by_event)
-            ret = static_resource->storage->set(MA_STORAGE_KEY_MODEL_ID,
-                                                static_resource->cur_model_id);
+    if (static_resource->current_model_id != model_id) {
+        static_resource->current_model_id = model_id;
+        if (!called_by_event) {
+            MA_STORAGE_SET_POD(
+              ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MODEL_ID, static_resource->current_model_id);
+        }
     }
 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
-    if (static_resource->cur_model_id) {
-        encoder.write("model", models[static_resource->cur_model_id]);
+    if (static_resource->current_model_id) {
+        encoder.write("model", it == models.end() ? ma_model_t{} : *it);
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void get_model_info(const std::string& cmd, Transport& transport, Encoder& encoder) {
+void initDefaultModel(Encoder& encoder) {
+    if (static_resource->device->getTransports().empty()) {
+        MA_LOGD(MA_TAG, "No transport available");
+    }
+    auto& transport = static_resource->device->getTransports().front();
+    if (!transport || !*transport) {
+        MA_LOGD(MA_TAG, "Transport not available");
+        return;
+    }
 
-    auto& models = Engine::getModels();
+    size_t model_id = 0;
 
-    encoder.begin(MA_MSG_TYPE_RESP, static_resource->cur_model_id ? MA_OK : MA_ENOENT, cmd);
-    if (static_resource->cur_model_id) {
-        encoder.write("model", models[static_resource->cur_model_id]);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MODEL_ID, model_id, 0);
+
+    std::vector<std::string> args{"INIT@MODEL", std::to_string(static_cast<int>(model_id))};
+    configureModel(args, *transport, encoder, true);
+}
+
+void getModelInfo(const std::vector<std::string>& args, Transport& transport, Encoder& encoder) {
+    MA_ASSERT(args.size() >= 1);
+    const auto& cmd = args[0];
+
+    ma_err_t ret    = MA_OK;
+    auto&    models = static_resource->device->getModels();
+
+    auto it = std::find_if(
+      models.begin(), models.end(), [&](const ma_model_t& m) { return m.id == static_resource->current_model_id; });
+    if (it == models.end()) {
+        ret = MA_ENOENT;
+    }
+
+    encoder.begin(MA_MSG_TYPE_RESP, ret, cmd);
+    if (it != models.end()) {
+        std::vector<ma_model_t> model{*it};
+        encoder.write(model);
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());

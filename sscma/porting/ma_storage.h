@@ -1,47 +1,220 @@
 #ifndef _MA_STORAGE_H_
 #define _MA_STORAGE_H_
 
-#include "core/ma_common.h"
+#include <ma_config_board.h>
 
+#include <cstring>
 #include <string>
+
+#define MA_STORAGE_ENABLE
+
+#if not defined(MA_STORAGE_ENABLE)
+    #define MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                 ((void)0)
+    #define MA_STORAGE_SET_STR(ret, p_storage, key, value)             ((void)0)
+    #define MA_STORAGE_NOSTA_SET_STR(p_storage, key, value)            ((void)0)
+    #define MA_STORAGE_SET_CSTR(ret, p_storage, key, value)            ((void)0)
+    #define MA_STORAGE_NOSTA_SET_CSTR(p_storage, key, value)           ((void)0)
+    #define MA_STORAGE_SET_ASTR(ret, p_storage, key, value)            ((void)0)
+    #define MA_STORAGE_NOSTA_SET_ASTR(p_storage, key, value)           ((void)0)
+    #define MA_STORAGE_SET_POD(ret, p_storage, key, value)             ((void)0)
+    #define MA_STORAGE_NOSTA_SET_POD(p_storage, key, value)            ((void)0)
+    #define MA_STORAGE_SET_RVPOD(ret, p_storage, key, value)           ((void)0)
+    #define MA_STORAGE_NOSTA_SET_RVPOD(p_storage, key, value)          ((void)0)
+    #define MA_STORAGE_GET_STR(p_storage, key, value, _default)        ((void)0)
+    #define MA_STORAGE_GET_CSTR(p_storage, key, value, size, _default) ((void)0)
+    #define MA_STORAGE_GET_ASTR(p_storage, key, value, _default)       ((void)0)
+    #define MA_STORAGE_GET_POD(p_storage, key, value, _default)        ((void)0)
+    #define MA_STORAGE_REMOVE(ret, p_storage, key)                     ((void)0)
+    #define MA_STORAGE_NOSTA_REMOVE(p_storage, key)                    ((void)0)
+    #define MA_STORAGE_EXISTS(p_storage, key)                          ((void)0)
+#endif
+
+#if not defined(MA_STORAGE_CHECK_NULL_PTR)
+    #define MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage) \
+        if (!p_storage) {                              \
+            break;                                     \
+        }
+#endif
+
+#if not defined(MA_STORAGE_SET_STR)
+    #define MA_STORAGE_SET_STR(ret, p_storage, key, value)         \
+        do {                                                       \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)             \
+            ret = p_storage->set(key, value.data(), value.size()); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_SET_STR)
+    #define MA_STORAGE_NOSTA_SET_STR(p_storage, key, value) \
+        do {                                                \
+            [[maybe_unused]] int ret;                       \
+            MA_STORAGE_SET_STR(ret, p_storage, key, value); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_SET_CSTR)
+    #define MA_STORAGE_SET_CSTR(ret, p_storage, key, value)       \
+        do {                                                      \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)            \
+            ret = p_storage->set(key, value, std::strlen(value)); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_SET_CSTR)
+    #define MA_STORAGE_NOSTA_SET_CSTR(p_storage, key, value) \
+        do {                                                 \
+            [[maybe_unused]] int ret;                        \
+            MA_STORAGE_SET_CSTR(ret, p_storage, key, value); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_SET_ASTR)
+    #define MA_STORAGE_SET_ASTR(ret, p_storage, key, value)      \
+        do {                                                     \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)           \
+            ret = p_storage->set(key, value, sizeof(value) - 1); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_SET_ASTR)
+    #define MA_STORAGE_NOSTA_SET_ASTR(p_storage, key, value) \
+        do {                                                 \
+            [[maybe_unused]] int ret;                        \
+            MA_STORAGE_SET_ASTR(ret, p_storage, key, value); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_SET_POD)
+    #define MA_STORAGE_SET_POD(ret, p_storage, key, value)    \
+        do {                                                  \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)        \
+            ret = p_storage->set(key, &value, sizeof(value)); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_SET_POD)
+    #define MA_STORAGE_NOSTA_SET_POD(p_storage, key, value) \
+        do {                                                \
+            [[maybe_unused]] int ret;                       \
+            MA_STORAGE_SET_POD(ret, p_storage, key, value); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_SET_RVPOD)
+    #define MA_STORAGE_SET_RVPOD(ret, p_storage, key, value)              \
+        do {                                                              \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                    \
+            decltype(value) tmp = value;                                  \
+            ret                 = p_storage->set(key, &tmp, sizeof(tmp)); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_SET_RVPOD)
+    #define MA_STORAGE_NOSTA_SET_RVPOD(p_storage, key, value) \
+        do {                                                  \
+            [[maybe_unused]] int ret;                         \
+            MA_STORAGE_SET_RVPOD(ret, p_storage, key, value); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_GET_STR)
+    #define MA_STORAGE_GET_STR(p_storage, key, value, _default) \
+        do {                                                    \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)          \
+            std::string buffer;                                 \
+            auto        ret = p_storage->get(key, buffer);      \
+            if (ret != MA_OK) {                                 \
+                value = _default;                               \
+                break;                                          \
+            }                                                   \
+            value = std::move(buffer);                          \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_GET_CSTR)
+    #define MA_STORAGE_GET_CSTR(p_storage, key, value, size, _default) \
+        do {                                                           \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                 \
+            std::string buffer;                                        \
+            auto        ret = p_storage->get(key, buffer);             \
+            if (ret != MA_OK) {                                        \
+                std::strncpy(value, _default, size);                   \
+            }                                                          \
+            std::strncpy(value, buffer.c_str(), size);                 \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_GET_ASTR)
+    #define MA_STORAGE_GET_ASTR(p_storage, key, value, _default) \
+        MA_STORAGE_GET_CSTR(p_storage, key, value, sizeof(value) - 1, _default)
+#endif
+
+#if not defined(MA_STORAGE_GET_POD)
+    #define MA_STORAGE_GET_POD(p_storage, key, value, _default)         \
+        do {                                                            \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage)                  \
+            std::string buffer;                                         \
+            ma_err_t    err = p_storage->get(key, buffer);              \
+            if (err != MA_OK || sizeof(value) > buffer.size()) {        \
+                value = _default;                                       \
+                break;                                                  \
+            }                                                           \
+            value = *reinterpret_cast<decltype(value)*>(buffer.data()); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_REMOVE)
+    #define MA_STORAGE_REMOVE(ret, p_storage, key)     \
+        do {                                           \
+            MA_STORAGE_CHECK_NULL_PTR_BREAK(p_storage) \
+            ret = p_storage->remove(key);              \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_NOSTA_REMOVE)
+    #define MA_STORAGE_NOSTA_REMOVE(p_storage, key) \
+        do {                                        \
+            [[maybe_unused]] int ret;               \
+            MA_STORAGE_REMOVE(ret, p_storage, key); \
+        } while (0)
+#endif
+
+#if not defined(MA_STORAGE_EXISTS)
+    #if defined(MA_STORAGE_CHECK_NULL_PTR)
+        #define MA_STORAGE_EXISTS(p_storage, key)                                                                   \
+            [](Storage* p_storage, const std::string& str) -> bool { return p_storage && p_storage->exists(str); }( \
+                                                             p_storage, key)
+    #else
+        #define MA_STORAGE_EXISTS(p_storage, key) \
+            [](Storage* p_storage, const std::string& str) -> bool { return p_storage->exists(str); }(p_storage, key)
+    #endif
+#endif
 
 namespace ma {
 
 class Storage {
-public:
-    Storage()          = default;
+   public:
+    Storage() : m_initialized(false) {}
     virtual ~Storage() = default;
 
-    // virtual ma_err_t set(const std::string& key, bool value)               = 0;
-    virtual ma_err_t set(const std::string& key, int8_t value)             = 0;
-    virtual ma_err_t set(const std::string& key, int16_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, int32_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, int64_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, uint8_t value)            = 0;
-    virtual ma_err_t set(const std::string& key, uint16_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, uint32_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, uint64_t value)           = 0;
-    virtual ma_err_t set(const std::string& key, float value)              = 0;
-    virtual ma_err_t set(const std::string& key, double value)             = 0;
-    virtual ma_err_t set(const std::string& key, const std::string& value) = 0;
-    virtual ma_err_t set(const std::string& key, void* value, size_t size) = 0;
-    // virtual ma_err_t get(const std::string& key, bool& value)              = 0;
-    virtual ma_err_t get(const std::string& key, int8_t& value, int8_t default_ = 0)            = 0;
-    virtual ma_err_t get(const std::string& key, int16_t& value, int16_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, int32_t& value, int32_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, int64_t& value, int64_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, uint8_t& value, uint8_t default_ = 0)          = 0;
-    virtual ma_err_t get(const std::string& key, uint16_t& value, uint16_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, uint32_t& value, uint32_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, uint64_t& value, uint64_t default_ = 0)        = 0;
-    virtual ma_err_t get(const std::string& key, float& value, float default_ = 0)              = 0;
-    virtual ma_err_t get(const std::string& key, double& value, double default_ = 0)            = 0;
-    virtual ma_err_t get(const std::string& key, std::string& value, const std::string default_ = "") = 0;
-    virtual ma_err_t get(const std::string& key, char* value, const char* default_ = "")              = 0;
+    Storage(const Storage&)            = delete;
+    Storage& operator=(const Storage&) = delete;
 
-    virtual ma_err_t remove(const std::string& key) = 0;
-    virtual bool exists(const std::string& key)     = 0;
+    virtual ma_err_t init(const void* config) noexcept = 0;
+    virtual void     deInit() noexcept                 = 0;
+
+    operator bool() const noexcept { return m_initialized; }
+
+    virtual ma_err_t set(const std::string& key, const void* value, size_t size) noexcept = 0;
+    virtual ma_err_t get(const std::string& key, std::string& value) noexcept             = 0;
+
+    virtual ma_err_t remove(const std::string& key) noexcept = 0;
+    virtual bool     exists(const std::string& key) noexcept = 0;
+
+   protected:
+    bool m_initialized;
 };
+
 }  // namespace ma
 
 #endif  // _MA_STORAGE_H_

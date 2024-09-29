@@ -52,12 +52,6 @@ public:
     // virtual ma_quant_param_t getOutputQuantParam(const char* name) = 0;
 #endif
 
-    static std::vector<ma_model_t>& getModels() {
-        return m_models;
-    }
-
-    static std::vector<ma_model_t>& findModels(const char* address, size_t size = 0);
-    static std::vector<ma_model_t> m_models;
 };
 
 }  // namespace ma::engine

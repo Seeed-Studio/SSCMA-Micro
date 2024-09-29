@@ -1,16 +1,16 @@
-#include <cJSON.h>
-
 #include "ma_codec_json.h"
+
+#include <cJSON.h>
 
 namespace ma {
 
 static const char* TAG = "ma::codec::JSON";
 
 EncoderJSON::EncoderJSON() : m_mutex(false), m_root(nullptr), m_data(nullptr) {
-    static bool s_inited       = false;
-    static cJSON_Hooks g_hooks = {
-        .malloc_fn = ma_malloc,
-        .free_fn   = ma_free,
+    static bool        s_inited = false;
+    static cJSON_Hooks g_hooks  = {
+       .malloc_fn = ma_malloc,
+       .free_fn   = ma_free,
     };
     if (!s_inited) {  // only init once
         cJSON_InitHooks(&g_hooks);
@@ -24,9 +24,7 @@ EncoderJSON::~EncoderJSON() {
     }
 }
 
-EncoderJSON::operator bool() const {
-    return m_root != nullptr;
-}
+EncoderJSON::operator bool() const { return m_root != nullptr; }
 
 ma_err_t EncoderJSON::begin() {
     m_mutex.lock();
@@ -79,10 +77,7 @@ err:
     return ret;
 }
 
-ma_err_t EncoderJSON::begin(ma_msg_type_t type,
-                            ma_err_t code,
-                            const std::string& name,
-                            const std::string& data) {
+ma_err_t EncoderJSON::begin(ma_msg_type_t type, ma_err_t code, const std::string& name, const std::string& data) {
     m_mutex.lock();
     ma_err_t ret = reset();
     if (ret != MA_OK) [[unlikely]] {
@@ -101,10 +96,7 @@ ma_err_t EncoderJSON::begin(ma_msg_type_t type,
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::begin(ma_msg_type_t type,
-                            ma_err_t code,
-                            const std::string& name,
-                            uint64_t data) {
+ma_err_t EncoderJSON::begin(ma_msg_type_t type, ma_err_t code, const std::string& name, uint64_t data) {
     m_mutex.lock();
     ma_err_t ret = reset();
     if (ret != MA_OK) [[unlikely]] {
@@ -125,7 +117,7 @@ ma_err_t EncoderJSON::begin(ma_msg_type_t type,
 
 ma_err_t EncoderJSON::end() {
     ma_err_t ret = MA_OK;
-    char* str    = nullptr;
+    char*    str = nullptr;
     if (m_root == nullptr) [[unlikely]] {
         ret = MA_EPERM;
         goto exit;
@@ -147,17 +139,11 @@ exit:
     return ret;
 }
 
-const std::string& EncoderJSON::toString() const {
-    return m_string;
-}
+const std::string& EncoderJSON::toString() const { return m_string; }
 
-const void* EncoderJSON::data() const {
-    return m_string.c_str();
-}
+const void* EncoderJSON::data() const { return m_string.c_str(); }
 
-const size_t EncoderJSON::size() const {
-    return m_string.size();
-}
+const size_t EncoderJSON::size() const { return m_string.size(); }
 
 ma_err_t EncoderJSON::reset() {
     m_string.clear();
@@ -251,8 +237,7 @@ ma_err_t EncoderJSON::write(const std::string& key, const std::string& value) {
     if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
         return MA_EEXIST;
     }
-    return cJSON_AddStringToObject(m_data, key.c_str(), value.c_str()) != nullptr ? MA_OK
-                                                                                  : MA_FAILED;
+    return cJSON_AddStringToObject(m_data, key.c_str(), value.c_str()) != nullptr ? MA_OK : MA_FAILED;
 }
 
 ma_err_t EncoderJSON::write(const std::string& key, ma_model_t value) {
@@ -269,11 +254,12 @@ ma_err_t EncoderJSON::write(const std::string& key, ma_model_t value) {
     cJSON_AddItemToObject(item, "type", cJSON_CreateNumber(value.type));
     cJSON_AddItemToObject(item, "size", cJSON_CreateNumber(value.size));
 #if MA_USE_FILESYSTEM
-    cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<char*>(value.name)));
-    cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<char*>(value.addr)));
+    cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<const char*>(value.name)));
+    cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<const char*>(value.addr)));
 #else
-    cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(static_cast<int>(value.name)));
-    cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(static_cast<int>(value.addr)));
+
+    cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(reinterpret_cast<uint32_t>(value.name)));
+    cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(reinterpret_cast<uint32_t>(value.addr)));
 #endif
 
     return MA_OK;
@@ -293,13 +279,13 @@ ma_err_t EncoderJSON::write(ma_perf_t value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::forward_list<ma_class_t>& value) {
+ma_err_t EncoderJSON::write(const  std::forward_list<ma_class_t>& value) {
     if (cJSON_GetObjectItem(m_data, "classes") != nullptr) {
         return MA_EEXIST;
     }
     cJSON* array = cJSON_AddArrayToObject(m_data, "classes");
     if (array == nullptr) {
-        MA_LOGD(TAG, "1cJSON_AddArrayToObject failed");
+        MA_LOGD(TAG, "cJSON_AddArrayToObject failed");
         return MA_FAILED;
     }
     for (auto it = value.begin(); it != value.end(); it++) {
@@ -314,7 +300,42 @@ ma_err_t EncoderJSON::write(std::forward_list<ma_class_t>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::forward_list<ma_point_t>& value) {
+ma_err_t EncoderJSON::write(const std::vector<ma_keypoint3f_t>& value) {
+    cJSON* array = cJSON_CreateArray();
+    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "keypoints", array);
+    if (array == nullptr) {
+        return MA_FAILED;
+    }
+    for (auto it = value.begin(); it != value.end(); it++) {
+        cJSON* item = cJSON_CreateArray();
+        if (item == nullptr) {
+            return MA_FAILED;
+        }
+        // pts
+        cJSON* pts = cJSON_CreateArray();
+        for (const auto& pt : it->pts) {
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.x));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.y));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.z));
+        }
+        cJSON_AddItemToArray(item, pts);
+        // box
+        cJSON* box = cJSON_CreateArray();
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.x));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.y));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.w));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.h));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.score));
+        cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.target));
+        cJSON_AddItemToArray(item, box);
+        cJSON_AddItemToArray(array, item);
+    }
+
+    return MA_OK;
+
+}
+
+ma_err_t EncoderJSON::write(const  std::forward_list<ma_point_t>& value) {
     if (cJSON_GetObjectItem(m_data, "points") != nullptr) {
         return MA_EEXIST;
     }
@@ -335,7 +356,7 @@ ma_err_t EncoderJSON::write(std::forward_list<ma_point_t>& value) {
     }
     return MA_OK;
 }
-ma_err_t EncoderJSON::write(std::forward_list<ma_bbox_t>& value) {
+ma_err_t EncoderJSON::write(const std::forward_list<ma_bbox_t>& value) {
     if (cJSON_GetObjectItem(m_data, "boxes") != nullptr) {
         return MA_EEXIST;
     }
@@ -362,9 +383,8 @@ ma_err_t EncoderJSON::write(std::forward_list<ma_bbox_t>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(std::vector<ma_model_t>& value) {
-    cJSON* array = cJSON_CreateArray();
-    cJSON_ReplaceItemInObjectCaseSensitive(m_root, "data", array);
+ma_err_t EncoderJSON::write(const std::vector<ma_model_t>& value) {
+    cJSON* array = cJSON_AddArrayToObject(m_data, "models");
     if (array == nullptr) {
         return MA_FAILED;
     }
@@ -377,15 +397,92 @@ ma_err_t EncoderJSON::write(std::vector<ma_model_t>& value) {
         cJSON_AddItemToObject(item, "type", cJSON_CreateNumber(it->type));
         cJSON_AddItemToObject(item, "size", cJSON_CreateNumber(it->size));
 #if MA_USE_FILESYSTEM
-        cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<char*>(it->name)));
-        cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<char*>(it->addr)));
+        cJSON_AddItemToObject(item, "name", cJSON_CreateString(static_cast<const char*>(it->name)));
+        cJSON_AddItemToObject(item, "address", cJSON_CreateString(static_cast<const char*>(it->addr)));
 #else
-        cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(static_cast<int>(it->name)));
-        cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(static_cast<int>(it->addr)));
+        cJSON_AddItemToObject(item, "name", cJSON_CreateNumber(reinterpret_cast<uint32_t>(it->name)));
+        cJSON_AddItemToObject(item, "address", cJSON_CreateNumber(reinterpret_cast<uint32_t>(it->addr)));
 #endif
 
         cJSON_AddItemToArray(array, item);
     }
+    return MA_OK;
+}
+
+ma_err_t EncoderJSON::write(const std::vector<ma::Sensor*>& value) {
+    cJSON* array = cJSON_AddArrayToObject(m_data, "sensors");
+    if (array == nullptr) {
+        return MA_FAILED;
+    }
+    for (auto it = value.begin(); it != value.end(); it++) {
+        cJSON* item = cJSON_CreateObject();
+        if (item == nullptr) {
+            return MA_FAILED;
+        }
+        cJSON_AddItemToObject(item, "id", cJSON_CreateNumber((*it)->getID()));
+        const auto& type = ma::Sensor::__repr__((*it)->getType());
+        cJSON_AddItemToObject(item, "type", cJSON_CreateString(type.c_str()));
+        cJSON_AddItemToObject(item, "initialized", cJSON_CreateBool(static_cast<bool>(*(*it))));
+        cJSON*      preset_items = cJSON_CreateArray();
+        const auto& presets      = (*it)->availablePresets();
+        size_t      j            = 0;
+        for (auto pit = presets.begin(); pit != presets.end(); ++pit) {
+            cJSON* preset_item = cJSON_CreateObject();
+            cJSON_AddItemToObject(preset_item, "id", cJSON_CreateNumber(j++));
+            cJSON_AddItemToObject(preset_item, "description", cJSON_CreateString(pit->description));
+            cJSON_AddItemToArray(preset_items, preset_item);
+        }
+        cJSON_AddItemToObject(item, "presets", preset_items);
+        const auto& current_preset = (*it)->currentPreset();
+        cJSON_AddItemToObject(item, "current_preset_index", cJSON_CreateNumber((*it)->currentPresetIdx()));
+        cJSON_AddItemToArray(array, item);
+    }
+    return MA_OK;
+}
+
+ma_err_t EncoderJSON::write(const std::string& key, const char* buffer, size_t size) {
+    if (cJSON_GetObjectItem(m_data, key.c_str()) != nullptr) {
+        return MA_EEXIST;
+    }
+
+    cJSON* item = cJSON_CreateStringReference(buffer);
+    if (item == nullptr) {
+        return MA_FAILED;
+    }
+    cJSON_AddItemToObject(m_data, key.c_str(), item);
+    return MA_OK;
+}
+
+ma_err_t EncoderJSON::write(const Sensor* value, size_t preset ) {
+    cJSON* array = cJSON_AddArrayToObject(m_data, "sensors");
+    if (array == nullptr || value == nullptr) {
+        return MA_FAILED;
+    }
+
+    const auto* it = value;
+
+    cJSON* item = cJSON_CreateObject();
+    if (item == nullptr) {
+        return MA_FAILED;
+    }
+    cJSON_AddItemToObject(item, "id", cJSON_CreateNumber(it->getID()));
+    const auto& type = ma::Sensor::__repr__(it->getType());
+    cJSON_AddItemToObject(item, "type", cJSON_CreateString(type.c_str()));
+    cJSON_AddItemToObject(item, "initialized", cJSON_CreateBool(static_cast<bool>(*it)));
+    const auto& presets      = it->availablePresets();
+    size_t      j            = 0;
+    for (auto pit = presets.begin(); pit != presets.end(); ++pit, ++j) {
+        if (j != preset) {
+            continue;
+        }
+        cJSON* preset_item = cJSON_CreateObject();
+        cJSON_AddItemToObject(preset_item, "id", cJSON_CreateNumber(j));
+        cJSON_AddItemToObject(preset_item, "description", cJSON_CreateString(pit->description));
+       cJSON_AddItemToObject(item, "current_preset", preset_item);
+    }
+    
+    const auto& current_preset = it->currentPreset();
+    cJSON_AddItemToArray(array, item);
     return MA_OK;
 }
 
@@ -398,17 +495,13 @@ DecoderJSON::~DecoderJSON() {
     }
 }
 
-DecoderJSON::operator bool() const {
-    return m_root != nullptr;
-}
+DecoderJSON::operator bool() const { return m_root != nullptr; }
 
-ma_err_t DecoderJSON::begin(const std::string& data) {
-    return begin(data.c_str(), data.size());
-}
+ma_err_t DecoderJSON::begin(const std::string& data) { return begin(data.c_str(), data.size()); }
 
 ma_err_t DecoderJSON::begin(const void* data, size_t size) {
-    ma_err_t ret = MA_OK;
-    cJSON* item  = nullptr;
+    ma_err_t ret  = MA_OK;
+    cJSON*   item = nullptr;
     m_mutex.lock();
     m_root = cJSON_Parse(static_cast<const char*>(data));
     if (m_root == nullptr) {
@@ -465,18 +558,11 @@ ma_err_t DecoderJSON::end() {
     return MA_OK;
 }
 
-ma_msg_type_t DecoderJSON::type() const {
-    return m_type;
-}
+ma_msg_type_t DecoderJSON::type() const { return m_type; }
 
-ma_err_t DecoderJSON::code() const {
-    return m_code;
-}
+ma_err_t DecoderJSON::code() const { return m_code; }
 
-
-std::string DecoderJSON::name() const {
-    return m_name;
-}
+std::string DecoderJSON::name() const { return m_name; }
 
 ma_err_t DecoderJSON::read(const std::string& key, int8_t& value) const {
     cJSON* item = cJSON_GetObjectItem(m_data, key.c_str());
@@ -646,6 +732,5 @@ ma_err_t DecoderJSON::read(std::forward_list<ma_bbox_t>& value) {
     }
     return MA_OK;
 };
-
 
 }  // namespace ma

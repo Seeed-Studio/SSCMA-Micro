@@ -26,7 +26,9 @@ class YoloV8 : public Detector {
     ma_err_t postprocess() override;
 
     ma_err_t postProcessI8();
+#ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
     ma_err_t postProcessF32();
+#endif
 
    public:
     YoloV8(Engine* engine);

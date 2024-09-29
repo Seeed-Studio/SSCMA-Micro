@@ -72,25 +72,25 @@ ma_model_type_t Model::getType() const {
     return m_type_;
 }
 
-void Model::setPreprocessDone(void (*fn)(void* ctx)) {
-    if (p_preprocess_done_ != nullptr) {
+void Model::setPreprocessDone(std::function<void(void*)> func) {
+    if (p_preprocess_done_) {
         MA_LOGW(TAG, "preprocess done function already set, overwrite it");
     }
-    p_preprocess_done_ = fn;
+    p_preprocess_done_ = std::move(func);
 }
 
-void Model::setPostprocessDone(void (*fn)(void* ctx)) {
-    if (p_postprocess_done_ != nullptr) {
+void Model::setPostprocessDone(std::function<void(void*)> func) {
+    if (p_postprocess_done_ ) {
         MA_LOGW(TAG, "postprocess done function already set, overwrite it");
     }
-    p_postprocess_done_ = fn;
+    p_postprocess_done_ = std::move(func);
 }
 
-void Model::setRunDone(void (*fn)(void* ctx)) {
-    if (p_underlying_run_done_ != nullptr) {
+void Model::setRunDone(std::function<void(void*)> func) {
+    if (p_underlying_run_done_ ) {
         MA_LOGW(TAG, "underlying run done function already set, overwrite it");
     }
-    p_underlying_run_done_ = fn;
+    p_underlying_run_done_ = std::move(func);
 }
 
 void Model::setUserCtx(void* ctx) {

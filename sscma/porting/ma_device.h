@@ -1,67 +1,50 @@
 #ifndef _MA_DEVICE_H_
 #define _MA_DEVICE_H_
 
-#include <forward_list>
+#include <core/ma_common.h>
 
-#include "core/ma_common.h"
+#include <vector>
 
 #include "ma_camera.h"
+#include "ma_sensor.h"
 #include "ma_storage.h"
 #include "ma_transport.h"
 
 namespace ma {
 
-class Device {
-public:
-    // singleton
-    Device()                         = default;
-    virtual ~Device()                = default;
+class Device final {
+   public:
+    static Device* getInstance() noexcept;
+    ~Device();
+
+   public:
+    const std::string& name() const noexcept { return m_name; }
+    const std::string& id() const noexcept { return m_id; }
+    const std::string& version() const noexcept { return m_version; }
+    size_t             bootCount() const noexcept { return m_bootcount; }
+
+    const std::vector<Transport*>& getTransports() noexcept { return m_transports; }
+    const std::vector<Sensor*>&    getSensors() noexcept { return m_sensors; }
+    const std::vector<ma_model_t>& getModels() noexcept { return m_models; }
+    Storage*                       getStorage() noexcept { return m_storage; }
+
+   private:
     Device(const Device&)            = delete;
     Device& operator=(const Device&) = delete;
 
-    virtual ma_err_t init()   = 0;
-    virtual ma_err_t deinit() = 0;
+    Device() noexcept;
 
-    static Device* getInstance();
-
-    std::string name() const {
-        return m_name;
-    }
-    std::string id() const {
-        return m_id;
-    }
-    std::string version() const {
-        return m_version;
-    }
-
-    std::forward_list<Transport*>& getTransports() {
-        return m_transports;
-    }
-    Storage* getStorage() {
-        return m_storage;
-    }
-
-    std::forward_list<Camera*>& getCameras() {
-        return m_cameras;
-    }
-
-    std::forward_list<ma_model_t>& getModels() {
-        return m_models;
-    }
-
-protected:
-    std::forward_list<Transport*> m_transports;
-    std::forward_list<Camera*> m_cameras;
-    std::forward_list<ma_model_t> m_models;
-    Storage* m_storage;
+   private:
     std::string m_name;
     std::string m_id;
     std::string m_version;
+    size_t      m_bootcount;
 
-private:
-    static Device* s_instance;
+    std::vector<Transport*> m_transports;
+    std::vector<Sensor*>    m_sensors;
+    std::vector<ma_model_t> m_models;
+    Storage*                m_storage;
 };
-
 
 }  // namespace ma
 

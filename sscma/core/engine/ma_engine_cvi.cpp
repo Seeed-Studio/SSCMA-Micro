@@ -8,55 +8,6 @@ namespace ma::engine {
 
 constexpr char TAG[] = "ma::engine::cvinn";
 
-std::vector<ma_model_t> Engine::m_models;
-
-std::vector<ma_model_t>& Engine::findModels(const char* address, size_t size) {
-
-    (void)size;
-
-    for (auto& model : m_models) {
-        if (model.addr != nullptr) {
-            ma_free(model.addr);
-        }
-
-        if (model.name != nullptr) {
-            ma_free(model.name);
-        }
-    }
-
-    m_models.clear();
-    m_models.shrink_to_fit();
-    // search *.cvimodel in path
-    DIR* dir;
-    struct dirent* ent;
-    if ((dir = opendir(address)) != nullptr) {
-        while ((ent = readdir(dir)) != nullptr) {
-            if (ent->d_type == DT_REG && strstr(ent->d_name, ".cvimodel") != nullptr) {
-                std::string model_path = address;
-                model_path += "/";
-                model_path += ent->d_name;
-                ma_model_t model;
-                model.id   = std::distance(m_models.begin(), m_models.end());
-                model.type = MA_MODEL_TYPE_UNDEFINED;
-                std::ifstream ifs(model_path.c_str(), std::ifstream::binary | std::ifstream::ate);
-                if (!ifs.is_open()) {
-                    MA_LOGW(TAG, "model %s corrupt.", model_path.c_str());
-                    continue;
-                }
-                model.size = ifs.tellg();
-                model.name = static_cast<char*>(ma_malloc(strlen(ent->d_name) + 1));
-                strcpy(static_cast<char*>(model.name), ent->d_name);
-                model.addr = static_cast<char*>(ma_malloc(strlen(model_path.c_str()) + 1));
-                strcpy(static_cast<char*>(model.addr), model_path.c_str());
-                m_models.push_back(model);
-                ifs.close();
-            }
-        }
-        closedir(dir);
-    }
-    return m_models;
-}
-
 
 static const ma_tensor_type_t mapped_tensor_types[] = {
     MA_TENSOR_TYPE_F32,

@@ -18,10 +18,10 @@ file(GLOB_RECURSE PORT_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.c $
 
 set(EXTENSION_SSCMA_SOURCES "")
 
-# if(SSCMA_EXTENSION_BYTETRACK)
-#     file(GLOB_RECURSE BYTETRACK_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.c ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.cpp)
-#     list(APPEND EXTENSION_SSCMA_SOURCES ${BYTETRACK_SSCMA_SOURCES})
-# endif()
+if(SSCMA_EXTENSION_BYTETRACK)
+    file(GLOB_RECURSE BYTETRACK_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.c ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.cpp)
+    list(APPEND EXTENSION_SSCMA_SOURCES ${BYTETRACK_SSCMA_SOURCES})
+endif()
 
 set(SSCMA_SOURCES
     ${CORE_SSCMA_SOURCES}
