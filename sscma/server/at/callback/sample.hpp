@@ -6,7 +6,7 @@
 
 #include "core/ma_core.h"
 #include "core/utils/ma_base64.h"
-#include "ma_codec.h"
+#include "server/at/codec/ma_codec.h"
 #include "porting/ma_porting.h"
 #include "resource.hpp"
 

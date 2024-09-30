@@ -18,7 +18,6 @@
     //      4: print debug
     //      5: print verbose
     #define MA_DEBUG_LEVEL 5
-    #warning "MA_DEBUG_LEVEL is not defined, use default value 5"
 #endif
 
 #ifndef MA_USE_DEBUG_MORE_INFO

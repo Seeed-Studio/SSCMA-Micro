@@ -1,55 +1,22 @@
 #ifndef _MA_CONFIG_BOARD_H_
 #define _MA_CONFIG_BOARD_H_
 
+#include <stdio.h>
+#include <stdlib.h>
 
-#ifndef CONFIG_MA_PORTING_SG200X
-#define MA_PORTING_SG200X 1
-#endif
-
-#ifndef CONFIG_MA_BOARD_RECAMERA
-#define MA_BOARD_RECAMERA 1
-#endif
-
-#ifndef CONFIG_MA_BOARD_NAME
-#define CONFIG_MA_BOARD_NAME "recamera"
-#endif
-
-#ifndef CONFIG_MA_CONFIG_FILE
-#define CONFIG_MA_CONFIG_FILE "/etc/sscma.conf"
-#endif
-
-#ifndef CONFIG_MA_OSAL_PTHREAD
-#define CONFIG_MA_OSAL_PTHREAD 1
-#endif
-
-#ifndef CONFIG_MA_ENGINE_CVINN
-#define CONFIG_MA_ENGINE_CVINN 1
-#endif
-
-#ifndef CONFIG_MA_TRANSPORT_MQTT
-#define CONFIG_MA_TRANSPORT_MQTT 0
-#endif
-
-#ifndef CONFIG_MA_CAMERA_MQTT
-#define CONFIG_MA_CAMERA_MQTT 1
-#endif
-
-#define CONFIG_MA_LIB_JPEGENC 1
-
-#ifndef CONFIG_MA_CAMERA_MQTT_FRAME_QUEUE_SIZE
-#define CONFIG_MA_CAMERA_MQTT_FRAME_QUEUE_SIZE 30  // 30 fps
-#endif
-
-#ifndef CONFIG_MA_MQTT_RECEIVE_BUFFER_SIZE
-#define CONFIG_MA_MQTT_RECEIVE_BUFFER_SIZE 8192
-#endif
-
-
-#define MA_USE_CAMERA_MQTT              CONFIG_MA_CAMERA_MQTT
-#define MA_CAMERA_MQTT_FRAME_QUEUE_SIZE CONFIG_MA_CAMERA_MQTT_FRAME_QUEUE_SIZE
-#define MA_MQTT_RECEIVE_BUFFER_SIZE     CONFIG_MA_MQTT_RECEIVE_BUFFER_SIZE
-
+#define MA_PORTING_SG200X               1
+#define MA_BOARD_RECAMERA               1
+#define MA_BOARD_NAME                   "recamera"
+#define MA_CONFIG_FILE                  "/etc/sscma.conf"
+#define MA_OSAL_PTHREAD                 1
+#define MA_USE_FILESYSTEM               1
+#define MA_USE_ENGINE_CVI               1
+#define MA_USE_ENGINE_TENSOR_NAME       1
+#define MA_USE_TRANSPORT_MQTT           1
 #define MA_SEVER_AT_EXECUTOR_STACK_SIZE 80 * 1024
 #define MA_SEVER_AT_EXECUTOR_TASK_PRIO  2
+
+#define ma_printf                       printf
+#define ma_abort                        abort
 
 #endif  // _MA_CONFIG_BOARD_H_

@@ -42,8 +42,7 @@ set(INCS_EIGEN "${EIGEN_INCLUDE_DIRS}")
 
 set(SRCS_EIGEN "")
 
-if(SG200X_PLATFORM)
-
+if(SOPHGO_PLATFORM)
 component_register(
     COMPONENT_NAME Eigen3::Eigen
     SRCS ${SRCS_EIGEN}
