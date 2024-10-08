@@ -159,7 +159,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
 
-    void eventReply() {
+
+    void eventReply(int width, int height) {
+
         _encoder->begin(MA_MSG_TYPE_EVT, _ret, _cmd);
         _encoder->write("count", _times);
 
@@ -171,7 +173,9 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             _encoder->write("image", _buffer);
 #endif
         }
-        serializeAlgorithmOutput(_algorithm, _encoder);
+
+        serializeAlgorithmOutput(_algorithm, _encoder, width, height);
+
         auto perf = _algorithm->getPerf();
         _encoder->write(perf);
         if (_event_hook) _event_hook(*_encoder);
@@ -257,14 +261,16 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
 
-        eventReply();
+        eventReply(frame.width, frame.height);
+
 
         static_resource->executor->submit(
           [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
     Err:
-        eventReply();
+        eventReply(frame.width, frame.height);
+
     }
 
     inline bool isEverythingOk() const { return _ret == MA_OK; }
