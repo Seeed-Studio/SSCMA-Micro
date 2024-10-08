@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <map>
 #include <string>
 
 #include "core/ma_common.h"
@@ -166,6 +168,18 @@ private:
 
 private:
     ma_timer_t m_timer;
+};
+
+class Signal {
+public:
+    static void install(std::vector<int> sigs, std::function<void(int sig)> callback);
+
+private:
+    static void sigHandler(int sig);
+
+private:
+    static std::map<int, std::vector<std::function<void(int sig)>>> s_callbacks;
+    static Mutex m_mutex;
 };
 
 

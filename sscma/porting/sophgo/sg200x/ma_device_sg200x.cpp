@@ -5,6 +5,8 @@
 #include <core/ma_common.h>
 #include <porting/ma_porting.h>
 
+#include "ma_camera_sg200x.h"
+
 namespace ma {
 
 Device::Device() noexcept {
@@ -54,6 +56,12 @@ Device::Device() noexcept {
         }
 
         m_transports.push_back(&transportMqtt);
+    }
+
+    MA_LOGD(MA_TAG, "Initializing camera");
+    {
+        static CameraSG200X camera(0);
+        m_sensors.push_back(&camera);
     }
 
     MA_LOGD(MA_TAG, "Initializing device done");

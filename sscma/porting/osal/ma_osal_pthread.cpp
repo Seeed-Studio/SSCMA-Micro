@@ -126,11 +126,9 @@ bool Thread::stop() {
     if (!m_started) {
         return false;
     }
-    MA_LOGD(TAG, "Thread::stop: %s", m_name.c_str());
     pthread_cancel(m_thread);
     pthread_join(m_thread, nullptr);
     m_started = false;
-    MA_LOGD(TAG, "Thread::stop: %s done", m_name.c_str());
     return true;
 }
 
@@ -337,7 +335,7 @@ uint32_t Event::get() const {
     return m_event.value;
 }
 
-MessageBox::MessageBox(size_t size) noexcept {
+MessageBox::MessageBox(size_t size) noexcept : m_mutex(true) {
     pthread_condattr_t cattr;
     pthread_condattr_init(&cattr);
     pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
@@ -400,18 +398,19 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
     while (m_mbox.count == m_mbox.size) {
         if (timeout != Tick::waitForever) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
+            MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
+            MA_ASSERT(error != EINVAL);
         }
     }
     m_mbox.msg[m_mbox.w] = msg;
     m_mbox.count++;
     m_mbox.w = (m_mbox.w + 1) % m_mbox.size;
     pthread_cond_signal(&m_mbox.cond);
-
     return true;
 }
 
@@ -462,6 +461,30 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 //     m_timer.exit = true;
 //     pthread_cond_signal(&m_timer.cond);
 // }
+
+
+std::map<int, std::vector<std::function<void(int sig)>>> Signal::s_callbacks;
+Mutex Signal::m_mutex;
+
+void Signal::install(std::vector<int> sigs, std::function<void(int sig)> callback) {
+    Guard guard(m_mutex);
+    for (auto sig : sigs) {
+        if (s_callbacks.find(sig) == s_callbacks.end()) {
+            signal(sig, Signal::sigHandler);
+        }
+        s_callbacks[sig].push_back(callback);
+    }
+}
+
+void Signal::sigHandler(int sig) {
+    Guard guard(m_mutex);
+    auto it = s_callbacks.find(sig);
+    if (it != s_callbacks.end()) {
+        for (auto& cb : it->second) {
+            cb(sig);
+        }
+    }
+}
 
 
 }  // namespace ma

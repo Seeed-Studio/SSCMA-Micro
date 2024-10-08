@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+#include <csignal>
 #include <pthread.h>
 #include <time.h>
 

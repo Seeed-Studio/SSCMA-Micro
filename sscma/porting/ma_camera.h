@@ -30,6 +30,7 @@ class Camera : public Sensor {
     }
 
     enum CtrlType : int {
+        kWindow,
         kExposure,
         kGain,
         kWhiteBalance,
@@ -48,6 +49,9 @@ class Camera : public Sensor {
         kColorTemperature,
         kBacklightCompensation,
         kRotate,
+        kFormat,
+        kChannel,
+        kFps,
         kRegister,
     };
 

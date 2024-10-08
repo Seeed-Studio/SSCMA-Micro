@@ -124,6 +124,9 @@ typedef struct {
     ma_pixel_format_t format;
     ma_pixel_rotate_t rotate;
     uint32_t timestamp;
+    bool key;
+    uint8_t index;
+    uint8_t count;
     bool physical;  // For physical frame
     uint8_t* data;
 } ma_img_t;
