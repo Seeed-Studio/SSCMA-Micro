@@ -19,32 +19,19 @@ namespace ma {
 
 class TransportMQTT final : public Transport {
 public:
-    TransportMQTT(const char* clientID, const char* txTopic, const char* rxTopic);
+    TransportMQTT(ma_mqtt_config_t* config);
 
-    ~TransportMQTT() override;
+    ~TransportMQTT();
 
-    operator bool() const override;
 
-    size_t available() const override;
-    size_t send(const char* data, size_t length, int timeout = -1) override;
-    size_t receive(char* data, size_t length, int timeout = 1) override;
-    size_t receiveUtil(char* data, size_t length, char delimiter, int timeout = 1) override;
+    ma_err_t init(const void* config) noexcept override;
+    void deInit() noexcept override;
 
-    ma_err_t connect(const std::string& host,
-                     int port,
-                     const std::string& username = "",
-                     const std::string& password = "",
-                     bool useSSL                 = false) {
-        return connect(host.c_str(), port, username.c_str(), password.c_str(), useSSL);
-    }
-
-    ma_err_t connect(const char* host,
-                     int port,
-                     const char* username = nullptr,
-                     const char* password = nullptr,
-                     bool useSSL          = false);
-
-    ma_err_t disconnect();
+    size_t available() const noexcept override;
+    size_t send(const char* data, size_t length) noexcept override;
+    size_t flush() noexcept override;
+    size_t receive(char* data, size_t length) noexcept override;
+    size_t receiveIf(char* data, size_t length, char delimiter) noexcept override;
 
 
 protected:
@@ -53,24 +40,20 @@ protected:
     void onMessage(struct mosquitto* mosq, const struct mosquitto_message* msg);
 
 
-private:
+protected:
     static void onConnectStub(struct mosquitto* mosq, void* obj, int rc);
     static void onDisconnectStub(struct mosquitto* mosq, void* obj, int rc);
-    static void onMessageStub(struct mosquitto* mosq,
-                              void* obj,
-                              const struct mosquitto_message* msg);
+    static void onMessageStub(struct mosquitto* mosq, void* obj, const struct mosquitto_message* msg);
 
+private:
+    Mutex m_mutex;
     struct mosquitto* m_client;
     std::atomic<bool> m_connected;
-    Mutex m_mutex;
-    std::string m_txTopic;
-    std::string m_rxTopic;
-    std::string m_clientID;
-    std::string m_username;
-    std::string m_password;
-    bool m_useSSL;
+    ma_mqtt_config_t m_config;
+    ma_mqtt_topic_config_t m_topicConfig;
 
-    ring_buffer<char> m_receiveBuffer;
+
+    SPSCRingBuffer<char>* m_receiveBuffer;
 };
 
 }  // namespace ma

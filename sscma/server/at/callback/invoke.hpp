@@ -10,10 +10,10 @@
 
 #include "core/ma_core.h"
 #include "core/utils/ma_base64.h"
-#include "ma_codec.h"
 #include "porting/ma_porting.h"
 #include "refactor_required.hpp"
 #include "resource.hpp"
+#include "server/at/codec/ma_codec.h"
 
 extern "C" {
 
@@ -28,16 +28,13 @@ namespace ma::server::callback {
 using namespace ma;
 
 class Invoke final : public std::enable_shared_from_this<Invoke> {
-   public:
-    std::shared_ptr<Invoke> getptr() { return shared_from_this(); }
+public:
+    std::shared_ptr<Invoke> getptr() {
+        return shared_from_this();
+    }
 
-    [[nodiscard]] static std::shared_ptr<Invoke> create(const std::vector<std::string>& args,
-                                                        Transport&                      transport,
-                                                        Encoder&                        encoder,
-                                                        size_t                          task_id) {
-        return std::shared_ptr<Invoke>{
-          new Invoke{args, transport, encoder, task_id}
-        };
+    [[nodiscard]] static std::shared_ptr<Invoke> create(const std::vector<std::string>& args, Transport& transport, Encoder& encoder, size_t task_id) {
+        return std::shared_ptr<Invoke>{new Invoke{args, transport, encoder, task_id}};
     }
 
     ~Invoke() {
@@ -49,9 +46,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         static_resource->is_sample = false;
     }
 
-    inline void run() { prepare(); }
+    inline void run() {
+        prepare();
+    }
 
-   protected:
+protected:
     Invoke(const std::vector<std::string>& args, Transport& transport, Encoder& encoder, size_t task_id) {
         MA_ASSERT(args.size() >= 2);
         _cmd          = args[0];
@@ -80,7 +79,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         static_resource->is_sample = true;
     }
 
-   private:
+private:
     void prepare() {
         if (!prepareSensor()) [[unlikely]]
             goto Err;
@@ -92,24 +91,21 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             goto Err;
 
         switch (_sensor->getType()) {
-        case Sensor::Type::kCamera:
-            directReply();
-            return static_resource->executor->submit(
-              [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
-        default:
-            _ret = MA_ENOTSUP;
-            directReply();
+            case Sensor::Type::kCamera:
+                directReply();
+                return static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
+            default:
+                _ret = MA_ENOTSUP;
+                directReply();
         }
 
-    Err:
+Err:
         directReply();
     }
 
     bool prepareSensor() {
         const auto& sensors = static_resource->device->getSensors();
-        auto        it      = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) {
-            return s->getID() == static_resource->current_sensor_id;
-        });
+        auto it             = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) { return s->getID() == static_resource->current_sensor_id; });
         if (it == sensors.end()) {
             return false;
         }
@@ -121,8 +117,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     bool prepareModel() {
         const auto& models = static_resource->device->getModels();
-        auto        it     = std::find_if(
-          models.begin(), models.end(), [&](const ma_model_t& m) { return m.id == static_resource->current_model_id; });
+        auto it            = std::find_if(models.begin(), models.end(), [&](const ma_model_t& m) { return m.id == static_resource->current_model_id; });
         if (it == models.end()) {
             _ret = MA_ENOENT;
         }
@@ -132,7 +127,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     bool prepareAlgorithm() {
 #if MA_USE_FILESYSTEM
-        _ret = static_resource->engine->load(_model.addr);
+        _ret = static_resource->engine->load(static_cast<const char*>(_model.addr));
 #else
         _ret = static_resource->engine->load(_model.addr, _model.size);
 #endif
@@ -178,7 +173,8 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         auto perf = _algorithm->getPerf();
         _encoder->write(perf);
-        if (_event_hook) _event_hook(*_encoder);
+        if (_event_hook)
+            _event_hook(*_encoder);
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
@@ -191,10 +187,10 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
         MA_LOGD(MA_TAG, "eventLoopCamera");
 
-        auto camera      = static_cast<Camera*>(_sensor);
-        auto frame       = ma_img_t{};
-        auto raw_frame   = ma_img_t{};
-        int  buffer_size = 0;
+        auto camera     = static_cast<Camera*>(_sensor);
+        auto frame      = ma_img_t{};
+        auto raw_frame  = ma_img_t{};
+        int buffer_size = 0;
 
         _ret = camera->retrieveFrame(raw_frame, MA_PIXEL_FORMAT_AUTO);
         if (!isEverythingOk()) [[unlikely]]
@@ -264,8 +260,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
         eventReply(frame.width, frame.height);
 
 
-        static_resource->executor->submit(
-          [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
+        static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
     Err:
@@ -273,35 +268,37 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 
     }
 
-    inline bool isEverythingOk() const { return _ret == MA_OK; }
+    inline bool isEverythingOk() const {
+        return _ret == MA_OK;
+    }
 
-   private:
+private:
     std::string _cmd;
-    int32_t     _n_times;
+    int32_t _n_times;
 
     ma_err_t _ret;
 
-    Sensor*    _sensor;
+    Sensor* _sensor;
     Transport* _transport;
-    Encoder*   _encoder;
+    Encoder* _encoder;
     ma_model_t _model;
-    Model*     _algorithm;
+    Model* _algorithm;
 
-    size_t  _task_id;
+    size_t _task_id;
     int32_t _times;
-    bool    _results_only;
+    bool _results_only;
 
-    bool                          _preprocess_hook_injected;
+    bool _preprocess_hook_injected;
     std::function<void(Encoder&)> _event_hook;
 
 #if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
-    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
-        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
-    #endif
-    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
-        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
-    #endif
-    void*  _buffer;
+#ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
+#error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
+#endif
+#ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
+#error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
+#endif
+    void* _buffer;
     size_t _buffer_size;
 #else
     std::string _buffer;

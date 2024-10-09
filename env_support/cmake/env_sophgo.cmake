@@ -9,7 +9,14 @@ file(GLOB_RECURSE PORT_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/posix/*.c ${SSCMA
 
 file(GLOB_RECURSE BOARD_SOURCES ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/sg200x/*.c ${SSCMA_ROOT_DIR}/sscma/porting/sophgo/sg200x/*.cpp)
 
-set(SOURCES ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES})
+file(GLOB_RECURSE BYTETRACK_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.c ${SSCMA_ROOT_DIR}/sscma/extension/bytetrack/*.cpp)
+
+# file(GLOB_RECURSE COUNTER_SSCMA_SOURCES ${SSCMA_ROOT_DIR}/sscma/extension/counter/*.c ${SSCMA_ROOT_DIR}/sscma/extension/counter/*.cpp)
+
+list(APPEND EXTENSION_SSCMA_SOURCES ${BYTETRACK_SSCMA_SOURCES})
+
+set(SOURCES ${CORE_SOURCES} ${SREVER_SOURCES} ${CLIENT_SOURCES} ${PORT_SOURCES}   ${EXTENSION_SSCMA_SOURCES})
+
 
 set(INCS 
         ${SSCMA_ROOT_DIR}/sscma
@@ -23,10 +30,14 @@ add_compile_options(-DCONFIG_MA_ENGINE_CVINN=1)
 
 include(${SSCMA_ROOT_DIR}/3rdparty/json/CMakeLists.txt)
 include(${SSCMA_ROOT_DIR}/3rdparty/JPEGENC/CMakeLists.txt)
+include(${SSCMA_ROOT_DIR}/3rdparty/eigen/CMakeLists.txt)
+
+
 
 component_register(
     COMPONENT_NAME sscma
     SRCS ${SOURCES}
     INCLUDE_DIRS ${INCS}
-    PRIVATE_REQUIREDS cjson mosquitto ssl crypto cviruntime video jpegenc
+    REQUIRED  Eigen3::Eigen
+    PRIVATE_REQUIREDS cjson mosquitto ssl crypto cviruntime video jpegenc cares
 ) 
