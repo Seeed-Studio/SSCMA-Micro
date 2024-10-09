@@ -1,5 +1,4 @@
 #ifndef MA_PORTING_PLATFORM_H_
 #define MA_PORTING_PLATFORM_H_
 
-
 #endif

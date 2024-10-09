@@ -1,12 +1,12 @@
 #ifndef _MA_DEFINATIONS_H_
 #define _MA_DEFINATIONS_H_
 
-#define MA_SSCMA_CONFIG_DEFAULT_PATH   "/etc/sscma/sscma.conf"
+#define MA_SSCMA_CONFIG_DEFAULT_PATH   "/etc/sscma.conf"
 #define MA_SSCMA_MODEL_DEFAULT_PATH    "/mnt/user/model/"  // TODO change to model dir
 
 
 #define MA_MQTT_CLIENTID_FMT           "%s_%s"
-#define MA_MQTT_TOPIC_FMT              "sscma/%s/%s"
+#define MA_MQTT_TOPIC_FMT              "sscma/v0/%s/%s"
 
 #define MA_EXECUTOR_WORKER_NAME_PREFIX "sscma#executor"
 
