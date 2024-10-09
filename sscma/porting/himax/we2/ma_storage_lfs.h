@@ -39,13 +39,18 @@ class StorageLfs final : public Storage {
     virtual ~StorageLfs();
 
     ma_err_t init(const void* config) noexcept override;
-    void deInit() noexcept override;
+    void     deInit() noexcept override;
 
     virtual ma_err_t set(const std::string& key, const void* value, size_t size) noexcept override;
     virtual ma_err_t get(const std::string& key, std::string& value) noexcept override;
 
     virtual ma_err_t remove(const std::string& key) noexcept override;
     virtual bool     exists(const std::string& key) noexcept override;
+
+    virtual ma_err_t set(const std::string& key, int64_t value) noexcept override;
+    virtual ma_err_t set(const std::string& key, double value) noexcept override;
+    virtual ma_err_t get(const std::string& key, int64_t& value) noexcept override;
+    virtual ma_err_t get(const std::string& key, double& value) noexcept override;
 
    private:
     std::list<std::string> keyToPath(const std::string& key, size_t break_size) noexcept;

@@ -344,6 +344,52 @@ ma_err_t StorageLfs::get(const std::string& key, std::string& value) {
     return getImpl(key, value);
 }
 
+ma_err_t StorageLfs::set(const std::string& key, int64_t value) {
+    Guard guard(m_mutex);
+    return setImpl(key, &value, sizeof(value));
+}
+
+ma_err_t StorageLfs::set(const std::string& key, double value) {
+    Guard guard(m_mutex);
+    return setImpl(key, &value, sizeof(value));
+}
+
+ma_err_t StorageLfs::get(const std::string& key, int64_t& value) {
+    Guard guard(m_mutex);
+
+    std::string buffer;
+    ma_err_t    err = getImpl(key, buffer);
+    if (err != MA_OK) {
+        return err;
+    }
+
+    if (buffer.size() != sizeof(value)) {
+        return MA_EINVAL;
+    }
+
+    std::memcpy(&value, buffer.data(), sizeof(value));
+
+    return MA_OK;
+}
+
+ma_err_t StorageLfs::get(const std::string& key, double& value) {
+    Guard guard(m_mutex);
+
+    std::string buffer;
+    ma_err_t    err = getImpl(key, buffer);
+    if (err != MA_OK) {
+        return err;
+    }
+
+    if (buffer.size() != sizeof(value)) {
+        return MA_EINVAL;
+    }
+
+    std::memcpy(&value, buffer.data(), sizeof(value));
+
+    return MA_OK;
+}
+
 }  // namespace ma
 
 #endif

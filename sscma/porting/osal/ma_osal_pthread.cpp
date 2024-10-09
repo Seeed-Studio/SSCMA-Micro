@@ -1,3 +1,8 @@
+#include "core/ma_common.h"
+#include "porting/ma_osal.h"
+
+#if MA_OSAL_PTHREAD
+
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -13,8 +18,7 @@
 
 #include <sys/syscall.h>
 
-#include "core/ma_common.h"
-#include "porting/ma_osal.h"
+
 
 namespace ma {
 
@@ -462,29 +466,8 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 //     pthread_cond_signal(&m_timer.cond);
 // }
 
-
-std::map<int, std::vector<std::function<void(int sig)>>> Signal::s_callbacks;
-Mutex Signal::m_mutex;
-
-void Signal::install(std::vector<int> sigs, std::function<void(int sig)> callback) {
-    Guard guard(m_mutex);
-    for (auto sig : sigs) {
-        if (s_callbacks.find(sig) == s_callbacks.end()) {
-            signal(sig, Signal::sigHandler);
-        }
-        s_callbacks[sig].push_back(callback);
-    }
-}
-
-void Signal::sigHandler(int sig) {
-    Guard guard(m_mutex);
-    auto it = s_callbacks.find(sig);
-    if (it != s_callbacks.end()) {
-        for (auto& cb : it->second) {
-            cb(sig);
-        }
-    }
-}
-
-
 }  // namespace ma
+
+#endif
+
+#endif
