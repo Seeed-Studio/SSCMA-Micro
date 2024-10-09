@@ -20,7 +20,7 @@ namespace ma {
 
 using namespace ma::server::callback;
 
-// static constexpr char TAG[] = "ma::server::ATServer";
+// static constexpr char MA_TAG[] = "ma::server::ATServer";
 
 ATService::ATService(const std::string& name, const std::string& desc, const std::string& args, ATServiceCallback cb)
     : name(name), desc(desc), args(args), cb(cb) {
@@ -328,7 +328,7 @@ ma_err_t ATServer::start() {
     static_resource->executor->submit([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
     int sta = m_thread->start(this) ? 0 : -1;
-    MA_LOGD(TAG, "ATServer started: %d", sta);
+    MA_LOGD(MA_TAG, "ATServer started: %d", sta);
 
     return MA_OK;
 }
@@ -371,7 +371,7 @@ ma_err_t ATServer::execute(std::string line, Transport& transport) {
 
     name = name.substr(3, name.size());  // remove "AT+" command prefix
 
-    // find command tag (everything after last '@'), then remove the tag to get the AT command
+    // find command MA_TAG (everything after last '@'), then remove the MA_TAG to get the AT command
     // name
     size_t cmd_body_pos    = name.rfind('@');
     cmd_body_pos           = cmd_body_pos != std::string::npos ? cmd_body_pos + 1 : 0;

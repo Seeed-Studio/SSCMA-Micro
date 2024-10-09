@@ -59,8 +59,7 @@ ma_err_t EngineCVI::load(const char* model_path) {
         return MA_EINVAL;
     }
 
-    _ret = CVI_NN_GetInputOutputTensors(
-        model, &input_tensors, &input_num, &output_tensors, &output_num);
+    _ret = CVI_NN_GetInputOutputTensors(model, &input_tensors, &input_num, &output_tensors, &output_num);
 
 
     if (_ret != CVI_RC_SUCCESS) {
@@ -83,15 +82,13 @@ ma_err_t EngineCVI::load(const void* model_data, size_t model_size) {
         model = nullptr;
     }
 
-    _ret ==
-        CVI_NN_RegisterModelFromBuffer(static_cast<const int8_t*>(model_data), model_size, &model);
+    _ret == CVI_NN_RegisterModelFromBuffer(static_cast<const int8_t*>(model_data), model_size, &model);
 
     if (_ret != CVI_RC_SUCCESS) {
         return MA_EINVAL;
     }
 
-    _ret = CVI_NN_GetInputOutputTensors(
-        model, &input_tensors, &input_num, &output_tensors, &output_num);
+    _ret = CVI_NN_GetInputOutputTensors(model, &input_tensors, &input_num, &output_tensors, &output_num);
 
     if (_ret != CVI_RC_SUCCESS) {
         return MA_EINVAL;
@@ -103,8 +100,7 @@ ma_err_t EngineCVI::run() {
     MA_ASSERT(model != nullptr);
     ma_err_t ret = MA_OK;
 
-    if (CVI_RC_SUCCESS !=
-        CVI_NN_Forward(model, input_tensors, input_num, output_tensors, output_num)) {
+    if (CVI_RC_SUCCESS != CVI_NN_Forward(model, input_tensors, input_num, output_tensors, output_num)) {
         ret = MA_EINVAL;
     }
 

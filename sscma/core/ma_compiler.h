@@ -161,4 +161,11 @@
 #endif  // _WIN32
 #endif  // SWIG
 
+
+#if defined(__x86_64__) || defined(__ppc64__) || defined(_LP64)
+#define MA_ARCH_64 1
+#else
+#define MA_ARCH_32 1
+#endif
+
 #endif  // _MA_COMPILER_H_

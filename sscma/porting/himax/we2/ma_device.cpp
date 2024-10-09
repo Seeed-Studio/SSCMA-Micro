@@ -55,11 +55,11 @@ Device::Device() {
     MA_LOGD(MA_TAG, "Initializing storage");
     {
         static ma_lfs_bd_cfg_t bd_config = {
-          .read_size   = 16,
-          .prog_size   = 16,
-          .erase_size  = 4096,
-          .erase_count = 128,
-          .flash_addr  = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00300000),
+            .read_size   = 16,
+            .prog_size   = 16,
+            .erase_size  = 4096,
+            .erase_count = 128,
+            .flash_addr  = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00300000),
         };
         static StorageLfs storage;
         storage.init(&bd_config);
@@ -99,9 +99,9 @@ Device::Device() {
     {
         xip_ownership_acquire();
         if (xip_safe_enable()) {
-            const void*  address = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00400000);
-            const size_t size    = 4096;
-            size_t       id      = 0;
+            const void* address = reinterpret_cast<void*>(BASE_ADDR_FLASH1_R_ALIAS + 0x00400000);
+            const size_t size   = 4096;
+            size_t id           = 0;
             for (size_t i = 0; i < size; i += 4096) {
                 const void* data = address + i;
                 if (ma_ntohl(*(static_cast<const uint32_t*>(data) + 1)) == 0x54464C33) {  // 'TFL3'
@@ -128,6 +128,8 @@ Device* Device::getInstance() {
     return &device;
 }
 
-Device::~Device() { NVIC_SystemReset(); }
+Device::~Device() {
+    NVIC_SystemReset();
+}
 
 }  // namespace ma
