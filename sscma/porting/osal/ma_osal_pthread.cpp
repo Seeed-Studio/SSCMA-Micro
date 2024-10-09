@@ -19,7 +19,6 @@
 #include <sys/syscall.h>
 
 
-
 namespace ma {
 
 constexpr char TAG[] = "ma::osal::pthread";
@@ -466,8 +465,29 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 //     pthread_cond_signal(&m_timer.cond);
 // }
 
-}  // namespace ma
+std::map<int, std::vector<std::function<void(int sig)>>> Signal::s_callbacks;
+Mutex Signal::m_mutex;
 
-#endif
+void Signal::install(std::vector<int> sigs, std::function<void(int sig)> callback) {
+    Guard guard(m_mutex);
+    for (auto sig : sigs) {
+        if (s_callbacks.find(sig) == s_callbacks.end()) {
+            signal(sig, Signal::sigHandler);
+        }
+        s_callbacks[sig].push_back(callback);
+    }
+}
+
+void Signal::sigHandler(int sig) {
+    Guard guard(m_mutex);
+    auto it = s_callbacks.find(sig);
+    if (it != s_callbacks.end()) {
+        for (auto& cb : it->second) {
+            cb(sig);
+        }
+    }
+}
+
+}  // namespace ma
 
 #endif

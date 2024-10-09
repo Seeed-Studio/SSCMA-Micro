@@ -225,7 +225,8 @@ typedef enum {
     MA_TRANSPORT_I2C     = 4,
     MA_TRANSPORT_MQTT    = 5,
     MA_TRANSPORT_TCP     = 6,
-    MA_TRANSPORT_UDP     = 7
+    MA_TRANSPORT_UDP     = 7,
+    MA_TRANSPORT_RTSP   = 8
 } ma_transport_type_t;
 
 typedef enum {
