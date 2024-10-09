@@ -12,9 +12,12 @@
 #include "callback/info.hpp"
 #include "callback/invoke.hpp"
 #include "callback/model.hpp"
+#include "callback/mqtt.hpp"
 #include "callback/resource.hpp"
 #include "callback/sample.hpp"
 #include "callback/sensor.hpp"
+#include "callback/wifi.hpp"
+
 
 namespace ma {
 
@@ -321,6 +324,129 @@ ma_err_t ATServer::init() {
           return MA_OK;
       });
 
+    addService(
+      "WIFI",
+      "Configure Wi-Fi",
+      "NAME,SECURITY,PASSWORD",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              configureWifi(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFISTA",
+      "Set Wi-Fi status",
+      "STATUS",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setWifiSta(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFIIN4",
+      "Set Wi-Fi info",
+      "IP,NETMASK,GATEWAY",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setWifiIn4Info(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFIIN6", "Set Wi-Fi info", "IP", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setWifiIn6Info(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFIVER",
+      "Set Wi-Fi version",
+      "VERSION",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setWifiVer(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFIVER?", "Get Wi-Fi version", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getWifiVer(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "WIFI?", "Get Wi-Fi status", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getWifiInfo(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "MQTTSERVER",
+      "Configure MQTT server",
+      "BROKER,PORT,CLIENT_ID,USERNAME,USE_SSL",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              configureMqttServer(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "MQTTSERVERSTA",
+      "Set MQTT server status",
+      "STATUS",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              setMqttSta(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "MQTTSERVERSTA?",
+      "Get MQTT server status",
+      "",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getMqttSta(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "MQTTPUBSUB?",
+      "Get MQTT server status",
+      "",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getMqttPubsub(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+
+    addService(
+      "MQTTSERVER?",
+      "Get MQTT server status",
+      "",
+      [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+          static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+              getMqttConfig(args, transport, encoder);
+          });
+          return MA_OK;
+      });
+      
     return MA_OK;
 }
 

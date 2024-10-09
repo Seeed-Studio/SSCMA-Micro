@@ -300,6 +300,102 @@ typedef enum MA_ATTR_PACKED {
 
 #ifdef __cplusplus
 }
+
+    #include <string>
+
+struct ipv4_addr_t {
+    ipv4_addr_t() : addr{0} {}
+
+    ~ipv4_addr_t() = default;
+
+    uint8_t addr[4];
+
+    // we're not going to validate the input string
+    static decltype(auto) from_str(std::string s) {
+        ipv4_addr_t r;
+        uint8_t     l{0};
+
+        for (std::size_t i = 0; i < s.length(); ++i) {
+            if (!std::isdigit(s[i])) continue;
+
+            uint8_t n{0};
+            for (; (++i < s.length()) & (++n < 3);)
+                if (!std::isdigit(s[i])) break;
+            if (n) {
+                auto num{s.substr(i - n, n)};
+                r.addr[l++] = static_cast<uint8_t>(std::atoi(num.c_str()));
+                if (l > 3) return r;
+            }
+        }
+
+        return r;
+    }
+
+    decltype(auto) to_str() const {
+        std::string r{};
+        r.reserve(sizeof "255.255.255.255.");
+        for (std::size_t i = 0; i < 4; ++i) {
+            r += std::to_string(addr[i]);
+            r += '.';
+        }
+        return r.substr(0, r.length() - 1);
+    }
+};
+
+struct ipv6_addr_t {
+    ipv6_addr_t() : addr{0} {}
+    ~ipv6_addr_t() = default;
+
+    uint16_t addr[8];
+
+    static decltype(auto) from_str(std::string s) {
+        ipv6_addr_t r;
+        uint8_t     l{0};
+
+        for (std::size_t i = 0; i < s.length(); ++i) {
+            if (!std::isxdigit(s[i])) continue;
+
+            uint16_t n{0};
+            for (; (++i < s.length()) & (++n < 4);)
+                if (!std::isxdigit(s[i])) break;
+            if (n) {
+                auto num{s.substr(i - n, n)};
+                r.addr[l++] = static_cast<uint16_t>(std::strtol(num.c_str(), nullptr, 16));
+                if (l > 7) return r;
+            }
+        }
+
+        return r;
+    }
+
+    decltype(auto) to_str() const {
+        static const char* digits = "0123456789abcdef";
+        std::string        r;
+        r.reserve(sizeof "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:");
+        for (std::size_t i = 0; i < 8; ++i) {
+            if (addr[i]) {
+                std::string t;
+                t.reserve(4);
+                for (uint16_t n = addr[i]; n; n >>= 4) t += digits[n & 0x0f];
+                r.append(t.rbegin(), t.rend());
+            } else
+                r += '0';
+            r += ':';
+        }
+        return r.substr(0, r.length() - 1);
+    }
+};
+
+typedef struct in4_info_t {
+    ipv4_addr_t ip;
+    ipv4_addr_t netmask;
+    ipv4_addr_t gateway;
+} in4_info_t;
+
+typedef struct in6_info_t {
+    ipv6_addr_t ip;
+} in6_info_t;
+
 #endif
 
 #endif  // _MA_TYPES_H_

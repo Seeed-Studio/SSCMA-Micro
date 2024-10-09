@@ -34,7 +34,7 @@ public:
     ma_err_t remove(const std::string& key) override;
 
     ma_err_t write(const std::string& key, const char* buffer, size_t size) override;
-    
+
 
     ma_err_t write(const std::string& key, int8_t value) override;
     ma_err_t write(const std::string& key, int16_t value) override;
@@ -58,6 +58,15 @@ public:
 
     ma_err_t write(const std::vector<Sensor*>& value) override;
     ma_err_t write(const Sensor* value, size_t preset )  override;
+
+
+    ma_err_t write(const in4_info_t& value) override;
+    ma_err_t write(const in6_info_t& value) override;
+    ma_err_t write(const ma_wifi_config_t& value) override;
+
+    ma_err_t write(const ma_mqtt_config_t& value) override;
+
+    ma_err_t write(const ma_mqtt_topic_config_t& value) override;
 
 
     const std::string& toString() const override;

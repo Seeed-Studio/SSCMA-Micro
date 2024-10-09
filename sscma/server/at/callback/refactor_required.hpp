@@ -42,7 +42,9 @@ ma_err_t setAlgorithmInput(Model* algorithm, ma_img_t& img) {
     }
 }
 
-ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
+
+ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width, int height) {
+
     if (algorithm == nullptr || encoder == nullptr) {
         return MA_EINVAL;
     }
@@ -57,8 +59,13 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
     }
 
     case MA_MODEL_TYPE_IMCLS: {
-        const auto& results = static_cast<Classifier*>(algorithm)->getResults();
-        ret                 = encoder->write(results);
+
+        auto results = static_cast<Classifier*>(algorithm)->getResults();
+        for (auto& result : results) {
+            result.score *= 100;
+        }
+        ret = encoder->write(results);
+
         break;
     }
 
@@ -67,14 +74,37 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder) {
     case MA_MODEL_TYPE_YOLOV8:
     case MA_MODEL_TYPE_NVIDIA_DET:
     case MA_MODEL_TYPE_YOLO_WORLD: {
-        const auto& results = static_cast<Detector*>(algorithm)->getResults();
-        ret                 = encoder->write(results);
+
+        auto results = static_cast<Detector*>(algorithm)->getResults();
+        for (auto& result : results) {
+            result.x *= width;
+            result.y *= height;
+            result.w *= width;
+            result.h *= height;
+            result.score *= 100;
+        }
+        ret = encoder->write(results);
+
         break;
     }
 
     case MA_MODEL_TYPE_YOLOV8_POSE: {
-        const auto& results = static_cast<PoseDetector*>(algorithm)->getResults();
-        ret                 = encoder->write(results);
+
+        auto results = static_cast<PoseDetector*>(algorithm)->getResults();
+        for (auto& result : results) {
+            auto& box = result.box;
+            box.x *= width;
+            box.y *= height;
+            box.w *= width;
+            box.h *= height;
+            box.score *= 100;
+            for (auto& pt : result.pts) {
+                pt.x *= width;
+                pt.y *= height;
+            }
+        }
+        ret = encoder->write(results);
+
         break;
     }
 
