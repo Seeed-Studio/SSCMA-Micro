@@ -4,6 +4,11 @@
 #include "ma_config_internal.h"
 #include "porting/ma_misc.h"
 
+#ifndef MA_TAG
+    #define MA_TAG_FILE __FILE__ ":" MA_STRINGIZE(__LINE__)
+    #define MA_TAG      (strrchr(MA_TAG_FILE, '/') ? strrchr(MA_TAG_FILE, '/') + 1 : MA_TAG_FILE)
+#endif
+
 #if MA_DEBUG_LEVEL
 
 #define MA_DEBUG_COLOR_RED     "\033[31m"

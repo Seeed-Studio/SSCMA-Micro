@@ -247,7 +247,7 @@ typedef enum {
     MA_MODEL_TYPE_YOLOV8      = 6u,
     MA_MODEL_TYPE_NVIDIA_DET  = 7u,
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
-    MA_MODEL_TYPE_YOLOV11     = 9u,
+    MA_MODEL_TYPE_YOLO11     = 9u,
 } ma_model_type_t;
 
 typedef struct {

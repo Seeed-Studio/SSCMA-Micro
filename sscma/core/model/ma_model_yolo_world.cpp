@@ -201,7 +201,7 @@ ma_err_t YoloWorld::postProcessI8() {
         const auto  anchor_array_size = anchor_array.size();
 
         const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(
-          score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
+          score_threshold_non_sigmoid, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
@@ -222,7 +222,7 @@ ma_err_t YoloWorld::postProcessI8() {
             if (target < 0) continue;
 
             const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(
-              max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
+              max_score_raw, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point));
 
             // DFL
             float dist[4];
@@ -233,8 +233,8 @@ ma_err_t YoloWorld::postProcessI8() {
                 const size_t offset = pre + m * 16;
                 for (size_t n = 0; n < 16; ++n) {
                     matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]),
-                                                          output_bboxes_quant_parm.zero_point,
-                                                          output_bboxes_quant_parm.scale);
+                                                          output_bboxes_quant_parm.scale,
+                                                          output_bboxes_quant_parm.zero_point);
                 }
 
                 ma::math::softmax(matrix, 16);

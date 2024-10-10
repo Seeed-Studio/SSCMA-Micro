@@ -8,6 +8,6 @@
 #include <porting/ma_porting.h>
 #include <server/ma_server.h>
 
-using namespace ma;
+// using namespace ma;
 
 #endif  // _MA_SSCMA_H_

@@ -12,44 +12,48 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
 
     switch (algorithm_id) {
     case 0:
-    case 1:
+    case MA_MODEL_TYPE_FOMO:
         if (FOMO::isValid(engine)) {
             return new FOMO(engine);
         }
 
-    case 2:
+    case MA_MODEL_TYPE_PFLD:
         if (PFLD::isValid(engine)) {
             return new PFLD(engine);
         }
 
-    case 3:
+    case MA_MODEL_TYPE_YOLOV5:
         if (YoloV5::isValid(engine)) {
             return new YoloV5(engine);
         }
 
-    case 4:
+    case MA_MODEL_TYPE_IMCLS:
         if (Classifier::isValid(engine)) {
             return new Classifier(engine);
         }
 
-    case 5:
+    case MA_MODEL_TYPE_YOLOV8_POSE:
         if (YoloV8Pose::isValid(engine)) {
             return new YoloV8Pose(engine);
         }
 
-    case 6:
+    case MA_MODEL_TYPE_YOLOV8:
         if (YoloV8::isValid(engine)) {
             return new YoloV8(engine);
         }
 
-    case 7:
+    case MA_MODEL_TYPE_NVIDIA_DET:
         if (NvidiaDet::isValid(engine)) {
             return new NvidiaDet(engine);
         }
 
-    case 8:
+    case MA_MODEL_TYPE_YOLO_WORLD:
         if (YoloWorld::isValid(engine)) {
             return new YoloWorld(engine);
+        }
+    case MA_MODEL_TYPE_YOLO11:
+        if (Yolo11::isValid(engine)) {
+            return new Yolo11(engine);
         }
     }
 

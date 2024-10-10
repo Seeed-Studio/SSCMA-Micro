@@ -6,13 +6,13 @@
 #include "core/math/ma_math.h"
 #include "core/utils/ma_nms.h"
 
-#include "ma_model_yolov8.h"
+#include "ma_model_yolo11.h"
 
 namespace ma::model {
 
-constexpr char TAG[] = "ma::model::yolov8";
+constexpr char TAG[] = "ma::model::yolo11";
 
-YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "YoloV8", MA_MODEL_TYPE_YOLOV8) {
+Yolo11::Yolo11(Engine* p_engine_) : Detector(p_engine_, "Yolo11", MA_MODEL_TYPE_YOLO11) {
     MA_ASSERT(p_engine_ != nullptr);
 
     const auto& input_shape = p_engine_->getInputShape(0);
@@ -34,9 +34,9 @@ YoloV8::YoloV8(Engine* p_engine_) : Detector(p_engine_, "YoloV8", MA_MODEL_TYPE_
     num_class_  = outputs_[1].shape.dims[1];
 }
 
-YoloV8::~YoloV8() {}
+Yolo11::~Yolo11() {}
 
-bool YoloV8::isValid(Engine* engine) {
+bool Yolo11::isValid(Engine* engine) {
 
     const auto inputs_count  = engine->getInputSize();
     const auto outputs_count = engine->getOutputSize();
@@ -64,17 +64,16 @@ bool YoloV8::isValid(Engine* engine) {
     int ibox_len = (s * s + m * m + l * l);
 
     // Validate output shape
-    for (size_t i = 0; i < 3; i += 1) {
+    for (size_t i = 0; i < 6; i += 2) {
         auto box_shape = engine->getOutputShape(i);
-        auto cls_shape = engine->getOutputShape(i + 3);
-        if (box_shape.size != 4 || box_shape.dims[0] != 1 || box_shape.dims[1] != 64 || box_shape.dims[2] != (w >> (i + 3)) || box_shape.dims[3] != (w >> (i + 3))) {
+        auto cls_shape = engine->getOutputShape(i + 1);
+        if (box_shape.size != 4 || box_shape.dims[0] != 1 || box_shape.dims[1] != 64 || box_shape.dims[2] != (w >> (i / 2) + 3) || box_shape.dims[3] != (w >> (i / 2) + 3)) {
             return false;
         }
-        if (cls_shape.size != 4 || cls_shape.dims[0] != 1 || cls_shape.dims[2] != (w >> (i + 3)) || cls_shape.dims[3] != (w >> (i + 3))) {
+        if (cls_shape.size != 4 || cls_shape.dims[0] != 1 || cls_shape.dims[2] != (w >> (i / 2) + 3) || cls_shape.dims[3] != (w >> (i / 2) + 3)) {
             return false;
         }
     }
-
 
     return true;
 }
@@ -95,7 +94,7 @@ static void compute_dfl(float* tensor, int dfl_len, float* box) {
         box[b] = acc_sum;
     }
 }
-ma_err_t YoloV8::postProcessI8() {
+ma_err_t Yolo11::postProcessI8() {
 
     int dfl_len                             = outputs_[0].shape.dims[1] / 4;
     const auto score_threshold              = threshold_score_;
@@ -103,12 +102,12 @@ ma_err_t YoloV8::postProcessI8() {
     const float score_threshold_non_sigmoid = ma::math::inverseSigmoid(score_threshold);
 
     for (int i = 0; i < 3; i++) {
-        int grid_h           = outputs_[i].shape.dims[2];
-        int grid_w           = outputs_[i].shape.dims[3];
+        int grid_h           = outputs_[i * 2].shape.dims[2];
+        int grid_w           = outputs_[i * 2].shape.dims[3];
         int grid_l           = grid_h * grid_w;
         int stride           = img_.height / grid_h;
-        int8_t* output_score = outputs_[i + 3].data.s8;
-        int8_t* output_box   = outputs_[i].data.s8;
+        int8_t* output_score = outputs_[i * 2 + 1].data.s8;
+        int8_t* output_box   = outputs_[i * 2].data.s8;
         for (int j = 0; j < grid_h; j++) {
             for (int k = 0; k < grid_w; k++) {
                 int offset = j * grid_w + k;
@@ -127,14 +126,14 @@ ma_err_t YoloV8::postProcessI8() {
                 if (target < 0)
                     continue;
 
-                float score = ma::math::dequantizeValue(max, outputs_[i].quant_param.scale, outputs_[i].quant_param.zero_point);
+                float score = ma::math::dequantizeValue(max, outputs_[i * 2].quant_param.scale, outputs_[i * 2].quant_param.zero_point);
 
                 if (score > score_threshold_non_sigmoid) {
                     float rect[4];
                     float before_dfl[dfl_len * 4];
                     offset = j * grid_w + k;
                     for (int b = 0; b < dfl_len * 4; b++) {
-                        before_dfl[b] = ma::math::dequantizeValue(output_box[offset], outputs_[i + 3].quant_param.scale, outputs_[i + 3].quant_param.zero_point);
+                        before_dfl[b] = ma::math::dequantizeValue(output_box[offset], outputs_[i * 2 + 1].quant_param.scale, outputs_[i * 2 + 1].quant_param.zero_point);
                         offset += grid_l;
                     }
                     compute_dfl(before_dfl, dfl_len, rect);
@@ -161,7 +160,7 @@ ma_err_t YoloV8::postProcessI8() {
     }
     return MA_OK;
 }
-ma_err_t YoloV8::postProcessF32() {
+ma_err_t Yolo11::postProcessF32() {
 
     int dfl_len                             = outputs_[0].shape.dims[1] / 4;
     const auto score_threshold              = threshold_score_;
@@ -169,12 +168,12 @@ ma_err_t YoloV8::postProcessF32() {
     const float score_threshold_non_sigmoid = ma::math::inverseSigmoid(score_threshold);
 
     for (int i = 0; i < 3; i++) {
-        int grid_h          = outputs_[i].shape.dims[2];
-        int grid_w          = outputs_[i].shape.dims[3];
+        int grid_h          = outputs_[i * 2].shape.dims[2];
+        int grid_w          = outputs_[i * 2].shape.dims[3];
         int grid_l          = grid_h * grid_w;
         int stride          = img_.height / grid_h;
-        float* output_score = outputs_[i + 3].data.f32;
-        float* output_box   = outputs_[i + 3].data.f32;
+        float* output_score = outputs_[i * 2 + 1].data.f32;
+        float* output_box   = outputs_[i * 2].data.f32;
         for (int j = 0; j < grid_h; j++) {
             for (int k = 0; k < grid_w; k++) {
                 int offset = j * grid_w + k;
@@ -194,7 +193,7 @@ ma_err_t YoloV8::postProcessF32() {
                     continue;
 
                 if (max > score_threshold_non_sigmoid) {
-
+  
                     float rect[4];
                     float before_dfl[dfl_len * 4];
                     offset = j * grid_w + k;
@@ -229,7 +228,7 @@ ma_err_t YoloV8::postProcessF32() {
     return MA_OK;
 }
 
-ma_err_t YoloV8::postprocess() {
+ma_err_t Yolo11::postprocess() {
     ma_err_t err = MA_OK;
     results_.clear();
 

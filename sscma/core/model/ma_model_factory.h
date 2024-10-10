@@ -17,6 +17,7 @@
 #include "ma_model_fomo.h"
 #include "ma_model_pfld.h"
 #include "ma_model_yolo_world.h"
+#include "ma_model_yolo11.h"
 
 namespace ma {
 
