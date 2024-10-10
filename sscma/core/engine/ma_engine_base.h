@@ -2,8 +2,8 @@
 #define _MA_ENGINE_BASE_H_
 
 #include <cstdint>
-#include <vector>
 #include <forward_list>
+#include <vector>
 
 #include "core/ma_common.h"
 
@@ -27,7 +27,7 @@ public:
 
     virtual ma_err_t load(const void* model_data, size_t model_size) = 0;
 #if MA_USE_FILESYSTEM
-    virtual ma_err_t load(const char* model_path) = 0;
+    virtual ma_err_t load(const char* model_path)        = 0;
     virtual ma_err_t load(const std::string& model_path) = 0;
 #endif
 
@@ -41,6 +41,8 @@ public:
     virtual ma_quant_param_t getInputQuantParam(int32_t index)  = 0;
     virtual ma_quant_param_t getOutputQuantParam(int32_t index) = 0;
 
+    virtual ma_err_t setInput(int32_t index, const ma_tensor_t& tensor) = 0;
+
 #if MA_USE_ENGINE_TENSOR_NAME
     virtual int32_t getInputNum(const char* name)  = 0;
     virtual int32_t getOutputNum(const char* name) = 0;
@@ -51,7 +53,6 @@ public:
     // virtual ma_quant_param_t getInputQuantParam(const char* name)  = 0;
     // virtual ma_quant_param_t getOutputQuantParam(const char* name) = 0;
 #endif
-
 };
 
 }  // namespace ma::engine

@@ -85,6 +85,7 @@ int CameraSG200X::vencCallback(void* pData, void* pArgs) {
             }
         }
         if (!m_channels[VencChn].queue->post(frame, Tick::fromMilliseconds(1000 / m_channels[VencChn].fps))) {
+            delete[] frame->data;
             delete frame;
         }
     }
@@ -349,20 +350,20 @@ ma_err_t CameraSG200X::retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) 
 }
 
 void CameraSG200X::returnFrame(ma_img_t& frame) noexcept {
-    int chn = 0;
-    switch (frame.format) {
-        case MA_PIXEL_FORMAT_JPEG:
-            chn = 1;
-            break;
-        case MA_PIXEL_FORMAT_H264:
-            chn = 2;
-            break;
-        default:
-            break;
-    }
     if (!frame.physical) {
         delete[] frame.data;
     } else {
+        int chn = 0;
+        switch (frame.format) {
+            case MA_PIXEL_FORMAT_JPEG:
+                chn = 1;
+                break;
+            case MA_PIXEL_FORMAT_H264:
+                chn = 2;
+                break;
+            default:
+                break;
+        }
         m_channels[chn].sem.signal();
     }
 }

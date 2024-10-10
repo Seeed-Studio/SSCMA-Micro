@@ -24,7 +24,7 @@ using namespace ma::engine;
 
 class ModelFactory {
 public:
-    static Model* create(Engine* engine, size_t algorithm_id);
+    static Model* create(Engine* engine, size_t algorithm_id = 0);
     static ma_err_t remove(Model* model);
 };
 

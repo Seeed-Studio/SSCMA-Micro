@@ -226,6 +226,20 @@ int32_t EngineCVI::getOutputNum(const char* name) {
 }
 
 
+ma_err_t EngineCVI::setInput(int32_t index, const ma_tensor_t& tensor) {
+    MA_ASSERT(model != nullptr);
+    if (index >= input_num) {
+        return MA_EINVAL;
+    }
+    if (tensor.is_physical) {
+        CVI_NN_SetTensorPhysicalAddr(&input_tensors[index], reinterpret_cast<uint64_t>(tensor.data.data));
+    } else {
+        CVI_NN_SetTensorPtr(&input_tensors[index], tensor.data.data);
+    }
+    return MA_OK;
+}
+
+
 }  // namespace ma::engine
 
 #endif

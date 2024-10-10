@@ -372,13 +372,13 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     while (m_mbox.count == 0) {
         if (timeout != Tick::waitForever) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
-            MA_ASSERT(error != EINVAL);
+            // MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
-            MA_ASSERT(error != EINVAL);
+            // MA_ASSERT(error != EINVAL);
         }
     }
     m_mbox.count--;
@@ -401,13 +401,13 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
     while (m_mbox.count == m_mbox.size) {
         if (timeout != Tick::waitForever) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
-            MA_ASSERT(error != EINVAL);
+            // MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
-            MA_ASSERT(error != EINVAL);
+            // MA_ASSERT(error != EINVAL);
         }
     }
     m_mbox.msg[m_mbox.w] = msg;

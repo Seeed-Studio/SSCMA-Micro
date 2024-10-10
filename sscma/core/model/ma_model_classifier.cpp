@@ -16,16 +16,14 @@ Classifier::Classifier(Engine* p_engine) : Model(p_engine, "IMCLS", MA_MODEL_TYP
         img_.width  = input_.shape.dims[1];
         img_.height = input_.shape.dims[2];
         img_.size   = input_.shape.dims[1] * input_.shape.dims[2] * input_.shape.dims[3];
-        img_.format =
-            input_.shape.dims[3] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
+        img_.format = input_.shape.dims[3] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
     }
 
     else {
         img_.width  = input_.shape.dims[3];
         img_.height = input_.shape.dims[2];
         img_.size   = input_.shape.dims[3] * input_.shape.dims[2] * input_.shape.dims[1];
-        img_.format =
-            input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
+        img_.format = input_.shape.dims[1] == 3 ? MA_PIXEL_FORMAT_RGB888 : MA_PIXEL_FORMAT_GRAYSCALE;
     }
 
     img_.data = input_.data.u8;
@@ -74,6 +72,10 @@ bool Classifier::isValid(Engine* engine) {
 ma_err_t Classifier::preprocess() {
     ma_err_t ret = MA_OK;
 
+    if (input_img_ == nullptr) {
+        return MA_OK;
+    }
+
     ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
         return ret;
@@ -119,9 +121,12 @@ const std::forward_list<ma_class_t>& Classifier::getResults() {
     return results_;
 }
 
+const ma_img_t* Classifier::getInputImg() {
+    return &img_;
+}
 
 ma_err_t Classifier::run(const ma_img_t* img) {
-    MA_ASSERT(img != nullptr);
+    // MA_ASSERT(img != nullptr);
     input_img_ = img;
     return underlyingRun();
 }

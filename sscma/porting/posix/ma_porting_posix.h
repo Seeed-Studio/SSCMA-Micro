@@ -3,5 +3,6 @@
 
 #include "ma_storage_file.h"
 #include "ma_transport_mqtt.h"
+#include "ma_transport_rtsp.h"
 
 #endif

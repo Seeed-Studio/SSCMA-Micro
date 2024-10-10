@@ -533,6 +533,10 @@ ma_quant_param_t EngineTFLite::getOutputQuantParam(int32_t index) {
     return quant_param;
 }
 
+ma_err_t EngineTFLite::setInput(int32_t index, const ma_tensor_t& tensor) {
+    return MA_ENOTSUP;
+}
+
 #if MA_USE_FILESYSTEM
 ma_err_t EngineTFLite::load(const char* model_path) {
     ma_err_t ret = MA_OK;

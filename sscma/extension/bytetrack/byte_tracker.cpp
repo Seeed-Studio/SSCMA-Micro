@@ -22,8 +22,7 @@
 
 using namespace std;
 
-BYTETracker::BYTETracker(
-    int frame_rate, int track_buffer, float track_thresh, float high_thresh, float match_thresh, float scale_factor) {
+BYTETracker::BYTETracker(int frame_rate, int track_buffer, float track_thresh, float high_thresh, float match_thresh, float scale_factor) {
     this->track_thresh = track_thresh;
     this->high_thresh  = high_thresh;
     this->match_thresh = match_thresh;
@@ -57,6 +56,14 @@ vector<int> BYTETracker::inplace_update(vector<ma_bbox_t>& objects) {
     objects.shrink_to_fit();
 
     return res;
+}
+
+void BYTETracker::clear() {
+    frame_id = 0;
+
+    tracked_stracks.clear();
+    lost_stracks.clear();
+    removed_stracks.clear();
 }
 
 vector<STrack> BYTETracker::update(const vector<ma_bbox_t>& objects) {
@@ -115,8 +122,7 @@ vector<STrack> BYTETracker::update(const vector<ma_bbox_t>& objects) {
 
     vector<vector<int>> matches;
     vector<int> u_track, u_detection;
-    linear_assignment(
-        dists, dist_size, dist_size_size, match_thresh, matches, u_track, u_detection);
+    linear_assignment(dists, dist_size, dist_size_size, match_thresh, matches, u_track, u_detection);
 
     for (int i = 0; i < matches.size(); ++i) {
         STrack* track = strack_pool[matches[i][0]];
@@ -304,10 +310,7 @@ vector<STrack> BYTETracker::sub_stracks(vector<STrack>& tlista, vector<STrack>& 
     return res;
 }
 
-void BYTETracker::remove_duplicate_stracks(vector<STrack>& resa,
-                                           vector<STrack>& resb,
-                                           vector<STrack>& stracksa,
-                                           vector<STrack>& stracksb) {
+void BYTETracker::remove_duplicate_stracks(vector<STrack>& resa, vector<STrack>& resb, vector<STrack>& stracksa, vector<STrack>& stracksb) {
     vector<vector<float>> pdist = iou_distance(stracksa, stracksb);
     vector<pair<int, int>> pairs;
     for (int i = 0; i < pdist.size(); i++) {
@@ -343,13 +346,8 @@ void BYTETracker::remove_duplicate_stracks(vector<STrack>& resa,
     }
 }
 
-void BYTETracker::linear_assignment(vector<vector<float>>& cost_matrix,
-                                    int cost_matrix_size,
-                                    int cost_matrix_size_size,
-                                    float thresh,
-                                    vector<vector<int>>& matches,
-                                    vector<int>& unmatched_a,
-                                    vector<int>& unmatched_b) {
+void BYTETracker::linear_assignment(
+    vector<vector<float>>& cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh, vector<vector<int>>& matches, vector<int>& unmatched_a, vector<int>& unmatched_b) {
     if (cost_matrix.size() == 0) {
         for (int i = 0; i < cost_matrix_size; i++) {
             unmatched_a.push_back(i);
@@ -382,8 +380,7 @@ void BYTETracker::linear_assignment(vector<vector<float>>& cost_matrix,
     }
 }
 
-vector<vector<float>> BYTETracker::ious(vector<vector<float>>& atlbrs,
-                                        vector<vector<float>>& btlbrs) {
+vector<vector<float>> BYTETracker::ious(vector<vector<float>>& atlbrs, vector<vector<float>>& btlbrs) {
     vector<vector<float>> ious;
     if (atlbrs.size() * btlbrs.size() == 0)
         return ious;
@@ -404,9 +401,7 @@ vector<vector<float>> BYTETracker::ious(vector<vector<float>>& atlbrs,
             if (iw > 0) {
                 float ih = min(atlbrs[n][3], btlbrs[k][3]) - max(atlbrs[n][1], btlbrs[k][1]) + 1;
                 if (ih > 0) {
-                    float ua =
-                        (atlbrs[n][2] - atlbrs[n][0] + 1) * (atlbrs[n][3] - atlbrs[n][1] + 1) +
-                        box_area - iw * ih;
+                    float ua   = (atlbrs[n][2] - atlbrs[n][0] + 1) * (atlbrs[n][3] - atlbrs[n][1] + 1) + box_area - iw * ih;
                     ious[n][k] = iw * ih / ua;
                 } else {
                     ious[n][k] = 0.0;
@@ -420,10 +415,7 @@ vector<vector<float>> BYTETracker::ious(vector<vector<float>>& atlbrs,
     return ious;
 }
 
-vector<vector<float>> BYTETracker::iou_distance(vector<STrack*>& atracks,
-                                                vector<STrack>& btracks,
-                                                int& dist_size,
-                                                int& dist_size_size) {
+vector<vector<float>> BYTETracker::iou_distance(vector<STrack*>& atracks, vector<STrack>& btracks, int& dist_size, int& dist_size_size) {
     vector<vector<float>> cost_matrix;
     if (atracks.size() * btracks.size() == 0) {
         dist_size      = atracks.size();
@@ -497,12 +489,7 @@ vector<vector<float>> BYTETracker::iou_distance(vector<STrack>& atracks, vector<
     return cost_matrix;
 }
 
-double BYTETracker::lapjv(const vector<vector<float>>& cost,
-                          vector<int>& rowsol,
-                          vector<int>& colsol,
-                          bool extend_cost,
-                          float cost_limit,
-                          bool return_cost) {
+double BYTETracker::lapjv(const vector<vector<float>>& cost, vector<int>& rowsol, vector<int>& colsol, bool extend_cost, float cost_limit, bool return_cost) {
     vector<vector<float>> cost_c;
     cost_c.assign(cost.begin(), cost.end());
 

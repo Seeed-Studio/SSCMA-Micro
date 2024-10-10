@@ -11,6 +11,7 @@
 
 #include "ma_debug.h"
 #include "ma_definations.h"
+#include "ma_exception.h"
 #include "ma_types.h"
 
 #define MA_VERSION           "1.0.0"

@@ -93,6 +93,7 @@ typedef struct {
         float* f32;
         double* f64;
     } data;
+    bool is_physical;  // For physical tensor
     bool is_variable;  // For constant tensor
 } ma_tensor_t;
 
@@ -226,7 +227,7 @@ typedef enum {
     MA_TRANSPORT_MQTT    = 5,
     MA_TRANSPORT_TCP     = 6,
     MA_TRANSPORT_UDP     = 7,
-    MA_TRANSPORT_RTSP   = 8
+    MA_TRANSPORT_RTSP    = 8
 } ma_transport_type_t;
 
 typedef enum {
@@ -246,6 +247,7 @@ typedef enum {
     MA_MODEL_TYPE_YOLOV8      = 6u,
     MA_MODEL_TYPE_NVIDIA_DET  = 7u,
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
+    MA_MODEL_TYPE_YOLOV11     = 9u,
 } ma_model_type_t;
 
 typedef struct {
@@ -302,7 +304,7 @@ typedef enum MA_ATTR_PACKED {
 #ifdef __cplusplus
 }
 
-    #include <string>
+#include <string>
 
 struct ipv4_addr_t {
     ipv4_addr_t() : addr{0} {}
@@ -314,18 +316,21 @@ struct ipv4_addr_t {
     // we're not going to validate the input string
     static decltype(auto) from_str(std::string s) {
         ipv4_addr_t r;
-        uint8_t     l{0};
+        uint8_t l{0};
 
         for (std::size_t i = 0; i < s.length(); ++i) {
-            if (!std::isdigit(s[i])) continue;
+            if (!std::isdigit(s[i]))
+                continue;
 
             uint8_t n{0};
             for (; (++i < s.length()) & (++n < 3);)
-                if (!std::isdigit(s[i])) break;
+                if (!std::isdigit(s[i]))
+                    break;
             if (n) {
                 auto num{s.substr(i - n, n)};
                 r.addr[l++] = static_cast<uint8_t>(std::atoi(num.c_str()));
-                if (l > 3) return r;
+                if (l > 3)
+                    return r;
             }
         }
 
@@ -351,18 +356,21 @@ struct ipv6_addr_t {
 
     static decltype(auto) from_str(std::string s) {
         ipv6_addr_t r;
-        uint8_t     l{0};
+        uint8_t l{0};
 
         for (std::size_t i = 0; i < s.length(); ++i) {
-            if (!std::isxdigit(s[i])) continue;
+            if (!std::isxdigit(s[i]))
+                continue;
 
             uint16_t n{0};
             for (; (++i < s.length()) & (++n < 4);)
-                if (!std::isxdigit(s[i])) break;
+                if (!std::isxdigit(s[i]))
+                    break;
             if (n) {
                 auto num{s.substr(i - n, n)};
                 r.addr[l++] = static_cast<uint16_t>(std::strtol(num.c_str(), nullptr, 16));
-                if (l > 7) return r;
+                if (l > 7)
+                    return r;
             }
         }
 
@@ -371,13 +379,14 @@ struct ipv6_addr_t {
 
     decltype(auto) to_str() const {
         static const char* digits = "0123456789abcdef";
-        std::string        r;
+        std::string r;
         r.reserve(sizeof "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:");
         for (std::size_t i = 0; i < 8; ++i) {
             if (addr[i]) {
                 std::string t;
                 t.reserve(4);
-                for (uint16_t n = addr[i]; n; n >>= 4) t += digits[n & 0x0f];
+                for (uint16_t n = addr[i]; n; n >>= 4)
+                    t += digits[n & 0x0f];
                 r.append(t.rbegin(), t.rend());
             } else
                 r += '0';
