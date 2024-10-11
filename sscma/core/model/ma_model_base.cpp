@@ -5,15 +5,21 @@ namespace ma {
 constexpr char TAG[] = "ma::model";
 
 Model::Model(Engine* engine, const char* name, ma_model_type_t type)
-    : p_engine_(engine),
-      p_name_(name),
-      m_type_(type),
-      p_user_ctx_(nullptr),
-      p_preprocess_done_(nullptr),
-      p_postprocess_done_(nullptr),
-      p_underlying_run_done_(nullptr),
-      perf_{0, 0, 0}  // Initialize performance metrics to 0 using initializer list
+    
+      
+      // Initialize performance metrics to 0 using initializer list
 {
+
+    p_engine_ = engine;
+    p_name_   = name;
+    m_type_   = type;
+    p_user_ctx_ = nullptr;
+
+    p_preprocess_done_     = nullptr;
+    p_postprocess_done_    = nullptr;
+    p_underlying_run_done_ = nullptr;
+
+    perf_ = {0, 0, 0};
     // No further initialization needed since everything is already initialized
 }
 

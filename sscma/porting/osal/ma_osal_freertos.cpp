@@ -27,6 +27,9 @@ MA_ATTR_WEAK void operator delete[](void* ptr) {
     vPortFree(ptr);
 }
 
+#ifndef xPortIsInsideInterrupt()
+#define xPortIsInsideInterrupt() xPortInIsrContext()
+#endif
 
 namespace ma {
 

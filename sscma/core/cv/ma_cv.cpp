@@ -1072,7 +1072,7 @@ MA_ATTR_WEAK ma_err_t convert(const ma_img_t* src, ma_img_t* dst) {
         return MA_EINVAL;
 
     if (src->format == dst->format && src->width == dst->width &&
-        src->height == dst->height & src->data != dst->data) {
+        src->height == dst->height && src->data != dst->data) {
         memcpy(dst->data, src->data, src->size);
         return MA_OK;
     }
@@ -1086,7 +1086,7 @@ MA_ATTR_WEAK ma_err_t convert(const ma_img_t* src, ma_img_t* dst) {
 #endif
 
         if (dst->format == MA_PIXEL_FORMAT_RGB565 || dst->format == MA_PIXEL_FORMAT_RGB888 ||
-            MA_PIXEL_FORMAT_RGB888_PLANAR || dst->format == MA_PIXEL_FORMAT_GRAYSCALE) {
+            dst->format == MA_PIXEL_FORMAT_RGB888_PLANAR || dst->format == MA_PIXEL_FORMAT_GRAYSCALE) {
             return rgb_to_rgb(src, dst);
         }
     }

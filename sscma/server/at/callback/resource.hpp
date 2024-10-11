@@ -4,6 +4,8 @@
 #include <core/ma_core.h>
 #include <porting/ma_porting.h>
 
+#include <ma_config_board.h>
+
 #include <atomic>
 
 using namespace ma;
@@ -18,7 +20,7 @@ struct StaticResource final {
         device = Device::getInstance();
 
         MA_LOGD(MA_TAG, "Initializing engine");
-#ifdef MA_USE_ENGINE_TFLITE
+#if MA_USE_ENGINE_TFLITE
         static EngineTFLite engine_default;
 #elif MA_USE_ENGINE_CVI
         static EngineCVI engine_default;

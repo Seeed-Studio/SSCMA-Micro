@@ -41,7 +41,7 @@ constexpr inline float fastExp(float x) {
     const float c{8388608.f};
     const float d{2139095040.f};
 
-    if (x < c | x > d) x = (x < c) ? 0.0f : d;
+    if ((x < c) | (x > d)) x = (x < c) ? 0.0f : d;
 
     uint32_t n = static_cast<uint32_t>(x);
     x          = *reinterpret_cast<float*>(&n);

@@ -6,7 +6,11 @@ namespace ma {
 
 static const char* TAG = "ma::codec::JSON";
 
-EncoderJSON::EncoderJSON() : m_mutex(false), m_root(nullptr), m_data(nullptr) {
+EncoderJSON::EncoderJSON() : m_mutex(false) {
+   
+    m_root = nullptr;
+    m_data = nullptr;
+
     static bool s_inited       = false;
     static cJSON_Hooks g_hooks = {
         .malloc_fn = ma_malloc,

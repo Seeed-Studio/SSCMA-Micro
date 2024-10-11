@@ -15,6 +15,8 @@
 #include "ma_transport_i2c.h"
 #include "ma_transport_serial.h"
 
+
+
 namespace ma {
 
 Device::Device() {

@@ -8,11 +8,14 @@
 #include <string>
 
 #include "core/ma_common.h"
+#include <ma_config_board.h>
 
 #if MA_OSAL_PTHREAD
 #include "osal/ma_osal_pthread.h"
 #elif MA_OSAL_FREERTOS
 #include "osal/ma_osal_freertos.h"
+#else
+#error "No OSAL defined"
 #endif
 
 namespace ma {
@@ -32,7 +35,7 @@ public:
 class Thread {
 public:
     Thread(const char* name, void (*entry)(void*), void* arg = nullptr, uint32_t priority = 0, size_t stacksize = 0, ma_stack_t* stack = nullptr) noexcept;
-    ~Thread() noexcept;
+    virtual ~Thread() noexcept;
     operator bool() const;
     bool start(void* arg = nullptr);
     bool stop();
