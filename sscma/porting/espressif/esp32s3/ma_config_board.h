@@ -1,6 +1,8 @@
 #ifndef _MA_CONFIG_BOARD_H_
 #define _MA_CONFIG_BOARD_H_
 
+#include "boards/ma_board_xiao_s3.h"
+
 #define MA_BOARD_NAME                     "XIAO(ESP32S3)"
 
 #define MA_USE_ENGINE_TFLITE               1

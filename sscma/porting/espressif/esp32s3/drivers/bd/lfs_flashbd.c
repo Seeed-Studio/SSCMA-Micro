@@ -36,7 +36,7 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
         LFS_ASSERT(!_partition && "Partition already exists");
     }
 
-    _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, "edgelab_db");
+    _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_UNDEFINED, "db");
 
     if (!_partition) {
         LFS_ASSERT(_partition && "Partition not found");

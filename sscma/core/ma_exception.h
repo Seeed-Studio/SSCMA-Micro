@@ -1,7 +1,9 @@
 #ifndef _MA_EXCEPTION_H_
 #define _MA_EXCEPTION_H_
 
+#ifdef __cplusplus
 #include <string>
+#endif
 
 #include "ma_config_internal.h"
 #include "ma_types.h"

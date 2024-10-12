@@ -358,7 +358,7 @@ public:
     ma_quant_param_t getInputQuantParam(int32_t index) override;
     ma_quant_param_t getOutputQuantParam(int32_t index) override;
 
-    ma_err_t setInput(int32_t index, const ma_tensor_t* tensor) override;
+    ma_err_t setInput(int32_t index, const ma_tensor_t& tensor) override;
 
 private:
     tflite::MicroInterpreter* interpreter;

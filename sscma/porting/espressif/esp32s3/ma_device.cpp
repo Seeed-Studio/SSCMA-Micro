@@ -12,9 +12,8 @@
 
 
 extern "C" {
-void ma_invoke_pre_hook(void*) {
     
-}
+void ma_invoke_pre_hook(void*) {}
 
 void ma_invoke_post_hook(void*) { }
 
@@ -54,7 +53,7 @@ Device::Device() {
             .read_size   = 16,
             .prog_size   = 16,
             .erase_size  = 4096,
-            .erase_count = 128,
+            .erase_count = 48,
             .flash_addr  = nullptr,
         };
         static StorageLfs storage;

@@ -67,10 +67,10 @@ bool Yolo11::isValid(Engine* engine) {
     for (size_t i = 0; i < 6; i += 2) {
         auto box_shape = engine->getOutputShape(i);
         auto cls_shape = engine->getOutputShape(i + 1);
-        if (box_shape.size != 4 || box_shape.dims[0] != 1 || box_shape.dims[1] != 64 || box_shape.dims[2] != (w >> (i / 2) + 3) || box_shape.dims[3] != (w >> (i / 2) + 3)) {
+        if (box_shape.size != 4 || box_shape.dims[0] != 1 || box_shape.dims[1] != 64 || box_shape.dims[2] != (w >> ((i / 2) + 3)) || box_shape.dims[3] != (w >> ((i / 2) + 3))) {
             return false;
         }
-        if (cls_shape.size != 4 || cls_shape.dims[0] != 1 || cls_shape.dims[2] != (w >> (i / 2) + 3) || cls_shape.dims[3] != (w >> (i / 2) + 3)) {
+        if (cls_shape.size != 4 || cls_shape.dims[0] != 1 || cls_shape.dims[2] != (w >> ((i / 2) + 3)) || cls_shape.dims[3] != (w >> ((i / 2) + 3))) {
             return false;
         }
     }
