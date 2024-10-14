@@ -2,7 +2,9 @@
 #include <esp_camera.h>
 #include <esp_log.h>
 
+#include "core/cv/ma_cv.h"
 #include "core/ma_debug.h"
+#include <vector>
 
 #define XCLK_FREQ_HZ 15000000
 
@@ -19,6 +21,7 @@ static const presets_wrapper_t _presets[] = {
 static camera_config_t _config;
 static camera_fb_t* _fb  = nullptr;
 static sensor_t* _sensor = nullptr;
+static std::vector<uint8_t> _jpeg_buffer;
 
 static ma_pixel_rotate_t _rotation_override = MA_PIXEL_ROTATE_0;
 static volatile int _frame_shared_ref_count = 0;
@@ -95,6 +98,8 @@ ma_err_t CameraESP32::init(size_t preset_idx) noexcept {
         _sensor->set_saturation(_sensor, -2);  // lower the saturation
     }
 
+    _fb = esp_camera_fb_get();
+
     m_initialized = true;
 
     return MA_OK;
@@ -107,6 +112,9 @@ void CameraESP32::deInit() noexcept {
     }
 
     esp_camera_deinit();
+
+    _jpeg_buffer.clear();
+    _jpeg_buffer.shrink_to_fit();
 
     m_initialized = false;
 }
@@ -206,9 +214,39 @@ ma_err_t CameraESP32::retrieveFrame(ma_img_t& frame, ma_pixel_format_t format) n
     switch (format) {
         case MA_PIXEL_FORMAT_AUTO:
         case MA_PIXEL_FORMAT_RGB565:
-            frame.data = _fb->buf;
-            frame.size = _fb->len;
+            frame.data   = _fb->buf;
+            frame.size   = _fb->len;
+            frame.format = MA_PIXEL_FORMAT_RGB565;
             break;
+        case MA_PIXEL_FORMAT_JPEG: {
+            ma_img_t rgb565_frame;
+            rgb565_frame.data   = _fb->buf;
+            rgb565_frame.size   = _fb->len;
+            rgb565_frame.width  = _fb->width;
+            rgb565_frame.height = _fb->height;
+            rgb565_frame.format = MA_PIXEL_FORMAT_RGB565;
+
+            size_t estimated_size =  rgb565_frame.width * rgb565_frame.height * 3 / 8;
+            if (_jpeg_buffer.size() < estimated_size) {
+                _jpeg_buffer.resize(estimated_size);
+            }
+
+            frame.data   = _jpeg_buffer.data(); 
+            frame.size   = _jpeg_buffer.size();
+            if (frame.data == nullptr || frame.size == 0) {
+                MA_LOGE(MA_TAG, "JPEG buffer allocation failed");
+                return MA_ENOMEM;
+            }
+
+            frame.width  = _fb->width;
+            frame.height = _fb->height;
+            auto ret = ma::cv::rgb_to_jpeg(&rgb565_frame, &frame);
+            if (ret != MA_OK) {
+                MA_LOGE(MA_TAG, "Failed to convert RGB565 to JPEG");
+            }
+        }
+
+        break;
         default:
             return MA_ENOTSUP;
     }

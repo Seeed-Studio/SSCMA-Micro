@@ -1021,7 +1021,7 @@ MA_ATTR_WEAK ma_err_t rgb_to_jpeg(const ma_img_t* src, ma_img_t* dst) {
     int pitch         = 0;
     int bytesPerPixel = 0;
     int pixelFormat   = 0;
-    MA_LOGD(TAG, "rgb_to_jpeg");
+    // MA_LOGD(TAG, "rgb_to_jpeg");
     MA_ASSERT(src->format == MA_PIXEL_FORMAT_GRAYSCALE || src->format == MA_PIXEL_FORMAT_RGB565 ||
               src->format == MA_PIXEL_FORMAT_RGB888);
     if (src->format == MA_PIXEL_FORMAT_GRAYSCALE) {
