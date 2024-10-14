@@ -41,6 +41,8 @@ ma_err_t Console::init(const void* config) {
         _rb_rx = new SPSCRingBuffer<char>(4096);
     }
 
+    m_initialized = true;
+
     return MA_OK;
 }
 
@@ -100,7 +102,7 @@ size_t Console::receive(char* data, size_t length) {
     size_t rlen     = 0;
     char   rbuf[32] = {0};  // Most commands are less than 32 bytes long
     do {
-        rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 1 / portTICK_PERIOD_MS);
+        rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 10 / portTICK_PERIOD_MS);
         _rb_rx->push(rbuf, rlen);
     } while (rlen > 0);
 
@@ -116,7 +118,7 @@ size_t Console::receiveIf(char* data, size_t length, char delimiter) {
     size_t rlen     = 0;
     char   rbuf[32] = {0};  // Most commands are less than 32 bytes long
     do {
-        rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 1 / portTICK_PERIOD_MS);
+        rlen = usb_serial_jtag_read_bytes(rbuf, sizeof(rbuf), 10 / portTICK_PERIOD_MS);
         _rb_rx->push(rbuf, rlen);
     } while (rlen > 0);
 

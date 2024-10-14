@@ -327,7 +327,9 @@ EngineTFLite::~EngineTFLite() {
         interpreter = nullptr;
     }
     if (memory_pool.pool != nullptr && memory_pool.own) {
+        #ifndef MA_USE_STATIC_TENSOR_ARENA
         delete[] static_cast<uint8_t*>(memory_pool.pool);
+        #endif
         memory_pool.pool = nullptr;
     }
 #if MA_USE_FILESYSTEM
@@ -342,11 +344,21 @@ ma_err_t EngineTFLite::init() {
     return init(MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE);
 }
 
+#ifdef MA_USE_STATIC_TENSOR_ARENA
+extern "C" {
+extern uint8_t* _ma_static_tensor_arena;
+}
+#endif
+
 ma_err_t EngineTFLite::init(size_t size) {
     if (memory_pool.pool != nullptr) {
         return MA_EPERM;
     }
+    #ifdef MA_USE_STATIC_TENSOR_ARENA
+    void* pool = _ma_static_tensor_arena;
+    #else
     void* pool = new uint8_t[size];
+    #endif
     if (pool == nullptr) {
         return MA_ENOMEM;
     }

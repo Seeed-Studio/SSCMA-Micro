@@ -66,7 +66,7 @@ void ATServer::threadEntry() {
         initDefaultAlgorithm(m_encoder);
     }
 
-    char* buf = static_cast<char*>(ma_malloc(MA_SEVER_AT_CMD_MAX_LENGTH + 1));
+    char* buf = new char[MA_SEVER_AT_CMD_MAX_LENGTH + 1];
     std::memset(buf, 0, MA_SEVER_AT_CMD_MAX_LENGTH + 1);
     while (true) {
         for (auto& transport : static_resource->device->getTransports()) {
@@ -85,7 +85,7 @@ void ATServer::threadEntry() {
         }
         Thread::sleep(Tick::fromMicroseconds(20));
     }
-    ma_free(buf);
+    delete[] buf;
 }
 
 ma_err_t ATServer::init() {

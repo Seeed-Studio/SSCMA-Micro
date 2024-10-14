@@ -6,8 +6,9 @@
 #define MA_BOARD_NAME                     "XIAO(ESP32S3)"
 
 #define MA_USE_ENGINE_TFLITE               1
-#define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE (1000 * 1024)
+#define MA_ENGINE_TFLITE_TENSOE_ARENA_SIZE (800 * 1024)
 #define MA_USE_ENGINE_TENSOR_INDEX         1
+#define MA_USE_STATIC_TENSOR_ARENA         1
 
 #define MA_TFLITE_OP_SOFTMAX               1
 #define MA_TFLITE_OP_PADV2                 1

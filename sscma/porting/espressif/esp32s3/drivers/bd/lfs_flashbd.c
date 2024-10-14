@@ -43,12 +43,7 @@ int lfs_flashbd_create(const struct lfs_config* cfg, const struct lfs_flashbd_co
         return LFS_ERR_INVAL;
     }
 
-    if (bd->cfg->flash_addr && bd->cfg->erase_count) {
-        bd->flash_addr  = _partition->address;
-    } else {
-        LFS_ASSERT(bd->cfg->flash_addr && "flash_addr must be provided");
-        return LFS_ERR_INVAL;
-    }
+    bd->flash_addr = _partition->address;
 
     LFS_FLASHBD_TRACE("lfs_flashbd_create -> %d", success ? 0 : LFS_ERR_IO);
 
