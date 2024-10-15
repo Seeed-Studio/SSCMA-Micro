@@ -244,12 +244,6 @@ inline void AlgorithmYOLOWorld::init() {
         _output_quant_params[i] = this->__p_engine->get_output_quant_param(i);
     }
 
-    _scaled_strides.reserve(_anchor_strides.size());
-    for (const auto& anchor_stride : _anchor_strides) {
-        _scaled_strides.emplace_back(std::make_pair(static_cast<float>(anchor_stride.stride) * _w_scale,
-                                                    static_cast<float>(anchor_stride.stride) * _h_scale));
-    }
-
     for (size_t i = 0; i < _outputs; ++i) {
         // assuimg all outputs has 3 dims and the first dim is 1 (actual validation is done in is_model_valid)
         auto dim_1 = _output_shapes[i].dims[1];
@@ -288,8 +282,20 @@ inline void AlgorithmYOLOWorld::init() {
 }
 
 el_err_code_t AlgorithmYOLOWorld::run(ImageType* input) {
-    _w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
-    _h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
+    auto w_scale = static_cast<float>(input->width) / static_cast<float>(_input_img.width);
+    auto h_scale = static_cast<float>(input->height) / static_cast<float>(_input_img.height);
+
+    if (w_scale != _w_scale || h_scale != _h_scale) [[unlikely]] {
+        _w_scale = w_scale;
+        _h_scale = h_scale;
+
+        _scaled_strides.resize(_anchor_strides.size());
+        size_t i = 0;
+        for (const auto& anchor_stride : _anchor_strides) {
+            const auto s         = static_cast<float>(anchor_stride.stride);
+            _scaled_strides[i++] = std::make_pair(s * _w_scale, s * _h_scale);
+        }
+    }
 
     // TODO: image type conversion before underlying_run, because underlying_run doing a type erasure
     return underlying_run(input);
