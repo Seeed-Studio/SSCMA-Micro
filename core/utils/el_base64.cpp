@@ -95,7 +95,7 @@ void el_base64_encode(const unsigned char* in, int in_len, char* out) {
         char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
         char_array_4[3] = char_array_3[2] & 0x3f;
 
-        for (j = 0; j < i + 1; j++) *out++ = constants::BASE64_CHARS_TABLE[char_array_4[i]];
+        for (j = 0; j < i + 1; j++) *out++ = constants::BASE64_CHARS_TABLE[char_array_4[j]];
 
         while (i++ < 3) *out++ = '=';
     }
