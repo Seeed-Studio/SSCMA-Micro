@@ -37,6 +37,7 @@ ma_err_t ATServer::addService(ATService& service) {
         }
     }
     m_services.push_front(service);
+
     return MA_OK;
 }
 

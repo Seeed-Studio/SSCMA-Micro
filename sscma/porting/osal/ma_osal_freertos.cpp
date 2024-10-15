@@ -1,6 +1,7 @@
 #include "core/ma_common.h"
 #include "porting/ma_osal.h"
 
+
 #if MA_OSAL_FREERTOS
 
 MA_ATTR_WEAK void* operator new(size_t size) {
