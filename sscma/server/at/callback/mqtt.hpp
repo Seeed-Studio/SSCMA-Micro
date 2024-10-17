@@ -9,23 +9,23 @@
 #include "porting/ma_porting.h"
 #include "resource.hpp"
 
-static int32_t                _mqtt_status = 0;
-static ma_mqtt_config_t       _mqtt_server_config{};
+static int32_t _mqtt_status = 0;
+static ma_mqtt_config_t _mqtt_server_config{};
 static ma_mqtt_topic_config_t _mqtt_topic_config{};
+
+#if MA_USE_EXTERNAL_WIFI_STATUS
+extern volatile int _net_sta;
+#endif
 
 namespace ma::server::callback {
 
 void getMqttPubsub(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    MA_STORAGE_GET_ASTR(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_TOPIC, _mqtt_topic_config.pub_topic, "");
-    MA_STORAGE_GET_ASTR(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_TOPIC, _mqtt_topic_config.sub_topic, "");
-    MA_STORAGE_GET_POD(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_QOS, _mqtt_topic_config.pub_qos, 0);
-    MA_STORAGE_GET_POD(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_QOS, _mqtt_topic_config.sub_qos, 0);
+    MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_TOPIC, _mqtt_topic_config.pub_topic, "");
+    MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_TOPIC, _mqtt_topic_config.sub_topic, "");
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_QOS, _mqtt_topic_config.pub_qos, 0);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_QOS, _mqtt_topic_config.sub_qos, 0);
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
     encoder.write(_mqtt_topic_config);
@@ -46,14 +46,10 @@ void configureMqttPubsub(const std::vector<std::string>& argv, Transport& transp
     _mqtt_topic_config.pub_qos = std::atoi(argv[3].c_str());
     _mqtt_topic_config.sub_qos = std::atoi(argv[4].c_str());
 
-    MA_STORAGE_SET_ASTR(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_TOPIC, _mqtt_topic_config.pub_topic);
-    MA_STORAGE_SET_ASTR(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_TOPIC, _mqtt_topic_config.sub_topic);
-    MA_STORAGE_SET_POD(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_QOS, _mqtt_topic_config.pub_qos);
-    MA_STORAGE_SET_POD(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_QOS, _mqtt_topic_config.sub_qos);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_TOPIC, _mqtt_topic_config.pub_topic);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_TOPIC, _mqtt_topic_config.sub_topic);
+    MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_QOS, _mqtt_topic_config.pub_qos);
+    MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_QOS, _mqtt_topic_config.sub_qos);
 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
@@ -66,6 +62,9 @@ void getMqttSta(const std::vector<std::string>& argv, Transport& transport, Enco
     ma_err_t ret = MA_OK;
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
+#if MA_USE_EXTERNAL_WIFI_STATUS
+    _mqtt_status = (((uint8_t)_net_sta & 0xf) - 1) & 0b0110;
+#endif
     encoder.write("status", _mqtt_status);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
@@ -105,14 +104,10 @@ void configureMqttServer(const std::vector<std::string>& argv, Transport& transp
 
     MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_HOST, _mqtt_server_config.host);
     MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PORT, _mqtt_server_config.port);
-    MA_STORAGE_SET_ASTR(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_CLIENTID, _mqtt_server_config.client_id);
-    MA_STORAGE_SET_ASTR(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_USER, _mqtt_server_config.username);
-    MA_STORAGE_SET_ASTR(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PWD, _mqtt_server_config.password);
-    MA_STORAGE_SET_POD(
-      ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL, _mqtt_server_config.use_ssl);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_CLIENTID, _mqtt_server_config.client_id);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_USER, _mqtt_server_config.username);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PWD, _mqtt_server_config.password);
+    MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL, _mqtt_server_config.use_ssl);
 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
@@ -126,12 +121,9 @@ void getMqttConfig(const std::vector<std::string>& argv, Transport& transport, E
 
     MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_HOST, _mqtt_server_config.host, "");
     MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PORT, _mqtt_server_config.port, 0);
-    MA_STORAGE_GET_ASTR(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_CLIENTID, _mqtt_server_config.client_id, "");
-    MA_STORAGE_GET_ASTR(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_USER, _mqtt_server_config.username, "");
-    MA_STORAGE_GET_ASTR(
-      static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PWD, _mqtt_server_config.password, "");
+    MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_CLIENTID, _mqtt_server_config.client_id, "");
+    MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_USER, _mqtt_server_config.username, "");
+    MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PWD, _mqtt_server_config.password, "");
     MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL, _mqtt_server_config.use_ssl, 0);
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
