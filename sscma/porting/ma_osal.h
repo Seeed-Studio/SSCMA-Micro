@@ -8,7 +8,12 @@
 #include <string>
 
 #include "core/ma_common.h"
+
+#if __has_include(<ma_config_board.h>)
 #include <ma_config_board.h>
+#else
+#error "No <ma_config_board.h>"
+#endif
 
 #if MA_OSAL_PTHREAD
 #include "osal/ma_osal_pthread.h"
