@@ -208,7 +208,9 @@ Err:
             }
 
 #else
-            _buffer.resize(buffer_size);
+            if (buffer_size > _buffer.size()) {
+                _buffer.resize(buffer_size + 1);
+            }
 #endif
 
             {
@@ -223,6 +225,7 @@ Err:
 #if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
                 _buffer_size = buffer_size;
 #endif
+                _buffer[buffer_size] = '\0';
                 if (ret != MA_OK) {
                     MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
                 }
@@ -257,15 +260,14 @@ Err:
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
 
-        eventReply(frame.width, frame.height);
+        eventReply(raw_frame.width, raw_frame.height);
 
 
         static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
-    Err:
-        eventReply(frame.width, frame.height);
-
+Err:
+        eventReply(raw_frame.width, raw_frame.height);
     }
 
     inline bool isEverythingOk() const {

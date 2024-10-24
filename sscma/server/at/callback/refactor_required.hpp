@@ -76,6 +76,7 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width,
     case MA_MODEL_TYPE_YOLO_WORLD: {
 
         auto results = static_cast<Detector*>(algorithm)->getResults();
+        MA_LOGD(MA_TAG, "Results size: %d", std::distance(results.begin(), results.end()));
         for (auto& result : results) {
             result.x *= width;
             result.y *= height;

@@ -6,32 +6,33 @@
 
 #include "core/ma_core.h"
 #include "core/utils/ma_base64.h"
-#include "server/at/codec/ma_codec.h"
 #include "porting/ma_porting.h"
 #include "resource.hpp"
+#include "server/at/codec/ma_codec.h"
 
 namespace ma::server::callback {
 
 using namespace ma;
 
 class Sample final : public std::enable_shared_from_this<Sample> {
-   public:
-    std::shared_ptr<Sample> getptr() { return shared_from_this(); }
-
-    [[nodiscard]] static std::shared_ptr<Sample> create(const std::vector<std::string>& args,
-                                                        Transport&                      transport,
-                                                        Encoder&                        encoder,
-                                                        size_t                          task_id) {
-        return std::shared_ptr<Sample>{
-          new Sample{args, transport, encoder, task_id}
-        };
+public:
+    std::shared_ptr<Sample> getptr() {
+        return shared_from_this();
     }
 
-    ~Sample() { static_resource->is_sample = false; }
+    [[nodiscard]] static std::shared_ptr<Sample> create(const std::vector<std::string>& args, Transport& transport, Encoder& encoder, size_t task_id) {
+        return std::shared_ptr<Sample>{new Sample{args, transport, encoder, task_id}};
+    }
 
-    inline void run() { prepare(); }
+    ~Sample() {
+        static_resource->is_sample = false;
+    }
 
-   protected:
+    inline void run() {
+        prepare();
+    }
+
+protected:
     Sample(const std::vector<std::string>& args, Transport& transport, Encoder& encoder, size_t task_id) {
         MA_ASSERT(args.size() >= 2);
         _cmd     = args[0];
@@ -55,30 +56,27 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         static_resource->is_sample = true;
     }
 
-   private:
+private:
     void prepare() {
         if (!prepareSensor()) [[unlikely]]
             goto Err;
 
         switch (_sensor->getType()) {
-        case Sensor::Type::kCamera:
-            directReply();
-            return static_resource->executor->submit(
-              [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
-        default:
-            _ret = MA_ENOTSUP;
-            directReply();
+            case Sensor::Type::kCamera:
+                directReply();
+                return static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
+            default:
+                _ret = MA_ENOTSUP;
+                directReply();
         }
 
-    Err:
+Err:
         directReply();
     }
 
     bool prepareSensor() {
         const auto& sensors = static_resource->device->getSensors();
-        auto        it      = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) {
-            return s->getID() == static_resource->current_sensor_id;
-        });
+        auto it             = std::find_if(sensors.begin(), sensors.end(), [&](const Sensor* s) { return s->getID() == static_resource->current_sensor_id; });
         if (it == sensors.end()) {
             return false;
         }
@@ -104,7 +102,8 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 #else
         _encoder->write("image", _buffer);
 #endif
-        if (_event_hook) _event_hook(*_encoder);
+        if (_event_hook)
+            _event_hook(*_encoder);
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
@@ -115,9 +114,9 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         if (static_resource->current_task_id.load() != _task_id) [[unlikely]]
             return;
 
-        auto camera      = static_cast<Camera*>(_sensor);
-        auto frame       = ma_img_t{};
-        int  buffer_size = 0;
+        auto camera     = static_cast<Camera*>(_sensor);
+        auto frame      = ma_img_t{};
+        int buffer_size = 0;
 
         _ret = camera->retrieveFrame(frame, MA_PIXEL_FORMAT_JPEG);
         if (!isEverythingOk()) [[unlikely]]
@@ -131,7 +130,9 @@ class Sample final : public std::enable_shared_from_this<Sample> {
         }
         _buffer_size = buffer_size;
 #else
-        _buffer.resize(buffer_size);
+        if (buffer_size > _buffer.size()) {
+            _buffer.resize(buffer_size + 1);
+        }
 #endif
 
         {
@@ -143,6 +144,7 @@ class Sample final : public std::enable_shared_from_this<Sample> {
                                                 reinterpret_cast<char*>(_buffer.data()),
 #endif
                                                 &buffer_size);
+            _buffer[buffer_size] = '\0';
             if (ret != MA_OK) {
                 MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
             }
@@ -161,39 +163,40 @@ class Sample final : public std::enable_shared_from_this<Sample> {
 
         eventReply();
 
-        static_resource->executor->submit(
-          [_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
+        static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;
 
-    Err:
+Err:
         eventReply();
     }
 
-    inline bool isEverythingOk() const { return _ret == MA_OK; }
+    inline bool isEverythingOk() const {
+        return _ret == MA_OK;
+    }
 
-   private:
+private:
     std::string _cmd;
-    int32_t     _n_times;
+    int32_t _n_times;
 
     ma_err_t _ret;
 
-    Sensor*    _sensor;
+    Sensor* _sensor;
     Transport* _transport;
-    Encoder*   _encoder;
+    Encoder* _encoder;
 
-    size_t  _task_id;
+    size_t _task_id;
     int32_t _times;
 
     std::function<void(Encoder&)> _event_hook;
 
 #if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
-    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
-        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
-    #endif
-    #ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
-        #error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
-    #endif
-    void*  _buffer;
+#ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR
+#error "MA_SENSOR_ENCODE_STATIC_BUFFER_ADDR is not defined"
+#endif
+#ifndef MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE
+#error "MA_SENSOR_ENCODE_STATIC_BUFFER_SIZE is not defined"
+#endif
+    void* _buffer;
     size_t _buffer_size;
 #else
     std::string _buffer;
