@@ -394,10 +394,11 @@ ma_err_t EncoderJSON::write(const ma_wifi_config_t& value) {
     if (str.size() < 1) {
         str = value.bssid;
     }
+    
     cJSON_AddItemToObject(item, "name", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(item, "security", cJSON_CreateNumber(value.security));
     cJSON_AddItemToObject(item, "password", cJSON_CreateString(value.password));
-    cJSON_AddItemToObject(m_data, "wifi_config", item);
+    cJSON_AddItemToObject(m_data, "config", item);
     return MA_OK;
 }
 
@@ -588,7 +589,8 @@ ma_err_t EncoderJSON::write(const ma_mqtt_topic_config_t& value) {
     cJSON_AddItemToObject(item, "sub_topic", cJSON_CreateString(value.sub_topic));
     cJSON_AddItemToObject(item, "sub_qos", cJSON_CreateNumber((int)value.sub_qos));
    
-    cJSON_AddItemToObject(m_data, "topic", item);
+    cJSON_AddItemToObject(m_data, "config", item);
+
     return MA_OK;
 }
 

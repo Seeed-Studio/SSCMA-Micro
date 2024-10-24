@@ -4,6 +4,11 @@
 
 #if MA_OSAL_FREERTOS
 
+#ifndef MA_OSAL_FREERTOS_CXX_ALLOC_OVERRIDE
+#define MA_OSAL_FREERTOS_CXX_ALLOC_OVERRIDE 1
+#endif
+
+#if MA_OSAL_FREERTOS_CXX_ALLOC_OVERRIDE
 MA_ATTR_WEAK void* operator new(size_t size) {
     // printf("new size: %d\n", size);
     void* ptr = pvPortMalloc(size);
@@ -27,6 +32,7 @@ MA_ATTR_WEAK void operator delete[](void* ptr) {
     MA_ASSERT(ptr!= nullptr);
     vPortFree(ptr);
 }
+#endif
 
 #ifndef xPortIsInsideInterrupt
 static inline BaseType_t xPortInIsrContext(void) {
