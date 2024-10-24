@@ -70,7 +70,7 @@ void getWifiVer(const std::vector<std::string>& argv, Transport& transport, Enco
 void configureWifi(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    ma_wifi_config_t config{0};
+    ma_wifi_config_t config{};
     bool is_bssid = isBssid(argv[1]);
 
     if (argv.size() < 4) {
@@ -174,7 +174,7 @@ exit:
 void getWifiInfo(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    ma_wifi_config_t config{0};
+    ma_wifi_config_t config{};
     MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_WIFI_SSID, config.ssid, "");
     MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_WIFI_BSSID, config.bssid, "");
     MA_STORAGE_GET_ASTR(static_resource->device->getStorage(), MA_STORAGE_KEY_WIFI_PWD, config.password, "");

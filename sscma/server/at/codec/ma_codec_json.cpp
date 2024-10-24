@@ -562,19 +562,14 @@ ma_err_t EncoderJSON::write(const Sensor* value, size_t preset) {
 
 
 ma_err_t EncoderJSON::write(const ma_mqtt_config_t& value) {
-    cJSON* item = cJSON_CreateObject();
-    if (item == nullptr) {
-        return MA_FAILED;
-    }
 
-    cJSON_AddItemToObject(item, "host", cJSON_CreateString(value.host));
-    cJSON_AddItemToObject(item, "port", cJSON_CreateNumber(value.port));
-    cJSON_AddItemToObject(item, "username", cJSON_CreateString(value.username));
-    cJSON_AddItemToObject(item, "password", cJSON_CreateString(value.password));
-    cJSON_AddItemToObject(item, "client_id", cJSON_CreateString(value.client_id));
-    cJSON_AddItemToObject(item, "use_ssl", cJSON_CreateNumber((int)value.use_ssl));
+    cJSON_AddItemToObject(m_data, "address", cJSON_CreateString(value.host));
+    cJSON_AddItemToObject(m_data, "port", cJSON_CreateNumber(value.port));
+    cJSON_AddItemToObject(m_data, "username", cJSON_CreateString(value.username));
+    cJSON_AddItemToObject(m_data, "password", cJSON_CreateString(value.password));
+    cJSON_AddItemToObject(m_data, "client_id", cJSON_CreateString(value.client_id));
+    cJSON_AddItemToObject(m_data, "use_ssl", cJSON_CreateNumber((int)value.use_ssl));
 
-    cJSON_AddItemToObject(m_data, "config", item);
     return MA_OK;
 }
 

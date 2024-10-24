@@ -396,7 +396,7 @@ ma_err_t ATServer::init() {
     addService(
       "MQTTSERVER",
       "Configure MQTT server",
-      "BROKER,PORT,CLIENT_ID,USERNAME,USE_SSL",
+      "CLIENT_ID,BROKER,PORT,CLIENT_ID,USERNAME,USE_SSL",
       [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
           static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
               configureMqttServer(args, transport, encoder);

@@ -91,13 +91,21 @@ void configureMqttServer(const std::vector<std::string>& argv, Transport& transp
     ma_err_t ret = MA_OK;
 
     if (argv.size() < 7) {
+        MA_LOGD(MA_TAG, "Invalid number of arguments %d", argv.size());
         ret = MA_EINVAL;
         goto exit;
     }
 
-    std::strncpy(_mqtt_server_config.host, argv[1].c_str(), MA_MQTT_MAX_BROKER_LENGTH - 1);
-    _mqtt_server_config.port = std::atoi(argv[2].c_str());
-    std::strncpy(_mqtt_server_config.client_id, argv[3].c_str(), MA_MQTT_MAX_CLIENT_ID_LENGTH - 1);
+    std::strncpy(_mqtt_server_config.host, argv[2].c_str(), MA_MQTT_MAX_BROKER_LENGTH - 1);
+    _mqtt_server_config.port = std::atoi(argv[3].c_str());
+    {
+        std::string client_id = argv[1];
+        if (client_id.empty()) {
+            using namespace std::string_literals;
+            client_id = std::string(PRODUCT_NAME_PREFIX) + "_"s + std::string(PRODUCT_NAME_SUFFIX) + "_"s + static_resource->device->id();
+        }
+        std::strncpy(_mqtt_server_config.client_id, client_id.c_str(), MA_MQTT_MAX_CLIENT_ID_LENGTH - 1);
+    }
     std::strncpy(_mqtt_server_config.username, argv[4].c_str(), MA_MQTT_MAX_USERNAME_LENGTH - 1);
     std::strncpy(_mqtt_server_config.password, argv[5].c_str(), MA_MQTT_MAX_PASSWORD_LENGTH - 1);
     _mqtt_server_config.use_ssl = std::atoi(argv[6].c_str());
