@@ -95,7 +95,7 @@ void initDefaultSensor(Encoder& encoder) {
     size_t opt_id    = 0;
 
     MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_ID, sensor_id, 0);
-    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_OPT_ID, opt_id, 0);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_SENSOR_OPT_ID, opt_id, 1);
 
     std::vector<std::string> args{
       "INIT@SENSOR", std::to_string(static_cast<int>(sensor_id)), "1", std::to_string(static_cast<int>(opt_id))};

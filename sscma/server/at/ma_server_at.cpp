@@ -447,6 +447,22 @@ ma_err_t ATServer::init() {
           });
           return MA_OK;
       });
+
+    addService(
+        "MQTTCA", "Set MQTT CA", "CA", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+            static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                configureMqttCA(args, transport, encoder);
+            });
+            return MA_OK;
+        });
+    
+    addService(
+        "MQTTCA?", "Get MQTT CA", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+            static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+                getMqttCA(args, transport, encoder);
+            });
+            return MA_OK;
+        });
       
     return MA_OK;
 }

@@ -1,10 +1,42 @@
 #include "ma_base64.h"
+#include <array>
 #include <cstdio>
 
 namespace ma::utils {
 
-static const char* BASE64_CHARS_TABLE =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+constexpr static const char* BASE64_CHARS_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+constexpr static std::array<int, 256> BASE64_DECODE_TABLE = []() {
+    std::array<int, 256> table;
+    for (auto& v : table) {
+        v = -1;
+    }
+    for (int i = 0; i < 64; i++) {
+        table[BASE64_CHARS_TABLE[i]] = i;
+    }
+    return table;
+}();
+
+std::string base64_decode(const std::string& in) {
+    std::string out;
+    out.reserve(in.size() * 3 / 4);
+
+    int val  = 0;
+    int valb = -8;
+    for (unsigned char c : in) {
+        if (BASE64_DECODE_TABLE[c] == -1) {
+            break;
+        }
+        val = (val << 6) + BASE64_DECODE_TABLE[c];
+        valb += 6;
+        if (valb >= 0) {
+            out.push_back(char((val >> valb) & 0xff));
+            valb -= 8;
+        }
+    }
+    
+    return out;
+}
 
 ma_err_t base64_encode(const unsigned char* in, int in_len, char* out, int* out_len) {
     int i = 0;

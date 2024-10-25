@@ -382,23 +382,30 @@ ma_err_t EncoderJSON::write(const in6_info_t& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(const ma_wifi_config_t& value) {
-    if (cJSON_GetObjectItem(m_data, "config") != nullptr) {
-        return MA_EEXIST;
+ma_err_t EncoderJSON::write(const ma_wifi_config_t& value, int* stat) {
+    
+    cJSON* item = m_data;
+    if (stat) {
+        item = cJSON_CreateObject();
     }
-    cJSON* item = cJSON_CreateObject();
     if (item == nullptr) {
         return MA_FAILED;
     }
+    
     std::string str = value.ssid;
     if (str.size() < 1) {
         str = value.bssid;
     }
-    
+ 
     cJSON_AddItemToObject(item, "name", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(item, "security", cJSON_CreateNumber(value.security));
     cJSON_AddItemToObject(item, "password", cJSON_CreateString(value.password));
-    cJSON_AddItemToObject(m_data, "config", item);
+
+    if (stat) {
+        cJSON_AddItemToObject(m_data, "config", item);
+        cJSON_AddItemToObject(m_data, "status", cJSON_CreateNumber(*stat));
+    }
+
     return MA_OK;
 }
 
@@ -561,9 +568,12 @@ ma_err_t EncoderJSON::write(const Sensor* value, size_t preset) {
 }
 
 
-ma_err_t EncoderJSON::write(const ma_mqtt_config_t& value) {
+ma_err_t EncoderJSON::write(const ma_mqtt_config_t& value, int* stat) {
 
-    cJSON* item = cJSON_CreateObject();
+    cJSON* item = m_data;
+    if (stat) {
+        item = cJSON_CreateObject();
+    }
     if (item == nullptr) {
         return MA_FAILED;
     }
@@ -575,7 +585,10 @@ ma_err_t EncoderJSON::write(const ma_mqtt_config_t& value) {
     cJSON_AddItemToObject(item, "client_id", cJSON_CreateString(value.client_id));
     cJSON_AddItemToObject(item, "use_ssl", cJSON_CreateNumber((int)value.use_ssl));
 
-    cJSON_AddItemToObject(m_data, "config", item);
+    if (stat) {
+        cJSON_AddItemToObject(m_data, "config", item);
+        cJSON_AddItemToObject(m_data, "status", cJSON_CreateNumber(*stat));
+    }
 
     return MA_OK;
 }

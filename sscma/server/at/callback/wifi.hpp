@@ -93,9 +93,7 @@ void configureWifi(const std::vector<std::string>& argv, Transport& transport, E
 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
-    encoder.write("name", is_bssid ? config.bssid : config.ssid);
-    encoder.write("security", static_cast<int32_t>(config.security));
-    encoder.write("password", config.password);
+    encoder.write(config);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
@@ -186,11 +184,10 @@ void getWifiInfo(const std::vector<std::string>& argv, Transport& transport, Enc
         ma::Guard lock(_net_sync_mutex);
         _wifi_status = _net_sta > 2 ? 2 : _net_sta;
 #endif
-        encoder.write("status", _wifi_status);
         encoder.write(_in4_info);
         encoder.write(_in6_info);
     }
-    encoder.write(config);
+    encoder.write(config, (int*)&_wifi_status);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }

@@ -138,10 +138,52 @@ void getMqttConfig(const std::vector<std::string>& argv, Transport& transport, E
 #if MA_USE_EXTERNAL_WIFI_STATUS
     _mqtt_status = (((uint8_t)_net_sta & 0xf) - 1) & 0b11;
 #endif
-    encoder.write("status", _mqtt_status);
-    encoder.write(_mqtt_server_config);
+    encoder.write(_mqtt_server_config, (int*)&_mqtt_status);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-}  // namespace ma::server::callback    
+void configureMqttCA(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+    ma_err_t ret = MA_OK;
+
+    std::string ca_string;
+    size_t ca_hash = 0;
+
+    if (argv.size() < 2) {
+        ret = MA_EINVAL;
+        goto exit;
+    }
+
+    ca_string = ma::utils::base64_decode(argv[1]);
+    ca_hash   = std::hash<std::string>{}(ca_string);
+
+    MA_STORAGE_SET_STR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL_CA, ca_string);
+
+exit:
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
+    encoder.write("hash", (uint64_t)ca_hash);
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
+}
+
+void getMqttCA(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+    ma_err_t ret = MA_OK;
+
+
+    std::string b64ca;
+    {
+        std::string ca_string;
+        MA_STORAGE_GET_STR(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL_CA, ca_string, "");
+        int b64ca_len = ca_string.size() * 4 / 3 + 4;
+        b64ca.resize(b64ca_len + 1);
+        ma::utils::base64_encode(reinterpret_cast<const unsigned char*>(ca_string.c_str()), ca_string.size(), reinterpret_cast<char*>(b64ca.data()), &b64ca_len);
+        b64ca[b64ca_len] = '\0';
+    }
+
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
+    encoder.write("ca", b64ca);
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
+}
+
+}  // namespace ma::server::callback

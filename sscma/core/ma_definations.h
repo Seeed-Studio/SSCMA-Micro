@@ -38,6 +38,7 @@
 #define MA_STORAGE_KEY_MQTT_SUB_TOPIC  "mqtt#sub_topic"
 #define MA_STORAGE_KEY_MQTT_SUB_QOS    "mqtt#sub_qos"
 #define MA_STORAGE_KEY_MQTT_SSL        "mqtt#use_ssl"
+#define MA_STORAGE_KEY_MQTT_SSL_CA     "mqtt#ssl_ca"
 
 
 #define MA_AT_CMD_PREFIX               "AT+"

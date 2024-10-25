@@ -62,9 +62,9 @@ public:
 
     ma_err_t write(const in4_info_t& value) override;
     ma_err_t write(const in6_info_t& value) override;
-    ma_err_t write(const ma_wifi_config_t& value) override;
+    ma_err_t write(const ma_wifi_config_t& value, int* stat=nullptr) override;
 
-    ma_err_t write(const ma_mqtt_config_t& value) override;
+    ma_err_t write(const ma_mqtt_config_t& value, int* stat=nullptr) override;
 
     ma_err_t write(const ma_mqtt_topic_config_t& value) override;
 
