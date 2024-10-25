@@ -135,9 +135,13 @@ void getMqttConfig(const std::vector<std::string>& argv, Transport& transport, E
     MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL, _mqtt_server_config.use_ssl, 0);
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
+#if MA_USE_EXTERNAL_WIFI_STATUS
+    _mqtt_status = (((uint8_t)_net_sta & 0xf) - 1) & 0b11;
+#endif
+    encoder.write("status", _mqtt_status);
     encoder.write(_mqtt_server_config);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-}  // namespace ma::server::callback
+}  // namespace ma::server::callback    

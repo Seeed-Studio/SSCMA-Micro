@@ -244,11 +244,11 @@ Err:
         }
 
         if (!_event_hook) {
-            _event_hook = [&frame](Encoder& encoder) {
-                int16_t rotation = static_cast<int>(frame.rotate) * 90;
+            _event_hook = [&raw_frame](Encoder& encoder) {
+                int16_t rotation = static_cast<int>(raw_frame.rotate) * 90;
                 encoder.write("rotation", rotation);
-                encoder.write("width", frame.width);
-                encoder.write("height", frame.height);
+                encoder.write("width", raw_frame.width);
+                encoder.write("height", raw_frame.height);
             };
         }
 
