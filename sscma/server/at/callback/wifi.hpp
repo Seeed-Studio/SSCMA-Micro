@@ -184,6 +184,9 @@ void getWifiInfo(const std::vector<std::string>& argv, Transport& transport, Enc
         ma::Guard lock(_net_sync_mutex);
         _wifi_status = _net_sta > 2 ? 2 : _net_sta;
 #endif
+        if (std::strlen(config.ssid) < 1) {
+            _wifi_status = 0;
+        }
         encoder.write(_in4_info);
         encoder.write(_in6_info);
     }

@@ -352,16 +352,16 @@ ma_err_t EncoderJSON::write(const in4_info_t& value) {
     if (cJSON_GetObjectItem(m_data, "in4_info") != nullptr) {
         return MA_EEXIST;
     }
-    cJSON* item = cJSON_CreateArray();
+    cJSON* item = cJSON_CreateObject();
     if (item == nullptr) {
         return MA_FAILED;
     }
     std::string str = value.ip.to_str();
-    cJSON_AddItemToArray(item, cJSON_CreateString(str.c_str()));
+    cJSON_AddItemToObject(item, "ip", cJSON_CreateString(str.c_str()));
     str = value.netmask.to_str();
-    cJSON_AddItemToArray(item, cJSON_CreateString(str.c_str()));
+    cJSON_AddItemToObject(item, "netmask", cJSON_CreateString(str.c_str()));
     str = value.gateway.to_str();
-    cJSON_AddItemToArray(item, cJSON_CreateString(str.c_str()));
+    cJSON_AddItemToObject(item, "gateway", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(m_data, "in4_info", item);
 
     
@@ -372,12 +372,12 @@ ma_err_t EncoderJSON::write(const in6_info_t& value) {
     if (cJSON_GetObjectItem(m_data, "in6_info") != nullptr) {
         return MA_EEXIST;
     }
-    cJSON* item = cJSON_CreateArray();
+    cJSON* item = cJSON_CreateObject();
     if (item == nullptr) {
         return MA_FAILED;
     }
     std::string str = value.ip.to_str();
-    cJSON_AddItemToArray(item, cJSON_CreateString(str.c_str()));
+    cJSON_AddItemToObject(item, "ip", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(m_data, "in6_info", item);
     return MA_OK;
 }

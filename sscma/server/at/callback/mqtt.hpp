@@ -138,6 +138,9 @@ void getMqttConfig(const std::vector<std::string>& argv, Transport& transport, E
 #if MA_USE_EXTERNAL_WIFI_STATUS
     _mqtt_status = (((uint8_t)_net_sta & 0xf) - 1) & 0b11;
 #endif
+    if (std::strlen(_mqtt_server_config.host) < 1) {
+        _mqtt_status = 0;
+    }
     encoder.write(_mqtt_server_config, (int*)&_mqtt_status);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());

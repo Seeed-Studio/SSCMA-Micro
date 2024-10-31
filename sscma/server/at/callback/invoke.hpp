@@ -149,7 +149,9 @@ Err:
         _encoder->write(_sensor, _sensor->currentPresetIdx());
         std::vector<ma_model_t> model{_model};
         _encoder->write(model);
-        _encoder->write("algorithm", static_cast<uint32_t>(static_resource->current_algorithm_id));
+        _encoder->write("algorithm", _algorithm ? static_cast<uint32_t>(_algorithm->getType()) : static_cast<uint32_t>(static_resource->current_algorithm_id));
+        _encoder->write("tiou", static_resource->shared_threshold_nms);
+        _encoder->write("tscore", static_resource->shared_threshold_score);
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
