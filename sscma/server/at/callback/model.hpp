@@ -75,7 +75,7 @@ void initDefaultModel(Encoder& encoder) {
 
     size_t model_id = 0;
 
-    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MODEL_ID, model_id, 0);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), MA_STORAGE_KEY_MODEL_ID, model_id, 1);
 
     std::vector<std::string> args{"INIT@MODEL", std::to_string(static_cast<int>(model_id))};
     configureModel(args, *transport, encoder, true);

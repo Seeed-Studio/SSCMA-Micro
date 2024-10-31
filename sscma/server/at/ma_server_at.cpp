@@ -307,23 +307,29 @@ ma_err_t ATServer::init() {
 
 #ifdef MA_SERVER_RUN_DEVICE_BACKGROUND_TASK
 extern void __ma_device_background_task();
+static void __ma_device_task_entry(void*) {
+    while (1) {  
+        static_resource->executor->submit([&](const std::atomic<bool>&) {
+            __ma_device_background_task();
+        });
+        Thread::sleep(Tick::fromMilliseconds(MA_SERVER_RUN_DEVICE_BACKGROUND_TASK_INTERVAL_MS));
+    }
+}
 #endif
 
 ma_err_t ATServer::start() {
     static_resource->executor->submit([](const std::atomic<bool>&) { static_resource->is_ready.store(true); });
 
 #ifdef MA_SERVER_RUN_DEVICE_BACKGROUND_TASK
-    static std::function<void()> ma_device_background_task_next = nullptr;
-    static std::function<void()> ma_device_background_task      = [&ma_device_background_task_next]() {
-        static_resource->executor->submit([&](const std::atomic<bool>&) {
-            __ma_device_background_task();
-            if (ma_device_background_task_next) {
-                ma_device_background_task_next();
-            }
-        });
-    };
-    ma_device_background_task_next = ma_device_background_task;
-    ma_device_background_task();
+    static Thread* device_task = new Thread(
+        "DeviceTask",
+        __ma_device_task_entry,
+        this,
+        MA_SERVER_RUN_DEVICE_BACKGROUND_TASK_PRIORITY,
+        MA_SERVER_RUN_DEVICE_BACKGROUND_TASK_STACK_SIZE);
+    if (device_task) {
+        device_task->start();
+    }
 #endif
 
     int sta = m_thread->start(this) ? 0 : -1;
