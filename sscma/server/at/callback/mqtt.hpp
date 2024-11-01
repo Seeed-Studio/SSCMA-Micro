@@ -117,6 +117,19 @@ void configureMqttServer(const std::vector<std::string>& argv, Transport& transp
     MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PWD, _mqtt_server_config.password);
     MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SSL, _mqtt_server_config.use_ssl);
 
+    {
+        using namespace std::string_literals;
+        std::string topic_prefix = "sscma/"s + std::string(MA_AT_API_VERSION) + "/"s;
+        topic_prefix += _mqtt_server_config.client_id;
+        auto tx = topic_prefix + "/tx"s;
+        auto rx = topic_prefix + "/rx"s;
+        std::strncpy(_mqtt_topic_config.pub_topic, tx.c_str(), MA_MQTT_MAX_TOPIC_LENGTH - 1);
+        std::strncpy(_mqtt_topic_config.sub_topic, rx.c_str(), MA_MQTT_MAX_TOPIC_LENGTH - 1);
+    }
+
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_PUB_TOPIC, _mqtt_topic_config.pub_topic);
+    MA_STORAGE_SET_ASTR(ret, static_resource->device->getStorage(), MA_STORAGE_KEY_MQTT_SUB_TOPIC, _mqtt_topic_config.sub_topic);
+
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
     encoder.write(_mqtt_server_config);
