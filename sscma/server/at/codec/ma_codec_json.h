@@ -69,6 +69,9 @@ public:
     ma_err_t write(const ma_mqtt_topic_config_t& value) override;
 
 
+    ma_err_t write(int algo_id, int cat, int input_from, int tscore, int tiou) override;
+
+
     const std::string& toString() const override;
     const void* data() const override;
     const size_t size() const override;

@@ -281,6 +281,8 @@ public:
 
     virtual ma_err_t write(const ma_mqtt_topic_config_t& value) = 0;
 
+    virtual ma_err_t write(int algo_id, int cat, int input_from, int tscore, int tiou) = 0;
+
 };
 
 class Decoder {

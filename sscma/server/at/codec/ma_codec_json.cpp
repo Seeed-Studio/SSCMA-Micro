@@ -409,6 +409,31 @@ ma_err_t EncoderJSON::write(const ma_wifi_config_t& value, int* stat) {
     return MA_OK;
 }
 
+ma_err_t EncoderJSON::write(int algo_id, int cat, int input_from, int tscore, int tiou) {
+    cJSON* item = cJSON_CreateObject();
+    if (item == nullptr) {
+        return MA_FAILED;
+    }
+
+    cJSON_AddItemToObject(item, "type", cJSON_CreateNumber(algo_id));
+    cJSON_AddItemToObject(item, "category", cJSON_CreateNumber(cat));
+    cJSON_AddItemToObject(item, "input_from", cJSON_CreateNumber(input_from));
+
+    cJSON* cfg = cJSON_CreateObject();
+    if (cfg == nullptr) {
+        return MA_FAILED;
+    }
+
+    cJSON_AddItemToObject(cfg, "tscore", cJSON_CreateNumber(tscore));
+    cJSON_AddItemToObject(cfg, "tiou", cJSON_CreateNumber(tiou));
+
+    cJSON_AddItemToObject(item, "config", cfg);
+
+    cJSON_AddItemToObject(m_data, "algorithm", item);
+
+    return MA_OK;
+}
+
 
 ma_err_t EncoderJSON::write(const  std::forward_list<ma_point_t>& value) {
 
