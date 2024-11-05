@@ -166,13 +166,13 @@ void DeviceWE2::init() {
 
     this->_network = nullptr;
 
-#ifndef CONFIG_EL_BOARD_SENSECAP_WATCHER
+#ifdef CONFIG_EL_BOARD_SENSECAP_WATCHER
     static sspiWE2 spi{};
     spi.type = EL_TRANSPORT_SPI;
     this->_transports.emplace_front(&spi);
 #endif
 
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
+#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_V2
     static Serial2WE2 serial2{};
     serial2.type = EL_TRANSPORT_UART;
     this->_transports.emplace_front(&serial2);

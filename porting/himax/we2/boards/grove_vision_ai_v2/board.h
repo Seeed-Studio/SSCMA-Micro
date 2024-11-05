@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef _BOARD_GROVE_VISION_AI_WE2_H_
-#define _BOARD_GROVE_VISION_AI_WE2_H_
+#ifndef _BOARD_GROVE_VISION_AI_V2_H_
+#define _BOARD_GROVE_VISION_AI_V2_H_
 
 #define PRODUCT_NAME_PREFIX "grove_vision_ai"
 #define PRODUCT_NAME_SUFFIX "v2"

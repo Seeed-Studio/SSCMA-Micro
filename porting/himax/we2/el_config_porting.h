@@ -35,8 +35,8 @@
 #ifndef CONFIG_EL_TARGET_HIMAX
     #error "Please specify porting target"
 #else
-    #if defined(CONFIG_EL_BOARD_GROVE_VISION_AI_WE2)
-        #include "boards/grove_vision_ai_we2/board.h"
+    #if defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2)
+        #include "boards/grove_vision_ai_v2/board.h"
     #elif defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
         #include "boards/sensecap_watcher/board.h"
     #else
