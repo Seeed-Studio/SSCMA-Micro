@@ -75,11 +75,7 @@ bool _el_flash_enable_xip() {
 
 bool el_flash_mmap_init(uint32_t* flash_addr, uint32_t* size, const uint8_t** mmap, uint32_t* handler) {
     *flash_addr = 0x00400000;
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
-    *size = 0x00400000;
-#else
     *size = 0x00A00000;
-#endif
 
     if (!_el_flash_init()) [[unlikely]]
         return false;

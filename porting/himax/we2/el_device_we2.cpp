@@ -166,7 +166,7 @@ void DeviceWE2::init() {
 
     this->_network = nullptr;
 
-#ifndef CONFIG_EL_BOARD_GROVE_VISION_AI_WE2
+#ifndef CONFIG_EL_BOARD_SENSECAP_WATCHER
     static sspiWE2 spi{};
     spi.type = EL_TRANSPORT_SPI;
     this->_transports.emplace_front(&spi);

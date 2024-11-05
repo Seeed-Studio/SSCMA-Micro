@@ -85,10 +85,10 @@ el_err_code_t Serial2WE2::init() {
     _console_uart->uart_open(UART_BAUDRATE_921600);
 
     if (!_rb_rx) [[likely]]
-        _rb_rx = new lwRingBuffer{8192};
+        _rb_rx = new lwRingBuffer{(char*)SERIAL2_TRANSPORT_RX_BASE_ADDR, SERIAL2_TRANSPORT_RX_BASE_SIZE};
 
     if (!_rb_tx) [[likely]]
-        _rb_tx = new lwRingBuffer{32768};
+        _rb_tx = new lwRingBuffer{(char*)SERIAL2_TRANSPORT_TX_BASE_ADDR, SERIAL2_TRANSPORT_TX_BASE_SIZE};
 
     _mutex_tx = xSemaphoreCreateMutex();
 
