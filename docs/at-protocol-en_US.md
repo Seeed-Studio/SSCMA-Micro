@@ -899,6 +899,8 @@ Note:
 6. While invoking, the trigger could be dynamically updated by the `AT+TRIGGER` command.
 7. The device side will not check if whether the GPIO pins is unique, or the initial level and trigger level is contrary for each rule, the configurator should check the rules by themself to have expected behavior.
 8. If you want to disable the trigger, just call this API with a empty string.
+9. The number of the rules is not limited, and for the class which does not actually exist, the rule would never be triggered.
+10. The trigger rules in response will always by the configuration you set, if your configuration is not valid, the last valid configuration will not be changed.
 
 
 #### Set action trigger (Experimental)

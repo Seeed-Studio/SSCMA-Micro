@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <forward_list>
 
 #include "core/ma_core.h"
 #include "core/ma_debug.h"
@@ -292,7 +293,7 @@ private:
     int trigger_level;
 };
 
-std::vector<std::shared_ptr<TriggerRule>> trigger_rules;
+std::forward_list<std::shared_ptr<TriggerRule>> trigger_rules;
 ma::Mutex trigger_rules_mutex;
 
 }  // namespace ma

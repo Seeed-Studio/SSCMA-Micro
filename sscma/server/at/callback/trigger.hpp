@@ -12,7 +12,9 @@
 
 namespace ma::server::callback {
 
-bool parseTriggerRules(const std::string& trigger) {
+static bool parseAndSetTriggerRules(const std::string& trigger) {
+
+    std::forward_list<std::shared_ptr<TriggerRule>> rules;
 
     for (size_t i = 0, j = 0; i < trigger.size(); i = j + 1) {
         j = trigger.find('|', i);
@@ -22,12 +24,15 @@ bool parseTriggerRules(const std::string& trigger) {
         auto token = trigger.substr(i, j - i);
         auto ptr   = TriggerRule::create(token);
         if (ptr) {
-            ma::Guard guard(trigger_rules_mutex);
-            trigger_rules.push_back(ptr);
+            rules.push_front(std::move(ptr));
         } else {
             return false;
         }
     }
+
+    trigger_rules_mutex.lock();
+    trigger_rules = std::move(rules);
+    trigger_rules_mutex.unlock();
 
     return true;
 }
@@ -48,12 +53,7 @@ void configureTrigger(const std::vector<std::string>& argv, Transport& transport
         goto exit;
     }
 
-    {
-        ma::Guard guard(trigger_rules_mutex);
-        trigger_rules.clear();
-    }
-
-    if (!parseTriggerRules(argv[1])) {
+    if (!parseAndSetTriggerRules(argv[1])) {
         ret = MA_EINVAL;
         goto exit;
     }
