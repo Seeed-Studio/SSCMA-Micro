@@ -17,6 +17,7 @@
 #include "callback/sample.hpp"
 #include "callback/sensor.hpp"
 #include "callback/wifi.hpp"
+#include "callback/trigger.hpp"
 
 
 namespace ma {
@@ -62,6 +63,7 @@ void ATServer::threadEntry() {
         initDefaultSensor(m_encoder);
         initDefaultModel(m_encoder);
         initDefaultAlgorithm(m_encoder);
+        initDefaultTrigger(m_encoder);
     }
 
     char* buf = new char[MA_SEVER_AT_CMD_MAX_LENGTH + 1];
@@ -299,6 +301,20 @@ ma_err_t ATServer::init() {
 
     addService("MQTTCA?", "Get MQTT CA", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { getMqttCA(args, transport, encoder); });
+        return MA_OK;
+    });
+
+    addService("TRIGGER", "Set trigger rule", "RULE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            configureTrigger(args, transport, encoder);
+        });
+        return MA_OK;
+    });
+
+    addService("TRIGGER?", "Get trigger rule", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            getTrigger(args, transport, encoder);
+        });
         return MA_OK;
     });
 

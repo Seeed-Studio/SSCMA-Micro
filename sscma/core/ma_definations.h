@@ -40,6 +40,8 @@
 #define MA_STORAGE_KEY_MQTT_SSL        "mqtt#use_ssl"
 #define MA_STORAGE_KEY_MQTT_SSL_CA     "mqtt#ssl_ca"
 
+#define MA_STORAGE_KEY_TRIGGER_RULES   "trigger#rules"
+
 
 #define MA_AT_CMD_PREFIX               "AT+"
 #define MA_AT_CMD_QUERY                "?"

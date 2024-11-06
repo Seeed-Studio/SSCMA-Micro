@@ -461,6 +461,23 @@ Note:
 1. Response `data` is the last valid config value.
 
 
+#### Get trigger rules (Experimental)
+
+Request: `AT+TRIGGER?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "TRIGGER?",
+  "code": 0,
+  "data": {
+    "trigger_rules": "0,1,50,1,0,1|1,1,50,2,0,1"
+  }
+}\n
+```
+
 #### Get action info (Experimental)
 
 Request: `AT+ACTION?\r`
@@ -848,6 +865,42 @@ Response:
 }\n
 ```
 
+#### Set trigger (Experimental)
+
+Pattern: `AT+TRIGGER=<"TRIGGER_RULES">\r`
+
+Request: `AT+TRIGGER="0,1,50,1,0,1|1,1,50,2,0,1"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "TRIGGER",
+  "code": 0,
+  "data": {
+    "trigger_rules": "0,1,50,1,0,1|1,1,50,2,0,1"
+  }
+}\n
+```
+
+Note:
+
+1. The trigger rules consist of single or multiple trigger rule(s), each rule is separated by `|`.
+2. Each rule consists of 6 fields, separated by `,`, the fields are:
+    - `CLASS_ID`: Integer that not negative, specified class for the evaluation of the condition. 
+    - `CONDITION`: Integer, the condition type, `0` means `>`, `1` means `<`, `2` means `>=`, `3` means `<=`, `4` means `==`, `5` means `!=`, otherwise returns error.
+    - `SCORE_THRESHOLD`: Integer between `[0, 100]`, the score threshold.
+    - `GPIO_PIN`: Integer in a specific set, different boards may have different available GPIO pins, if the pin is not available, returns error. (e.g. There's 5 GPIO pins `{1,2,3,41,42}` available on XIAO ESP32-S3 board)
+    - `INITIAL_LEVEL`: Integer, the initial level of the GPIO pin, `0` means low, `1` means high, otherwise returns error.
+    - `TRIGGER_LEVEL`: Integer, the trigger level of the GPIO pin, `0` means low, `1` means high, otherwise returns error.
+4. If any part of the trigger rules is invalid(missing, invalid value, etc.), the trigger rules will not be stored in the flash, and an error will be returned.
+5. The trigger rules will be stored in the flash, the trigger will be checked after each invoke operation.
+6. While invoking, the trigger could be dynamically updated by the `AT+TRIGGER` command.
+7. The device side will not check if whether the GPIO pins is unique, or the initial level and trigger level is contrary for each rule, the configurator should check the rules by themself to have expected behavior.
+8. If you want to disable the trigger, just call this API with a empty string.
+
+
 #### Set action trigger (Experimental)
 
 Pattern: `AT+ACTION=<"EXPRESSION">\r`
@@ -892,6 +945,7 @@ Function map:
 | `max_score(target,id)` | Get the max score of the results filter by a target id                                  |
 | `led(enable)`          | When `enable` larger than `1`, turn on the status LED, otherwise off, always return `1` |
 | `save_jpeg()`          | Save current frame to external TF card, returns `1` when success, otherwise `0`         |
+| `set_gpio(pin,level)`  | Set the GPIO pin level, returns `1` when success, otherwise `0`                         |
 
 Note:
 

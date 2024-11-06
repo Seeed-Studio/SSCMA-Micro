@@ -149,13 +149,11 @@ Err:
         _encoder->write(_sensor, _sensor->currentPresetIdx());
         std::vector<ma_model_t> model{_model};
         _encoder->write(model);
-        _encoder->write(
-            _algorithm ? static_cast<int>(_algorithm->getType()) : static_cast<int>(static_resource->current_algorithm_id),
-            0,
-            _sensor ? static_cast<int>(_sensor->getType()) : 0,
-            static_cast<int>(static_resource->shared_threshold_score * 100.0),
-            static_cast<int>(static_resource->shared_threshold_nms * 100.0)
-        );
+        _encoder->write(_algorithm ? static_cast<int>(_algorithm->getType()) : static_cast<int>(static_resource->current_algorithm_id),
+                        0,
+                        _sensor ? static_cast<int>(_sensor->getType()) : 0,
+                        static_cast<int>(static_resource->shared_threshold_score * 100.0),
+                        static_cast<int>(static_resource->shared_threshold_nms * 100.0));
         _encoder->end();
         _transport->send(reinterpret_cast<const char*>(_encoder->data()), _encoder->size());
     }
@@ -266,8 +264,18 @@ Err:
         if (!isEverythingOk()) [[unlikely]]
             goto Err;
 
-        eventReply(raw_frame.width, raw_frame.height);
+        {
+            trigger_rules_mutex.lock();
+            auto trigger_copy = trigger_rules;
+            trigger_rules_mutex.unlock();
+            for (auto& rule : trigger_copy) {
+                if (rule) {
+                    (*rule.get())(_algorithm);
+                }
+            }
+        }
 
+        eventReply(raw_frame.width, raw_frame.height);
 
         static_resource->executor->submit([_this = std::move(getptr())](const std::atomic<bool>&) { _this->eventLoopCamera(); });
         return;

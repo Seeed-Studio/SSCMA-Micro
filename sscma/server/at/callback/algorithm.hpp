@@ -43,6 +43,7 @@ void configureAlgorithm(const std::vector<std::string>& argv,
 void initDefaultAlgorithm(Encoder& encoder) {
     if (static_resource->device->getTransports().empty()) {
         MA_LOGD(MA_TAG, "No transport available");
+        return;
     }
     auto& transport = static_resource->device->getTransports().front();
     if (!transport || !*transport) {
