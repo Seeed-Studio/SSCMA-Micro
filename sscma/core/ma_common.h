@@ -14,7 +14,7 @@
 #include "ma_exception.h"
 #include "ma_types.h"
 
-#define MA_VERSION           "2024.11.04"
+#define MA_VERSION           "2024.11.08"
 #define MA_VERSION_LENTH_MAX 32
 
 #endif  // MA_COMMON_H

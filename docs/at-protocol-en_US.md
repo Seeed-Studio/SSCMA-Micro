@@ -891,7 +891,7 @@ Note:
     - `CLASS_ID`: Integer that not negative, specified class for the evaluation of the condition. 
     - `CONDITION`: Integer, the condition type, `0` means `>`, `1` means `<`, `2` means `>=`, `3` means `<=`, `4` means `==`, `5` means `!=`, otherwise returns error.
     - `SCORE_THRESHOLD`: Integer between `[0, 100]`, the score threshold.
-    - `GPIO_PIN`: Integer in a specific set, different boards may have different available GPIO pins, if the pin is not available, returns error. (e.g. There's 5 GPIO pins `{1,2,3,41,42}` available on XIAO ESP32-S3 board)
+    - `GPIO_PIN`: Integer in a specific set, different boards may have different available GPIO pins, if the pin is not available, returns error. (e.g. There's 5 GPIO pins `{1,2,3,21,41,42}` available on XIAO ESP32-S3 board)
     - `INITIAL_LEVEL`: Integer, the initial level of the GPIO pin, `0` means low, `1` means high, otherwise returns error.
     - `TRIGGER_LEVEL`: Integer, the trigger level of the GPIO pin, `0` means low, `1` means high, otherwise returns error.
 4. If any part of the trigger rules is invalid(missing, invalid value, etc.), the trigger rules will not be stored in the flash, and an error will be returned.

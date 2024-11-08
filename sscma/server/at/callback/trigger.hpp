@@ -42,7 +42,7 @@ void configureTrigger(const std::vector<std::string>& argv, Transport& transport
     // [trigger string] 0: class id, 1: condition, 2: threshold, 3: gpio pin, 4: default level, 5: trigger level | ...
     // [condition] 0: >, 1: <, 2: >=, 3: <=, 4: ==, 5: !=
     // [threshold] [0-100]: integer
-    // [gpio pin] {1,2,3,41,42}: integer
+    // [gpio pin] {1,2,3,21,41,42}: integer
     // [default level] {0,1}: integer
     // [trigger level] {0,1}: integer
     // example: "0,1,50,1,0,1|1,1,50,2,0,1"
