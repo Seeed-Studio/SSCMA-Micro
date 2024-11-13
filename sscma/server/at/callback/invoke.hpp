@@ -121,6 +121,9 @@ Err:
         if (it == models.end()) {
             _ret = MA_ENOENT;
         }
+        if (it->addr == nullptr) {
+            _ret = MA_ENOENT;
+        }
         _model = *it;
         return isEverythingOk();
     }
