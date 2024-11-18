@@ -3,8 +3,8 @@
 #include <math.h>
 #include <vector>
 
-#include "core/math/ma_math.h"
-#include "core/utils/ma_nms.h"
+#include "../math/ma_math.h"
+#include "../utils/ma_nms.h"
 
 #include "ma_model_yolo11.h"
 

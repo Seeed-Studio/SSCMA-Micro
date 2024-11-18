@@ -5,8 +5,8 @@
 #include <string>
 #include <functional>
 
-#include "core/engine/ma_engine.h"
-#include "core/ma_common.h"
+#include "../engine/ma_engine.h"
+#include "../ma_common.h"
 
 namespace ma {
 

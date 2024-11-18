@@ -1,7 +1,7 @@
 #ifndef _MA_CV_H_
 #define _MA_CV_H_
 
-#include "core/ma_common.h"
+#include "../ma_common.h"
 
 namespace ma::cv {
 

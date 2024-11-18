@@ -1,4 +1,4 @@
-#include "core/cv/ma_cv.h"
+#include "ma_cv.h"
 
 #if MA_USE_LIB_JPEGENC
 #include "JPEGENC.h"

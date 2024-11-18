@@ -4,7 +4,7 @@
 #include <forward_list>
 #include <vector>
 
-#include "core/utils/ma_nms.h"
+#include "../utils/ma_nms.h"
 
 namespace ma::model {
 

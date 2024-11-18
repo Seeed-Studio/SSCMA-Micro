@@ -1,6 +1,6 @@
 #ifndef _MA_BASE64_H_
 #define _MA_BASE64_H_
-#include "core/ma_types.h"
+#include "../ma_types.h"
 
 
 #include <cstdint>

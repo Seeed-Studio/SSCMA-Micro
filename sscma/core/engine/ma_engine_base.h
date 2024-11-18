@@ -5,7 +5,7 @@
 #include <forward_list>
 #include <vector>
 
-#include "core/ma_common.h"
+#include "../ma_common.h"
 
 #if MA_USE_FILESYSTEM
 #include <fstream>

@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "core/cv/ma_cv.h"
+#include "../cv/ma_cv.h"
 
 #include "ma_model_base.h"
 

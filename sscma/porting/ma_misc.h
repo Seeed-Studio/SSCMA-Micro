@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "core/ma_config_internal.h"
+#include "../core/ma_config_internal.h"
 
 #ifdef __cplusplus
 extern "C" {

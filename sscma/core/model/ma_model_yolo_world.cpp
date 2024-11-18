@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include "core/math/ma_math.h"
-#include "core/utils/ma_anchors.h"
-#include "core/utils/ma_nms.h"
+#include "../math/ma_math.h"
+#include "../utils/ma_anchors.h"
+#include "../utils/ma_nms.h"
 
 namespace ma::model {
 

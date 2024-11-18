@@ -428,7 +428,9 @@ ma_tensor_t EngineTFLite::getInput(int32_t index) {
 
     tensor.data.data   = input->data.data;
     tensor.size        = input->bytes;
+#if MA_USE_ENGINE_TENSOR_INDEX
     tensor.index       = index;
+#endif
     tensor.type        = mapped_tensor_types[static_cast<int>(input->type)];
     tensor.shape       = getInputShape(index);
     tensor.quant_param = getInputQuantParam(index);
@@ -452,7 +454,9 @@ ma_tensor_t EngineTFLite::getOutput(int32_t index) {
 
     tensor.data.data   = output->data.data;
     tensor.size        = output->bytes;
+#if MA_USE_ENGINE_TENSOR_INDEX
     tensor.index       = index;
+#endif
     tensor.type        = mapped_tensor_types[static_cast<int>(output->type)];
     tensor.shape       = getOutputShape(index);
     tensor.quant_param = getOutputQuantParam(index);

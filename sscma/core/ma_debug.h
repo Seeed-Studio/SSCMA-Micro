@@ -2,7 +2,7 @@
 #define _MA_DEBUG_H_
 
 #include "ma_config_internal.h"
-#include "porting/ma_misc.h"
+#include "../porting/ma_misc.h"
 
 #ifndef MA_TAG
     #define MA_TAG_FILE __FILE__ ":" MA_STRINGIZE(__LINE__)

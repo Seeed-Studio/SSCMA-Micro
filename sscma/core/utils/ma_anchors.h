@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "core/ma_types.h"
+#include "../ma_types.h"
 
 namespace ma::utils {
 

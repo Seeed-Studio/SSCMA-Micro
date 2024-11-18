@@ -1,4 +1,4 @@
-#include "core/model/ma_model_base.h"
+#include "ma_model_base.h"
 
 namespace ma {
 

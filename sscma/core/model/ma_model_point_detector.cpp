@@ -1,6 +1,6 @@
 #include "ma_model_point_detector.h"
 
-#include "core/cv/ma_cv.h"
+#include "../cv/ma_cv.h"
 
 namespace ma::model {
 

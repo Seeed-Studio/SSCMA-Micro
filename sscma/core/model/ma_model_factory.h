@@ -1,7 +1,7 @@
 #ifndef _MA_MODEL_FACTORY_H_
 #define _MA_MODEL_FACTORY_H_
 
-#include "core/ma_common.h"
+#include "../ma_common.h"
 
 #include "ma_model_base.h"
 

@@ -16,7 +16,7 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
         if (FOMO::isValid(engine)) {
             return new FOMO(engine);
         }
-
+    
     case MA_MODEL_TYPE_IMCLS:
         if (Classifier::isValid(engine)) {
             return new Classifier(engine);

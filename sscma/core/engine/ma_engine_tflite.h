@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "core/ma_common.h"
+#include "../ma_common.h"
 
 #if MA_USE_ENGINE_TFLITE
 
