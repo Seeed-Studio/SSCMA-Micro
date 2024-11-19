@@ -33,4 +33,4 @@ SSCMA-Micro 是一个为嵌入式设备设计的跨平台机器学习推理框�
 
 ## 许可证
 
-本项目在 [MIT 许可证](LICENSES) 下发布。
+本项目在 [Apache 许可证](LICENSES) 下发布。

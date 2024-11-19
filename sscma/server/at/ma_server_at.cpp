@@ -239,6 +239,7 @@ ma_err_t ATServer::init() {
         return MA_OK;
     });
 
+#if !MA_HAS_NATTIVE_WIFI_SUPPORT
     addService("WIFISTA", "Set Wi-Fi status", "STATUS", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { setWifiSta(args, transport, encoder); });
         return MA_OK;
@@ -263,6 +264,7 @@ ma_err_t ATServer::init() {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { getWifiVer(args, transport, encoder); });
         return MA_OK;
     });
+#endif
 
     addService("WIFI?", "Get Wi-Fi status", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { getWifiInfo(args, transport, encoder); });
@@ -274,10 +276,12 @@ ma_err_t ATServer::init() {
         return MA_OK;
     });
 
+#if !MA_HAS_NATTIVE_MQTT_SUPPORT
     addService("MQTTSERVERSTA", "Set MQTT server status", "STATUS", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { setMqttSta(args, transport, encoder); });
         return MA_OK;
     });
+#endif
 
     addService("MQTTSERVERSTA?", "Get MQTT server status", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) { getMqttSta(args, transport, encoder); });

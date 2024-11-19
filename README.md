@@ -35,4 +35,4 @@ SSCMA-Micro is a cross-platform machine learning inference framework designed fo
 
 ## License
 
-This project is released under the [MIT license](LICENSES).
+This project is released under the [Apache License](LICENSES).
