@@ -18,7 +18,20 @@ void setScoreThreshold(const std::vector<std::string>& argv, Transport& transpor
         goto exit;
     }
 
-    static_resource->shared_threshold_score = std::atoi(argv[1].c_str()) / 100.0;
+    {
+        int score = std::atoi(argv[1].c_str());
+        if (score <= 0 || score > 100) {
+            ret = MA_EINVAL;
+            goto exit;
+        }
+
+        MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), "ma#score_threshold", score);
+        if (ret != MA_OK) {
+            goto exit;
+        }
+
+        static_resource->shared_threshold_score = score / 100.0;
+    }
 
 exit:
     auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_score * 100));
@@ -35,7 +48,20 @@ void setNMSThreshold(const std::vector<std::string>& argv, Transport& transport,
         goto exit;
     }
 
-    static_resource->shared_threshold_nms = std::atoi(argv[1].c_str()) / 100.0;
+    {
+        int nms = std::atoi(argv[1].c_str());
+        if (nms <= 0 || nms > 100) {
+            ret = MA_EINVAL;
+            goto exit;
+        }
+
+        MA_STORAGE_SET_POD(ret, static_resource->device->getStorage(), "ma#nms_threshold", nms);
+        if (ret != MA_OK) {
+            goto exit;
+        }
+
+        static_resource->shared_threshold_nms = nms / 100.0;
+    }
 
 exit:
     auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_nms * 100));
@@ -47,8 +73,10 @@ exit:
 void getScoreThreshold(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_score * 100));
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
+    int score = std::round(static_resource->shared_threshold_score * 100);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), "ma#score_threshold", score, score);
+
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], static_cast<uint64_t>(score));
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
@@ -56,8 +84,10 @@ void getScoreThreshold(const std::vector<std::string>& argv, Transport& transpor
 void getNMSThreshold(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
-    auto value = static_cast<uint64_t>(std::round(static_resource->shared_threshold_nms * 100));
-    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], value);
+    int nms = std::round(static_resource->shared_threshold_nms * 100);
+    MA_STORAGE_GET_POD(static_resource->device->getStorage(), "ma#nms_threshold", nms, nms);
+
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], static_cast<uint64_t>(nms));
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
