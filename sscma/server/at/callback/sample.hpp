@@ -144,7 +144,7 @@ Err:
                                                 reinterpret_cast<char*>(_buffer.data()),
 #endif
                                                 &buffer_size);
-            _buffer[buffer_size] = '\0';
+            static_cast<char*>(_buffer)[buffer_size] = '\0';
             if (ret != MA_OK) {
                 MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
             }

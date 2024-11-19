@@ -6,7 +6,7 @@ namespace ma::utils {
 
 constexpr static const char* BASE64_CHARS_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-constexpr static std::array<int, 256> BASE64_DECODE_TABLE = []() {
+static std::array<int, 256> BASE64_DECODE_TABLE = []() {
     std::array<int, 256> table;
     for (auto& v : table) {
         v = -1;

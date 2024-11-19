@@ -10,26 +10,27 @@
 #include "resource.hpp"
 
 bool isBssid(const std::string& str) {
-    if (str.length() != 17)
-        return false;  // BSSID length is 17, e.g. 00:11:22:33:44:55
+    if (str.length() != 17) return false;  // BSSID length is 17, e.g. 00:11:22:33:44:55
 
     for (std::size_t i = 0; i < str.length(); ++i) {
         if (i % 3 == 2) {
-            if (str[i] != ':' && str[i] != '-')
-                return false;  // BSSID delimiter is ':' or '-'
+            if (str[i] != ':' && str[i] != '-') return false;  // BSSID delimiter is ':' or '-'
         } else {
-            if (!std::isxdigit(str[i]))
-                return false;  // BSSID is hex string
+            if (!std::isxdigit(str[i])) return false;  // BSSID is hex string
         }
     }
 
     return true;
 }
 
+#ifndef MA_HAS_NATTIVE_WIFI_SUPPORT
+    #define MA_HAS_NATTIVE_WIFI_SUPPORT 1
+#endif
+
 #if MA_USE_EXTERNAL_WIFI_STATUS
-extern ma::Mutex _net_sync_mutex;
-extern in4_info_t _in4_info;
-extern in6_info_t _in6_info;
+extern ma::Mutex    _net_sync_mutex;
+extern in4_info_t   _in4_info;
+extern in6_info_t   _in6_info;
 extern volatile int _net_sta;
 #else
 static in4_info_t _in4_info{};
@@ -38,9 +39,10 @@ static in6_info_t _in6_info{};
 
 namespace ma::server::callback {
 
-static std::string _wifi_ver = "";
-static int32_t _wifi_status  = 0;
+static std::string _wifi_ver    = "";
+static int32_t     _wifi_status = 0;
 
+#if !MA_HAS_NATTIVE_WIFI_SUPPORT
 void setWifiVer(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
@@ -66,14 +68,20 @@ void getWifiVer(const std::vector<std::string>& argv, Transport& transport, Enco
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
+#endif
 
 void configureWifi(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
     ma_wifi_config_t config{};
-    bool is_bssid = isBssid(argv[1]);
+    bool             is_bssid = isBssid(argv[1]);
 
     if (argv.size() < 4) {
+        ret = MA_EINVAL;
+        goto exit;
+    }
+
+    if (argv[3].length() < 8) {
         ret = MA_EINVAL;
         goto exit;
     }
@@ -98,6 +106,7 @@ exit:
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
+#if !MA_HAS_NATTIVE_WIFI_SUPPORT
 void setWifiSta(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
 
@@ -124,9 +133,9 @@ void setWifiIn4Info(const std::vector<std::string>& argv, Transport& transport, 
     }
 
     {
-#if MA_USE_EXTERNAL_WIFI_STATUS
+    #if MA_USE_EXTERNAL_WIFI_STATUS
         ma::Guard lock(_net_sync_mutex);
-#endif
+    #endif
         _in4_info.ip      = ipv4_addr_t::from_str(argv[1]);
         _in4_info.netmask = ipv4_addr_t::from_str(argv[2]);
         _in4_info.gateway = ipv4_addr_t::from_str(argv[3]);
@@ -135,9 +144,9 @@ void setWifiIn4Info(const std::vector<std::string>& argv, Transport& transport, 
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
     {
-#if MA_USE_EXTERNAL_WIFI_STATUS
+    #if MA_USE_EXTERNAL_WIFI_STATUS
         ma::Guard lock(_net_sync_mutex);
-#endif
+    #endif
         encoder.write(_in4_info);
     }
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
@@ -152,22 +161,23 @@ void setWifiIn6Info(const std::vector<std::string>& argv, Transport& transport, 
     }
 
     {
-#if MA_USE_EXTERNAL_WIFI_STATUS
+    #if MA_USE_EXTERNAL_WIFI_STATUS
         ma::Guard lock(_net_sync_mutex);
-#endif
+    #endif
         _in6_info.ip = ipv6_addr_t::from_str(argv[1]);
     }
 exit:
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0]);
     {
-#if MA_USE_EXTERNAL_WIFI_STATUS
+    #if MA_USE_EXTERNAL_WIFI_STATUS
         ma::Guard lock(_net_sync_mutex);
-#endif
+    #endif
         encoder.write(_in6_info);
     }
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
+#endif
 
 void getWifiInfo(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
     ma_err_t ret = MA_OK;
