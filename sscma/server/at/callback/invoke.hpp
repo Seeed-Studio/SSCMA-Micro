@@ -230,9 +230,11 @@ Err:
 #endif
                                                     &buffer_size);
 #if MA_SENSOR_ENCODE_USE_STATIC_BUFFER
-                _buffer_size = buffer_size;
-#endif
+                _buffer_size                             = buffer_size;
                 static_cast<char*>(_buffer)[buffer_size] = '\0';
+#else
+                _buffer[buffer_size] = '\0';
+#endif
                 if (ret != MA_OK) {
                     MA_LOGE(MA_TAG, "base64_encode failed: %d", ret);
                 }
