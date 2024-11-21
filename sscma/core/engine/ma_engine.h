@@ -13,4 +13,9 @@ using EngineDefault = ma::engine::EngineTFLite;
 using EngineDefault = ma::engine::EngineCVI;
 #endif
 
+#ifdef MA_USE_ENGINE_HALIO
+#include "ma_engine_halio.h"
+using EngineDefault = ma::engine::EngineHalio;
+#endif
+
 #endif  // _MA_ENGINE_H_
