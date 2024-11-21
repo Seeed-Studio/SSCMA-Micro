@@ -67,6 +67,7 @@ typedef enum {
     MA_TENSOR_TYPE_STR  = 12,
     MA_TENSOR_TYPE_BOOL = 13,
     MA_TENSOR_TYPE_BF16 = 14,
+    MA_TENSOR_TYPE_NMS_BBOX_F32 = 15,
 } ma_tensor_type_t;
 
 typedef struct {
@@ -95,6 +96,7 @@ typedef struct {
     } data;
     bool is_physical;  // For physical tensor
     bool is_variable;  // For constant tensor
+    void* external_handler = nullptr;
 } ma_tensor_t;
 
 typedef enum {
