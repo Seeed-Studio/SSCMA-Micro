@@ -11,6 +11,6 @@
 #include "utils/ma_nms.h"
 #include "utils/ma_ringbuffer.hpp"
 
-#include <pipeline/ma_executor.hpp>
+#include "pipeline/ma_executor.hpp"
 
 #endif  // _MA_CORE_H_
