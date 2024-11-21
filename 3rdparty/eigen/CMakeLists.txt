@@ -42,22 +42,13 @@ set(INCS_EIGEN "${EIGEN_INCLUDE_DIRS}")
 
 set(SRCS_EIGEN "")
 
-if(SOPHGO_PLATFORM)
-component_register(
-    COMPONENT_NAME Eigen3::Eigen
-    SRCS ${SRCS_EIGEN}
-    INCLUDE_DIRS ${INCS_EIGEN}
-)
-
-else()
-
+if(POSIX_PLATFORM)
 add_library(Eigen3::Eigen INTERFACE IMPORTED)
-
 set_target_properties(Eigen3::Eigen PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${EIGEN_INCLUDE_DIRS}"
 )
+endif()
 
 message(STATUS "INCS_EIGEN: ${INCS_EIGEN}")
 
-endif()
 

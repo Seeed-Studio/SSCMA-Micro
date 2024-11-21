@@ -7,15 +7,11 @@ set(INCS_JPEGENC
     ${JPEGENC_DIR}
 )
 
-if(SOPHGO_PLATFORM)
-component_register(
-    COMPONENT_NAME jpegenc
-    SRCS ${SRCS_JPEGENC}
-    INCLUDE_DIRS ${INCS_JPEGENC}
-)
-else()
+if(POSIX_PLATFORM)
 add_library(jpegenc STATIC ${SRCS_JPEGENC})
 target_include_directories(jpegenc PUBLIC ${INCS_JPEGENC})
-message(STATUS "INCS_JPEGENC: ${INCS_JPEGENC}")
 endif()
+
+message(STATUS "INCS_JPEGENC: ${INCS_JPEGENC}")
+
 

@@ -53,26 +53,12 @@ if(SSCMA_FILESYSTEM_LITTLEFS_THREADSAFE)
     list(APPEND DEFS_LITTLEFS "-DLFS_THREADSAFE")
 endif()
 
-if(SG200X_PLATFORM)
-
-component_register(
-    COMPONENT_NAME littlefs
-    SRCS ${SRCS_LITTLEFS}
-    INCLUDE_DIRS ${INCS_LITTLEFS}
-    DEFINITIONS ${DEFS_LITTLEFS}
-)
-
-else()
-
+if(POSIX_PLATFORM)
 add_library(littlefs STATIC ${SRCS_LITTLEFS})
-
 target_include_directories(littlefs PUBLIC ${INCS_LITTLEFS})
-
 target_compile_definitions(littlefs PUBLIC ${DEFS_LITTLEFS})
-
 set_target_properties(littlefs PROPERTIES LINKER_LANGUAGE C)
+endif()
 
 message(STATUS "INCS_LITTLEFS: ${INCS_LITTLEFS}")
-
-endif()
 

@@ -45,15 +45,10 @@ set(INCS_CJSON
     ${CJSON_DIR}
 )
 
-if(SOPHGO_PLATFORM)
-component_register(
-    COMPONENT_NAME cjson
-    SRCS ${SRCS_CJSON}
-    INCLUDE_DIRS ${INCS_CJSON}
-)
-else()
+if(POSIX_PLATFORM)
 add_library(cjson STATIC ${SRCS_CJSON})
 target_include_directories(cjson PUBLIC ${INCS_CJSON})
-message(STATUS "INCS_CJSON: ${INCS_CJSON}")
 endif()
+
+message(STATUS "INCS_CJSON: ${INCS_CJSON}")
 

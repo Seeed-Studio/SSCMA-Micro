@@ -61,10 +61,13 @@ set(INCS_TFLM
     ${TFLM_THIRDPARTY_DIR}/kissfft
 )
 
+if(POSIX_PLATFORM)
 add_library(tflm STATIC ${SRCS_TFLM})
 target_include_directories(tflm PUBLIC ${INCS_TFLM})
 target_compile_options(tflm PRIVATE -fno-unwind-tables -ffunction-sections -fdata-sections -fmessage-length=0 -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -O3 -Wsign-compare -Wdouble-promotion -Wunused-variable -Wmissing-field-initializers -Wunused-function -Wswitch -Wvla -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -Wno-nonnull -Wno-shadow)
 target_compile_options(tflm PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -std=c++11 -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-unwind-tables -ffunction-sections -fdata-sections -fmessage-length=0 -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -O3 -Werror -Wsign-compare -Wdouble-promotion -Wunused-variable -Wmissing-field-initializers -Wunused-function -Wswitch -Wvla -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -Wno-return-type -Wno-strict-aliasing >)
 target_compile_options(tflm INTERFACE $<$<IN_LIST:-DTF_LITE_STATIC_MEMORY,$<TARGET_PROPERTY:tflm,COMPILE_OPTIONS>>:-DTF_LITE_STATIC_MEMORY>)
 target_link_libraries(tflm PRIVATE -lm)
+endif()
+
 message(STATUS "INCS_TFLM: ${INCS_TFLM}")
