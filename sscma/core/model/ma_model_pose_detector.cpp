@@ -6,7 +6,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::pose_detecor";
 
-PoseDetector::PoseDetector(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, type) {
+PoseDetector::PoseDetector(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_KEYPOINT | type) {
     input_           = p_engine_->getInput(0);
     threshold_nms_   = 0.45;
     threshold_score_ = 0.25;
@@ -31,7 +31,13 @@ PoseDetector::PoseDetector(Engine* p_engine, const char* name, ma_model_type_t t
 
 PoseDetector::~PoseDetector() {}
 
-const std::vector<ma_keypoint3f_t>& PoseDetector::getResults() const { return results_; }
+const std::vector<ma_keypoint3f_t>& PoseDetector::getResults() const {
+    return results_;
+}
+
+const void* PoseDetector::getInput() {
+    return static_cast<const void*>(&img_);
+}
 
 ma_err_t PoseDetector::preprocess() {
     ma_err_t ret = MA_OK;
@@ -59,20 +65,20 @@ ma_err_t PoseDetector::run(const ma_img_t* img) {
 
 ma_err_t PoseDetector::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
+    va_list args;
     va_start(args, opt);
     switch (opt) {
-    case MA_MODEL_CFG_OPT_THRESHOLD:
-        threshold_score_ = va_arg(args, double);
-        ret              = MA_OK;
-        break;
-    case MA_MODEL_CFG_OPT_NMS:
-        threshold_nms_ = va_arg(args, double);
-        ret            = MA_OK;
-        break;
-    default:
-        ret = MA_EINVAL;
-        break;
+        case MA_MODEL_CFG_OPT_THRESHOLD:
+            threshold_score_ = va_arg(args, double);
+            ret              = MA_OK;
+            break;
+        case MA_MODEL_CFG_OPT_NMS:
+            threshold_nms_ = va_arg(args, double);
+            ret            = MA_OK;
+            break;
+        default:
+            ret = MA_EINVAL;
+            break;
     }
     va_end(args);
     return ret;
@@ -80,21 +86,21 @@ ma_err_t PoseDetector::setConfig(ma_model_cfg_opt_t opt, ...) {
 
 ma_err_t PoseDetector::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
-    void*    p_arg = nullptr;
+    va_list args;
+    void* p_arg = nullptr;
     va_start(args, opt);
     switch (opt) {
-    case MA_MODEL_CFG_OPT_THRESHOLD:
-        p_arg                          = va_arg(args, void*);
-        *(static_cast<double*>(p_arg)) = threshold_score_;
-        break;
-    case MA_MODEL_CFG_OPT_NMS:
-        p_arg                          = va_arg(args, void*);
-        *(static_cast<double*>(p_arg)) = threshold_nms_;
-        break;
-    default:
-        ret = MA_EINVAL;
-        break;
+        case MA_MODEL_CFG_OPT_THRESHOLD:
+            p_arg                          = va_arg(args, void*);
+            *(static_cast<double*>(p_arg)) = threshold_score_;
+            break;
+        case MA_MODEL_CFG_OPT_NMS:
+            p_arg                          = va_arg(args, void*);
+            *(static_cast<double*>(p_arg)) = threshold_nms_;
+            break;
+        default:
+            ret = MA_EINVAL;
+            break;
     }
     va_end(args);
     return ret;

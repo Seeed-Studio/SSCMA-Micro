@@ -4,15 +4,11 @@ namespace ma {
 
 constexpr char TAG[] = "ma::model";
 
-Model::Model(Engine* engine, const char* name, ma_model_type_t type)
-    
-      
-      // Initialize performance metrics to 0 using initializer list
-{
+Model::Model(Engine* engine, const char* name, uint16_t type) {
 
-    p_engine_ = engine;
-    p_name_   = name;
-    m_type_   = type;
+    p_engine_   = engine;
+    p_name_     = name;
+    m_type_     = type;
     p_user_ctx_ = nullptr;
 
     p_preprocess_done_     = nullptr;
@@ -75,7 +71,14 @@ const char* Model::getName() const {
 }
 
 ma_model_type_t Model::getType() const {
-    return m_type_;
+    return static_cast<ma_model_type_t>(m_type_ & MA_MODEL_TYPE_MASK);
+}
+
+ma_input_type_t Model::getInputType() const {
+    return static_cast<ma_input_type_t>(m_type_ & MA_INPUT_TYPE_MASK);
+}
+ma_output_type_t Model::getOutputType() const {
+    return static_cast<ma_output_type_t>(m_type_ & MA_OUTPUT_TYPE_MASK);
 }
 
 void Model::setPreprocessDone(std::function<void(void*)> func) {
@@ -94,11 +97,4 @@ void Model::setUserCtx(void* ctx) {
     p_user_ctx_ = ctx;
 }
 
-class ModelFactory {
-public:
-    static Model* create(Engine* engine);
-    static ma_err_t remove(const std::string& name);
-};
-
-
-}  // namespace ma::model
+}  // namespace ma

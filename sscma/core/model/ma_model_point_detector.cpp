@@ -6,7 +6,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::point_detecor";
 
-PointDetector::PointDetector(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, type) {
+PointDetector::PointDetector(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_POINT | type) {
     input_           = p_engine_->getInput(0);
     threshold_score_ = 0.25;
 
@@ -30,7 +30,9 @@ PointDetector::PointDetector(Engine* p_engine, const char* name, ma_model_type_t
 
 PointDetector::~PointDetector() {}
 
-const std::vector<ma_point_t>& PointDetector::getResults() const { return results_; }
+const std::vector<ma_point_t>& PointDetector::getResults() const {
+    return results_;
+}
 
 ma_err_t PointDetector::preprocess() {
     ma_err_t ret = MA_OK;
@@ -56,19 +58,23 @@ ma_err_t PointDetector::run(const ma_img_t* img) {
     return underlyingRun();
 }
 
+const void* PointDetector::getInput() {
+    return static_cast<const void*>(&img_);
+}
+
 ma_err_t PointDetector::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
+    va_list args;
     va_start(args, opt);
     switch (opt) {
-    case MA_MODEL_CFG_OPT_THRESHOLD:
-        threshold_score_ = va_arg(args, double);
-        ret              = MA_OK;
-        break;
+        case MA_MODEL_CFG_OPT_THRESHOLD:
+            threshold_score_ = va_arg(args, double);
+            ret              = MA_OK;
+            break;
 
-    default:
-        ret = MA_EINVAL;
-        break;
+        default:
+            ret = MA_EINVAL;
+            break;
     }
     va_end(args);
     return ret;
@@ -76,18 +82,18 @@ ma_err_t PointDetector::setConfig(ma_model_cfg_opt_t opt, ...) {
 
 ma_err_t PointDetector::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
-    va_list  args;
-    void*    p_arg = nullptr;
+    va_list args;
+    void* p_arg = nullptr;
     va_start(args, opt);
     switch (opt) {
-    case MA_MODEL_CFG_OPT_THRESHOLD:
-        p_arg                          = va_arg(args, void*);
-        *(static_cast<double*>(p_arg)) = threshold_score_;
-        break;
+        case MA_MODEL_CFG_OPT_THRESHOLD:
+            p_arg                          = va_arg(args, void*);
+            *(static_cast<double*>(p_arg)) = threshold_score_;
+            break;
 
-    default:
-        ret = MA_EINVAL;
-        break;
+        default:
+            ret = MA_EINVAL;
+            break;
     }
     va_end(args);
     return ret;
