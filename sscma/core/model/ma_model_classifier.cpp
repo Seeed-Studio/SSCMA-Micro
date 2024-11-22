@@ -59,7 +59,7 @@ bool Classifier::isValid(Engine* engine) {
         return false;
     }
 
-    if (output_shape.size == 4 && (output_shape.dims[2] != 1 || output_shape.dims[3] != 1)) {
+    if (output_shape.size >= 3) {
         return false;
     }
 

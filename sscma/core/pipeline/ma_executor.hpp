@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-#include "core/ma_common.h"
+#include "../ma_common.h"
 #include "porting/ma_osal.h"
 
 namespace ma {

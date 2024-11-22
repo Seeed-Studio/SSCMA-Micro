@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "core/math/ma_math.h"
-#include "core/utils/ma_nms.h"
+#include "../math/ma_math.h"
+#include "../utils/ma_nms.h"
 
 constexpr char TAG[] = "ma::model::yolo11_seg";
 

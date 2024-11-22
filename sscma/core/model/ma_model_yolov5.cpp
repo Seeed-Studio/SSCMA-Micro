@@ -332,6 +332,7 @@ ma_err_t YoloV5::postprocess() {
     switch (output_.type) {
         case MA_TENSOR_TYPE_NMS_BBOX_U16:
         case MA_TENSOR_TYPE_NMS_BBOX_F32: {
+#if MA_USE_ENGINE_HALIO
             // TODO: can be optimized by whihout calling this handler for each frame
             if (output.external_handler) {
                 auto ph   = reinterpret_cast<ma::engine::EngineHalio::ExternalHandler*>(output.external_handler);
@@ -346,6 +347,7 @@ ma_err_t YoloV5::postprocess() {
                     threshold_nms_ = thr;
                 }
             }
+#endif
             return nmsPostProcess();
         }
 

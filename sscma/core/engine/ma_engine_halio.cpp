@@ -48,13 +48,20 @@ ma_err_t EngineHalio::run() {
         return MA_FAILED;
     }
 
-    auto job = _configured_model->run_async(*_bindings, [](const AsyncInferCompletionInfo& info) {});
+    auto job = _configured_model->run_async(*_bindings, [&](const AsyncInferCompletionInfo& info) { sta = info.status; });
 
     do {
         this_thread::yield();
-    } while (job->wait(1000ms) != HAILO_SUCCESS);
+    } while (job->wait(50ms) != HAILO_SUCCESS);
 
-    return MA_OK;
+    switch (sta) {
+        case HAILO_SUCCESS:
+            return MA_OK;
+        case HAILO_TIMEOUT:
+            return MA_ETIMEOUT;
+        default:
+            return MA_FAILED;
+    }
 }
 
 #if MA_USE_FILESYSTEM
