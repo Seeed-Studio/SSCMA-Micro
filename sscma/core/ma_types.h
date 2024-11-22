@@ -239,6 +239,26 @@ typedef enum {
 
 typedef enum { MA_MSG_TYPE_RESP = 0, MA_MSG_TYPE_EVT = 1, MA_MSG_TYPE_LOG = 2, MA_MSG_TYPE_REQ = 3, MA_MSG_TYPE_HB = 4 } ma_msg_type_t;
 
+#define MA_INPUT_TYPE_MASK  0xF000
+#define MA_OUTPUT_TYPE_MASK 0x0F00
+#define MA_MODEL_TYPE_MASK  0x00FF
+
+typedef enum {
+    MA_INPUT_TYPE_TENSOR = 0x0000,
+    MA_INPUT_TYPE_IMAGE  = 0x1000,
+    MA_INPUT_TYPE_AUDIO  = 0x2000,
+} ma_input_type_t;
+
+typedef enum {
+    MA_OUTPUT_TYPE_TENSOR       = 0x0000,
+    MA_OUTPUT_TYPE_CLASS        = 0x0100,
+    MA_OUTPUT_TYPE_POINT        = 0x0200,
+    MA_OUTPUT_TYPE_BBOX         = 0x0300,
+    MA_OUTPUT_TYPE_KEYPOINT     = 0x0400,
+    MA_OUTPUT_TYPE_SEGMENTATION = 0x0500,
+} ma_output_type_t;
+
+
 typedef enum {
     MA_MODEL_TYPE_UNDEFINED   = 0u,
     MA_MODEL_TYPE_FOMO        = 1u,
@@ -249,7 +269,7 @@ typedef enum {
     MA_MODEL_TYPE_YOLOV8      = 6u,
     MA_MODEL_TYPE_NVIDIA_DET  = 7u,
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
-    MA_MODEL_TYPE_YOLO11     = 9u,
+    MA_MODEL_TYPE_YOLO11      = 9u,
 } ma_model_type_t;
 
 typedef struct {

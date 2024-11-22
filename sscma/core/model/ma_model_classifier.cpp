@@ -6,7 +6,7 @@ namespace ma::model {
 
 constexpr char TAG[] = "ma::model::classifier";
 
-Classifier::Classifier(Engine* p_engine) : Model(p_engine, "IMCLS", MA_MODEL_TYPE_IMCLS) {
+Classifier::Classifier(Engine* p_engine) : Model(p_engine, "IMCLS", MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_CLASS | MA_MODEL_TYPE_IMCLS) {
     input_           = p_engine_->getInput(0);
     output_          = p_engine_->getOutput(0);
     threshold_score_ = 0.5f;
@@ -121,8 +121,8 @@ const std::forward_list<ma_class_t>& Classifier::getResults() {
     return results_;
 }
 
-const ma_img_t* Classifier::getInputImg() {
-    return &img_;
+const void* Classifier::getInput() {
+    return static_cast<const void*>(&img_);
 }
 
 ma_err_t Classifier::run(const ma_img_t* img) {

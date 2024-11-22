@@ -9,7 +9,7 @@ namespace ma::model {
 constexpr char TAG[] = "ma::model::detecor";
 
 Detector::Detector(Engine* p_engine, const char* name, ma_model_type_t type)
-    : Model(p_engine, name, type),
+    : Model(p_engine, name, MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_BBOX | type),
       input_(p_engine->getInput(0)),  // Use direct method call instead of p_engine_->
       threshold_nms_(0.45),
       threshold_score_(0.25) {
@@ -58,10 +58,10 @@ const std::forward_list<ma_bbox_t>& Detector::getResults() {
     return results_;
 }
 
-
-const ma_img_t* Detector::getInputImg() {
-    return &img_;
+const void* Detector::getInput() {
+    return static_cast<const void*>(&img_);
 }
+
 ma_err_t Detector::run(const ma_img_t* img) {
     // MA_ASSERT(img != nullptr);
     input_img_ = img;
