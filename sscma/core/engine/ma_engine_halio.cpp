@@ -200,7 +200,7 @@ ma_err_t EngineHalio::load(const string& model_path) {
                                 return MA_EINVAL;
                             }
                             float threshold = *static_cast<float*>(data);
-                            auto tsr        = this_ptr->_model->input(name);
+                            auto tsr        = this_ptr->_model->output(name);
                             if (!tsr) {
                                 return MA_FAILED;
                             }

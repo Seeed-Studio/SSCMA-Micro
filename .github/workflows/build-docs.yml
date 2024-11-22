@@ -21,7 +21,7 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v2
         with:
-          ref: 'dev' # should be main later
+          ref: 'main'
 
       - name: install dependencies
         run: sudo apt-get install doxygen graphviz -y
