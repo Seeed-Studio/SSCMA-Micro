@@ -50,10 +50,7 @@ public:
      * @param[in] data
      * @retval MA_OK on success
      */
-    virtual ma_err_t begin(ma_msg_type_t type,
-                           ma_err_t code,
-                           const std::string& name,
-                           const std::string& data) = 0;
+    virtual ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name, const std::string& data) = 0;
 
 
     /*!
@@ -65,10 +62,7 @@ public:
      * @param[in] data
      * @retval MA_OK on success
      */
-    virtual ma_err_t begin(ma_msg_type_t type,
-                           ma_err_t code,
-                           const std::string& name,
-                           uint64_t data) = 0;
+    virtual ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name, uint64_t data) = 0;
 
     /*!
      * @brief Encoder type for end.
@@ -255,34 +249,38 @@ public:
     virtual ma_err_t write(const std::forward_list<ma_bbox_t>& value) = 0;
 
     /*!
+     * @brief Encoder type for write std::forward_list<ma_keypoint3f_t> value.
+     *
+     * @param[in] value std::forward_list<ma_keypoint3f_t> typed value to write.
+     * @retval MA_OK on success
+     */
+    virtual ma_err_t write(const std::forward_list<ma_keypoint3f_t>& value) = 0;
+
+    /*!
      * @brief Encoder type for write std::forward_list<ma_model_t> value.
      *
      * @param[in] value std::forward_list<ma_model_t> typed value to write.
      * @retval MA_OK on success
      */
     virtual ma_err_t write(const std::vector<ma_model_t>& value) = 0;
-    
+
     virtual ma_err_t write(const std::vector<Sensor*>& value) = 0;
 
-    virtual ma_err_t write(const std::vector<ma_keypoint3f_t>& value) = 0;
-
-    virtual ma_err_t write(const Sensor* value, size_t preset )  =0;
+    virtual ma_err_t write(const Sensor* value, size_t preset) = 0;
 
     virtual ma_err_t write(const std::string& key, const char* buffer, size_t size) = 0;
-
 
 
     virtual ma_err_t write(const in4_info_t& value) = 0;
     virtual ma_err_t write(const in6_info_t& value) = 0;
 
-    virtual ma_err_t write(const ma_wifi_config_t& value, int* stat=nullptr) = 0;
+    virtual ma_err_t write(const ma_wifi_config_t& value, int* stat = nullptr) = 0;
 
-    virtual ma_err_t write(const ma_mqtt_config_t& value, int* stat=nullptr) = 0;
+    virtual ma_err_t write(const ma_mqtt_config_t& value, int* stat = nullptr) = 0;
 
     virtual ma_err_t write(const ma_mqtt_topic_config_t& value) = 0;
 
     virtual ma_err_t write(int algo_id, int cat, int input_from, int tscore, int tiou) = 0;
-
 };
 
 class Decoder {
@@ -315,9 +313,6 @@ public:
     virtual ma_err_t read(std::forward_list<ma_class_t>& value)             = 0;
     virtual ma_err_t read(std::forward_list<ma_point_t>& value)             = 0;
     virtual ma_err_t read(std::forward_list<ma_bbox_t>& value)              = 0;
-
-
-
 };
 
 }  // namespace ma

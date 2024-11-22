@@ -20,14 +20,8 @@ public:
 
     ma_err_t begin() override;
     ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name) override;
-    ma_err_t begin(ma_msg_type_t type,
-                   ma_err_t code,
-                   const std::string& name,
-                   const std::string& data) override;
-    ma_err_t begin(ma_msg_type_t type,
-                   ma_err_t code,
-                   const std::string& name,
-                   uint64_t data) override;
+    ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name, const std::string& data) override;
+    ma_err_t begin(ma_msg_type_t type, ma_err_t code, const std::string& name, uint64_t data) override;
     ma_err_t end() override;
     ma_err_t reset() override;
 
@@ -49,22 +43,24 @@ public:
     ma_err_t write(const std::string& key, const std::string& value) override;
     ma_err_t write(const std::string& key, ma_model_t value) override;
     ma_err_t write(ma_perf_t value) override;
+
     ma_err_t write(const std::forward_list<ma_class_t>& value) override;
     ma_err_t write(const std::forward_list<ma_point_t>& value) override;
     ma_err_t write(const std::forward_list<ma_bbox_t>& value) override;
+    ma_err_t write(const std::forward_list<ma_keypoint3f_t>& value) override;
+
     ma_err_t write(const std::vector<ma_model_t>& value) override;
 
-    ma_err_t write(const std::vector<ma_keypoint3f_t>& value) override;
 
     ma_err_t write(const std::vector<Sensor*>& value) override;
-    ma_err_t write(const Sensor* value, size_t preset )  override;
+    ma_err_t write(const Sensor* value, size_t preset) override;
 
 
     ma_err_t write(const in4_info_t& value) override;
     ma_err_t write(const in6_info_t& value) override;
-    ma_err_t write(const ma_wifi_config_t& value, int* stat=nullptr) override;
+    ma_err_t write(const ma_wifi_config_t& value, int* stat = nullptr) override;
 
-    ma_err_t write(const ma_mqtt_config_t& value, int* stat=nullptr) override;
+    ma_err_t write(const ma_mqtt_config_t& value, int* stat = nullptr) override;
 
     ma_err_t write(const ma_mqtt_topic_config_t& value) override;
 
