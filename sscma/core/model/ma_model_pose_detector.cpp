@@ -31,7 +31,7 @@ PoseDetector::PoseDetector(Engine* p_engine, const char* name, ma_model_type_t t
 
 PoseDetector::~PoseDetector() {}
 
-const std::vector<ma_keypoint3f_t>& PoseDetector::getResults() const {
+const std::forward_list<ma_keypoint3f_t>& PoseDetector::getResults() const {
     return results_;
 }
 

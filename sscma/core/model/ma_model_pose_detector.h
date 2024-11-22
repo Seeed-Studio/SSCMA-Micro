@@ -18,7 +18,7 @@ protected:
 
     bool is_nhwc_;
 
-    std::vector<ma_keypoint3f_t> results_;
+    std::forward_list<ma_keypoint3f_t> results_;
 
 protected:
     ma_err_t preprocess() override;
@@ -27,7 +27,7 @@ public:
     PoseDetector(Engine* engine, const char* name, ma_model_type_t type);
     virtual ~PoseDetector();
 
-    const std::vector<ma_keypoint3f_t>& getResults() const;
+    const std::forward_list<ma_keypoint3f_t>& getResults() const;
 
     ma_err_t run(const ma_img_t* img);
 

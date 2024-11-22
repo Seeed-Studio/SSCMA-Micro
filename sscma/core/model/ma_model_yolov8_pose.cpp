@@ -41,26 +41,26 @@ YoloV8Pose::YoloV8Pose(Engine* p_engine_) : PoseDetector(p_engine_, "yolo_world"
         const auto dim_2 = outputs_[i].shape.dims[2];
 
         switch (dim_2) {
-        case 1:
-            for (size_t j = 0; j < anchor_variants_; ++j) {
-                if (dim_1 == static_cast<int>(anchor_strides_[j].size)) {
-                    output_scores_ids_[j] = i;
-                    break;
+            case 1:
+                for (size_t j = 0; j < anchor_variants_; ++j) {
+                    if (dim_1 == static_cast<int>(anchor_strides_[j].size)) {
+                        output_scores_ids_[j] = i;
+                        break;
+                    }
                 }
-            }
-            break;
-        case 64:
-            for (size_t j = 0; j < anchor_variants_; ++j) {
-                if (dim_1 == static_cast<int>(anchor_strides_[j].size)) {
-                    output_bboxes_ids_[j] = i;
-                    break;
+                break;
+            case 64:
+                for (size_t j = 0; j < anchor_variants_; ++j) {
+                    if (dim_1 == static_cast<int>(anchor_strides_[j].size)) {
+                        output_bboxes_ids_[j] = i;
+                        break;
+                    }
                 }
-            }
-            break;
-        default:
-            if (dim_2 % 3 == 0) {
-                output_keypoints_id_ = i;
-            }
+                break;
+            default:
+                if (dim_2 % 3 == 0) {
+                    output_keypoints_id_ = i;
+                }
         }
     }
 }
@@ -103,10 +103,7 @@ bool YoloV8Pose::isValid(Engine* engine) {
 
     auto anchor_strides_1 = ma::utils::generateAnchorStrides(std::min(h, w));
     auto anchor_strides_2 = anchor_strides_1;
-    auto sum =
-      std::accumulate(anchor_strides_1.begin(), anchor_strides_1.end(), 0u, [](auto sum, const auto& anchor_stride) {
-          return sum + anchor_stride.size;
-      });
+    auto sum              = std::accumulate(anchor_strides_1.begin(), anchor_strides_1.end(), 0u, [](auto sum, const auto& anchor_stride) { return sum + anchor_stride.size; });
 
     // Note: would fail if the model has 64 classes
     for (size_t i = 0; i < num_outputs_; ++i) {
@@ -116,39 +113,35 @@ bool YoloV8Pose::isValid(Engine* engine) {
         }
 
         switch (output_shape.dims[2]) {
-        case 1: {
-            auto it = std::find_if(anchor_strides_1.begin(),
-                                   anchor_strides_1.end(),
-                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
-                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-                                   });
-            if (it == anchor_strides_1.end()) {
-                return false;
-            } else {
-                anchor_strides_1.erase(it);
-            }
-        } break;
+            case 1: {
+                auto it = std::find_if(anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                    return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                });
+                if (it == anchor_strides_1.end()) {
+                    return false;
+                } else {
+                    anchor_strides_1.erase(it);
+                }
+            } break;
 
-        case 64: {
-            auto it = std::find_if(anchor_strides_2.begin(),
-                                   anchor_strides_2.end(),
-                                   [&output_shape](const ma_anchor_stride_t& anchor_stride) {
-                                       return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
-                                   });
-            if (it == anchor_strides_2.end()) {
-                return false;
-            } else {
-                anchor_strides_2.erase(it);
-            }
-        } break;
+            case 64: {
+                auto it = std::find_if(anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const ma_anchor_stride_t& anchor_stride) {
+                    return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
+                });
+                if (it == anchor_strides_2.end()) {
+                    return false;
+                } else {
+                    anchor_strides_2.erase(it);
+                }
+            } break;
 
-        default:
-            if (output_shape.dims[2] % 3 != 0) {
-                return false;
-            }
-            if (output_shape.dims[1] != static_cast<int>(sum)) {
-                return false;
-            }
+            default:
+                if (output_shape.dims[2] % 3 != 0) {
+                    return false;
+                }
+                if (output_shape.dims[1] != static_cast<int>(sum)) {
+                    return false;
+                }
         }
     }
 
@@ -159,36 +152,38 @@ bool YoloV8Pose::isValid(Engine* engine) {
     return true;
 }
 
-const char* YoloV8Pose::getTag() { return "ma::model::yolo_world"; }
+const char* YoloV8Pose::getTag() {
+    return "ma::model::yolo_world";
+}
 
 ma_err_t YoloV8Pose::postprocess() {
     uint8_t check = 0;
 
     for (size_t i = 0; i < num_outputs_; ++i) {
         switch (outputs_[i].type) {
-        case MA_TENSOR_TYPE_S8:
-            break;
+            case MA_TENSOR_TYPE_S8:
+                break;
 
-        case MA_TENSOR_TYPE_F32:
-            check |= 1 << i;
-            break;
+            case MA_TENSOR_TYPE_F32:
+                check |= 1 << i;
+                break;
 
-        default:
-            return MA_ENOTSUP;
+            default:
+                return MA_ENOTSUP;
         }
     }
 
     switch (check) {
-    case 0:
-        return postProcessI8();
+        case 0:
+            return postProcessI8();
 
 #ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
-    case 0b1111111:
-        return postProcessF32();
+        case 0b1111111:
+            return postProcessF32();
 #endif
 
-    default:
-        return MA_ENOTSUP;
+        default:
+            return MA_ENOTSUP;
     }
 
     return MA_ENOTSUP;
@@ -213,27 +208,26 @@ ma_err_t YoloV8Pose::postProcessI8() {
     const auto anchor_matrix_size = anchor_matrix_.size();
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
-        const auto   output_scores_id           = output_scores_ids_[i];
-        const auto*  output_scores              = output_data[output_scores_id];
+        const auto output_scores_id             = output_scores_ids_[i];
+        const auto* output_scores               = output_data[output_scores_id];
         const size_t output_scores_shape_dims_2 = outputs_[output_scores_id].shape.dims[2];
-        const auto   output_scores_quant_parm   = outputs_[output_scores_id].quant_param;
+        const auto output_scores_quant_parm     = outputs_[output_scores_id].quant_param;
 
-        const auto   output_bboxes_id           = output_bboxes_ids_[i];
-        const auto*  output_bboxes              = output_data[output_bboxes_id];
+        const auto output_bboxes_id             = output_bboxes_ids_[i];
+        const auto* output_bboxes               = output_data[output_bboxes_id];
         const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
-        const auto   output_bboxes_quant_parm   = outputs_[output_bboxes_id].quant_param;
+        const auto output_bboxes_quant_parm     = outputs_[output_bboxes_id].quant_param;
 
-        const auto& anchor_array      = anchor_matrix_[i];
-        const auto  anchor_array_size = anchor_array.size();
+        const auto& anchor_array     = anchor_matrix_[i];
+        const auto anchor_array_size = anchor_array.size();
 
-        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(
-          score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
+        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            auto    max_score_raw = score_threshold_quan_non_sigmoid;
-            int32_t target        = -1;
+            auto max_score_raw = score_threshold_quan_non_sigmoid;
+            int32_t target     = -1;
 
             for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
                 int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
@@ -245,10 +239,10 @@ ma_err_t YoloV8Pose::postProcessI8() {
                 target        = k;
             }
 
-            if (target < 0) continue;
+            if (target < 0)
+                continue;
 
-            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(
-              max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
+            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
 
             // DFL
             float dist[4];
@@ -258,9 +252,7 @@ ma_err_t YoloV8Pose::postProcessI8() {
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m * 16;
                 for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]),
-                                                          output_bboxes_quant_parm.zero_point,
-                                                          output_bboxes_quant_parm.scale);
+                    matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
                 }
 
                 ma::math::softmax(matrix, 16);
@@ -296,15 +288,13 @@ ma_err_t YoloV8Pose::postProcessI8() {
     ma::utils::nms(multi_level_bboxes, threshold_nms_, threshold_score_, false, true);
 
     if (multi_level_bboxes.empty()) {
-        results_.shrink_to_fit();
-
         return MA_OK;
     }
 
-    const auto*  output_keypoints            = output_data[output_keypoints_id_];
-    const auto   output_keypoints_dims_2     = outputs_[output_keypoints_id_].shape.dims[2];
-    const auto   output_keypoints_quant_parm = outputs_[output_keypoints_id_].quant_param;
-    const size_t keypoint_nums               = output_keypoints_dims_2 / 3;
+    const auto* output_keypoints           = output_data[output_keypoints_id_];
+    const auto output_keypoints_dims_2     = outputs_[output_keypoints_id_].shape.dims[2];
+    const auto output_keypoints_quant_parm = outputs_[output_keypoints_id_].quant_param;
+    const size_t keypoint_nums             = output_keypoints_dims_2 / 3;
 
     std::vector<ma_pt3f_t> n_keypoint(keypoint_nums);
 
@@ -314,18 +304,11 @@ ma_err_t YoloV8Pose::postProcessI8() {
         for (size_t i = 0; i < keypoint_nums; ++i) {
             const auto offset = pre + i * 3;
 
-            const float x = ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset]),
-                                                      output_keypoints_quant_parm.zero_point,
-                                                      output_keypoints_quant_parm.scale);
+            const float x = ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset]), output_keypoints_quant_parm.zero_point, output_keypoints_quant_parm.scale);
 
-            const float y = ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset + 1]),
-                                                      output_keypoints_quant_parm.zero_point,
-                                                      output_keypoints_quant_parm.scale);
+            const float y = ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset + 1]), output_keypoints_quant_parm.zero_point, output_keypoints_quant_parm.scale);
 
-            const float z =
-              ma::math::sigmoid(ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset + 2]),
-                                                          output_keypoints_quant_parm.zero_point,
-                                                          output_keypoints_quant_parm.scale));
+            const float z = ma::math::sigmoid(ma::math::dequantizeValue(static_cast<int32_t>(output_keypoints[offset + 2]), output_keypoints_quant_parm.zero_point, output_keypoints_quant_parm.scale));
 
             n_keypoint[i] = {x, y, z};
         }
@@ -334,10 +317,8 @@ ma_err_t YoloV8Pose::postProcessI8() {
         keypoint.box = {.x = bbox.x, .y = bbox.y, .w = bbox.w, .h = bbox.h, .score = bbox.score, .target = bbox.target};
         keypoint.pts = n_keypoint;
 
-        results_.push_back(std::move(keypoint));
+        results_.emplace_front(std::move(keypoint));
     }
-
-    results_.shrink_to_fit();
 
     return MA_OK;
 }
@@ -362,22 +343,22 @@ ma_err_t YoloV8Pose::postProcessF32() {
     const auto anchor_matrix_size = anchor_matrix_.size();
 
     for (size_t i = 0; i < anchor_matrix_size; ++i) {
-        const auto   output_scores_id           = output_scores_ids_[i];
-        const auto*  output_scores              = output_data[output_scores_id];
+        const auto output_scores_id             = output_scores_ids_[i];
+        const auto* output_scores               = output_data[output_scores_id];
         const size_t output_scores_shape_dims_2 = outputs_[output_scores_id].shape.dims[2];
 
-        const auto   output_bboxes_id           = output_bboxes_ids_[i];
-        const auto*  output_bboxes              = output_data[output_bboxes_id];
+        const auto output_bboxes_id             = output_bboxes_ids_[i];
+        const auto* output_bboxes               = output_data[output_bboxes_id];
         const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
 
-        const auto& anchor_array      = anchor_matrix_[i];
-        const auto  anchor_array_size = anchor_array.size();
+        const auto& anchor_array     = anchor_matrix_[i];
+        const auto anchor_array_size = anchor_array.size();
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
 
-            auto    max_score_raw = score_threshold_non_sigmoid;
-            int32_t target        = -1;
+            auto max_score_raw = score_threshold_non_sigmoid;
+            int32_t target     = -1;
 
             for (size_t k = 0; k < output_scores_shape_dims_2; ++k) {
                 int8_t score = output_scores[j_mul_output_scores_shape_dims_2 + k];
@@ -389,7 +370,8 @@ ma_err_t YoloV8Pose::postProcessF32() {
                 target        = k;
             }
 
-            if (target < 0) continue;
+            if (target < 0)
+                continue;
 
             const float real_score = ma::math::sigmoid(max_score_raw);
 
@@ -437,15 +419,13 @@ ma_err_t YoloV8Pose::postProcessF32() {
     ma::utils::nms(multi_level_bboxes, threshold_nms_, threshold_score_, false, true);
 
     if (multi_level_bboxes.empty()) {
-        results_.shrink_to_fit();
-
         return MA_OK;
     }
 
-    const auto*  output_keypoints            = output_data[output_keypoints_id_];
-    const auto   output_keypoints_dims_2     = outputs_[output_keypoints_id_].shape.dims[2];
-    const auto   output_keypoints_quant_parm = outputs_[output_keypoints_id_].quant_param;
-    const size_t keypoint_nums               = output_keypoints_dims_2 / 3;
+    const auto* output_keypoints           = output_data[output_keypoints_id_];
+    const auto output_keypoints_dims_2     = outputs_[output_keypoints_id_].shape.dims[2];
+    const auto output_keypoints_quant_parm = outputs_[output_keypoints_id_].quant_param;
+    const size_t keypoint_nums             = output_keypoints_dims_2 / 3;
 
     std::vector<ma_pt3f_t> n_keypoint(keypoint_nums);
 
@@ -468,10 +448,8 @@ ma_err_t YoloV8Pose::postProcessF32() {
         keypoint.box = {.x = bbox.x, .y = bbox.y, .w = bbox.w, .h = bbox.h, .score = bbox.score, .target = bbox.target};
         keypoint.pts = n_keypoint;
 
-        results_.push_back(std::move(keypoint));
+        results_.empalce_front(std::move(keypoint));
     }
-
-    results_.shrink_to_fit();
 
     return MA_OK;
 }

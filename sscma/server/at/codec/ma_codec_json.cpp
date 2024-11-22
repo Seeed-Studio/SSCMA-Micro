@@ -7,7 +7,7 @@ namespace ma {
 static const char* TAG = "ma::codec::JSON";
 
 EncoderJSON::EncoderJSON() : m_mutex(false) {
-   
+
     m_root = nullptr;
     m_data = nullptr;
 
@@ -312,7 +312,7 @@ ma_err_t EncoderJSON::write(const std::forward_list<ma_class_t>& value) {
     return MA_OK;
 }
 
-ma_err_t EncoderJSON::write(const std::vector<ma_keypoint3f_t>& value) {
+ma_err_t EncoderJSON::write(const std::forward_list<ma_keypoint3f_t>& value) {
     cJSON* array = cJSON_CreateArray();
     cJSON_ReplaceItemInObjectCaseSensitive(m_root, "keypoints", array);
     if (array == nullptr) {
@@ -347,7 +347,6 @@ ma_err_t EncoderJSON::write(const std::vector<ma_keypoint3f_t>& value) {
 }
 
 
-
 ma_err_t EncoderJSON::write(const in4_info_t& value) {
     if (cJSON_GetObjectItem(m_data, "in4_info") != nullptr) {
         return MA_EEXIST;
@@ -364,7 +363,7 @@ ma_err_t EncoderJSON::write(const in4_info_t& value) {
     cJSON_AddItemToObject(item, "gateway", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(m_data, "in4_info", item);
 
-    
+
     return MA_OK;
 }
 
@@ -383,7 +382,7 @@ ma_err_t EncoderJSON::write(const in6_info_t& value) {
 }
 
 ma_err_t EncoderJSON::write(const ma_wifi_config_t& value, int* stat) {
-    
+
     cJSON* item = m_data;
     if (stat) {
         item = cJSON_CreateObject();
@@ -391,12 +390,12 @@ ma_err_t EncoderJSON::write(const ma_wifi_config_t& value, int* stat) {
     if (item == nullptr) {
         return MA_FAILED;
     }
-    
+
     std::string str = value.ssid;
     if (str.size() < 1) {
         str = value.bssid;
     }
- 
+
     cJSON_AddItemToObject(item, "name", cJSON_CreateString(str.c_str()));
     cJSON_AddItemToObject(item, "security", cJSON_CreateNumber(value.security));
     cJSON_AddItemToObject(item, "password", cJSON_CreateString(value.password));
@@ -435,7 +434,7 @@ ma_err_t EncoderJSON::write(int algo_id, int cat, int input_from, int tscore, in
 }
 
 
-ma_err_t EncoderJSON::write(const  std::forward_list<ma_point_t>& value) {
+ma_err_t EncoderJSON::write(const std::forward_list<ma_point_t>& value) {
 
     if (cJSON_GetObjectItem(m_data, "points") != nullptr) {
         return MA_EEXIST;
@@ -628,7 +627,7 @@ ma_err_t EncoderJSON::write(const ma_mqtt_topic_config_t& value) {
     cJSON_AddItemToObject(item, "pub_qos", cJSON_CreateNumber((int)value.pub_qos));
     cJSON_AddItemToObject(item, "sub_topic", cJSON_CreateString(value.sub_topic));
     cJSON_AddItemToObject(item, "sub_qos", cJSON_CreateNumber((int)value.sub_qos));
-   
+
     cJSON_AddItemToObject(m_data, "config", item);
 
     return MA_OK;

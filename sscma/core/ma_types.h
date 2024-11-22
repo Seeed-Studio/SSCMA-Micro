@@ -268,6 +268,7 @@ typedef enum {
     MA_MODEL_TYPE_NVIDIA_DET  = 7u,
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
     MA_MODEL_TYPE_YOLO11      = 9u,
+    MA_MODEL_TYPE_YOLO11_POSE = 10u,
 } ma_model_type_t;
 
 typedef struct {
