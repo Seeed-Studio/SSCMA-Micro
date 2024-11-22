@@ -24,6 +24,8 @@ private:
 
 protected:
     ma_err_t postprocess() override;
+    ma_err_t generalPostProcess();
+    ma_err_t nmsPostProcess();
 
 public:
     YoloV5(Engine* engine);

@@ -23,6 +23,8 @@ using namespace hailort;
 
 class EngineHalio final : public Engine {
 public:
+    using ExternalHandler = function<ma_err_t(int, void*, size_t)>;
+
     EngineHalio();
     ~EngineHalio() override;
 
@@ -56,7 +58,7 @@ private:
     shared_ptr<ConfiguredInferModel::Bindings> _bindings;
 
     unordered_map<string, shared_ptr<ma_tensor_t>> _io_buffers;
-    unordered_map<string, function<ma_err_t(int, void*, size_t)>> _external_handlers;
+    unordered_map<string, shared_ptr<ExternalHandler>> _external_handlers;
 
     vector<shared_ptr<ma_tensor_t>> _input_tensors;
     vector<shared_ptr<ma_tensor_t>> _output_tensors;

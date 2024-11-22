@@ -121,10 +121,15 @@ ma_err_t EngineHalio::load(const string& model_path) {
 
     {
 
-        auto create_internal_bindings = [&](const string& name, const InferModel::InferStream& tsr, shared_ptr<ma_tensor_t>& tensor) {
+        auto create_internal_bindings =
+            [&](const string& name, const InferModel::InferStream& tsr, shared_ptr<ma_tensor_t>& tensor, hailort::ConfiguredInferModel::Bindings::InferStream* cis, bool is_input) -> ma_err_t {
             auto shape  = tsr.shape();
             auto size   = tsr.get_frame_size();
             auto format = tsr.format();
+
+            if (!cis) {
+                return MA_FAILED;
+            }
 
             void* buffer = aligned_alloc(4096, size);
             if (!buffer) {
@@ -145,27 +150,30 @@ ma_err_t EngineHalio::load(const string& model_path) {
                 return MA_ENOMEM;
             }
 
+            cis->set_buffer(MemoryView(buffer, size));
+
             tensor->data.data = buffer;
             tensor->size      = size;
 
-            tensor->shape.size = 3;
+            tensor->shape.size    = 4;
+            tensor->shape.dims[0] = 1;
             switch (format.order) {
                 case HAILO_FORMAT_ORDER_NCHW:
-                    tensor->shape.dims[0] = shape.features;
-                    tensor->shape.dims[1] = shape.height;
-                    tensor->shape.dims[2] = shape.width;
+                    tensor->shape.dims[1] = shape.features;
+                    tensor->shape.dims[2] = shape.height;
+                    tensor->shape.dims[3] = shape.width;
                     break;
                 case HAILO_FORMAT_ORDER_NHWC:
                 case HAILO_FORMAT_ORDER_FCR:
                 case HAILO_FORMAT_ORDER_HAILO_NMS:
-                    tensor->shape.dims[0] = shape.height;
-                    tensor->shape.dims[1] = shape.width;
-                    tensor->shape.dims[2] = shape.features;
+                    tensor->shape.dims[1] = shape.height;
+                    tensor->shape.dims[2] = shape.width;
+                    tensor->shape.dims[3] = shape.features;
                     break;
                 case HAILO_FORMAT_ORDER_NHCW:
-                    tensor->shape.dims[0] = shape.height;
-                    tensor->shape.dims[1] = shape.features;
-                    tensor->shape.dims[2] = shape.width;
+                    tensor->shape.dims[1] = shape.height;
+                    tensor->shape.dims[2] = shape.features;
+                    tensor->shape.dims[3] = shape.width;
                     break;
                 default:
                     break;
@@ -192,44 +200,76 @@ ma_err_t EngineHalio::load(const string& model_path) {
                     break;
                 case HAILO_FORMAT_TYPE_FLOAT32:
                     tensor->type = MA_TENSOR_TYPE_F32;
-                    if (format.order == HAILO_FORMAT_ORDER_HAILO_NMS) {
-                        tensor->type = MA_TENSOR_TYPE_NMS_BBOX_F32;
-
-                        function<ma_err_t(int, void*, size_t)> f = [this_ptr = this, name](int flag, void* data, size_t size) -> ma_err_t {
-                            if (!data || sizeof(float) != size) {
-                                return MA_EINVAL;
-                            }
-                            float threshold = *static_cast<float*>(data);
-                            auto tsr        = this_ptr->_model->output(name);
-                            if (!tsr) {
-                                return MA_FAILED;
-                            }
-                            switch (flag) {
-                                case 0:  // get score threshold
-                                    return MA_ENOTSUP;
-                                case 1:  // set score threshold
-                                    tsr->set_nms_score_threshold(threshold);
-                                    return MA_OK;
-                                case 2:  // get iou threshold
-                                    return MA_ENOTSUP;
-                                case 3:  // set iou threshold
-                                    tsr->set_nms_iou_threshold(threshold);
-                                    return MA_OK;
-                                default:
-                                    return MA_ENOTSUP;
-                            }
-                        };
-
-                        _external_handlers[name] = f;
-                        if (!_external_handlers[name]) {
-                            break;
-                        }
-                        tensor->external_handler = reinterpret_cast<void*>(&_external_handlers[name]);
-                    }
                     break;
                 default:
                     tensor->type = MA_TENSOR_TYPE_NONE;
                     break;
+            }
+
+            if (format.order == HAILO_FORMAT_ORDER_HAILO_NMS) {
+                switch (format.type) {
+                    case HAILO_FORMAT_TYPE_UINT16:
+                        tensor->type = MA_TENSOR_TYPE_NMS_BBOX_U16;
+                        break;
+                    case HAILO_FORMAT_TYPE_FLOAT32:
+                        tensor->type = MA_TENSOR_TYPE_NMS_BBOX_F32;
+                        break;
+                    default:
+                        tensor->type = MA_TENSOR_TYPE_NONE;
+                        break;
+                }
+
+                auto fp = make_shared<ExternalHandler>([this_ptr = this, name, is_input](int flag, void* data, size_t size) -> ma_err_t {
+                    if (!data) {
+                        return MA_EINVAL;
+                    }
+                    auto tsr = is_input ? this_ptr->_model->input(name) : this_ptr->_model->output(name);
+                    if (!tsr) {
+                        return MA_FAILED;
+                    }
+                    switch (flag) {
+                        case 0:  // get score threshold
+                            return MA_ENOTSUP;
+                        case 1:  // set score threshold
+                        {
+                            if (sizeof(float) != size) {
+                                return MA_EINVAL;
+                            }
+                            float threshold = *static_cast<float*>(data);
+                            tsr->set_nms_score_threshold(threshold);
+                            return MA_OK;
+                        }
+                        case 2:  // get iou threshold
+                            return MA_ENOTSUP;
+                        case 3:  // set iou threshold
+                        {
+                            if (sizeof(float) != size) {
+                                return MA_EINVAL;
+                            }
+                            float threshold = *static_cast<float*>(data);
+                            tsr->set_nms_iou_threshold(threshold);
+                            return MA_OK;
+                        }
+                        case 4:  // get nms shape
+                        {
+                            auto nms_shape = tsr->get_nms_shape();
+                            if (!nms_shape) {
+                                return MA_FAILED;
+                            }
+                            auto shape = nms_shape.value();
+                            if (sizeof(hailo_nms_shape_t) != size) {
+                                return MA_EINVAL;
+                            }
+                            *static_cast<hailo_nms_shape_t*>(data) = shape;
+                            return MA_OK;
+                        }
+                        default:
+                            return MA_ENOTSUP;
+                    }
+                });
+
+                _external_handlers[name] = fp;
+                tensor->external_handler = reinterpret_cast<void*>(fp.get());
             }
 
             _io_buffers[name] = tensor;
@@ -243,14 +283,15 @@ ma_err_t EngineHalio::load(const string& model_path) {
             if (_io_buffers.find(name) != _io_buffers.end()) {
                 continue;
             }
-
             shared_ptr<ma_tensor_t> tensor = nullptr;
-
-            auto ret = create_internal_bindings(name, tsr, tensor);
+            auto bindings_input            = _bindings->input(name);
+            if (!bindings_input) {
+                return MA_FAILED;
+            }
+            auto ret = create_internal_bindings(name, tsr, tensor, &bindings_input.value(), true);
             if (ret != MA_OK) {
                 return ret;
             }
-
             _input_tensors.push_back(tensor);
         }
 
@@ -260,18 +301,18 @@ ma_err_t EngineHalio::load(const string& model_path) {
             if (_io_buffers.find(name) != _io_buffers.end()) {
                 continue;
             }
-
             shared_ptr<ma_tensor_t> tensor = nullptr;
-
-            auto ret = create_internal_bindings(name, tsr, tensor);
+            auto bindings_output           = _bindings->output(name);
+            if (!bindings_output) {
+                return MA_FAILED;
+            }
+            auto ret = create_internal_bindings(name, tsr, tensor, &bindings_output.value(), false);
             if (ret != MA_OK) {
                 return ret;
             }
-
             _output_tensors.push_back(tensor);
         }
     }
-
 
     return MA_OK;
 }
@@ -348,7 +389,7 @@ ma_quant_param_t EngineHalio::getOutputQuantParam(int32_t index) {
 
 
 ma_err_t EngineHalio::setInput(int32_t index, const ma_tensor_t& tensor) {
-    return MA_ENOTSUP;  
+    return MA_ENOTSUP;
 }
 
 }  // namespace ma::engine
