@@ -59,6 +59,10 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
         if (Yolo11Pose::isValid(engine)) {
             return new Yolo11Pose(engine);
         }
+    case MA_MODEL_TYPE_YOLO11_SEG:
+        if (Yolo11Seg::isValid(engine)) {
+            return new Yolo11Seg(engine);
+        }
     }
 
     return nullptr;

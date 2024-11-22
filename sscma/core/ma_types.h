@@ -212,6 +212,17 @@ struct ma_keypoint4f_t {
     ma_bbox_t box;
     std::vector<ma_pt4f_t> pts;
 };
+
+struct ma_segm2f_t {
+    ma_bbox_t box;
+    struct {
+        uint16_t width;
+        uint16_t height;
+        std::vector<uint8_t> data;
+    } mask;
+};
+
+
 #endif
 
 typedef enum {
@@ -271,6 +282,7 @@ typedef enum {
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
     MA_MODEL_TYPE_YOLO11      = 9u,
     MA_MODEL_TYPE_YOLO11_POSE = 10u,
+    MA_MODEL_TYPE_YOLO11_SEG = 11u,
 } ma_model_type_t;
 
 typedef struct {

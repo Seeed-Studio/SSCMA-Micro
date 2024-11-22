@@ -14,11 +14,12 @@
 #include "ma_model_nvidia_det.h"
 #include "ma_model_pfld.h"
 #include "ma_model_yolo11.h"
+#include "ma_model_yolo11_pose.h"
+#include "ma_model_yolo11_seg.h"
 #include "ma_model_yolo_world.h"
 #include "ma_model_yolov5.h"
 #include "ma_model_yolov8.h"
 #include "ma_model_yolov8_pose.h"
-#include "ma_model_yolo11_pose.h"
 
 namespace ma {
 
