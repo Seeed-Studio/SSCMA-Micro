@@ -323,16 +323,11 @@ ma_err_t EncoderJSON::write(const std::forward_list<ma_keypoint3f_t>& value) {
         if (item == nullptr) {
             return MA_FAILED;
         }
-        // pts
-        cJSON* pts = cJSON_CreateArray();
-        for (const auto& pt : it->pts) {
-            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.x));
-            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.y));
-            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.z));
-        }
-        cJSON_AddItemToArray(item, pts);
         // box
         cJSON* box = cJSON_CreateArray();
+        if (box == nullptr) {
+            return MA_FAILED;
+        }
         cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.x));
         cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.y));
         cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.w));
@@ -341,6 +336,17 @@ ma_err_t EncoderJSON::write(const std::forward_list<ma_keypoint3f_t>& value) {
         cJSON_AddItemToArray(box, cJSON_CreateNumber(it->box.target));
         cJSON_AddItemToArray(item, box);
         cJSON_AddItemToArray(array, item);
+        // pts
+        cJSON* pts = cJSON_CreateArray();
+        if (pts == nullptr) {
+            return MA_FAILED;
+        }
+        for (const auto& pt : it->pts) {
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.x));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.y));
+            cJSON_AddItemToArray(pts, cJSON_CreateNumber(pt.z));
+        }
+        cJSON_AddItemToArray(item, pts);
     }
 
     return MA_OK;

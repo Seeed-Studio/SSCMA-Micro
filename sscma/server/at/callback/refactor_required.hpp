@@ -59,6 +59,7 @@ ma_err_t setAlgorithmInput(Model* algorithm, ma_img_t& img) {
             return static_cast<Detector*>(algorithm)->run(&img);
 
         case MA_MODEL_TYPE_YOLOV8_POSE:
+        case MA_MODEL_TYPE_YOLO11_POSE:
             return static_cast<PoseDetector*>(algorithm)->run(&img);
 
         default:
@@ -76,8 +77,14 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width,
 
     switch (algorithm->getType()) {
         case MA_MODEL_TYPE_PFLD: {
-            const auto& results = static_cast<PointDetector*>(algorithm)->getResults();
-            // encoder->write(results);
+            auto results = static_cast<PointDetector*>(algorithm)->getResults();
+            for (auto& result : results) {
+                result.x = static_cast<int>(std::round(result.x * width));
+                result.y = static_cast<int>(std::round(result.y * height));
+                result.score = static_cast<int>(std::round(result.score * 100));
+            }
+            ret = encoder->write(results);
+
             break;
         }
 
@@ -85,7 +92,7 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width,
 
             auto results = static_cast<Classifier*>(algorithm)->getResults();
             for (auto& result : results) {
-                result.score *= 100;
+                result.score = static_cast<int>(std::round(result.score * 100));
             }
             ret = encoder->write(results);
 
@@ -95,36 +102,38 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width,
         case MA_MODEL_TYPE_FOMO:
         case MA_MODEL_TYPE_YOLOV5:
         case MA_MODEL_TYPE_YOLOV8:
+        case MA_MODEL_TYPE_YOLO11:
         case MA_MODEL_TYPE_NVIDIA_DET:
         case MA_MODEL_TYPE_YOLO_WORLD: {
 
             auto results = static_cast<Detector*>(algorithm)->getResults();
             MA_LOGD(MA_TAG, "Results size: %d", std::distance(results.begin(), results.end()));
             for (auto& result : results) {
-                result.x *= width;
-                result.y *= height;
-                result.w *= width;
-                result.h *= height;
-                result.score *= 100;
+                result.x = static_cast<int>(std::round(result.x * width));
+                result.y = static_cast<int>(std::round(result.y * height));
+                result.w = static_cast<int>(std::round(result.w * width));
+                result.h = static_cast<int>(std::round(result.h * height));
+                result.score = static_cast<int>(std::round(result.score * 100));
             }
             ret = encoder->write(results);
 
             break;
         }
 
-        case MA_MODEL_TYPE_YOLOV8_POSE: {
+        case MA_MODEL_TYPE_YOLOV8_POSE:
+        case MA_MODEL_TYPE_YOLO11_POSE: {
 
             auto results = static_cast<PoseDetector*>(algorithm)->getResults();
             for (auto& result : results) {
                 auto& box = result.box;
-                box.x *= width;
-                box.y *= height;
-                box.w *= width;
-                box.h *= height;
-                box.score *= 100;
+                box.x = static_cast<int>(std::round(box.x * width));
+                box.y = static_cast<int>(std::round(box.y * height));
+                box.w = static_cast<int>(std::round(box.w * width));
+                box.h = static_cast<int>(std::round(box.h * height));
+                box.score = static_cast<int>(std::round(box.score * 100));
                 for (auto& pt : result.pts) {
-                    pt.x *= width;
-                    pt.y *= height;
+                    pt.x = static_cast<int>(std::round(pt.x * width));
+                    pt.y = static_cast<int>(std::round(pt.y * height));
                 }
             }
             ret = encoder->write(results);
@@ -246,6 +255,7 @@ struct TriggerRule {
             case MA_MODEL_TYPE_FOMO:
             case MA_MODEL_TYPE_YOLOV5:
             case MA_MODEL_TYPE_YOLOV8:
+            case MA_MODEL_TYPE_YOLO11:
             case MA_MODEL_TYPE_NVIDIA_DET:
             case MA_MODEL_TYPE_YOLO_WORLD: {
                 auto results = static_cast<Detector*>(algorithm)->getResults();
@@ -259,7 +269,8 @@ struct TriggerRule {
                 break;
             }
 
-            case MA_MODEL_TYPE_YOLOV8_POSE: {
+            case MA_MODEL_TYPE_YOLOV8_POSE:
+            case MA_MODEL_TYPE_YOLO11_POSE: {
                 auto results = static_cast<PoseDetector*>(algorithm)->getResults();
                 for (auto& result : results) {
                     if (result.box.target == class_id && comp(result.box.score, threshold)) {
