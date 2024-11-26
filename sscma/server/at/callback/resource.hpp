@@ -36,6 +36,9 @@ struct StaticResource final {
         MA_LOGD(MA_TAG, "Initializing executor");
         static Executor executor_default;
         executor = &executor_default;
+
+        MA_STORAGE_GET_POD(device->getStorage(), "ma#score_threshold", shared_threshold_score, shared_threshold_score);
+        MA_STORAGE_GET_POD(device->getStorage(), "ma#nms_threshold", shared_threshold_nms, shared_threshold_nms);
     }
 
    public:
