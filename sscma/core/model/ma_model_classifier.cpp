@@ -134,8 +134,9 @@ const void* Classifier::getInput() {
 }
 
 ma_err_t Classifier::run(const ma_img_t* img) {
-    // MA_ASSERT(img != nullptr);
+
     input_img_ = img;
+
     return underlyingRun();
 }
 

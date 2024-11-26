@@ -6,11 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "ma_model_segmenter.h"
+#include "ma_model_segmentor.h"
 
 namespace ma::model {
 
-class Yolo11Seg : public Segmenter {
+class Yolo11Seg : public Segmentor {
 private:
     ma_tensor_t bboxes_;
     ma_tensor_t protos_;

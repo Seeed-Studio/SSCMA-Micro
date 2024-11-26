@@ -1,5 +1,5 @@
-#ifndef _MA_MODEL_SEGMENTER_H_
-#define _MA_MODEL_SEGMENTER_H_
+#ifndef _MA_MODEL_SEGMENTOR_H_
+#define _MA_MODEL_SEGMENTOR_H_
 
 #include <vector>
 
@@ -7,7 +7,7 @@
 
 namespace ma::model {
 
-class Segmenter : public Model {
+class Segmentor : public Model {
 protected:
     ma_tensor_t input_;
     ma_img_t img_;
@@ -24,8 +24,8 @@ protected:
     ma_err_t preprocess() override;
 
 public:
-    Segmenter(Engine* engine, const char* name, ma_model_type_t type);
-    virtual ~Segmenter();
+    Segmentor(Engine* engine, const char* name, ma_model_type_t type);
+    virtual ~Segmentor();
 
     const std::forward_list<ma_segm2f_t>& getResults() const;
 
@@ -40,4 +40,4 @@ public:
 
 }  // namespace ma::model
 
-#endif  // _MA_MODEL_SEGMENTER_H_
+#endif  // _MA_MODEL_SEGMENTOR_H_

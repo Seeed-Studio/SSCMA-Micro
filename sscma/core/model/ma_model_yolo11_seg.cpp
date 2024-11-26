@@ -15,7 +15,7 @@ constexpr char TAG[] = "ma::model::yolo11_seg";
 
 namespace ma::model {
 
-Yolo11Seg::Yolo11Seg(Engine* p_engine_) : Segmenter(p_engine_, "yolo11_seg", MA_MODEL_TYPE_YOLO11_SEG) {
+Yolo11Seg::Yolo11Seg(Engine* p_engine_) : Segmentor(p_engine_, "yolo11_seg", MA_MODEL_TYPE_YOLO11_SEG) {
     MA_ASSERT(p_engine_ != nullptr);
 
     bboxes_ = p_engine_->getOutput(0);

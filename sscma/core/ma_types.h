@@ -266,7 +266,7 @@ typedef enum {
     MA_OUTPUT_TYPE_POINT        = 0x0200,
     MA_OUTPUT_TYPE_BBOX         = 0x0300,
     MA_OUTPUT_TYPE_KEYPOINT     = 0x0400,
-    MA_OUTPUT_TYPE_SEGMENTATION = 0x0500,
+    MA_OUTPUT_TYPE_SEGMENT = 0x0500,
 } ma_output_type_t;
 
 

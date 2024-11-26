@@ -1,12 +1,12 @@
-#include "ma_model_segmenter.h"
+#include "ma_model_segmentor.h"
 
 #include "core/cv/ma_cv.h"
 
 namespace ma::model {
 
-constexpr char TAG[] = "ma::model::segmenter";
+constexpr char TAG[] = "ma::model::Segmentor";
 
-Segmenter::Segmenter(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_SEGMENTATION | type) {
+Segmentor::Segmentor(Engine* p_engine, const char* name, ma_model_type_t type) : Model(p_engine, name, MA_INPUT_TYPE_IMAGE | MA_OUTPUT_TYPE_SEGMENT | type) {
     input_           = p_engine_->getInput(0);
     threshold_nms_   = 0.45;
     threshold_score_ = 0.25;
@@ -29,9 +29,13 @@ Segmenter::Segmenter(Engine* p_engine, const char* name, ma_model_type_t type) :
     img_.data = input_.data.u8;
 }
 
-Segmenter::~Segmenter() {}
-ma_err_t Segmenter::preprocess() {
+Segmentor::~Segmentor() {}
+ma_err_t Segmentor::preprocess() {
     ma_err_t ret = MA_OK;
+
+    if (input_img_ == nullptr) {
+        return MA_OK;
+    }
 
     ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
@@ -46,23 +50,22 @@ ma_err_t Segmenter::preprocess() {
     return ret;
 }
 
-const void* Segmenter::getInput() {
+const void* Segmentor::getInput() {
     return static_cast<const void*>(&img_);
 }
 
-const std::forward_list<ma_segm2f_t>& Segmenter::getResults() const {
+const std::forward_list<ma_segm2f_t>& Segmentor::getResults() const {
     return results_;
 }
 
-ma_err_t Segmenter::run(const ma_img_t* img) {
-    MA_ASSERT(img != nullptr);
+ma_err_t Segmentor::run(const ma_img_t* img) {
 
     input_img_ = img;
 
     return underlyingRun();
 }
 
-ma_err_t Segmenter::setConfig(ma_model_cfg_opt_t opt, ...) {
+ma_err_t Segmentor::setConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
     va_list args;
     va_start(args, opt);
@@ -83,7 +86,7 @@ ma_err_t Segmenter::setConfig(ma_model_cfg_opt_t opt, ...) {
     return ret;
 }
 
-ma_err_t Segmenter::getConfig(ma_model_cfg_opt_t opt, ...) {
+ma_err_t Segmentor::getConfig(ma_model_cfg_opt_t opt, ...) {
     ma_err_t ret = MA_OK;
     va_list args;
     void* p_arg = nullptr;

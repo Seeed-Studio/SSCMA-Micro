@@ -42,6 +42,10 @@ const void* PoseDetector::getInput() {
 ma_err_t PoseDetector::preprocess() {
     ma_err_t ret = MA_OK;
 
+    if (input_img_ == nullptr) {
+        return MA_OK;
+    }
+
     ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
         return ret;
@@ -56,7 +60,6 @@ ma_err_t PoseDetector::preprocess() {
 }
 
 ma_err_t PoseDetector::run(const ma_img_t* img) {
-    MA_ASSERT(img != nullptr);
 
     input_img_ = img;
 
