@@ -1,8 +1,6 @@
 #ifndef _MA_MODEL_PFLD_
 #define _MA_MODEL_PFLD_
 
-#include <vector>
-
 #include "ma_model_point_detector.h"
 
 namespace ma::model {

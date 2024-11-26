@@ -1,7 +1,7 @@
 #ifndef _MA_MODEL_POINT_DETECTOR_H_
 #define _MA_MODEL_POINT_DETECTOR_H_
 
-#include <vector>
+#include <forward_list>
 
 #include "ma_model_base.h"
 
@@ -17,7 +17,7 @@ protected:
 
     bool is_nhwc_;
 
-    std::vector<ma_point_t> results_;
+    std::forward_list<ma_point_t> results_;
 
 protected:
     ma_err_t preprocess() override;
@@ -26,7 +26,7 @@ public:
     PointDetector(Engine* engine, const char* name, ma_model_type_t type);
     virtual ~PointDetector();
 
-    const std::vector<ma_point_t>& getResults() const;
+    const std::forward_list<ma_point_t>& getResults() const;
 
     ma_err_t run(const ma_img_t* img);
 

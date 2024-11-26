@@ -30,7 +30,7 @@ PointDetector::PointDetector(Engine* p_engine, const char* name, ma_model_type_t
 
 PointDetector::~PointDetector() {}
 
-const std::vector<ma_point_t>& PointDetector::getResults() const {
+const std::forward_list<ma_point_t>& PointDetector::getResults() const {
     return results_;
 }
 

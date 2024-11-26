@@ -1,7 +1,7 @@
 #include "ma_model_pfld.h"
 
 #include <algorithm>
-#include <vector>
+#include <forward_list>
 
 namespace ma::model {
 
@@ -96,10 +96,8 @@ ma_err_t PFLD::postProcessI8() {
         point.score  = 1.0;
         point.target = i / 2;
 
-        results_.push_back(std::move(point));
+        results_.push_front(std::move(point));
     }
-
-    results_.shrink_to_fit();
 
     return MA_OK;
 }
