@@ -63,7 +63,7 @@ static bool generalValid(Engine* engine) {
 }
 
 static bool nmsValid(Engine* engine) {
-#if MA_USE_ENGINE_HALIO
+#if MA_USE_ENGINE_HAILO
     if (engine->getInputSize() != 1 || engine->getOutputSize() != 1)
         return false;
 
@@ -208,7 +208,7 @@ ma_err_t YoloV5::generalPostProcess() {
 }
 
 ma_err_t YoloV5::nmsPostProcess() {
-#if MA_USE_ENGINE_HALIO
+#if MA_USE_ENGINE_HAILO
 
     auto& output = output_;
 
@@ -222,7 +222,7 @@ ma_err_t YoloV5::nmsPostProcess() {
 
     hailo_nms_shape_t nms_shape;
     if (output.external_handler) {
-        auto rc = (*reinterpret_cast<ma::engine::EngineHalio::ExternalHandler*>(output.external_handler))(4, &nms_shape, sizeof(hailo_nms_shape_t));
+        auto rc = (*reinterpret_cast<ma::engine::EngineHailo::ExternalHandler*>(output.external_handler))(4, &nms_shape, sizeof(hailo_nms_shape_t));
         if (rc == MA_OK) {
             w = nms_shape.number_of_classes;
             h = nms_shape.max_bboxes_per_class;
@@ -332,10 +332,10 @@ ma_err_t YoloV5::postprocess() {
     switch (output_.type) {
         case MA_TENSOR_TYPE_NMS_BBOX_U16:
         case MA_TENSOR_TYPE_NMS_BBOX_F32: {
-#if MA_USE_ENGINE_HALIO
+#if MA_USE_ENGINE_HAILO
             // TODO: can be optimized by whihout calling this handler for each frame
-            if (output.external_handler) {
-                auto ph   = reinterpret_cast<ma::engine::EngineHalio::ExternalHandler*>(output.external_handler);
+            if (output_.external_handler) {
+                auto ph   = reinterpret_cast<ma::engine::EngineHailo::ExternalHandler*>(output_.external_handler);
                 float thr = threshold_score_;
                 auto rc   = (*ph)(1, &thr, sizeof(float));
                 if (rc == MA_OK) {
