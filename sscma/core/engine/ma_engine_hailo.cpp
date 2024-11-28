@@ -396,6 +396,16 @@ ma_quant_param_t EngineHailo::getOutputQuantParam(int32_t index) {
 
 
 ma_err_t EngineHailo::setInput(int32_t index, const ma_tensor_t& tensor) {
+    if (index < 0 || index >= static_cast<int32_t>(_input_tensors.size())) {
+        return MA_EINVAL;
+    }
+
+    if (tensor.size != _input_tensors[index]->size) {
+        return MA_EINVAL;
+    }
+
+    std::memcpy(_input_tensors[index]->data.data, tensor.data.data, tensor.size);
+
     return MA_ENOTSUP;
 }
 
