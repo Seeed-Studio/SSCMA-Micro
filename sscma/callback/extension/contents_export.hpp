@@ -50,6 +50,11 @@ class ContentsExport {
         return true;
     }
 
+    bool cache_result(std::string&& result_str) {
+        _result = std::move(result_str);
+        return true;
+    }
+
     bool commit(std::string name, std::function<void(Status)> callback) {
         if (_data == nullptr || _bytes <= 0) [[unlikely]] {
             return false;
@@ -60,22 +65,41 @@ class ContentsExport {
             return false;
         }
 
-        std::string file    = _path + name;
-        auto        handler = _extfs->open(file.c_str(), OpenMode::WRITE);
-        if (!handler.status.success) {
-            callback(handler.status);
-            return false;
+        std::string file_prefix = _path + name;
+        {
+            std::string file    = file_prefix + ".jpeg";
+            auto        handler = _extfs->open(file.c_str(), OpenMode::WRITE);
+            if (!handler.status.success) {
+                callback(handler.status);
+                return false;
+            }
+
+            size_t written = 0;
+            auto   status  = handler.file->write(_data, _bytes, &written);
+            if (!status.success) {
+                callback(status);
+                return false;
+            }
+            _bytes = 0;
+
+            handler.file->close();
         }
 
-        size_t written = 0;
-        auto   status  = handler.file->write(_data, _bytes, &written);
-        if (!status.success) {
-            callback(status);
-            return false;
-        }
-        _bytes = 0;
+        if (_result.size()) {
+            std::string file    = file_prefix + ".json";
+            auto        handler = _extfs->open(file.c_str(), OpenMode::WRITE);
+            if (!handler.status.success) {
+                return false;
+            }
 
-        handler.file->close();
+            size_t written = 0;
+            auto   status  = handler.file->write(reinterpret_cast<const uint8_t*>(_result.c_str()), _result.size(), &written);
+            if (!status.success) {
+                return false;
+            }
+
+            handler.file->close();
+        }
 
         return true;
     }
@@ -171,6 +195,8 @@ class ContentsExport {
 
     size_t   _size;
     uint8_t* _data;
+
+    std::string _result;
 };
 
 }  // namespace sscma::extension

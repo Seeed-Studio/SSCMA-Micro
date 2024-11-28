@@ -63,7 +63,7 @@ CameraWE2::CameraWE2() : Camera(0b00001111) {
         }
     }
 }
-#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2)
+#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2) || defined(CONFIG_EL_BOARD_SENSECAP_A1102)
 CameraWE2::CameraWE2() : Camera(0b00000111) {}
 #else
     #error "Camera moudle does not find supported board."
@@ -134,7 +134,7 @@ el_err_code_t CameraWE2::init(SensorOptIdType opt_id) {
     default:
         ret = EL_EINVAL;
     }
-#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2)
+#elif defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2) || defined(CONFIG_EL_BOARD_SENSECAP_A1102)
     switch (opt_id & 0x0FFF) {
     case 0:
         ret                   = _drv_cam_init(240, 240);

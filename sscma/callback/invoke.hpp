@@ -423,8 +423,20 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             encoded_frame_str = std::move(img_2_jpeg_json_str(&frame, &processed_frame));
 #endif
 #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
-            if (_contents_export && _exporter) [[likely]]
+            if (_contents_export && _exporter) [[likely]] {
                 _exporter->cache(processed_frame.data, processed_frame.size);
+                _exporter->cache_result(concat_strings("\r{\"type\": 1, \"name\": \"",
+                                                       _cmd,
+                                                       "\", \"code\": ",
+                                                       std::to_string(_ret),
+                                                       ", \"data\": {\"count\": ",
+                                                       std::to_string(_times),
+                                                       ", ",
+                                                       algorithm_results_2_json_str(algorithm),
+                                                       ", ",
+                                                       img_res_2_json_str(&frame),
+                                                       "}}\n"));
+            }
 #endif
         }
 
@@ -533,7 +545,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
                     kv.second        = [exporter = _exporter, cmd = std::move(cmd)](void* caller) -> int {
                         bool        success   = false;
                         uint32_t    time      = el_get_time_ms();
-                        std::string file_name = concat_strings(std::to_string(time), ".jpeg");
+                        std::string file_name = std::to_string(time);
 
                         if (!exporter) [[unlikely]]
                             return 0;

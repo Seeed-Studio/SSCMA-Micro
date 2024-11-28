@@ -39,6 +39,8 @@
         #include "boards/grove_vision_ai_v2/board.h"
     #elif defined(CONFIG_EL_BOARD_SENSECAP_WATCHER)
         #include "boards/sensecap_watcher/board.h"
+    #elif defined(CONFIG_EL_BOARD_SENSECAP_A1102)
+        #include "boards/sensecap_a1102/board.h"
     #else
         #error "Please specify porting board"
     #endif
