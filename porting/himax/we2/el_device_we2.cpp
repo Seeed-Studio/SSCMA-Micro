@@ -143,7 +143,7 @@ void DeviceWE2::init() {
     wdg_cfg.period = WATCH_DOG_TIMEOUT_TH;
     wdg_cfg.ctrl   = WATCHDOG_CTRL_CPU;
     wdg_cfg.state  = WATCHDOG_STATE_DC;
-    wdg_cfg.type   = WATCHDOG_RESET;  //wewweWATCHDOG_INT;
+    wdg_cfg.type   = WATCHDOG_RESET;
     hx_drv_watchdog_start(WATCHDOG_ID_0, &wdg_cfg, porting::WDG_Reset_ISR_CB);
     hx_drv_uart_init(USE_DW_UART_0, HX_UART0_BASE);
 
@@ -180,6 +180,12 @@ void DeviceWE2::init() {
     static WireWE2 wire{0x62};
     wire.type = EL_TRANSPORT_I2C;
     this->_transports.emplace_front(&wire);
+#endif
+
+#ifdef CONFIG_EL_BOARD_SENSECAP_A1102
+    static Serial2WE2 serial2{};
+    serial2.type = EL_TRANSPORT_UART;
+    this->_transports.emplace_front(&serial2);
 #endif
 }
 

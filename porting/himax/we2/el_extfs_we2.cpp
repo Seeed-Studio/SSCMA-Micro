@@ -242,7 +242,7 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
 }
 
 Extfs* Extfs::get_ptr() {
-#ifdef CONFIG_EL_BOARD_GROVE_VISION_AI_V2
+#if defined(CONFIG_EL_BOARD_GROVE_VISION_AI_V2) || defined(CONFIG_EL_BOARD_SENSECAP_A1102)
     static ExtfsWE2 extfs{};
     return &extfs;
 #else
