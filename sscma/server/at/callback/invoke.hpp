@@ -120,11 +120,11 @@ Err:
         auto it            = std::find_if(models.begin(), models.end(), [&](const ma_model_t& m) { return m.id == static_resource->current_model_id; });
         if (it == models.end()) {
             _ret = MA_ENOENT;
-        }
-        if (it->addr == nullptr) {
+        } else if (it->addr == nullptr) {
             _ret = MA_ENOENT;
+        } else {
+            _model = *it;
         }
-        _model = *it;
         return isEverythingOk();
     }
 
