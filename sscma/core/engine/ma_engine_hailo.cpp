@@ -2,6 +2,7 @@
 
 #if MA_USE_ENGINE_HAILO
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
@@ -20,11 +21,36 @@ ma_err_t EngineHailo::init() {
         return MA_OK;
     }
 
-    auto vdevice = VDevice::create();
+    // TODO: optimize
+    static auto get_vdevice_f = []() -> shared_ptr<VDevice> {
+        static unique_ptr<VDevice> vdevice = nullptr;
+        if (!vdevice) {
+            auto dev = VDevice::create();
+            if (!dev) {
+                return nullptr;
+            }
+            vdevice = move(dev.release());
+        }
+        if (!vdevice) {
+            return nullptr;
+        }
+        auto shared = vdevice.get();
+        auto mgr = &vdevice;
+        static atomic<size_t> ref_count = 0;
+        ref_count.fetch_add(1);
+        return shared_ptr<VDevice>(shared, [mgr](VDevice*) {
+            if (mgr) {
+                if (ref_count.fetch_sub(1) == 1) {
+                    mgr->reset();
+                }
+            }
+        });
+    };
+    _vdevice = get_vdevice_f();
     if (!vdevice) {
         return MA_FAILED;
     }
-    _vdevice = move(vdevice.value());
+    _vdevice = unique_ptr<VDevice>(vdevice.value().get());
 
     return MA_OK;
 }

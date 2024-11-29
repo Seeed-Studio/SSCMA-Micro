@@ -52,7 +52,7 @@ public:
     ma_err_t setInput(int32_t index, const ma_tensor_t& tensor) override;
 
 private:
-    unique_ptr<VDevice> _vdevice;
+    shared_ptr<VDevice> _vdevice;
     shared_ptr<InferModel> _model;
     shared_ptr<ConfiguredInferModel> _configured_model;
     shared_ptr<ConfiguredInferModel::Bindings> _bindings;

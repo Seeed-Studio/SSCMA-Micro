@@ -21,8 +21,8 @@ constexpr inline float fastLn(float x) {
         return -std::numeric_limits<float>::infinity();
     }
 
-    auto       bx{*reinterpret_cast<unsigned int*>(&x)};
-    auto       ex{bx >> 23};
+    auto bx{*reinterpret_cast<unsigned int*>(&x)};
+    auto ex{bx >> 23};
     const auto t{static_cast<signed int>(ex) - static_cast<signed int>(127)};
 
     bx = 1065353216 | (bx & 8388607);
@@ -41,7 +41,8 @@ constexpr inline float fastExp(float x) {
     const float c{8388608.f};
     const float d{2139095040.f};
 
-    if ((x < c) | (x > d)) x = (x < c) ? 0.0f : d;
+    if ((x < c) | (x > d))
+        x = (x < c) ? 0.0f : d;
 
     uint32_t n = static_cast<uint32_t>(x);
     x          = *reinterpret_cast<float*>(&n);
@@ -49,9 +50,13 @@ constexpr inline float fastExp(float x) {
     return x;
 }
 
-constexpr inline float sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
+constexpr inline float sigmoid(float x) {
+    return 1.0f / (1.0f + std::exp(-x));
+}
 
-constexpr inline float fastSigmoid(float x) { return 1.0f / (1.0f + fastExp(-x)); }
+constexpr inline float fastSigmoid(float x) {
+    return 1.0f / (1.0f + fastExp(-x));
+}
 
 constexpr inline float inverseSigmoid(float x) {
     float denominator = 1.0f - x;
