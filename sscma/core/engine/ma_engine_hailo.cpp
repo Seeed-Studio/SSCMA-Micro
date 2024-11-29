@@ -47,10 +47,9 @@ ma_err_t EngineHailo::init() {
         });
     };
     _vdevice = get_vdevice_f();
-    if (!vdevice) {
+    if (!_vdevice) {
         return MA_FAILED;
     }
-    _vdevice = unique_ptr<VDevice>(vdevice.value().get());
 
     return MA_OK;
 }

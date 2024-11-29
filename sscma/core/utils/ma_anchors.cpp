@@ -48,7 +48,7 @@ std::vector<std::vector<ma_pt2f_t>> generateAnchorMatrix(const std::vector<ma_an
  * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
  **/
 
-std::vector<xt::xarray<double>> generateAnchorMatrix(std::vector<int>& strides, std::vector<int>& network_dims, std::size_t boxes_num, int strided_width, int strided_height) {
+std::vector<xt::xarray<double>> generateAnchorMatrix(std::vector<int>& strides, std::vector<int> network_dims, std::size_t boxes_num, int strided_width, int strided_height) {
     std::vector<xt::xarray<double>> centers(boxes_num);
 
     for (uint i = 0; i < boxes_num; ++i) {

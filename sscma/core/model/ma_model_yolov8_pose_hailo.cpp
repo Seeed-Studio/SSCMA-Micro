@@ -10,6 +10,13 @@
 #include <utility>
 #include <vector>
 
+#include <xtensor/xarray.hpp>
+#include <xtensor/xview.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xsort.hpp>
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xtensor.hpp>
+
 #include "../math/ma_math.h"
 #include "../utils/ma_anchors.h"
 #include "../utils/ma_nms.h"
@@ -25,6 +32,8 @@ static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
 
     return is_nhwc ? std::make_pair(shape.dims[1], shape.dims[2]) : std::make_pair(shape.dims[2], shape.dims[3]);
 }
+
+std::vector<int> YoloV8PoseHailo::strides_ = {8, 16, 32};
 
 /**
  * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
@@ -131,7 +140,7 @@ bool YoloV8PoseHailo::isValid(Engine* engine) {
     const auto inputs_count  = engine->getInputSize();
     const auto outputs_count = engine->getOutputSize();
 
-    if (inputs_count != 1 || outputs_count != num_outputs_) {
+    if (inputs_count != 1 || outputs_count != 9) {
         return false;
     }
 
@@ -220,7 +229,7 @@ const char* YoloV8PoseHailo::getTag() {
     return "ma::model::yolov8_pose";
 }
 
-template <KptsType>
+template <typename KptsType>
 static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& raw_boxes_outputs,
                                               xt::xarray<float>& scores,
                                               const std::vector<ma_tensor_t>& raw_keypoints,
@@ -267,7 +276,7 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
 
         int num_proposals_keypoints     = output_keypoints.shape(0) * output_keypoints.shape(1);
         auto output_keypoints_quantized = xt::view(output_keypoints, xt::all(), xt::all(), xt::all());
-        auto quantized_keypoints        = xt::reshape_view(output_keypoints_quantized, {num_proposals_keypoints, output_keypoints_shape[2] / 3, 3});
+        auto quantized_keypoints        = xt::reshape_view(output_keypoints_quantized, {num_proposals_keypoints, int(output_keypoints_shape[2] / 3), 3});
 
         auto keypoints_shape = {quantized_keypoints.shape(1), quantized_keypoints.shape(2)};
 
@@ -281,7 +290,7 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
             xt::xarray<float> box(shape);
             xt::xarray<float> kpts_corrdinates_and_scores(keypoints_shape);
 
-            ma::math::dequantizeValues<uint8_t>(box, j, quantized_boxes, box.shape(0), box.shape(1), qp_scale, qp_zp);
+            ma::math::dequantizeValues2D<uint8_t>(box, j, quantized_boxes, box.shape(0), box.shape(1), qp_scale, qp_zp);
             ma::math::softmax2D(box.data(), box.shape(0), box.shape(1));
 
             auto box_distance                   = box * regression_distance;
@@ -309,7 +318,7 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
             kp.box.target = class_index;
 
             // Decode keypoints
-            ma::math::dequantizeValues<KptsType>(
+            ma::math::dequantizeValues2D<KptsType>(
                 kpts_corrdinates_and_scores, j, quantized_keypoints, kpts_corrdinates_and_scores.shape(0), kpts_corrdinates_and_scores.shape(1), qp_scale_kpts, qp_zp_kpts);
 
             auto kpts_corrdinates = xt::view(kpts_corrdinates_and_scores, xt::all(), xt::range(0, 2));
@@ -360,8 +369,7 @@ ma_err_t YoloV8PoseHailo::postprocess() {
             return MA_ENOTSUP;
     }
 
-    ma::utils::nms(results_, threshold_iou_, threshold_score_, false, true);
-
+    ma::utils::nms(results_, threshold_nms_, true);
 
     return MA_ENOTSUP;
 }

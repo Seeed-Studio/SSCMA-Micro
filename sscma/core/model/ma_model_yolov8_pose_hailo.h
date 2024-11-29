@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <xtensor/xtensor.hpp>
+#include <xtensor/xarray.hpp>
 
 namespace ma::model {
 
@@ -27,10 +28,10 @@ struct Triple {
 class YoloV8PoseHailo : public PoseDetector {
 private:
     std::vector<xt::xarray<double>> centers_;
-    static std::vector<int> strides_{8, 16, 32};
+    static std::vector<int> strides_;
     std::vector<int> network_dims_;
     std::vector<ma_tensor_t> outputs_;
-    std::vector<_internal::Triple> boxes_scores_keypoints_;
+    _internal::Triple boxes_scores_keypoints_;
     int32_t route_ = 0;
 
 protected:
