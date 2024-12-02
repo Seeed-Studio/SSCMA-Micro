@@ -43,7 +43,6 @@ static decltype(auto) getBoxesScoresKeypoints(std::vector<ma_tensor_t>& tensors,
     std::vector<ma_tensor_t> outputs_boxes(tensors.size() / 3);
     std::vector<ma_tensor_t> outputs_keypoints(tensors.size() / 3);
 
-    // Prepare the scores xarray at the size we will fill in in-place
     int total_scores = 0;
     for (uint i = 0; i < tensors.size(); i = i + 3) {
         auto w = tensors[i + 1].shape.dims[1];  // w
@@ -58,10 +57,8 @@ static decltype(auto) getBoxesScoresKeypoints(std::vector<ma_tensor_t>& tensors,
     int view_index_scores = 0;
 
     for (uint i = 0; i < tensors.size(); i = i + 3) {
-        // Bounding boxes extraction will be done later on only on the boxes that surpass the score threshold
         outputs_boxes[i / 3] = tensors[i];
 
-        // Extract and dequantize the scores outputs
         auto& tensor                = tensors[i + 1];
         std::vector<size_t> shape   = {(size_t)tensor.shape.dims[1], (size_t)tensor.shape.dims[2], (size_t)tensor.shape.dims[3]};
         xt::xarray<uint8_t> xtensor = xt::adapt(tensor.data.u8, tensor.size, xt::no_ownership(), shape);
@@ -69,12 +66,10 @@ static decltype(auto) getBoxesScoresKeypoints(std::vector<ma_tensor_t>& tensors,
 
         int num_proposals_scores = dequantized_output_s.shape(0) * dequantized_output_s.shape(1);
 
-        // From the layer extract the scores
         auto output_scores                                                                                  = xt::view(dequantized_output_s, xt::all(), xt::all(), xt::all());
         xt::view(scores, xt::range(view_index_scores, view_index_scores + num_proposals_scores), xt::all()) = xt::reshape_view(output_scores, {num_proposals_scores, num_classes});
         view_index_scores += num_proposals_scores;
 
-        // Keypoints extraction will be done later according to the boxes that surpass the threshold
         outputs_keypoints[i / 3] = tensors[i + 2];
     }
 
@@ -85,17 +80,20 @@ static decltype(auto) getBoxesScoresKeypoints(std::vector<ma_tensor_t>& tensors,
 YoloV8PoseHailo::YoloV8PoseHailo(Engine* p_engine_) : PoseDetector(p_engine_, "yolov8_pose", MA_MODEL_TYPE_YOLOV8_POSE) {
     MA_ASSERT(p_engine_ != nullptr);
 
+    threshold_score_ = 0.6;
+    threshold_nms_   = 0.7;
+
     outputs_.resize(9);
     for (size_t i = 0; i < outputs_.size(); ++i) {
         outputs_[i] = p_engine_->getOutput(i);
     }
 
     std::sort(outputs_.begin(), outputs_.end(), [](const ma_tensor_t& a, const ma_tensor_t& b) { return a.shape.dims[1] > b.shape.dims[1]; });
-
+   
     auto update_route_f = [&route = route_](ma_tensor_type_t t, int i) {
         switch (t) {
             case MA_TENSOR_TYPE_U8:
-                route |= 1 << (i);
+                route |= 1 << i;
                 break;
             case MA_TENSOR_TYPE_U16:
                 route |= 1 << (i + 9);
@@ -109,7 +107,7 @@ YoloV8PoseHailo::YoloV8PoseHailo(Engine* p_engine_) : PoseDetector(p_engine_, "y
     for (size_t i = 0; i < outputs_.size(); i += 3) {
         for (size_t j = 0; j < 3; ++j) {
             auto at = i + j;
-            switch (outputs_[at].shape.dims[2]) {
+            switch (outputs_[at].shape.dims[3]) {
                 case 1:
                     idx[i + 1] = at;
                     break;
@@ -121,7 +119,7 @@ YoloV8PoseHailo::YoloV8PoseHailo(Engine* p_engine_) : PoseDetector(p_engine_, "y
             }
         }
     }
-    std::vector<ma_tensor_t> reordered_outputs(outputs_.size());
+    std::vector<ma_tensor_t> reordered_outputs(outputs_.size()); 
     for (size_t i = 0; i < outputs_.size(); ++i) {
         reordered_outputs[i] = outputs_[idx[i]];
         update_route_f(reordered_outputs[i].type, i);
@@ -249,13 +247,12 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
     // Box distribution to distance
     auto regression_distance = xt::reshape_view(xt::arange(0, regression_length + 1), {1, 1, regression_length + 1});
 
-    for (uint i = 0; i < raw_boxes_outputs.size(); i++) {
+    for (uint i = 0; i < raw_boxes_outputs.size(); ++i) {
         // Boxes setup
         float32_t qp_scale = raw_boxes_outputs[i].quant_param.scale;
         float32_t qp_zp    = raw_boxes_outputs[i].quant_param.zero_point;
 
         std::vector<size_t> output_b_shape = {(size_t)raw_boxes_outputs[i].shape.dims[1], (size_t)raw_boxes_outputs[i].shape.dims[2], (size_t)raw_boxes_outputs[i].shape.dims[3]};
-        // printf("bbox shape: %lu %lu %lu\n", output_b_shape[0], output_b_shape[1], output_b_shape[2]);
         auto output_b = xt::adapt(raw_boxes_outputs[i].data.u8, raw_boxes_outputs[i].size, xt::no_ownership(), output_b_shape);
 
         int num_proposals    = output_b.shape(0) * output_b.shape(1);
@@ -269,8 +266,7 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
         float32_t qp_zp_kpts    = raw_keypoints[i].quant_param.zero_point;
 
         std::vector<size_t> output_keypoints_shape = {(size_t)raw_keypoints[i].shape.dims[1], (size_t)raw_keypoints[i].shape.dims[2], (size_t)raw_keypoints[i].shape.dims[3]};
-        // printf("size: %lu\n", raw_keypoints[i].size);
-        // printf("pts shape: %lu %lu %lu\n", output_keypoints_shape[0], output_keypoints_shape[1], output_keypoints_shape[2]);
+       
         size_t output_keypoints_size = output_keypoints_shape[0] * output_keypoints_shape[1] * output_keypoints_shape[2];
         auto output_keypoints        = xt::adapt(static_cast<KptsType*>(raw_keypoints[i].data.data), output_keypoints_size, xt::no_ownership(), output_keypoints_shape);
 
@@ -281,7 +277,7 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
         auto keypoints_shape = {quantized_keypoints.shape(1), quantized_keypoints.shape(2)};
 
         // Bbox decoding
-        for (uint j = 0; j < (uint)num_proposals; j++) {
+        for (uint j = 0; j < (uint)num_proposals; ++j) {
             confidence = xt::row(scores, instance_index)(0);
             instance_index++;
             if (confidence < score_threshold)
@@ -297,7 +293,6 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
             xt::xarray<float> reduced_distances = xt::sum(box_distance, {2});
             auto strided_distances              = reduced_distances * strides[i];
 
-            // Decode box
             using namespace xt::placeholders;
             auto distance_view1 = xt::view(strided_distances, xt::all(), xt::range(_, 2)) * -1;
             auto distance_view2 = xt::view(strided_distances, xt::all(), xt::range(2, _));
@@ -317,7 +312,6 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
             kp.box.score  = confidence;
             kp.box.target = class_index;
 
-            // Decode keypoints
             ma::math::dequantizeValues2D<KptsType>(
                 kpts_corrdinates_and_scores, j, quantized_keypoints, kpts_corrdinates_and_scores.shape(0), kpts_corrdinates_and_scores.shape(1), qp_scale_kpts, qp_zp_kpts);
 
@@ -331,7 +325,6 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
 
             kpts_corrdinates = strides[i] * (kpts_corrdinates - 0.5) + center_values;
 
-            // Apply sigmoid to keypoints scores
             auto sigmoided_scores = 1 / (1 + xt::exp(-keypoints_scores));
 
             auto keypoint = std::make_pair(kpts_corrdinates, sigmoided_scores);
@@ -352,18 +345,19 @@ static decltype(auto) decodeBoxesAndKeypoints(const std::vector<ma_tensor_t>& ra
     return decodings;
 }
 
+
 ma_err_t YoloV8PoseHailo::postprocess() {
     // TODO: could be optimized
     boxes_scores_keypoints_ = getBoxesScoresKeypoints(outputs_, 1);
 
     switch (route_) {
-        case 0b111111111:
+        case 511:
             results_ = decodeBoxesAndKeypoints<uint8_t>(
-                boxes_scores_keypoints_.boxes, boxes_scores_keypoints_.scores, boxes_scores_keypoints_.keypoints, network_dims_, strides_, centers_, 4, threshold_score_);
+                boxes_scores_keypoints_.boxes, boxes_scores_keypoints_.scores, boxes_scores_keypoints_.keypoints, network_dims_, strides_, centers_, 15, threshold_score_);
             break;
-        case 0b010010010101101101:
+        case 149723:
             results_ = decodeBoxesAndKeypoints<uint16_t>(
-                boxes_scores_keypoints_.boxes, boxes_scores_keypoints_.scores, boxes_scores_keypoints_.keypoints, network_dims_, strides_, centers_, 4, threshold_score_);
+                boxes_scores_keypoints_.boxes, boxes_scores_keypoints_.scores, boxes_scores_keypoints_.keypoints, network_dims_, strides_, centers_, 15, threshold_score_);
             break;
         default:
             return MA_ENOTSUP;
@@ -371,7 +365,7 @@ ma_err_t YoloV8PoseHailo::postprocess() {
 
     ma::utils::nms(results_, threshold_nms_, true);
 
-    return MA_ENOTSUP;
+    return MA_OK;
 }
 
 }  // namespace ma::model
