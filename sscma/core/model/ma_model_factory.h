@@ -20,6 +20,7 @@
 #include "ma_model_yolov5.h"
 #include "ma_model_yolov8.h"
 #include "ma_model_yolov8_pose.h"
+#include "ma_model_yolov8_pose_hailo.h"
 
 namespace ma {
 

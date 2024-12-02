@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <forward_list>
 #include <iterator>
-#include <vector>
 
 #include "../ma_types.h"
 
@@ -14,11 +13,9 @@ namespace ma::utils {
 
 void nms(std::forward_list<ma_bbox_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target);
 
-void nms(std::forward_list<ma_bbox_ext_t>& bboxes,
-         float                             threshold_iou,
-         float                             threshold_score,
-         bool                              soft_nms,
-         bool                              multi_target);
+void nms(std::forward_list<ma_bbox_ext_t>& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target);
+
+void nms(std::forward_list<ma_keypoint3f_t>& decodings, const float iou_thr, bool should_nms_cross_classes);
 
 }  // namespace ma::utils
 

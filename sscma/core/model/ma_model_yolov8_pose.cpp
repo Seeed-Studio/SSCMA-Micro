@@ -24,7 +24,7 @@ static inline decltype(auto) estimateTensorHW(const ma_shape_t& shape) {
     return is_nhwc ? std::make_pair(shape.dims[1], shape.dims[2]) : std::make_pair(shape.dims[2], shape.dims[3]);
 }
 
-YoloV8Pose::YoloV8Pose(Engine* p_engine_) : PoseDetector(p_engine_, "yolo_world", MA_MODEL_TYPE_YOLO_WORLD) {
+YoloV8Pose::YoloV8Pose(Engine* p_engine_) : PoseDetector(p_engine_, "yolov8_pose", MA_MODEL_TYPE_YOLOV8_POSE) {
     MA_ASSERT(p_engine_ != nullptr);
 
     for (size_t i = 0; i < num_outputs_; ++i) {
@@ -153,7 +153,7 @@ bool YoloV8Pose::isValid(Engine* engine) {
 }
 
 const char* YoloV8Pose::getTag() {
-    return "ma::model::yolo_world";
+    return "ma::model::yolov8_pose";
 }
 
 ma_err_t YoloV8Pose::postprocess() {
