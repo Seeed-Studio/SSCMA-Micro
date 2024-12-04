@@ -86,7 +86,9 @@ FileWE2::~FileWE2() { close(); }
 
 void FileWE2::close() {
     if (_file != nullptr) {
-        f_close(static_cast<FIL*>(_file));
+        while (f_close(static_cast<FIL*>(_file)) != FR_OK) {
+            el_sleep(3);
+        }
         delete static_cast<FIL*>(_file);
         _file = nullptr;
     }
@@ -194,7 +196,7 @@ MountReturn:
 
 void ExtfsWE2::unmount() {
     f_unmount("");
-
+    
     _fs_mount_times = 0;
 }
 
@@ -239,6 +241,11 @@ FileStatus ExtfsWE2::open(const char* path, int mode) {
     return {
       std::move(handler), allocated ? STATUS_FROM_FRESULT(res) : Status{false, "Failed to allocate file handler"}
     };
+}
+
+Status ExtfsWE2::cd(const char* dir) {
+    FRESULT res = f_chdir(dir);
+    return STATUS_FROM_FRESULT(res);
 }
 
 Extfs* Extfs::get_ptr() {

@@ -78,7 +78,7 @@ void draw_results_on_image(const std::forward_list<el_box_t>& results, el_img_t*
 
 using namespace improc;
 
-inline decltype(auto) quoted(const std::string& str, const char delim = '"') {
+decltype(auto) quoted(const std::string& str, const char delim = '"') {
     std::size_t sz = 0;
     for (char c : str) sz += !(c ^ delim) | !(c ^ '\\');
     std::string ss(1, delim);
@@ -261,11 +261,14 @@ decltype(auto) results_2_json_str(const std::forward_list<el_keypoint_t>& result
     return ss;
 }
 
-inline decltype(auto) img_res_2_json_str(const el_img_t* img) {
+decltype(auto) img_res_2_json_str(const el_img_t* img) {
     return concat_strings("\"resolution\": [", std::to_string(img->width), ", ", std::to_string(img->height), "]");
 }
 
-inline decltype(auto) img_2_json_str(const el_img_t* img) {
+char* _internal_jpeg_buffer = nullptr;
+size_t _internal_jpeg_buffer_size = 0;
+
+decltype(auto) img_2_json_str(const el_img_t* img) {
     if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
@@ -297,11 +300,13 @@ inline decltype(auto) img_2_json_str(const el_img_t* img) {
     el_base64_encode(img->data, img->size, buffer);
 
     int rotate = (360 - (static_cast<int>(img->rotate) * 90)) % 360;
-    return concat_strings("\"image\": \"", buffer, "\"", ", \"rotate\": ", std::to_string(rotate));
+    _internal_jpeg_buffer = buffer;
+    _internal_jpeg_buffer_size = buffer_size > 1 ? buffer_size - 1 : 0;
+    return concat_strings("\"image\": \"", "\"", ", \"rotate\": ", std::to_string(rotate));
 }
 
 // TODO: avoid repeatly allocate/release memory in for loop
-inline decltype(auto) img_2_jpeg_json_str(const el_img_t* img, el_img_t* cache = nullptr) {
+decltype(auto) img_2_jpeg_json_str(const el_img_t* img, el_img_t* cache = nullptr) {
     if (!img || !img->data || !img->size) [[unlikely]]
         return std::string("\"image\": \"\"");
 
@@ -430,7 +435,7 @@ decltype(auto) mqtt_pubsub_config_2_json_str(const mqtt_pubsub_config_t& config)
     return ss;
 }
 
-inline decltype(auto) tokenize_function_2_argv(const std::string& input) {
+decltype(auto) tokenize_function_2_argv(const std::string& input) {
     std::vector<std::string> argv;
 
     std::size_t index = 0;

@@ -201,7 +201,9 @@ void DeviceWE2::enter_bootloader() {
     hx_drv_scu_set_PB5_pinmux(SCU_PB5_PINMUX_SPI2AHB_CS, 1);
 }
 
-void DeviceWE2::yield() { hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH); }
+void DeviceWE2::yield() { 
+    hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
+}
 
 Device* Device::get_device() {
     static DeviceWE2 device{};

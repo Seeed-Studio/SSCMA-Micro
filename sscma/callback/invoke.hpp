@@ -57,11 +57,14 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 #endif
 #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
           ,
-          _contents_export{false},
-          _exporter{std::make_shared<ContentsExport>()}
+          _contents_export{false}
 #endif
     {
         static_resource->is_invoke = true;
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+        static auto exporter {std::make_shared<ContentsExport>()};
+        _exporter = exporter;
+#endif
     }
 
    private:
@@ -161,15 +164,27 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     }
 
     inline void event_reply(std::string data) {
-        auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
-                               _cmd,
-                               "\", \"code\": ",
-                               std::to_string(_ret),
-                               ", \"data\": {\"count\": ",
-                               std::to_string(_times),
-                               data,
-                               "}}\n")};
-        static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
+        {
+            auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
+                                _cmd,
+                                "\", \"code\": ",
+                                std::to_string(_ret),
+                                ", \"data\": {\"count\": ",
+                                std::to_string(_times))};
+            static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
+        }
+        {
+            auto hdr_pos = data.find("\"image\": \"\"");
+            if (hdr_pos != std::string::npos) {
+                static_cast<Transport*>(_caller)->send_bytes(data.c_str(), hdr_pos + 10);
+                static_cast<Transport*>(_caller)->send_bytes(_internal_jpeg_buffer, _internal_jpeg_buffer_size);
+                auto hdr = data.substr(hdr_pos + 10);
+                static_cast<Transport*>(_caller)->send_bytes(hdr.c_str(), hdr.size());
+            } else {
+                static_cast<Transport*>(_caller)->send_bytes(data.c_str(), data.size());
+            }
+        }
+        static_cast<Transport*>(_caller)->send_bytes("}}\n", 3);
     }
 
     inline void event_loop() {

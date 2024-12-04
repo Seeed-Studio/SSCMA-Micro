@@ -10,25 +10,39 @@
 
 #include "porting/el_extfs.h"
 
+#ifndef MA_CONTENT_EXPORT_CACHE_ADDR
+    #define MA_CONTENT_EXPORT_CACHE_DISABLED 1
+    #define MA_CONTENT_EXPORT_CACHE_ADDR     0
+#endif
+
+#ifndef MA_CONTENT_EXPORT_CACHE_SIZE
+    #define MA_CONTENT_EXPORT_CACHE_SIZE 0
+#endif
+
 namespace sscma::extension {
 
 using namespace edgelab;
 
 class ContentsExport {
    public:
-    ContentsExport() : _extfs(nullptr), _path(""), _bytes(0), _size(0), _data(nullptr) {}
+    ContentsExport()
+        : _extfs(nullptr),
+          _path(""),
+          _bytes(0),
+          _size(MA_CONTENT_EXPORT_CACHE_SIZE),
+          _data(MA_CONTENT_EXPORT_CACHE_ADDR) {}
 
     ~ContentsExport() {
+#if MA_CONTENT_EXPORT_CACHE_DISABLED
         if (_data != nullptr) {
             delete[] _data;
             _data = nullptr;
         }
-        if (_extfs != nullptr) {
-            _extfs->unmount();
-        }
+#endif
     };
 
     bool cache(const uint8_t* data, size_t size, size_t realloc_trigger = 1024 * 10) {
+#ifdef MA_CONTENT_EXPORT_CACHE_DISABLED
         if (_data == nullptr) [[unlikely]] {
             _data = new (std::nothrow) uint8_t[size + (realloc_trigger >> 1)];
             if (_data == nullptr) {
@@ -43,8 +57,10 @@ class ContentsExport {
             }
             _size = size + (realloc_trigger >> 1);
         }
-
         _bytes = size;
+#else
+        _bytes = size > _size ? _size : size;
+#endif
         std::memcpy(_data, data, _bytes);
 
         return true;
@@ -65,7 +81,7 @@ class ContentsExport {
             return false;
         }
 
-        std::string file_prefix = _path + name;
+        const auto& file_prefix = name;
         {
             std::string file    = file_prefix + ".jpeg";
             auto        handler = _extfs->open(file.c_str(), OpenMode::WRITE);
@@ -93,10 +109,14 @@ class ContentsExport {
             }
 
             size_t written = 0;
-            auto   status  = handler.file->write(reinterpret_cast<const uint8_t*>(_result.c_str()), _result.size(), &written);
+            auto   status =
+              handler.file->write(reinterpret_cast<const uint8_t*>(_result.c_str()), _result.size(), &written);
             if (!status.success) {
                 return false;
             }
+
+            _result.clear();
+            _result.shrink_to_fit();
 
             handler.file->close();
         }
@@ -181,7 +201,11 @@ class ContentsExport {
             return false;
         }
 
-        _path += '/';
+        res = _extfs->cd(_path.c_str());
+        if (!res.success) {
+            callback(res);
+            return false;
+        }
 
         return true;
     }

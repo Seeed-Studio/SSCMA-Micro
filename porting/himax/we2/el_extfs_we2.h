@@ -51,6 +51,7 @@ class ExtfsWE2 final : public Extfs {
     bool       isdir(const char*) override;
     Status     mkdir(const char*) override;
     FileStatus open(const char*, int) override;
+    Status     cd(const char*) override;
 
    private:
     static int _fs_mount_times;

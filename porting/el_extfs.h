@@ -64,6 +64,7 @@ class Extfs {
     virtual bool       isdir(const char*)     = 0;
     virtual Status     mkdir(const char*)     = 0;
     virtual FileStatus open(const char*, int) = 0;
+    virtual Status     cd(const char*)        = 0;
 
    protected:
     Extfs() = default;
