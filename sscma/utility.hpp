@@ -274,9 +274,9 @@ decltype(auto) img_2_json_str(const el_img_t* img) {
 
 #if SSCMA_SHARED_BASE64_BUFFER
     static char*       buffer      = reinterpret_cast<char*>(SSCMA_SHARED_BASE64_BUFFER_BASE);
-    static std::size_t buffer_size = SSCMA_SHARED_BASE64_BUFFER_SIZE;
+    std::size_t        buffer_size = (((img->size + 2u) / 3u) << 2u) + 1u; 
 
-    if ((((img->size + 2u) / 3u) << 2u) + 1u > buffer_size) {
+    if (buffer_size > SSCMA_SHARED_BASE64_BUFFER_SIZE) {
         EL_LOGW("Error: shared base64 buffer exhausted");
         return std::string{"\"image\": \"\""};
     }
@@ -293,15 +293,17 @@ decltype(auto) img_2_json_str(const el_img_t* img) {
         if (buffer) [[likely]]
             delete[] buffer;
         buffer = new char[buffer_size]{};
+        if (!buffer)
+            return std::string{"\"image\": \"\""};
     }
 #endif
 
-    std::memset(buffer, 0, buffer_size);
     el_base64_encode(img->data, img->size, buffer);
+    buffer[buffer_size] = '\0';
 
     int rotate = (360 - (static_cast<int>(img->rotate) * 90)) % 360;
     _internal_jpeg_buffer = buffer;
-    _internal_jpeg_buffer_size = buffer_size > 1 ? buffer_size - 1 : 0;
+    _internal_jpeg_buffer_size = buffer_size;
     return concat_strings("\"image\": \"", "\"", ", \"rotate\": ", std::to_string(rotate));
 }
 

@@ -29,7 +29,7 @@
 #define PRODUCT_NAME_PREFIX "grove_vision_ai"
 #define PRODUCT_NAME_SUFFIX "v2"
 #define DEVICE_NAME         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
-#define PORT_DEVICE_NAME    "Grove Vision AI (V2)"
+#define PORT_DEVICE_NAME    "Grove Vision AI V2"
 #define WATCH_DOG_TIMEOUT_TH 2000
 
 #ifdef __cplusplus
