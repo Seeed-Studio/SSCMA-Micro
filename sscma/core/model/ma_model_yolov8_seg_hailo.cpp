@@ -338,20 +338,20 @@ static decltype(auto) decodeBoxesAndExtractMasks(const std::vector<ma_tensor_t>&
             auto distance_view  = xt::concatenate(xt::xtuple(distance_view1, distance_view2), 1);
             auto decoded_box    = centers[i] + distance_view;
 
-            ma_bbox_t box;
+            ma_bbox_t bbox;
             auto x_min = decoded_box(j, 0) / network_dims[0];
             auto y_min = decoded_box(j, 1) / network_dims[1];
             auto w     = (decoded_box(j, 2) - decoded_box(j, 0)) / network_dims[0];
             auto h     = (decoded_box(j, 3) - decoded_box(j, 1)) / network_dims[1];
 
-            box.x      = x_min + (w / 2);
-            box.y      = y_min + (h / 2);
-            box.w      = w;
-            box.h      = h;
-            box.score  = confidence;
-            box.target = class_index;
+            bbox.x      = x_min + (w / 2);
+            bbox.y      = y_min + (h / 2);
+            bbox.w      = w;
+            bbox.h      = h;
+            bbox.score  = confidence;
+            bbox.target = class_index;
 
-            decodings.emplace_front(std::make_pair(box, mask));
+            decodings.emplace_front(std::make_pair(bbox, mask));
         }
     }
 
