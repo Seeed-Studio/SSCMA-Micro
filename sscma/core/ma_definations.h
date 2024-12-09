@@ -42,6 +42,8 @@
 
 #define MA_STORAGE_KEY_TRIGGER_RULES   "trigger#rules"
 
+#define MA_STORAGE_KEY_WS_PORT           "ws#port"
+
 
 #define MA_AT_CMD_PREFIX               "AT+"
 #define MA_AT_CMD_QUERY                "?"
