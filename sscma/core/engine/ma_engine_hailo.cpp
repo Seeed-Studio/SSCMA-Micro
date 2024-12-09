@@ -207,6 +207,16 @@ ma_err_t EngineHailo::load(const string& model_path) {
                     tensor->shape.dims[2] = shape.features;
                     tensor->shape.dims[3] = shape.width;
                     break;
+                case HAILO_FORMAT_ORDER_NC:
+                    if (shape.width != 1 || shape.height != 1) {
+                        tensor->shape.dims[1] = shape.features;
+                        tensor->shape.dims[2] = shape.height;
+                        tensor->shape.dims[3] = shape.width;
+                        break;
+                    }
+                    tensor->shape.dims[1] = shape.features;
+                    tensor->shape.size    = 2;
+                    break;
                 default:
                     break;
             }

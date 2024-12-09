@@ -40,9 +40,7 @@ bool Classifier::isValid(Engine* engine) {
         return false;
     }
 
-    const auto& input_shape = engine->getInputShape(0);
-    const auto& output_shape{engine->getOutputShape(0)};
-
+    const auto input_shape = engine->getInputShape(0);
     int n = input_shape.dims[0], h = input_shape.dims[1], w = input_shape.dims[2], c = input_shape.dims[3];
     bool is_nhwc = c == 3 || c == 1;
 
@@ -52,14 +50,14 @@ bool Classifier::isValid(Engine* engine) {
     if (n != 1 || h < 32 || h % 32 != 0 || (c != 3 && c != 1))
         return false;
 
+    const auto output_shape = engine->getOutputShape(0);
+    if (output_shape.size != 2) {
+        return false;
+    }
 
     if (output_shape.dims[0] != 1 ||  // N = 1
         output_shape.dims[1] < 2      // C >= 2
     ) {
-        return false;
-    }
-
-    if (output_shape.size >= 3) {
         return false;
     }
 
@@ -91,32 +89,65 @@ ma_err_t Classifier::preprocess() {
 ma_err_t Classifier::postprocess() {
     results_.clear();
 
-    if (output_.type == MA_TENSOR_TYPE_S8) {
-        auto scale{output_.quant_param.scale};
-        auto zero_point{output_.quant_param.zero_point};
-        bool rescale{scale < 0.1f ? true : false};
-        auto* data = output_.data.s8;
+    switch (output_.type) {
+        case MA_TENSOR_TYPE_S8: {
+            auto scale{output_.quant_param.scale};
+            auto zero_point{output_.quant_param.zero_point};
+            bool rescale{scale < 0.1f ? true : false};
+            auto* data = output_.data.s8;
+            auto pred_l{output_.shape.dims[1]};
 
-        auto pred_l{output_.shape.dims[1]};
+            for (decltype(pred_l) i{0}; i < pred_l; ++i) {
+                auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
+                score = rescale ? score : score / 100.f;
+                if (score > threshold_score_)
+                    results_.emplace_front(ma_class_t{score, i});
+            }
+        } break;
 
-        for (decltype(pred_l) i{0}; i < pred_l; ++i) {
-            auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
-            score = rescale ? score : score / 100.f;
-            if (score > threshold_score_)
-                results_.emplace_front(ma_class_t{score, i});
-        }
-    }
-    if (output_.type == MA_TENSOR_TYPE_F32) {
-        auto* data = output_.data.f32;
-        auto pred_l{output_.shape.dims[1]};
-        for (decltype(pred_l) i{0}; i < pred_l; ++i) {
-            auto score{data[i]};
-            if (score > threshold_score_)
-                results_.emplace_front(ma_class_t{score, i});
-        }
+        case MA_TENSOR_TYPE_U8: {
+            auto scale{output_.quant_param.scale};
+            auto zero_point{output_.quant_param.zero_point};
+            bool rescale{scale < 0.1f ? true : false};
+            auto* data = output_.data.u8;
+            auto pred_l{output_.shape.dims[1]};
 
-    } else {
-        return MA_ENOTSUP;
+            for (decltype(pred_l) i{0}; i < pred_l; ++i) {
+                auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
+                score = rescale ? score : score / 100.f;
+                if (score > threshold_score_)
+                    results_.emplace_front(ma_class_t{score, i});
+            }
+        } break;
+
+        case MA_TENSOR_TYPE_U16: {
+            auto scale{output_.quant_param.scale};
+            auto zero_point{output_.quant_param.zero_point};
+            bool rescale{scale < 0.1f ? true : false};
+            auto* data = output_.data.u16;
+            auto pred_l{output_.shape.dims[1]};
+
+            for (decltype(pred_l) i{0}; i < pred_l; ++i) {
+                auto score{static_cast<decltype(scale)>(data[i] - zero_point) * scale};
+                score = rescale ? score : score / 100.f;
+                if (score > threshold_score_)
+                    results_.emplace_front(ma_class_t{score, i});
+            }
+        } break;
+
+    
+        case MA_TENSOR_TYPE_F32: {
+            auto* data = output_.data.f32;
+            auto pred_l{output_.shape.dims[1]};
+            for (decltype(pred_l) i{0}; i < pred_l; ++i) {
+                auto score{data[i]};
+                if (score > threshold_score_)
+                    results_.emplace_front(ma_class_t{score, i});
+            }
+        } break;
+
+        default:
+            return MA_ENOTSUP;
     }
 
     results_.sort([](const ma_class_t& a, const ma_class_t& b) { return a.score > b.score; });
