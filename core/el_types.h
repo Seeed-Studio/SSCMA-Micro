@@ -188,6 +188,7 @@ typedef enum {
     EL_ALGO_TYPE_YOLO_V8    = 6u,
     EL_ALGO_TYPE_NVIDIA_DET = 7u,
     EL_ALGO_TYPE_YOLO_WORLD = 8u,
+    EL_ALGO_TYPE_RTMDET     = 9u,
 } el_algorithm_type_t;
 
 /**

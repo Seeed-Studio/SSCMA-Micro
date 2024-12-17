@@ -280,6 +280,17 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
             }
             return;
         }
+        case EL_ALGO_TYPE_RTMDET: {
+            using AlgorithmType = AlgoithmRtmdet;
+            auto algorithm{std::make_shared<AlgorithmType>(static_resource->engine)};
+            register_config_cmds(algorithm);
+            direct_reply(algorithm_config_2_json_str(algorithm));
+            if (is_everything_ok()) [[likely]] {
+                auto results_filter{ResultsFilter(algorithm->get_results())};
+                event_loop_cam(algorithm, std::move(results_filter));
+            }
+            return;
+        }
 
         default:
             _ret = EL_ENOTSUP;
