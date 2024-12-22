@@ -56,6 +56,11 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
                 return new NvidiaDet(engine);
             }
 
+        case MA_MODEL_TYPE_RTMDET:
+            if (RTMDet::isValid(engine)) {
+                return new RTMDet(engine);
+            }
+        
         case MA_MODEL_TYPE_YOLO_WORLD:
             if (YoloWorld::isValid(engine)) {
                 return new YoloWorld(engine);
