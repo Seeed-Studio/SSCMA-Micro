@@ -119,7 +119,7 @@ bool RTMDet::isValid(Engine* engine) {
 
         if (output_shape.dims[2] == 4) {
             auto it = std::find_if(
-              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+              anchor_strides_2.begin(), anchor_strides_2.end(), [&output_shape](const ma_anchor_stride_t& anchor_stride) {
                   return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
               });
             if (it == anchor_strides_2.end())
@@ -128,7 +128,7 @@ bool RTMDet::isValid(Engine* engine) {
                 anchor_strides_2.erase(it);
         } else {
             auto it = std::find_if(
-              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const anchor_stride_t& anchor_stride) {
+              anchor_strides_1.begin(), anchor_strides_1.end(), [&output_shape](const ma_anchor_stride_t& anchor_stride) {
                   return static_cast<int>(anchor_stride.size) == output_shape.dims[1];
               });
             if (it == anchor_strides_1.end())
@@ -174,7 +174,7 @@ ma_err_t RTMDet::postprocess() {
     switch (check) {
         case 0b10000000:
             return postProcessI8();
-        
+
         case 0b01000000:
             return postProcessU8();
 
@@ -243,24 +243,12 @@ ma_err_t RTMDet::postProcessI8() {
 
             const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
 
-            // DFL
-            float dist[4];
-            float matrix[16];
 
+            float dist[4];
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
-                const size_t offset = pre + m * 16;
-                for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
-                }
-
-                ma::math::softmax(matrix, 16);
-
-                float res = 0.0;
-                for (size_t n = 0; n < 16; ++n) {
-                    res += matrix[n] * static_cast<float>(n);
-                }
-                dist[m] = res;
+                const size_t offset = pre + m;
+                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
             }
 
             const auto anchor = anchor_array[j];
@@ -279,7 +267,7 @@ ma_err_t RTMDet::postProcessI8() {
             res.score  = real_score;
             res.target = target;
 
-            results_.push_back(
+            results_.emplace_front(
                 std::move(res)
             );
         }
@@ -345,22 +333,10 @@ ma_err_t RTMDet::postProcessU8() {
 
             // DFL
             float dist[4];
-            float matrix[16];
-
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
-                const size_t offset = pre + m * 16;
-                for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset + n]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
-                }
-
-                ma::math::softmax(matrix, 16);
-
-                float res = 0.0;
-                for (size_t n = 0; n < 16; ++n) {
-                    res += matrix[n] * static_cast<float>(n);
-                }
-                dist[m] = res;
+                const size_t offset = pre + m;
+                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
             }
 
             const auto anchor = anchor_array[j];
@@ -379,7 +355,7 @@ ma_err_t RTMDet::postProcessU8() {
             res.score  = real_score;
             res.target = target;
 
-            results_.push_back(
+            results_.emplace_front(
                 std::move(res)
             );
         }
@@ -440,24 +416,11 @@ ma_err_t RTMDet::postProcessF32() {
 
             const float real_score = ma::math::sigmoid(max_score_raw);
 
-            // DFL
             float dist[4];
-            float matrix[16];
-
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
-                const size_t offset = pre + m * 16;
-                for (size_t n = 0; n < 16; ++n) {
-                    matrix[n] = output_bboxes[offset + n];
-                }
-
-                ma::math::softmax(matrix, 16);
-
-                float res = 0.0;
-                for (size_t n = 0; n < 16; ++n) {
-                    res += matrix[n] * static_cast<float>(n);
-                }
-                dist[m] = res;
+                const size_t offset = pre + m;
+                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
             }
 
             const auto anchor = anchor_array[j];
@@ -476,7 +439,7 @@ ma_err_t RTMDet::postProcessF32() {
             res.score  = real_score;
             res.target = target;
 
-            results_.push_back(
+            results_.emplace_front(
                 std::move(res)
             );
         }
