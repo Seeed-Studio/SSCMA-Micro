@@ -37,6 +37,10 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
             if (YoloV8PoseHailo::isValid(engine)) {
                 return new YoloV8PoseHailo(engine);
             }
+
+            if (YoloV8SegHailo::isValid(engine)) {
+                return new YoloV8SegHailo(engine);
+            }
 #endif
             if (YoloV8Pose::isValid(engine)) {
                 return new YoloV8Pose(engine);
@@ -52,6 +56,11 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
                 return new NvidiaDet(engine);
             }
 
+        case MA_MODEL_TYPE_RTMDET:
+            if (RTMDet::isValid(engine)) {
+                return new RTMDet(engine);
+            }
+        
         case MA_MODEL_TYPE_YOLO_WORLD:
             if (YoloWorld::isValid(engine)) {
                 return new YoloWorld(engine);

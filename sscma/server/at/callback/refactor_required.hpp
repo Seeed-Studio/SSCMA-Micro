@@ -56,6 +56,7 @@ ma_err_t setAlgorithmInput(Model* algorithm, ma_img_t& img) {
         case MA_MODEL_TYPE_YOLOV8:
         case MA_MODEL_TYPE_NVIDIA_DET:
         case MA_MODEL_TYPE_YOLO_WORLD:
+        case MA_MODEL_TYPE_RTMDET:
             return static_cast<Detector*>(algorithm)->run(&img);
 
         case MA_MODEL_TYPE_YOLOV8_POSE:
@@ -104,7 +105,8 @@ ma_err_t serializeAlgorithmOutput(Model* algorithm, Encoder* encoder, int width,
         case MA_MODEL_TYPE_YOLOV8:
         case MA_MODEL_TYPE_YOLO11:
         case MA_MODEL_TYPE_NVIDIA_DET:
-        case MA_MODEL_TYPE_YOLO_WORLD: {
+        case MA_MODEL_TYPE_YOLO_WORLD:
+        case MA_MODEL_TYPE_RTMDET: {
 
             auto results = static_cast<Detector*>(algorithm)->getResults();
             MA_LOGD(MA_TAG, "Results size: %d", std::distance(results.begin(), results.end()));
@@ -257,7 +259,8 @@ struct TriggerRule {
             case MA_MODEL_TYPE_YOLOV8:
             case MA_MODEL_TYPE_YOLO11:
             case MA_MODEL_TYPE_NVIDIA_DET:
-            case MA_MODEL_TYPE_YOLO_WORLD: {
+            case MA_MODEL_TYPE_YOLO_WORLD: 
+            case MA_MODEL_TYPE_RTMDET: {
                 auto results = static_cast<Detector*>(algorithm)->getResults();
                 for (auto& result : results) {
                     if (result.target == class_id && comp(result.score, threshold)) {

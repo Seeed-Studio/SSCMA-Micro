@@ -21,6 +21,8 @@
 #include "ma_model_yolov8.h"
 #include "ma_model_yolov8_pose.h"
 #include "ma_model_yolov8_pose_hailo.h"
+#include "ma_model_yolov8_seg_hailo.h"
+#include "ma_model_rtmdet.h"
 
 namespace ma {
 
