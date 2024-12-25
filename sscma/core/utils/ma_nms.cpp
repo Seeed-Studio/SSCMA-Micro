@@ -9,22 +9,6 @@
 
 namespace ma::utils {
 
-template <typename T, std::enable_if_t<std::is_base_of_v<ma_bbox_t, T>, bool> = true>
-static inline float compute_iou(const T& box1, const T& box2) {
-    const float x1    = std::max(box1.x, box2.x);
-    const float y1    = std::max(box1.y, box2.y);
-    const float x2    = std::min(box1.x + box1.w, box2.x + box2.w);
-    const float y2    = std::min(box1.y + box1.h, box2.y + box2.h);
-    const float w     = std::max(0.0f, x2 - x1);
-    const float h     = std::max(0.0f, y2 - y1);
-    const float inter = w * h;
-    const float d     = box1.w * box1.h + box2.w * box2.h - inter;
-    if (std::abs(d) < std::numeric_limits<float>::epsilon()) [[unlikely]] {
-        return 0;
-    }
-    return inter / d;
-}
-
 template <typename Container, typename T = typename Container::value_type>
 static constexpr void nms_impl(Container& bboxes, float threshold_iou, float threshold_score, bool soft_nms, bool multi_target) {
     if constexpr (std::is_same_v<Container, std::forward_list<T>>) {
@@ -54,7 +38,7 @@ static constexpr void nms_impl(Container& bboxes, float threshold_iou, float thr
         }
     }
 
-    if constexpr (std::is_same_v<Container, std::forward_list<T>>) {
+    if constexpr (std::is_same<Container, std::forward_list<T>>::value) {
         bboxes.remove_if([](const auto& box) { return box.score == 0; });
     } else {
         bboxes.erase(std::remove_if(bboxes.begin(), bboxes.end(), [](const auto& box) { return box.score == 0; }), bboxes.end());
