@@ -97,7 +97,7 @@ typedef struct {
     } data;
     bool is_physical;  // For physical tensor
     bool is_variable;  // For constant tensor
-    void* external_handler = nullptr;
+    void* external_handler;
 } ma_tensor_t;
 
 typedef enum {

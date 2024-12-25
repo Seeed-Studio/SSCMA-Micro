@@ -155,15 +155,15 @@ ma_err_t RTMDet::postprocess() {
     for (size_t i = 0; i < num_outputs_; ++i) {
         switch (outputs_[i].type) {
             case MA_TENSOR_TYPE_S8:
-                check |= 1 << 8;
+                check += 1;
                 break;
 
             case MA_TENSOR_TYPE_U8:
-                check |= 1 << 7;
+                check += 2;
                 break;
 
             case MA_TENSOR_TYPE_F32:
-                check |= 1 << i;
+                check += 4;
                 break;
 
             default:
@@ -172,14 +172,14 @@ ma_err_t RTMDet::postprocess() {
     }
 
     switch (check) {
-        case 0b10000000:
+        case 6:
             return postProcessI8();
 
-        case 0b01000000:
+        case 12:
             return postProcessU8();
 
 #ifdef MA_MODEL_POSTPROCESS_FP32_VARIANT
-        case 0b00111111:
+        case 24:
             return postProcessF32();
 #endif
 
@@ -187,7 +187,7 @@ ma_err_t RTMDet::postprocess() {
             return MA_ENOTSUP;
     }
 
-    return MA_ENOTSUP;
+    return MA_OK;
 }
 
 ma_err_t RTMDet::postProcessI8() {
@@ -217,10 +217,14 @@ ma_err_t RTMDet::postProcessI8() {
         const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
         const auto output_bboxes_quant_parm     = outputs_[output_bboxes_id].quant_param;
 
+        const auto  stride  = anchor_strides_[i];
+        const float scale_w = float(stride.stride) / float(img_.width);
+        const float scale_h = float(stride.stride) / float(img_.height);
+
         const auto& anchor_array     = anchor_matrix_[i];
         const auto anchor_array_size = anchor_array.size();
 
-        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
+        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(score_threshold_non_sigmoid, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
@@ -241,14 +245,14 @@ ma_err_t RTMDet::postProcessI8() {
             if (target < 0)
                 continue;
 
-            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
+            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point));
 
 
             float dist[4];
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m;
-                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
+                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.scale, output_bboxes_quant_parm.zero_point);
             }
 
             const auto anchor = anchor_array[j];
@@ -260,10 +264,10 @@ ma_err_t RTMDet::postProcessI8() {
 
             ma_bbox_t res;
 
-            res.x      = cx;
-            res.y      = cy;
-            res.w      = w;
-            res.h      = h;
+            res.x      = cx * scale_w;
+            res.y      = cy * scale_h;
+            res.w      = w  * scale_w;
+            res.h      = h  * scale_h;
             res.score  = real_score;
             res.target = target;
 
@@ -305,10 +309,14 @@ ma_err_t RTMDet::postProcessU8() {
         const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
         const auto output_bboxes_quant_parm     = outputs_[output_bboxes_id].quant_param;
 
+        const auto  stride  = anchor_strides_[i];
+        const float scale_w = float(stride.stride) / float(img_.width);
+        const float scale_h = float(stride.stride) / float(img_.height);
+
         const auto& anchor_array     = anchor_matrix_[i];
         const auto anchor_array_size = anchor_array.size();
 
-        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(score_threshold_non_sigmoid, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale);
+        const int32_t score_threshold_quan_non_sigmoid = ma::math::quantizeValueFloor(score_threshold_non_sigmoid, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point);
 
         for (size_t j = 0; j < anchor_array_size; ++j) {
             const auto j_mul_output_scores_shape_dims_2 = j * output_scores_shape_dims_2;
@@ -329,14 +337,14 @@ ma_err_t RTMDet::postProcessU8() {
             if (target < 0)
                 continue;
 
-            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.zero_point, output_scores_quant_parm.scale));
+            const float real_score = ma::math::sigmoid(ma::math::dequantizeValue(max_score_raw, output_scores_quant_parm.scale, output_scores_quant_parm.zero_point));
 
             // DFL
             float dist[4];
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m;
-                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
+                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.scale, output_bboxes_quant_parm.zero_point);
             }
 
             const auto anchor = anchor_array[j];
@@ -348,10 +356,10 @@ ma_err_t RTMDet::postProcessU8() {
 
             ma_bbox_t res;
 
-            res.x      = cx;
-            res.y      = cy;
-            res.w      = w;
-            res.h      = h;
+            res.x      = cx * scale_w;
+            res.y      = cy * scale_h;
+            res.w      = w  * scale_w;
+            res.h      = h  * scale_h;
             res.score  = real_score;
             res.target = target;
 
@@ -391,6 +399,10 @@ ma_err_t RTMDet::postProcessF32() {
         const auto output_bboxes_id             = output_bboxes_ids_[i];
         const auto* output_bboxes               = output_data[output_bboxes_id];
         const size_t output_bboxes_shape_dims_2 = outputs_[output_bboxes_id].shape.dims[2];
+
+        const auto  stride  = anchor_strides_[i];
+        const float scale_w = float(stride.stride) / float(img_.width);
+        const float scale_h = float(stride.stride) / float(img_.height);
 
         const auto& anchor_array     = anchor_matrix_[i];
         const auto anchor_array_size = anchor_array.size();
@@ -432,10 +444,10 @@ ma_err_t RTMDet::postProcessF32() {
 
             ma_bbox_t res;
 
-            res.x      = cx;
-            res.y      = cy;
-            res.w      = w;
-            res.h      = h;
+            res.x      = cx * scale_w;
+            res.y      = cy * scale_h;
+            res.w      = w  * scale_w;
+            res.h      = h  * scale_h;
             res.score  = real_score;
             res.target = target;
 
