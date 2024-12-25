@@ -420,7 +420,7 @@ ma_err_t RTMDet::postProcessF32() {
             const auto pre = j * output_bboxes_shape_dims_2;
             for (size_t m = 0; m < 4; ++m) {
                 const size_t offset = pre + m;
-                dist[m]  = ma::math::dequantizeValue(static_cast<int32_t>(output_bboxes[offset]), output_bboxes_quant_parm.zero_point, output_bboxes_quant_parm.scale);
+                dist[m] = output_bboxes[offset];
             }
 
             const auto anchor = anchor_array[j];
