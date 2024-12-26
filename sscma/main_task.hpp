@@ -476,7 +476,11 @@ void wait_for_inputs(void*) {
 
 Loop:
     for (auto& transport : static_resource->transports) {
-        if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH)) {
+        if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH, '\n')) {
+            static_resource->instance->exec(buf, static_cast<void*>(transport));
+            std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
+        }
+        if (transport && *transport && transport->get_line(buf, SSCMA_CMD_MAX_LENGTH, '\r')) {
             static_resource->instance->exec(buf, static_cast<void*>(transport));
             std::memset(buf, 0, SSCMA_CMD_MAX_LENGTH + 1);
         }
