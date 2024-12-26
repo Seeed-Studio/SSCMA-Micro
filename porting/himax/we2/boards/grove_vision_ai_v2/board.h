@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Hongtai Liu (Seeed Technology Inc.)
+ * Copyright (c) Seeed Technology Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,15 @@
 #ifndef _BOARD_GROVE_VISION_AI_V2_H_
 #define _BOARD_GROVE_VISION_AI_V2_H_
 
-#define PRODUCT_NAME_PREFIX "grove_vision_ai"
-#define PRODUCT_NAME_SUFFIX "v2"
-#define DEVICE_NAME         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
-#define PORT_DEVICE_NAME    "Grove Vision AI V2"
-#define WATCH_DOG_TIMEOUT_TH 2000
+#define PRODUCT_NAME_PREFIX                 "grove_vision_ai"
+#define PRODUCT_NAME_SUFFIX                 "v2"
+#define DEVICE_NAME                         (PRODUCT_NAME_PREFIX "_" PRODUCT_NAME_SUFFIX)
+#define PORT_DEVICE_NAME                    "Grove Vision AI V2"
+#define WATCH_DOG_TIMEOUT_TH                3000
+
+#define SSCMA_CFG_ENABLE_ACTION             1
+#define SSCMA_CFG_ENABLE_CONTENTS_EXPORT    1
+#define SSCMA_STORAGE_CFG_UPDATE_BOOT_COUNT 0
 
 #ifdef __cplusplus
 extern "C" {
