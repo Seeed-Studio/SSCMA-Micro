@@ -62,7 +62,7 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     {
         static_resource->is_invoke = true;
 #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
-        static auto exporter {std::make_shared<ContentsExport>()};
+        static auto exporter{std::make_shared<ContentsExport>()};
         _exporter = exporter;
 #endif
     }
@@ -166,11 +166,11 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
     inline void event_reply(std::string data) {
         {
             auto ss{concat_strings("\r{\"type\": 1, \"name\": \"",
-                                _cmd,
-                                "\", \"code\": ",
-                                std::to_string(_ret),
-                                ", \"data\": {\"count\": ",
-                                std::to_string(_times))};
+                                   _cmd,
+                                   "\", \"code\": ",
+                                   std::to_string(_ret),
+                                   ", \"data\": {\"count\": ",
+                                   std::to_string(_times))};
             static_cast<Transport*>(_caller)->send_bytes(ss.c_str(), ss.size());
         }
         {
@@ -437,27 +437,29 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 #else
             encoded_frame_str = std::move(img_2_jpeg_json_str(&frame, &processed_frame));
 #endif
-#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
-            if (_contents_export && _exporter) [[likely]] {
-                _exporter->cache(processed_frame.data, processed_frame.size);
-                _exporter->cache_result(concat_strings("\r{\"type\": 1, \"name\": \"",
-                                                       _cmd,
-                                                       "\", \"code\": ",
-                                                       std::to_string(_ret),
-                                                       ", \"data\": {\"count\": ",
-                                                       std::to_string(_times),
-                                                       ", ",
-                                                       algorithm_results_2_json_str(algorithm),
-                                                       ", ",
-                                                       img_res_2_json_str(&frame),
-                                                       "}}\n"));
-            }
-#endif
         }
 
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
+
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+        if (_contents_export && _exporter) [[likely]] {
+            _exporter->cache(processed_frame.data, processed_frame.size);
+            _exporter->cache_result(concat_strings("\r{\"type\": 1, \"name\": \"",
+                                                   _cmd,
+                                                   "\", \"code\": ",
+                                                   std::to_string(_ret),
+                                                   ", \"data\": {\"count\": ",
+                                                   std::to_string(_times),
+                                                   ", ",
+                                                   algorithm_results_2_json_str(algorithm),
+                                                   ", ",
+                                                   img_res_2_json_str(&frame),
+                                                   "}}\n"));
+        }
+#endif
+
 #if SSCMA_CFG_ENABLE_ACTION
         static_resource->action->evalute(_caller);
 #endif
