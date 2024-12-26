@@ -123,8 +123,8 @@ el_err_code_t sspiWE2::init() {
 
     this->_is_present = this->spi ? true : false;
 
-    this->tx_ring_buffer = new lwRingBuffer((char *)SPI_TRANSPORT_TX_BASE_ADDR, SPI_TRANSPORT_TX_BASE_SIZE);
-    this->rx_ring_buffer = new lwRingBuffer((char *)SPI_TRANSPORT_RX_BASE_ADDR, SPI_TRANSPORT_RX_BASE_SIZE);
+    this->tx_ring_buffer = new lwRingBuffer((char*)SPI_TRANSPORT_TX_BASE_ADDR, SPI_TRANSPORT_TX_BASE_SIZE);
+    this->rx_ring_buffer = new lwRingBuffer((char*)SPI_TRANSPORT_RX_BASE_ADDR, SPI_TRANSPORT_RX_BASE_SIZE);
 
     this->sspi_read_enable(sizeof(this->rx_buffer));
 
@@ -198,6 +198,7 @@ size_t sspiWE2::send_bytes(const char* buffer, size_t size) {
             hx_drv_gpio_set_output(CONFIG_EL_SPI_CTRL_PIN, GPIO_OUT_LOW);
             return 0;
         }
+        hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
         el_sleep(5);
     }
     size_t len = this->tx_ring_buffer->put(buffer, size);

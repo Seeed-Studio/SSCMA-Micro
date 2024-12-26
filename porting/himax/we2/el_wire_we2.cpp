@@ -76,8 +76,6 @@ static void i2c_s_callback_fun_rx(void* param) {
     uint16_t available  = wire->tx_ring_buffer->size();
     bool     is_present = *wire;
 
-    // EL_LOGD("feature: %0x, cmd: %0x, len: %d, available: %d\n", feature, cmd, len, available);
-
     if (len > MAX_PL_LEN || feature != FEATURE_TRANSPORT) {
         wire->wire_read_enable(sizeof(wire->rx_buffer));
         return;
@@ -235,6 +233,17 @@ size_t WireWE2::read_bytes(char* buffer, size_t size) {
 size_t WireWE2::send_bytes(const char* buffer, size_t size) {
     if (!this->_is_present) {
         return 0;
+    }
+
+    uint32_t ts = xTaskGetTickCount();
+    while (this->tx_ring_buffer->free() < size) {
+        if (xTaskGetTickCount() - ts > 1000) {
+            EL_LOGW("TX ring buffer full, cannot send data\n");
+            this->tx_ring_buffer->clear();
+            return 0;
+        }
+        hx_drv_watchdog_update(WATCHDOG_ID_0, WATCH_DOG_TIMEOUT_TH);
+        el_sleep(5);
     }
     return this->tx_ring_buffer->put(buffer, size);
 }
