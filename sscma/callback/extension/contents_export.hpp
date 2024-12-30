@@ -97,13 +97,12 @@ class ContentsExport {
                 return false;
             }
             _bytes = 0;
-
             handler.file->close();
         }
 
         if (_result.size()) {
-            std::string file    = file_prefix + ".json";
-            auto        handler = _extfs->open(file.c_str(), OpenMode::WRITE);
+            std::string file = file_prefix + ".json";
+            auto handler = _extfs->open(file.c_str(), OpenMode::WRITE);
             if (!handler.status.success) {
                 return false;
             }

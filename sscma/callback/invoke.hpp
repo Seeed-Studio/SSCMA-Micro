@@ -439,13 +439,18 @@ class Invoke final : public std::enable_shared_from_this<Invoke> {
 #endif
         }
 
+#if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
+        if (_contents_export && _exporter) [[likely]] {
+            _exporter->cache(processed_frame.data, processed_frame.size);
+        }
+#endif
+
         _ret = algorithm->run(&frame);
         if (!is_everything_ok()) [[unlikely]]
             goto Err;
 
 #if SSCMA_CFG_ENABLE_CONTENTS_EXPORT
         if (_contents_export && _exporter) [[likely]] {
-            _exporter->cache(processed_frame.data, processed_frame.size);
             _exporter->cache_result(concat_strings("\r{\"type\": 1, \"name\": \"",
                                                    _cmd,
                                                    "\", \"code\": ",
