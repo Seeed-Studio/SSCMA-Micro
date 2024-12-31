@@ -51,9 +51,11 @@ bool Classifier::isValid(Engine* engine) {
         return false;
 
     const auto output_shape = engine->getOutputShape(0);
+#if MA_USE_ENGINE_HAILO
     if (output_shape.size != 2) {
         return false;
     }
+#endif
 
     if (output_shape.dims[0] != 1 ||  // N = 1
         output_shape.dims[1] < 2      // C >= 2
@@ -61,6 +63,11 @@ bool Classifier::isValid(Engine* engine) {
         return false;
     }
 
+#if MA_USE_ENGINE_CVI
+   if (output_shape.size == 4 && (output_shape.dims[2] != 1 || output_shape.dims[3] != 1)) {
+        return false;
+    }
+#endif
     return true;
 }
 
