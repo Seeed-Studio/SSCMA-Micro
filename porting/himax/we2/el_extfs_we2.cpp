@@ -86,6 +86,7 @@ FileWE2::~FileWE2() { close(); }
 
 void FileWE2::close() {
     if (_file != nullptr) {
+        f_sync(static_cast<FIL*>(_file));
         while (f_close(static_cast<FIL*>(_file)) != FR_OK) {
             el_sleep(3);
         }
