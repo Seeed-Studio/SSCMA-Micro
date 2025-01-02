@@ -38,6 +38,9 @@ OpsResolver::OpsResolver() {
     #ifdef CONFIG_EL_TFLITE_OP_ADD
     AddAdd();
     #endif
+    #ifdef CONFIG_EL_TFLITE_OP_BATCH_MATMUL
+    AddBatchMatMul();
+    #endif
     #ifdef CONFIG_EL_TFLITE_OP_ADDN
     AddAddN();
     #endif
