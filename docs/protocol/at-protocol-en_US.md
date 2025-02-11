@@ -1,4 +1,4 @@
-# AT Protocol Specification v2023.05.15
+# AT Protocol Specification v2025.02.11 (Partial Updated)
 
 
 ## Transmission Layer
@@ -199,6 +199,44 @@ Note:
 
 1. All version info is stored in strings.
 1. The `hardware` version is chip revision on the ESP32 port.
+
+
+#### Get default transport type
+
+Request: `AT+DFTTPT?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "DFTTPT?",
+  "code": 0,
+  "data": 1
+}\n
+```
+
+Note: The `data` field represents the default transport type that the device will use when booting up.
+
+
+#### Get RC commands
+
+Request: `AT+RC?\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "RC?",
+  "code": 0,
+  "data": {
+    "rc": "AT+INVOKE=-1,1"
+  }
+}\n
+```
+
+Note: The `rc` field represents the command that the device will execute when booting up, you can use `;` to separate multiple commands.
 
 #### Get available algorithms
 
@@ -612,6 +650,54 @@ Response:
 
 ### Execute operation
 
+#### Set default transport type
+
+Pattern: `AT+DFTTPT=<TransportType>\r`
+
+Request: `AT+DFTTPT=1\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "DFTTPT",
+  "code": 0,
+  "data": 1
+}\n
+```
+
+Note:
+- The `data` field represents the default transport type ([Transport Types](#transport-type) that the device will use when booting up.
+- If you set an invalid transport type, the device will return an error and the default transport type will not change (returns last valid value).
+- If you set a valid transport type, but later the previous transport type is not available (not register in device), the device may fail to execute some other start up commands.
+
+
+#### Set RC commands
+
+Pattern: `AT+RC=<"COMMANDS">\r`
+
+Request: `AT+RC="AT+INVOKE=-1,1"\r`
+
+Response:
+
+```json
+\r{
+  "type": 0,
+  "name": "RC",
+  "code": 0,
+  "data": {
+    "rc": "AT+INVOKE=-1,1"
+  }
+}\n
+```
+
+Note:
+- The `rc` field represents the command that the device will execute when booting up, you can use `;` to separate multiple commands.
+- If you set an invalid command, the error logs will show after you reboot the device.
+- Some command is dangerous, you should be careful when setting it, e.g. `AT+RST`.
+
+
 #### Load a model by model ID
 
 Pattern: `AT+MODEL=<MODEL_ID>\r`
@@ -888,7 +974,7 @@ Note:
 
 1. The trigger rules consist of single or multiple trigger rule(s), each rule is separated by `|`.
 2. Each rule consists of 6 fields, separated by `,`, the fields are:
-    - `CLASS_ID`: Integer that not negative, specified class for the evaluation of the condition. 
+    - `CLASS_ID`: Integer that not negative, specified class for the evaluation of the condition.
     - `CONDITION`: Integer, the condition type, `0` means `>`, `1` means `<`, `2` means `>=`, `3` means `<=`, `4` means `==`, `5` means `!=`, otherwise returns error.
     - `SCORE_THRESHOLD`: Integer between `[0, 100]`, the score threshold.
     - `GPIO_PIN`: Integer in a specific set, different boards may have different available GPIO pins, if the pin is not available, returns error. (e.g. There's 6 GPIO pins `{1,2,3,21,41,42}` available on XIAO ESP32-S3 board)
@@ -1300,14 +1386,22 @@ No-reply.
 "type": <Key:Unsigned>
 ```
 
-| Key | Value     |
-|-----|-----------|
-| `0` | Undefined |
-| `1` | FOMO      |
-| `2` | PFLD      |
-| `3` | YOLO      |
-| `4` | IMCLS     |
-
+| Key | Value         |
+|-----|---------------|
+| `0` | Undefined     |
+| `1` | FOMO          |
+| `2` | PFLD          |
+| `3` | YOLOV5        |
+| `4` | IMCLS         |
+| `5` | YOLOV8_POSE   |
+| `6` | YOLOV8        |
+| `7` | NVIDIA_DET    |
+| `8` | YOLO_WORLD    |
+| `9` | YOLO11        |
+| `10`| YOLO11_POSE   |
+| `11`| YOLO11_SEG    |
+| `12`| YOLOV8_SGE    |
+| `13`| RTMDET        |
 
 ### Algorithm Category
 
@@ -1322,6 +1416,27 @@ No-reply.
 | `2` | Pose           |
 | `3` | Classification |
 
+Note: Maybe deprecated.
+
+### Transport Type
+
+```json
+"type": <Key:Unsigned>
+```
+
+| Key | Value     |
+|-----|-----------|
+| `0` | Undefined |
+| `1` | Console   |
+| `2` | Serial    |
+| `3` | SPI       |
+| `4` | I2C       |
+| `5` | MQTT      |
+| `6` | TCP       |
+| `7` | UDP       |
+| `8` | RTSP      |
+| `9` | WS        |
+
 ### Sensor Type
 
 ```json
@@ -1332,6 +1447,8 @@ No-reply.
 |-----|-----------|
 | `0` | Undefined |
 | `1` | Camera    |
+
+Note: Maybe deprecated.
 
 ### Sensor State
 
@@ -1359,6 +1476,8 @@ Key:
 - `raw`
 
 Data: `<BASE64:String>`
+
+Note: Maybe deprecated.
 
 ### Performance Type
 
@@ -1426,4 +1545,3 @@ Value:
     0,  // target id
 ]
 ```
-

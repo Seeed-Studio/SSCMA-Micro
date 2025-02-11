@@ -67,6 +67,7 @@
 #define MA_AT_CMD_INVOKE               "INVOKE"
 #define MA_AT_CMD_SAMPLE               "SAMPLE"
 #define MA_AT_CMD_INFO                 "INFO"
+#define MA_AT_CMD_RC                   "RC"
 #define MA_AT_CMD_TSCORE               "TSCORE"
 #define MA_AT_CMD_TIOU                 "TIOU"
 #define MA_AT_CMD_ALGOS                "ALGOS"
