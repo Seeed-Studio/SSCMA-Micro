@@ -81,13 +81,8 @@ exit:
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }
 
-void initDefaultSensor(Encoder& encoder) {
-    if (static_resource->device->getTransports().empty()) {
-        MA_LOGD(MA_TAG, "No transport available");
-        return;
-    }
-    auto& transport = static_resource->device->getTransports().front();
-    if (!transport || !*transport) {
+void initDefaultSensor(Transport* transport, Encoder& encoder) {
+    if (!transport) {
         MA_LOGD(MA_TAG, "Transport not available");
         return;
     }

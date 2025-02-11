@@ -13,6 +13,7 @@
 #include "callback/invoke.hpp"
 #include "callback/model.hpp"
 #include "callback/mqtt.hpp"
+#include "callback/rc.hpp"
 #include "callback/resource.hpp"
 #include "callback/sample.hpp"
 #include "callback/sensor.hpp"
@@ -60,10 +61,25 @@ void ATServer::threadEntryStub(void* arg) {
 void ATServer::threadEntry() {
     // Startup
     {
-        initDefaultSensor(m_encoder);
-        initDefaultModel(m_encoder);
-        initDefaultAlgorithm(m_encoder);
-        initDefaultTrigger(m_encoder);
+        Transport* transport = nullptr;
+        for (const auto& t : static_resource->device->getTransports()) {
+            if (t && t->getType() == static_resource->default_transport_type) {
+                transport = t;
+                break;
+            }
+        }
+
+        if (transport) {
+            initDefaultSensor(transport, m_encoder);
+            initDefaultModel(transport, m_encoder);
+            initDefaultAlgorithm(transport, m_encoder);
+            initDefaultTrigger(transport, m_encoder);
+            initDefaultRC(
+                transport,
+                m_encoder,
+                [this](const std::string& cmd, Transport& transport) { this->execute(cmd, transport); }
+            );
+        }
     }
 
     char* buf = new char[MA_SEVER_AT_CMD_MAX_LENGTH + 1];
@@ -89,7 +105,6 @@ void ATServer::threadEntry() {
 }
 
 ma_err_t ATServer::init() {
-    ma_err_t err = MA_OK;
 
     this->addService("ID?", "Get device ID", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([cmd = std::move(args[0]), &transport, &encoder](const std::atomic<bool>&) { get_device_id(cmd, transport, encoder); });
@@ -139,6 +154,34 @@ ma_err_t ATServer::init() {
     this->addService("LED", "Set LED status", "ENABLE/DISABLE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
         static_resource->executor->submit([cmd = std::move(args[0]), sta = std::atoi(args[1].c_str()), &transport, &encoder](const std::atomic<bool>&) { task_status(cmd, sta, transport, encoder); });
 
+        return MA_OK;
+    });
+
+    this->addService("DFTTPT", "Set default transport type", "TRANSPORT_TYPE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            setDefaultTransportType(args, transport, encoder);
+        });
+        return MA_OK;
+    });
+
+    this->addService("DFTTPT?", "Get default transport type", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            getDefaultTransportType(args, transport, encoder);
+        });
+        return MA_OK;
+    });
+
+    this->addService("RC", "Set start up exec", "VALUE", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            storeRC(args, transport, encoder);
+        });
+        return MA_OK;
+    });
+
+    this->addService("RC?", "Get start up exec", "", [](std::vector<std::string> args, Transport& transport, Encoder& encoder) {
+        static_resource->executor->submit([args = std::move(args), &transport, &encoder](const std::atomic<bool>&) {
+            readRC(args, transport, encoder);
+        });
         return MA_OK;
     });
 
@@ -328,7 +371,7 @@ ma_err_t ATServer::init() {
 #ifdef MA_SERVER_RUN_DEVICE_BACKGROUND_TASK
 extern void __ma_device_background_task();
 static void __ma_device_task_entry(void*) {
-    while (1) {  
+    while (1) {
         static_resource->executor->submit([&](const std::atomic<bool>&) {
             __ma_device_background_task();
         });

@@ -242,7 +242,8 @@ typedef enum {
     MA_TRANSPORT_TCP     = 6,
     MA_TRANSPORT_UDP     = 7,
     MA_TRANSPORT_RTSP    = 8,
-    MA_TRANSPORT_WS     = 9
+    MA_TRANSPORT_WS      = 9,
+    __MA_TRANSPORT_END
 } ma_transport_type_t;
 
 typedef enum {

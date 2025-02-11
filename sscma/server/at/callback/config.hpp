@@ -50,7 +50,7 @@ void setNMSThreshold(const std::vector<std::string>& argv, Transport& transport,
             ret = MA_EINVAL;
             goto exit;
         }
-        static_resource->shared_threshold_nms = nms / 100.0; 
+        static_resource->shared_threshold_nms = nms / 100.0;
 
         MA_STORAGE_NOSTA_SET_POD(static_resource->device->getStorage(), "ma#nms_threshold", static_resource->shared_threshold_nms);
     }
@@ -78,6 +78,38 @@ void getNMSThreshold(const std::vector<std::string>& argv, Transport& transport,
     MA_STORAGE_GET_POD(static_resource->device->getStorage(), "ma#nms_threshold", static_resource->shared_threshold_nms, static_resource->shared_threshold_nms);
 
     encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], static_cast<uint64_t>(std::round(static_resource->shared_threshold_nms * 100)));
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
+}
+
+void getDefaultTransportType(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+    ma_err_t ret = MA_OK;
+
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], static_resource->default_transport_type);
+    encoder.end();
+    transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
+}
+
+void setDefaultTransportType(const std::vector<std::string>& argv, Transport& transport, Encoder& encoder) {
+    ma_err_t ret  = MA_OK;
+    int      type = static_resource->default_transport_type;
+
+    if (argv.size() < 2) {
+        ret = MA_EINVAL;
+        goto exit;
+    }
+
+    type = std::atoi(argv[1].c_str());
+    if (type < 1 || type >= __MA_TRANSPORT_END) {
+        ret = MA_EINVAL;
+        goto exit;
+    }
+
+    static_resource->default_transport_type = type;
+    MA_STORAGE_NOSTA_SET_POD(static_resource->device->getStorage(), "ma#default_transport_type", static_resource->default_transport_type);
+
+exit:
+    encoder.begin(MA_MSG_TYPE_RESP, ret, argv[0], static_resource->default_transport_type);
     encoder.end();
     transport.send(reinterpret_cast<const char*>(encoder.data()), encoder.size());
 }

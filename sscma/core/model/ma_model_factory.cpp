@@ -17,6 +17,11 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
                 return new FOMO(engine);
             }
 
+        case MA_MODEL_TYPE_YOLOV5:
+            if (YoloV5::isValid(engine)) {
+                return new YoloV5(engine);
+            }
+
         case MA_MODEL_TYPE_IMCLS:
             if (Classifier::isValid(engine)) {
                 return new Classifier(engine);
@@ -27,10 +32,6 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
                 return new PFLD(engine);
             }
 
-        case MA_MODEL_TYPE_YOLOV5:
-            if (YoloV5::isValid(engine)) {
-                return new YoloV5(engine);
-            }
 
         case MA_MODEL_TYPE_YOLOV8_POSE:
 #if MA_USE_ENGINE_HAILO
@@ -60,7 +61,7 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
             if (RTMDet::isValid(engine)) {
                 return new RTMDet(engine);
             }
-        
+
         case MA_MODEL_TYPE_YOLO_WORLD:
             if (YoloWorld::isValid(engine)) {
                 return new YoloWorld(engine);
