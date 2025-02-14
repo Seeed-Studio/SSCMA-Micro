@@ -189,7 +189,7 @@ ma_err_t YoloV8Pose::postprocess() {
     return MA_ENOTSUP;
 }
 
-ma_err_t YoloV8Pose::postProcessI8() {
+__attribute__((optimize("O1"))) ma_err_t YoloV8Pose::postProcessI8() {
     results_.clear();
 
     const int8_t* output_data[num_outputs_];
