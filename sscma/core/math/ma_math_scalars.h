@@ -30,7 +30,7 @@ constexpr inline float fastLn(float x) {
     return static_cast<float>(-1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t);
 }
 
-constexpr inline float fastExp(float x) {
+__attribute__((optimize("O1"))) constexpr inline float fastExp(float x) {
     // N. Schraudolph, "A Fast, Compact Approximation of the Exponential Function"
     // https://nic.schraudolph.org/pubs/Schraudolph99.pdf
 

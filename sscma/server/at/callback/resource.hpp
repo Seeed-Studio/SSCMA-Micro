@@ -39,6 +39,7 @@ struct StaticResource final {
 
         MA_STORAGE_GET_POD(device->getStorage(), "ma#score_threshold", shared_threshold_score, shared_threshold_score);
         MA_STORAGE_GET_POD(device->getStorage(), "ma#nms_threshold", shared_threshold_nms, shared_threshold_nms);
+        MA_STORAGE_GET_POD(device->getStorage(), "ma#default_transport_type", default_transport_type, default_transport_type);
     }
 
    public:
@@ -55,9 +56,10 @@ struct StaticResource final {
     size_t                   current_model_id = 0;
     size_t                   current_sensor_id = 0;
     size_t                   current_algorithm_id = 0;
-    
+
     float shared_threshold_score = 0.25;
     float shared_threshold_nms   = 0.45;
+    int   default_transport_type = MA_TRANSPORT_CONSOLE;
 
     std::atomic<bool> is_ready  = false;
     std::atomic<bool> is_sample = false;
