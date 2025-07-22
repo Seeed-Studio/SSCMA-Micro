@@ -366,6 +366,10 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
+        if(ts.tv_nsec >= 1000000000) {
+            ts.tv_sec++;
+            ts.tv_nsec -= 1000000000;
+        }
     }
 
     Guard guard(m_mutex);
@@ -395,6 +399,10 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
+        if(ts.tv_nsec >= 1000000000) {
+            ts.tv_sec++;
+            ts.tv_nsec -= 1000000000;
+        }
     }
 
     Guard guard(m_mutex);
