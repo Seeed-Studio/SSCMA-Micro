@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8.2)
-
 set(component_hash "d01280e64934a09ba16cac60cf9d3a37e228bb66")
 
 if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/.component_hash")
@@ -60,5 +58,4 @@ target_compile_definitions(littlefs PUBLIC ${DEFS_LITTLEFS})
 set_target_properties(littlefs PROPERTIES LINKER_LANGUAGE C)
 endif()
 
-message(STATUS "INCS_LITTLEFS: ${INCS_LITTLEFS}")
 

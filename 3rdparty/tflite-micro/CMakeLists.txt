@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8.2)
-
 set(component_hash "be11bd79e4a8b28c9ee92c6f02ca0e85414fb768")
 set(fetch_script "${SSCMA_ROOT_DIR}/scripts/fetch_tflite_micro.sh")
 

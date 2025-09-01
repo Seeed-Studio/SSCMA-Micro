@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8.2)
-
 set(component_hash "acc76239bee01d8e9c858ae2cab296704e52d916")
 
 if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/.component_hash")
@@ -49,6 +47,4 @@ if(POSIX_PLATFORM)
 add_library(cjson STATIC ${SRCS_CJSON})
 target_include_directories(cjson PUBLIC ${INCS_CJSON})
 endif()
-
-message(STATUS "INCS_CJSON: ${INCS_CJSON}")
 

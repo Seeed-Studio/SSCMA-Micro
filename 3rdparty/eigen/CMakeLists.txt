@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8.2)
-
 set(component_hash "3147391d946bb4b6c68edd901f2add6ac1f31f8c")
 
 if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/.component_hash")
