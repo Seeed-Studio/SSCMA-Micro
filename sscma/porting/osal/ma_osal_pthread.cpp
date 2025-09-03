@@ -361,8 +361,9 @@ MessageBox::operator bool() const {
 bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
     struct timespec ts;
     int error = 0;
+    bool has_timeout = (timeout != Tick::waitForever);
 
-    if (timeout != Tick::waitForever) {
+    if (has_timeout) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
@@ -374,15 +375,13 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
 
     Guard guard(m_mutex);
     while (m_mbox.count == 0) {
-        if (timeout != Tick::waitForever) {
+        if (has_timeout) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
-            // MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
-            // MA_ASSERT(error != EINVAL);
         }
     }
     m_mbox.count--;
@@ -394,8 +393,9 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
 bool MessageBox::post(void* msg, ma_tick_t timeout) {
     struct timespec ts;
     int error = 0;
+    bool has_timeout = (timeout != Tick::waitForever);
 
-    if (timeout != Tick::waitForever) {
+    if (has_timeout) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
@@ -407,22 +407,44 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
 
     Guard guard(m_mutex);
     while (m_mbox.count == m_mbox.size) {
-        if (timeout != Tick::waitForever) {
+        if (has_timeout) {
             error = pthread_cond_timedwait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex), &ts);
-            // MA_ASSERT(error != EINVAL);
             if (error) {
                 return false;
             }
         } else {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
-            // MA_ASSERT(error != EINVAL);
         }
     }
+    
+    bool was_empty = (m_mbox.count == 0);
     m_mbox.msg[m_mbox.w] = msg;
     m_mbox.count++;
     m_mbox.w = (m_mbox.w + 1) % m_mbox.size;
-    pthread_cond_signal(&m_mbox.cond);
+    
+    if (was_empty) {
+        pthread_cond_signal(&m_mbox.cond);
+    }
     return true;
+}
+
+size_t MessageBox::getCount() const {
+    Guard guard(m_mutex);
+    return m_mbox.count;
+}
+
+size_t MessageBox::getSize() const {
+    return m_mbox.size;
+}
+
+bool MessageBox::isFull() const {
+    Guard guard(m_mutex);
+    return m_mbox.count == m_mbox.size;
+}
+
+bool MessageBox::isEmpty() const {
+    Guard guard(m_mutex);
+    return m_mbox.count == 0;
 }
 
 // Timer::Timer(uint32_t ms, void (*fn)(ma_timer_t*, void*), void* arg, bool oneshot) noexcept {

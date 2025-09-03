@@ -298,6 +298,37 @@ bool MessageBox::post(void* msg, ma_tick_t timeout) {
     return true;
 }
 
+size_t MessageBox::getCount() const {
+    if (xPortIsInsideInterrupt()) {
+        return static_cast<size_t>(uxQueueMessagesWaitingFromISR(m_mbox));
+    } else {
+        Guard guard(m_mutex);
+        return static_cast<size_t>(uxQueueMessagesWaiting(m_mbox));
+    }
+}
+
+size_t MessageBox::getSize() const {
+    return static_cast<size_t>(uxQueueGetQueueLength(m_mbox));
+}
+
+bool MessageBox::isFull() const {
+    if (xPortIsInsideInterrupt()) {
+        return (uxQueueSpacesAvailableFromISR(m_mbox) == 0);
+    } else {
+        Guard guard(m_mutex);
+        return (uxQueueSpacesAvailable(m_mbox) == 0);
+    }
+}
+
+bool MessageBox::isEmpty() const {
+    if (xPortIsInsideInterrupt()) {
+        return (uxQueueMessagesWaitingFromISR(m_mbox) == 0);
+    } else {
+        Guard guard(m_mutex);
+        return (uxQueueMessagesWaiting(m_mbox) == 0);
+    }
+}
+
 }  // namespace ma
 
 #endif

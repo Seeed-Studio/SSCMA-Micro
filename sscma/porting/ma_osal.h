@@ -151,6 +151,11 @@ public:
 
     bool fetch(void** msg, ma_tick_t timeout = Tick::waitForever);
     bool post(void* msg, ma_tick_t timeout = Tick::waitForever);
+    
+    size_t getCount() const;
+    size_t getSize() const;
+    bool isFull() const;
+    bool isEmpty() const;
 
 private:
     MessageBox(const MessageBox&)            = delete;
