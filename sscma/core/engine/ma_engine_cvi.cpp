@@ -234,7 +234,7 @@ ma_err_t EngineCVI::setInput(int32_t index, const ma_tensor_t& tensor) {
     if (tensor.is_physical) {
         CVI_NN_SetTensorPhysicalAddr(&input_tensors[index], reinterpret_cast<uint64_t>(tensor.data.data));
     } else {
-        CVI_NN_SetTensorPtr(&input_tensors[index], tensor.data.data);
+        memcpy(CVI_NN_TensorPtr(&input_tensors[index]), tensor.data.data, tensor.size);
     }
     return MA_OK;
 }
