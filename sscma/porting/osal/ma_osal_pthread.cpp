@@ -119,27 +119,54 @@ bool Thread::start(void* arg) {
     }
 
     result = pthread_create(&m_thread, nullptr, threadEntryPointStub, this);
-    pthread_setname_np(m_thread, m_name.c_str());
-    m_started = (result == 0);
+    if (result != 0) {
+        return false;
+    }
 
-    return result == 0;
+    // Set thread name only if creation succeeded
+    int name_result = pthread_setname_np(m_thread, m_name.c_str());
+    (void)name_result; // Suppress unused variable warning if no logging
+
+    m_started = true;
+    return true;
 }
 
 bool Thread::stop() {
     if (!m_started) {
         return false;
     }
-    pthread_cancel(m_thread);
-    pthread_join(m_thread, nullptr);
+
+    // Send cancellation request
+    int cancel_result = pthread_cancel(m_thread);
+    if (cancel_result != 0) {
+        // Handle cancellation errors
+        switch (cancel_result) {
+            case ESRCH:
+                // Thread not found - may have already exited
+                m_started = false;
+                return true;
+            default:
+                // Other errors - still try to join
+                break;
+        }
+    }
+
+    // Always try to join, even if cancel failed
+    int join_result = pthread_join(m_thread, nullptr);
     m_started = false;
-    return true;
+
+    return (cancel_result == 0 || cancel_result == ESRCH) && join_result == 0;
 }
 
 bool Thread::join() {
     if (!m_started) {
         return false;
     }
-    pthread_join(m_thread, nullptr);
+    int result = pthread_join(m_thread, nullptr);
+    if (result != 0) {
+        m_started = false;
+        return false;
+    }
     m_started = false;
     return true;
 }
@@ -181,7 +208,21 @@ Mutex::operator bool() const {
 }
 
 bool Mutex::tryLock(ma_tick_t timeout) {
-    return pthread_mutex_trylock(&m_mutex) == 0;
+    if (timeout == 0) {
+        return pthread_mutex_trylock(&m_mutex) == 0;
+    }
+
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    ts.tv_sec += timeout / 1000000000;
+    ts.tv_nsec += (timeout % 1000000000);
+    if(ts.tv_nsec >= 1000000000) {
+        ts.tv_sec++;
+        ts.tv_nsec -= 1000000000;
+    }
+
+    int result = pthread_mutex_timedlock(&m_mutex, &ts);
+    return result == 0;
 }
 
 bool Mutex::lock() const {
@@ -230,6 +271,10 @@ bool Semaphore::wait(ma_tick_t timeout) {
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
+        if(ts.tv_nsec >= 1000000000) {
+            ts.tv_sec++;
+            ts.tv_nsec -= 1000000000;
+        }
     }
 
     Guard guard(m_mutex);
@@ -256,10 +301,8 @@ uint32_t Semaphore::getCount() const {
 
 void Semaphore::signal() {
     Guard guard(m_mutex);
-    if (m_sem.count == 0) {
-        pthread_cond_signal(&m_sem.cond);
-    }
     m_sem.count++;
+    pthread_cond_signal(&m_sem.cond);
 }
 
 Event::Event() noexcept {
@@ -287,12 +330,16 @@ bool Event::wait(uint32_t mask, uint32_t* value, ma_tick_t timeout, bool clear, 
         clock_gettime(CLOCK_MONOTONIC, &ts);
         ts.tv_sec += timeout / 1000000000;
         ts.tv_nsec += (timeout % 1000000000);
+        if(ts.tv_nsec >= 1000000000) {
+            ts.tv_sec++;
+            ts.tv_nsec -= 1000000000;
+        }
     }
     Guard guard(m_mutex);
 
     do {
         if (waitAll) {
-            if (m_event.value & mask == mask) {
+            if ((m_event.value & mask) == mask) {
                 break;
             }
         } else {
@@ -331,7 +378,7 @@ void Event::clear(uint32_t value) {
 void Event::set(uint32_t value) {
     Guard guard(m_mutex);
     m_event.value |= value;
-    pthread_cond_signal(&m_event.cond);
+    pthread_cond_broadcast(&m_event.cond);
 }
 
 uint32_t Event::get() const {
@@ -384,9 +431,15 @@ bool MessageBox::fetch(void** msg, ma_tick_t timeout) {
             error = pthread_cond_wait(&m_mbox.cond, static_cast<ma_mutex_t*>(m_mutex));
         }
     }
+
+    bool was_full = (m_mbox.count == m_mbox.size);
     m_mbox.count--;
     *msg     = m_mbox.msg[m_mbox.r];
     m_mbox.r = (m_mbox.r + 1) % m_mbox.size;
+
+    if (was_full) {
+        pthread_cond_signal(&m_mbox.cond);
+    }
     return true;
 }
 
