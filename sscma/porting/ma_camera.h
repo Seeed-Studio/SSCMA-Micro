@@ -53,6 +53,7 @@ class Camera : public Sensor {
         kChannel,
         kFps,
         kRegister,
+        kPhysical,
     };
 
     enum CtrlMode : int {
