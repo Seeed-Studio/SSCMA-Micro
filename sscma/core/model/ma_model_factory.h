@@ -23,6 +23,7 @@
 #include "ma_model_yolov8_pose_hailo.h"
 #include "ma_model_yolov8_seg_hailo.h"
 #include "ma_model_rtmdet.h"
+#include "ma_model_yolo26.h"
 
 namespace ma {
 

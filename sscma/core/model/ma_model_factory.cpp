@@ -10,6 +10,8 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
         return nullptr;
     }
 
+    // print output tensor info for debug
+
     switch (algorithm_id) {
         case 0:
         case MA_MODEL_TYPE_FOMO:
@@ -79,6 +81,11 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
         case MA_MODEL_TYPE_YOLO11_SEG:
             if (Yolo11Seg::isValid(engine)) {
                 return new Yolo11Seg(engine);
+            }
+            [[fallthrough]];
+        case MA_MODEL_TYPE_YOLO26:
+            if (Yolo26::isValid(engine)) {
+                return new Yolo26(engine);
             }
         default:
             break;
