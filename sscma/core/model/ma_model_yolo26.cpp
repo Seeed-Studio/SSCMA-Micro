@@ -6,6 +6,10 @@
 #include "../math/ma_math.h"
 #include "../utils/ma_nms.h"
 
+#if MA_USE_ENGINE_HAILO
+#include "../engine/ma_engine_hailo.h"
+#endif
+
 #include "ma_model_yolo26.h"
 
 namespace ma::model {
@@ -16,6 +20,13 @@ Yolo26::Yolo26(Engine* p_engine_) : Detector(p_engine_, "Yolo26", MA_MODEL_TYPE_
     MA_ASSERT(p_engine_ != nullptr);
 
     const auto& input_shape = p_engine_->getInputShape(0);
+    const auto outputs_count = p_engine_->getOutputSize();
+
+    if (outputs_count == 1) {
+        outputs_[0] = p_engine_->getOutput(0);
+        // NMS mode, no further initialization needed here
+        return;
+    }
 
     for (size_t i = 0; i < 6; ++i) {
         outputs_[i] = p_engine_->getOutput(i);
@@ -33,8 +44,6 @@ Yolo26::Yolo26(Engine* p_engine_) : Detector(p_engine_, "Yolo26", MA_MODEL_TYPE_
     num_record_ = (s * s + m * m + l * l);
 
     // Differentiate between Interleaved (Box, Cls, Box, Cls...) and Grouped (Box, Box, Box, Cls, Cls, Cls) layouts
-    // If Tensor 1 is a Box tensor (4 channels), it is Grouped layout.
-    // If Tensor 1 is a Cls tensor (>4 channels usually), it is Interleaved layout.
     if (outputs_[1].shape.dims[1] == 4) {
         // Grouped Layout
         box_idx_[0] = 0; box_idx_[1] = 1; box_idx_[2] = 2;
@@ -48,12 +57,55 @@ Yolo26::Yolo26(Engine* p_engine_) : Detector(p_engine_, "Yolo26", MA_MODEL_TYPE_
     }
 }
 
+
 Yolo26::~Yolo26() {}
+
+static bool nmsValid(Engine* engine) {
+#if MA_USE_ENGINE_HAILO
+    if (engine->getInputSize() != 1 || engine->getOutputSize() != 1)
+        return false;
+
+    auto input  = engine->getInput(0);
+    auto output = engine->getOutput(0);
+
+    if (input.shape.size != 4 || output.shape.size != 4)
+        return false;
+
+    auto n = input.shape.dims[0];
+    auto h = input.shape.dims[1];
+    auto w = input.shape.dims[2];
+    auto c = input.shape.dims[3];
+    auto is_nhwc = c == 3 || c == 1;
+    if (!is_nhwc) std::swap(h, c);
+
+    if (n != 1 || h < 32 || h % 32 != 0 || (c != 3 && c != 1))
+        return false;
+
+    auto b  = output.shape.dims[0];
+    auto cs = output.shape.dims[1];
+    auto mb = output.shape.dims[2];
+    auto f  = output.shape.dims[3];
+
+    if (b != 1 || cs <= 0 || mb <= 1 || f != 0)
+        return false;
+
+    return true;
+#else
+    return false;
+#endif
+}
 
 bool Yolo26::isValid(Engine* engine) {
 
     const auto inputs_count  = engine->getInputSize();
     const auto outputs_count = engine->getOutputSize();
+    
+    if (outputs_count == 1) {
+        auto output = engine->getOutput(0);
+        if (output.type == MA_TENSOR_TYPE_NMS_BBOX_U16 || output.type == MA_TENSOR_TYPE_NMS_BBOX_F32) {
+            return nmsValid(engine);
+        }
+    }
 
     if (inputs_count != 1 || outputs_count < 6) {
         return false;
@@ -258,9 +310,152 @@ ma_err_t Yolo26::postProcessF32() {
     return MA_OK;
 }
 
+ma_err_t Yolo26::nmsPostProcess() {
+#if MA_USE_ENGINE_HAILO
+
+    auto& output = outputs_[0];
+
+    if (output.shape.size < 4) {
+        return MA_FAILED;
+    }
+
+    size_t w = output.shape.dims[1];
+    size_t h = output.shape.dims[2];
+    size_t c = output.shape.dims[3];
+
+    hailo_nms_shape_t nms_shape;
+    if (output.external_handler) {
+        auto rc = (*reinterpret_cast<ma::engine::EngineHailo::ExternalHandler*>(output.external_handler))(4, &nms_shape, sizeof(hailo_nms_shape_t));
+        if (rc == MA_OK) {
+            w = nms_shape.number_of_classes;
+            h = nms_shape.max_bboxes_per_class;
+            c = nms_shape.max_accumulated_mask_size;
+        }
+    }
+
+    switch (output.type) {
+        case MA_TENSOR_TYPE_NMS_BBOX_U16: {
+            using T = uint16_t;
+            using P = hailo_bbox_t;
+
+            const auto zp    = output.quant_param.zero_point;
+            const auto scale = output.quant_param.scale;
+
+            auto ptr = output.data.u8;
+            for (size_t i = 0; i < w; ++i) {
+                auto bc = *reinterpret_cast<T*>(ptr);
+                ptr += sizeof(T);
+
+                if (bc <= 0) {
+                    continue;
+                } else if (bc > h) {
+                    break;
+                }
+
+                for (size_t j = 0; j < static_cast<size_t>(bc); ++j) {
+                    auto bbox = *reinterpret_cast<P*>(ptr);
+                    ptr += sizeof(P);
+
+                    ma_bbox_t res;
+
+                    auto x_min = static_cast<float>(bbox.x_min - zp) * scale;
+                    auto y_min = static_cast<float>(bbox.y_min - zp) * scale;
+                    auto x_max = static_cast<float>(bbox.x_max - zp) * scale;
+                    auto y_max = static_cast<float>(bbox.y_max - zp) * scale;
+                    res.w      = x_max - x_min;
+                    res.h      = y_max - y_min;
+                    res.x      = x_min + res.w * 0.5;
+                    res.y      = y_min + res.h * 0.5;
+                    res.score  = static_cast<float>(bbox.score - zp) * scale;
+
+                    res.target = static_cast<int>(i);
+
+                    res.x = MA_CLIP(res.x, 0, 1.0f);
+                    res.y = MA_CLIP(res.y, 0, 1.0f);
+                    res.w = MA_CLIP(res.w, 0, 1.0f);
+                    res.h = MA_CLIP(res.h, 0, 1.0f);
+
+                    results_.emplace_front(res);
+                }
+            }
+        } break;
+
+        case MA_TENSOR_TYPE_NMS_BBOX_F32: {
+            using T = float32_t;
+            using P = hailo_bbox_float32_t;
+
+            auto ptr = output.data.u8;
+            for (size_t i = 0; i < w; ++i) {
+                auto bc = *reinterpret_cast<T*>(ptr);
+                ptr += sizeof(T);
+
+                if (bc <= 0) {
+                    continue;
+                } else if (bc > h) {
+                    break;
+                }
+
+                for (size_t j = 0; j < static_cast<size_t>(bc); ++j) {
+                    auto bbox = *reinterpret_cast<P*>(ptr);
+                    ptr += sizeof(P);
+
+                    ma_bbox_t res;
+
+                    res.w     = bbox.x_max - bbox.x_min;
+                    res.h     = bbox.y_max - bbox.y_min;
+                    res.x     = bbox.x_min + res.w * 0.5;
+                    res.y     = bbox.y_min + res.h * 0.5;
+                    res.score = bbox.score;
+
+                    res.target = static_cast<int>(i);
+
+                    res.x = MA_CLIP(res.x, 0, 1.0f);
+                    res.y = MA_CLIP(res.y, 0, 1.0f);
+                    res.w = MA_CLIP(res.w, 0, 1.0f);
+                    res.h = MA_CLIP(res.h, 0, 1.0f);
+
+                    results_.emplace_front(res);
+                }
+            }
+        } break;
+
+        default:
+            return MA_ENOTSUP;
+    }
+
+    ma::utils::nms(results_, threshold_nms_, threshold_score_, false, false);
+
+    results_.sort([](const ma_bbox_t& a, const ma_bbox_t& b) { return a.x < b.x; });
+
+    return MA_OK;
+#else
+    return MA_FAILED;
+#endif
+}
+
 ma_err_t Yolo26::postprocess() {
     ma_err_t err = MA_OK;
     results_.clear();
+
+    if (outputs_[0].type == MA_TENSOR_TYPE_NMS_BBOX_U16 || outputs_[0].type == MA_TENSOR_TYPE_NMS_BBOX_F32) {
+#if MA_USE_ENGINE_HAILO
+        // TODO: can be optimized by whihout calling this handler for each frame
+        if (outputs_[0].external_handler) {
+            auto ph   = reinterpret_cast<ma::engine::EngineHailo::ExternalHandler*>(outputs_[0].external_handler);
+            float thr = threshold_score_;
+            auto rc   = (*ph)(1, &thr, sizeof(float));
+            if (rc == MA_OK) {
+                threshold_score_ = thr;
+            }
+            thr = threshold_nms_;
+            rc  = (*ph)(3, &thr, sizeof(float));
+            if (rc == MA_OK) {
+                threshold_nms_ = thr;
+            }
+        }
+#endif
+        return nmsPostProcess();
+    }
 
     if (outputs_[0].type == MA_TENSOR_TYPE_F32) {
         err = postProcessF32();

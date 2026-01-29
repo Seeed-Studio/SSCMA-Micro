@@ -87,6 +87,17 @@ Model* ModelFactory::create(Engine* engine, size_t algorithm_id) {
             if (Yolo26::isValid(engine)) {
                 return new Yolo26(engine);
             }
+            break;
+        case MA_MODEL_TYPE_YOLO26_POSE:
+            if (Yolo26Pose::isValid(engine)) {
+                return new Yolo26Pose(engine);
+            }
+            break;
+        case MA_MODEL_TYPE_YOLO26_SEG:
+            if (Yolo26Seg::isValid(engine)) {
+                return new Yolo26Seg(engine);
+            }
+            break;
         default:
             break;
     }

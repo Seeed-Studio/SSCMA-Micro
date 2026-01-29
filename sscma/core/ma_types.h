@@ -288,7 +288,9 @@ typedef enum {
     MA_MODEL_TYPE_YOLO11_SEG  = 11u,
     MA_MODEL_TYPE_YOLOV8_SGE  = 12u,
     MA_MODEL_TYPE_RTMDET      = 13u,
-    MA_MODEL_TYPE_YOLO26      = 14u
+    MA_MODEL_TYPE_YOLO26      = 14u,
+    MA_MODEL_TYPE_YOLO26_POSE = 15u,
+    MA_MODEL_TYPE_YOLO26_SEG  = 16u
 } ma_model_type_t;
 
 typedef struct {

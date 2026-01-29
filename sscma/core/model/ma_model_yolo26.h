@@ -20,6 +20,7 @@ protected:
 
     ma_err_t postProcessI8();
     ma_err_t postProcessF32();
+    ma_err_t nmsPostProcess();
 
 
 public:
