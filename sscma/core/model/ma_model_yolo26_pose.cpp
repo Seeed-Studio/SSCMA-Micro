@@ -199,7 +199,7 @@ ma_err_t Yolo26Pose::postProcessI8() {
                     w  = x2 - x1;
                     h  = y2 - y1;
 
-                    ma_keypoint2f_t keypoint;
+                    ma_keypoint3f_t keypoint;
                     keypoint.box.score  = ma::math::sigmoid(score);
                     keypoint.box.target = target;
                     keypoint.box.x      = (x1 + w / 2.0) / img_.width;
@@ -213,15 +213,15 @@ ma_err_t Yolo26Pose::postProcessI8() {
                         float kpt_val[3];
                         for(int dim=0; dim<3; dim++) {
                              kpt_val[dim] = ma::math::dequantizeValue(output_kpt[offset], outputs_[kpt_i].quant_param.scale, outputs_[kpt_i].quant_param.zero_point);
-                             offset += grid_l; 
+                             offset += grid_l;
                         }
-                        
+
                         float p_x = (kpt_val[0] * 2 + k) * stride; // Decoding logic might vary for Pose
                         float p_y = (kpt_val[1] * 2 + j) * stride;
                         float p_s = ma::math::sigmoid(kpt_val[2]);
-                        
+
                         // Fallback logic, YoloV8 Pose is (x*2+k)*stride... verify decoding
-                        keypoint.pts.push_back({p_x / img_.width, p_y / img_.height});
+                        keypoint.pts.push_back({p_x / img_.width, p_y / img_.height, p_s});
                     }
 
                     results_.emplace_front(std::move(keypoint));
@@ -285,14 +285,14 @@ ma_err_t Yolo26Pose::postProcessF32() {
                     w  = x2 - x1;
                     h  = y2 - y1;
 
-                    ma_keypoint2f_t keypoint;
+                    ma_keypoint3f_t keypoint;
                     keypoint.box.score  = ma::math::sigmoid(max);
                     keypoint.box.target = target;
                     keypoint.box.x      = (x1 + w / 2.0) / img_.width;
                     keypoint.box.y      = (y1 + h / 2.0) / img_.height;
                     keypoint.box.w      = w / img_.width;
                     keypoint.box.h      = h / img_.height;
-                    
+
                     // Parse Keypoints
                     offset = j * grid_w + k;
                     for(int kp = 0; kp < num_keypoints_; kp++) {
@@ -305,7 +305,7 @@ ma_err_t Yolo26Pose::postProcessF32() {
                          float decoded_y = (py * 2 + j) * stride;
                          // decoded_s usually sigmoid(ps)
 
-                         keypoint.pts.push_back({decoded_x / img_.width, decoded_y / img_.height});
+                         keypoint.pts.push_back({decoded_x / img_.width, decoded_y / img_.height, ps});
                     }
 
                     results_.emplace_front(std::move(keypoint));
